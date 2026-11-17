@@ -44,5 +44,7 @@ char *zb_test_read_file(const char *path, size_t *len);
 void zb_test_remove_tree(const char *path);
 /* Repository root (from ZB_SOURCE_DIR, falling back to the current directory). */
 const char *zb_test_source_dir(void);
+/* Sets (value != NULL) or removes an environment variable. */
+void zb_test_setenv(const char *name, const char *value);
 
 #endif

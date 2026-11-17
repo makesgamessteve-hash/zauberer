@@ -133,7 +133,11 @@ static zb_result sdl_fs_stat(void *ctx, const char *path, zb_fs_stat *st) {
 
 static zb_result sdl_fs_remove(void *ctx, const char *path) {
   (void)ctx;
-  return SDL_RemovePath(path) ? ZB_OK : ZB_ERR_NOT_FOUND;
+  SDL_PathInfo info;
+  if (!SDL_GetPathInfo(path, &info)) {
+    return ZB_ERR_NOT_FOUND; /* SDL_RemovePath reports success for missing paths */
+  }
+  return SDL_RemovePath(path) ? ZB_OK : ZB_ERR_IO;
 }
 
 /* ---- Threads --------------------------------------------------------------- */

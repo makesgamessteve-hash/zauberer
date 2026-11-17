@@ -65,7 +65,7 @@ static bool parse_int(const char **s, int *out) {
 
 bool zb_version_parse(const char *s, zb_version *out) {
   zb_version v = {0, 0, 0};
-  if (!parse_int(&s, &v.major)) {
+  if (!s || !parse_int(&s, &v.major)) {
     return false;
   }
   if (*s == '.') {
@@ -372,6 +372,9 @@ static void load_manifest(zb_vfs *v, zb_package *p) {
     } else {
       p->license_code = zb_strdup(v->a, zb_value_str(zb_table_get(license, "code"), "unknown"));
       p->license_assets = zb_strdup(v->a, zb_value_str(zb_table_get(license, "assets"), "unknown"));
+    }
+    if (!p->id || !p->name || !p->version || !p->api || !p->license_code || !p->license_assets) {
+      disable(p, "out of memory while reading package.lua");
     }
     p->affects_worldgen = zb_value_bool(zb_table_get(root, "affects_worldgen"), false);
     if (!read_deps(v, zb_table_get(root, "requires"), &p->requires, &p->requires_count) ||

@@ -7,5 +7,7 @@
 #include "core/thread.h"
 
 const zb_thread_api *zb_test_thread_api(void);
+/* Sleeps the calling thread. */
+void zb_test_sleep_ms(unsigned ms);
 
 #endif

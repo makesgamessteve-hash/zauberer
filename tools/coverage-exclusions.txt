@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+# Coverage exclusions read by tools/coverage_gate.py (C and Lua gates).
+#
+# Files below third_party/ and tests/ are never measured and need no entry.
+# Everything else that is excluded from the 95 % line-coverage gates must be
+# listed here, one entry per line:
+#
+#   <path or glob> | <justification>
+#
+# Paths are relative to the repository root. In globs, '*' matches within one
+# path segment and '**' across segments; a path ending in '/' covers the whole
+# directory. Every entry needs a written justification (why the code cannot
+# run in CI); an entry without one fails the gate. Lines starting with '#' are
+# comments, blank lines are ignored.
+#
+# Excluded lines must stay below 1 % of all measured lines; the gate fails if
+# the list grows beyond that budget. Changes to this file need review.

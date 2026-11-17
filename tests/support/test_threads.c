@@ -1,7 +1,11 @@
 /* SPDX-License-Identifier: MIT */
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "support/test_threads.h"
 
 #include <stdlib.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -105,3 +109,12 @@ static const zb_thread_api k_api = {t_create, t_join, m_create, m_destroy, m_loc
                                     c_create, c_destroy, c_wait, c_broadcast};
 
 const zb_thread_api *zb_test_thread_api(void) { return &k_api; }
+
+void zb_test_sleep_ms(unsigned ms) {
+#ifdef _WIN32
+  Sleep(ms);
+#else
+  struct timespec ts = {(time_t)(ms / 1000u), (long)(ms % 1000u) * 1000000L};
+  nanosleep(&ts, NULL);
+#endif
+}

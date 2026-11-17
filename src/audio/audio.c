@@ -21,6 +21,7 @@ typedef struct sound {
   bool failed;
   int refs;
   zb_vfs_req *req;
+  struct zb_audio *owner;
 } sound;
 
 typedef struct voice {
@@ -275,16 +276,9 @@ static void decode_sound(zb_audio *au, sound *s, const char *data, size_t len) {
   }
 }
 
-typedef struct load_box {
-  zb_audio *au;
-  sound *s;
-} load_box;
-
 static void on_loaded(zb_vfs_req *req, void *user) {
-  load_box *box = user;
-  zb_audio *au = box->au;
-  sound *s = box->s;
-  zb_free(au->a, box);
+  sound *s = user;
+  zb_audio *au = s->owner;
   size_t len = 0;
   const char *data = zb_vfs_req_data(req, &len);
   lock(au);
@@ -312,20 +306,15 @@ static sound *get_sound(zb_audio *au, const char *path) {
     return NULL;
   }
   s = zb_calloc(au->a, sizeof(*s));
-  load_box *box = zb_alloc(au->a, sizeof(*box));
-  if (!s || !box) {
-    zb_free(au->a, s);
-    zb_free(au->a, box);
+  if (!s) {
     return NULL;
   }
   snprintf(s->path, sizeof s->path, "%s", path);
+  s->owner = au;
   s->loading = true;
   au->sounds[au->sound_count++] = s;
-  box->au = au;
-  box->s = s;
-  s->req = zb_vfs_request(au->vfs, path, on_loaded, box);
+  s->req = zb_vfs_request(au->vfs, path, on_loaded, s);
   if (!s->req) {
-    zb_free(au->a, box);
     s->loading = false;
     s->failed = true;
   }
@@ -525,6 +514,9 @@ static void mix_voice(zb_audio *au, voice *v, float *out, int frames) {
       out[i * 2 + 1] += (s->samples[i0 * 2 + 1] * (1.0f - t) + s->samples[i1 * 2 + 1] * t) * gain;
     }
     v->pos += step;
+  }
+  if (!v->loop && v->pos >= length) {
+    voice_release(au, v); /* finished exactly at the end of this block */
   }
 }
 

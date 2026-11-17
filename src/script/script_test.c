@@ -45,7 +45,7 @@ static int fail(lua_State *L, const char *fmt, ...) {
     lua_pushboolean(L, 0);
     return 1;
   }
-  luaL_where(L, 2);
+  luaL_where(L, 1);
   lua_pushstring(L, msg);
   lua_concat(L, 2);
   return lua_error(L);
@@ -116,9 +116,13 @@ typedef struct file_list {
   zb_array names;
 } file_list;
 
+/* *_test.lua or test_*.lua; other files in a test directory are helpers. */
 static bool is_test_file(const char *name) {
   size_t n = strlen(name);
-  return n > 4 && strcmp(name + n - 4, ".lua") == 0;
+  if (n <= 4 || strcmp(name + n - 4, ".lua") != 0) {
+    return false;
+  }
+  return strncmp(name, "test_", 5) == 0 || (n > 9 && strcmp(name + n - 9, "_test.lua") == 0);
 }
 
 static bool collect(const char *name, bool is_dir, void *user) {
@@ -417,7 +421,9 @@ zb_result zb_script_scenario_start(zb_script *s, const char *path) {
   zb_free(s->cfg.a, text);
   if (status != LUA_OK) {
     zb_script_report(s, "scenario", lua_tostring(s->co, -1));
-    lua_pop(s->co, 1);
+    luaL_unref(L, LUA_REGISTRYINDEX, s->co_ref);
+    s->co_ref = LUA_NOREF;
+    s->co = NULL;
     s->scenario_failures++;
     return ZB_ERR_PARSE;
   }

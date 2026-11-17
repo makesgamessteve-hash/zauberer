@@ -114,8 +114,10 @@ static void debug_hook(lua_State *L, lua_Debug *ar) {
     s->budget_count += BUDGET_STEP;
     if (s->budget_count > s->cfg.instruction_budget) {
       s->budget_count = 0;
-      luaL_error(L, "instruction budget of %llu exceeded (runaway script?)",
-                 (unsigned long long)s->cfg.instruction_budget);
+      char msg[96];
+      snprintf(msg, sizeof msg, "instruction budget of %llu exceeded (runaway script?)",
+               (unsigned long long)s->cfg.instruction_budget);
+      luaL_error(L, "%s", msg);
     }
   }
 }
@@ -295,9 +297,14 @@ static int l_require(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   int pkg = (int)lua_tointeger(L, lua_upvalueindex(1));
   if (pkg < 0 || (size_t)pkg >= s->pkg_count || s->env_refs[pkg] == LUA_NOREF) {
-    pkg = 0; /* tests and scenarios load modules in the first package's environment */
-    if (s->pkg_count == 0 || s->env_refs[0] == LUA_NOREF) {
-      return luaL_error(L, "module '%s' cannot be loaded: no package scripts are running", name);
+    /* Tests and scenarios load modules in the first package's environment. */
+    if (s->pkg_count == 0) {
+      return luaL_error(L, "module '%s' cannot be loaded: no packages are enabled", name);
+    }
+    pkg = 0;
+    if (s->env_refs[0] == LUA_NOREF) {
+      zb_script_new_env(s, 0);
+      s->env_refs[0] = luaL_ref(L, LUA_REGISTRYINDEX);
     }
   }
   lua_getfield(L, LUA_REGISTRYINDEX, ZB_SCRIPT_REGISTRY_LOADED);
@@ -693,6 +700,15 @@ zb_result zb_script_write_coverage(zb_script *s) {
   }
   zb_result r = fs->write(fs->ctx, s->cfg.coverage_path, buf.data ? buf.data : (void *)"", buf.len);
   zb_array_free(&buf);
+  if (r == ZB_OK) {
+    /* The file now holds every count: later writes add only new hits. */
+    for (size_t i = 0; i < s->cov_files.len; ++i) {
+      cov_file *f = zb_array_at(&s->cov_files, i);
+      if (f->hits) {
+        memset(f->hits, 0, f->max * sizeof(uint32_t));
+      }
+    }
+  }
   return r;
 }
 

@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: MIT */
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "support/test_support.h"
 
 #include "unity.h"
@@ -198,5 +201,17 @@ void zb_test_remove_tree(const char *path) {
   }
   closedir(d);
   rmdir(path);
+#endif
+}
+
+void zb_test_setenv(const char *name, const char *value) {
+#ifdef _WIN32
+  _putenv_s(name, value ? value : "");
+#else
+  if (value) {
+    setenv(name, value, 1);
+  } else {
+    unsetenv(name);
+  }
 #endif
 }

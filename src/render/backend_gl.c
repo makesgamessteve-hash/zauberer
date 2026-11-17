@@ -189,7 +189,12 @@ bool zb_gl_parse_version(const char *s, bool *es, int *major, int *minor) {
   if (!s) {
     return false;
   }
-  *es = strstr(s, "OpenGL ES") != NULL || strstr(s, "WebGL") != NULL;
+  const char *es_tag = strstr(s, "OpenGL ES");
+  const char *web_tag = strstr(s, "WebGL");
+  /* Browsers report "WebGL 2.0 (OpenGL ES 3.0 ...)" or "OpenGL ES 3.0 (WebGL 2.0 ...)":
+   * whichever comes first names the number that follows it. */
+  bool webgl = web_tag && (!es_tag || web_tag < es_tag);
+  *es = es_tag != NULL || web_tag != NULL;
   const char *p = s;
   while (*p && !isdigit((unsigned char)*p)) {
     p++;
@@ -197,7 +202,7 @@ bool zb_gl_parse_version(const char *s, bool *es, int *major, int *minor) {
   if (!*p || sscanf(p, "%d.%d", major, minor) != 2) {
     return false;
   }
-  if (strstr(s, "WebGL")) {
+  if (webgl) {
     /* WebGL 2.0 corresponds to OpenGL ES 3.0, WebGL 1.0 to ES 2.0. */
     *major = *major + 1;
     *minor = 0;
