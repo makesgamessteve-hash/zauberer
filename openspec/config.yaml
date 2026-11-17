@@ -1,0 +1,32 @@
+schema: spec-driven
+
+# Project context: constraints an agent cannot infer from the code.
+# The game concept lives in docs/concept/, the architecture and roadmap in
+# docs/implementation-plan.md. Read both before proposing a change.
+context: |
+  Zauberer is an endless, simulation-driven flying-carpet mage game.
+  Engine: C11 core with SDL3 and OpenGL 3.3 core / OpenGL ES 3.0 (WebGL 2) common subset only
+  (no compute, geometry or tessellation shaders). Game layer: Lua 5.4 scripts and data.
+  Targets: Windows, Linux, macOS, Web (Emscripten) and WebXR; mobile is served by the web build
+  with touch controls selected automatically.
+  All assets, scripts and data live in package folders next to the binary; nothing is embedded
+  in the executable or the .wasm.
+  World generation and simulation are deterministic: same seed and inputs give identical results
+  on every platform (counter-based RNG, no FMA contraction, own deterministic math in worldgen).
+  Quality gates: line coverage >= 95 % for C (src/) and Lua (assets/base/scripts), every spec
+  scenario covered by an automated test, CI green on all platforms.
+  Licenses: code MIT, creative assets CC BY 4.0, every file covered by SPDX/REUSE metadata.
+
+rules:
+  proposal:
+    - Name the roadmap milestone (M0-M10 in docs/implementation-plan.md) the change belongs to
+    - State platform-specific differences (desktop, web, mobile web, WebXR) or say there are none
+  specs:
+    - Write scenarios so they can be automated as unit, scenario (headless Lua) or web E2E tests
+    - State performance or memory budgets as measurable thresholds where behaviour depends on them
+  design:
+    - Respect the module dependency rules in docs/implementation-plan.md section 1.1
+    - Explain how determinism is preserved for any simulation or generation work
+  tasks:
+    - Each task group lands its own unit and scenario tests; no trailing "write tests" group
+    - Include a task that maps every spec scenario to a named automated test

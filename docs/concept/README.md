@@ -1,0 +1,111 @@
+# Zauberer: Game Concept
+
+> Working title. "Zauberer" is German for *wizard* (and *sorcerer*). Every name in these
+> documents is a placeholder until the story is locked.
+
+## One-line pitch
+
+A child survives the destruction of their village, inherits a living flying carpet and a
+father's secret spellbooks, and grows into a powerful mage in an endless, simulated planet
+where fire spreads, water flows, forests grow and rot, and every spell pushes on the real
+physics, chemistry and biology of the world.
+
+## The game in one paragraph
+
+You fly a carpet over a whole planet that is generated lazily, chunk by chunk, as you
+explore it. The planet has continents, oceans, mountain ranges, deserts, rainforests,
+tundra and magical biomes. All of it follows a coarse but consistent simulation of climate,
+geology and hydrology. Thick sprite forests hide animals, insects and fungi that live,
+hunt, migrate and die whether you watch or not. Villages, towns, castles and ruins are real
+places that you can enter, room by room. Magic is built from **words, gestures, ingredients
+and colored mana**, and it acts *through* the simulation. A fireball adds heat that ignites
+dry grass, the wind carries the fire, the fire makes smoke, rain puts it out, and the burnt
+land regrows over the next seasons. You survive, gather, learn, craft, brew, enchant,
+summon and perform rituals, all to grow strong enough to face the mage who murdered your
+family.
+
+## Design pillars
+
+1. **A world that exists without you.** The planet is consistent from the global climate
+   down to a mushroom on a rotting log. Things happen off-screen at reduced detail and are
+   caught up when you return.
+2. **Magic is physics with intent.** Spells never trigger canned effects. They inject heat,
+   matter, force, growth, decay, light or folded space into the simulation, and the world
+   reacts on its own.
+3. **Knowledge is power.** Progression comes from learning: spell formulae, the properties
+   of plants and minerals, creatures' habits, recipes and rituals. A level-up screen is not
+   the main source of growth.
+4. **The carpet is home.** The carpet is your vehicle, your cloak and your house: a tent
+   that is far bigger inside than outside. It is the emotional anchor, the last thing left
+   of your family.
+5. **Endless but meaningful.** Procedural content is generated in layers, from planet to
+   region to chunk to room. The story is anchored into that procedural world, so every
+   world has its own geography for the same tale.
+6. **Retro look, modern depth.** Low-poly 3D, pixel textures, billboard sprites and
+   optional voxels, rendered at a low internal resolution with fog and a limited palette.
+   The style keeps the scope achievable and lets the systems carry the experience.
+7. **Open and moddable.** A C core engine and a Lua game layer. All assets, scripts and data
+   sit in plain folders next to the executable. Code is MIT, art is CC BY 4.0.
+
+## Inspiration, not recreation
+
+The genre roots are the mid-90s flying-carpet mage games. Bullfrog's *Magic Carpet* (1994)
+and *Magic Carpet 2* (1995) gave us the carpet as a vehicle, collecting mana, reshaping
+terrain with spells, and rival wizards competing over territory. Zauberer borrows those
+**mechanics and that fantasy**. It uses its own title, world, characters, story, art, music
+and level design. No names, assets, levels or visual identity from those games are used.
+Other influences on systems include the falling-sand and systemic games (emergent fire and
+fluids), survival-crafting games (gathering and base building), Dwarf-Fortress-style world
+histories, and voxel sandbox games (endless chunked worlds).
+
+## Platforms and technology at a glance
+
+| Aspect | Decision |
+| --- | --- |
+| Engine | Custom, C11, SDL3, OpenGL 3.3 core / OpenGL ES 3.0 (WebGL 2) common subset |
+| Game layer | Lua 5.4 scripts and data, loaded from folders next to the binary |
+| Targets | Windows, Linux, macOS, Web (Emscripten), WebXR (immersive VR in the browser) |
+| Input | Keyboard/mouse, gamepad, touch (auto-selected on mobile web), XR controllers |
+| Quality | OpenSpec-driven development, ≥ 95 % line coverage, automated headless game tests |
+| Licenses | Code: MIT. Art, audio and other creative assets: CC BY 4.0 |
+
+See [the implementation plan](../implementation-plan.md) for architecture and roadmap.
+
+## Concept documents
+
+| # | Document | Contents |
+| --- | --- | --- |
+| 1 | [Story and setting](01-story.md) | Protagonist, prologue, the Ash Weaver, acts, endings, procedural story anchoring |
+| 2 | [Carpet, bag and tent](02-carpet-bag-tent.md) | Flight model, cloak mode, tent mode and the pocket home, the endless bag |
+| 3 | [Magic](03-magic.md) | Mana colors and fields, ley lines, the spell grammar, the six disciplines, domains |
+| 4 | [World generation](04-world-generation.md) | Planet model, generation pyramid, terrain, geology, climate, biomes, lazy streaming |
+| 5 | [Simulation](05-simulation.md) | Materials, heat, fire, fluids, gases, chemistry, ecology, simulation tiers |
+| 6 | [Settlements and architecture](06-settlements-architecture.md) | World history, settlements, enterable buildings and castles, dungeons, NPCs |
+| 7 | [Gameplay](07-gameplay.md) | Core loops, survival, knowledge, progression, combat, rival mages, saving |
+| 8 | [Presentation and controls](08-presentation-controls.md) | Art direction, sprite forests, audio, UI, desktop/gamepad/touch/XR controls |
+| 9 | [Extensibility](09-extensibility.md) | Folder layout, packages and mods, Lua API surface, data registries, licensing |
+
+## Scope boundaries
+
+**In scope for 1.0:** single-player, one planet per save, the full story, all six
+disciplines, the eight mana colors, the carpet's three modes, enterable settlements and
+castles, caves and dungeons, rival mages, Windows/Linux/macOS/Web/WebXR, and mod support.
+
+**Out of scope for 1.0 (kept possible by the architecture):** multiplayer or co-op (the
+deterministic simulation keeps the door open), native OpenXR on desktop, a native mobile
+app-store build (mobile is served by the web build), and multiple planets.
+
+## Glossary
+
+| Term | Meaning |
+| --- | --- |
+| **Chunk** | 256 m × 256 m square of the planet surface; the unit of streaming and saving |
+| **Region** | 16 × 16 chunks (≈ 4 km); the unit for planning settlements, roads and rivers |
+| **Macro cell** | ≈ 6 km cell of the global planet model (climate, plates, biomes, history) |
+| **Mana** | The energy of magic. It comes in eight colors and is present as a field everywhere |
+| **Ley line / nexus** | Channels of strong mana flow across the planet, and their crossing points |
+| **Weave** | A composed spell (words + gesture + mana + ingredients); also, the in-world word for any magical structure |
+| **Great Weave** | One of seven legendary artifacts; the carpet is one of them |
+| **Domain** | A territory claimed by a mage through a sanctum built on a nexus |
+| **Simulation tier** | Level of detail at which a place is simulated (active, near, far, dormant, global) |
+| **Package** | A folder of assets, data and scripts (the base game is itself a package; mods are packages) |
