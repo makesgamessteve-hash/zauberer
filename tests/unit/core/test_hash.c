@@ -3,6 +3,8 @@
 #include "support/test_support.h"
 #include "unity.h"
 
+#include <math.h>
+
 #include <string.h>
 
 ZB_TEST_LEAK_CHECKED
@@ -71,7 +73,7 @@ static void test_hasher(void) {
   zb_hasher a, b;
   zb_hasher_init(&a, 0);
   zb_hasher_init(&b, 0);
-  double nan1 = 0.0 / 0.0;
+  double nan1 = (double)NAN;
   double nan2 = -nan1;
   zb_hasher_f64(&a, nan1);
   zb_hasher_f64(&b, nan2);

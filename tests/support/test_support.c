@@ -121,7 +121,7 @@ const char *zb_test_source_dir(void) {
 }
 
 static void mkdirs_for(const char *path) {
-  char tmp[1024];
+  char tmp[2048];
   snprintf(tmp, sizeof tmp, "%s", path);
   for (char *p = tmp + 1; *p; ++p) {
     if (*p == '/' || *p == '\\') {

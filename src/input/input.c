@@ -983,7 +983,7 @@ zb_input_replay *zb_input_replay_open(const zb_allocator *a, zb_input *in, const
   size_t start = rp->pos;
   size_t record = 4 + (size_t)rp->actions * 9;
   while (rp->pos + record <= rp->len) {
-    uint32_t rep;
+    uint32_t rep = 0;
     get_u32(rp, &rep);
     rp->ticks += rep;
     rp->pos += record - 4;
