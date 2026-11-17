@@ -151,7 +151,15 @@ Farrokh's bag looks like a small leather satchel. It holds a folded space.
 - **Antagonist pull.** Azhdar can sense the carpet when it's used near his agents or in
   high-Void areas. The silent-glide and ward upgrades counter this.
 
-## 2.6 Optional extra modes (proposals, not committed)
+## 2.6 Several heirs: splitting the Weave
+
+In co-op, the Wandering Weave carries all heirs at once (one pilots, the others cast), or
+it **unravels into up to four smaller carpets**, one per heir. The pieces are weaker
+because lift, speed and the mana reservoir are divided. They rejoin into one whole carpet
+for the tent, and upgrades apply to every piece. Each heir carries a satchel that opens
+into the same endless fold. See [Co-op](11-co-op.md).
+
+## 2.7 Optional extra modes (proposals, not committed)
 
 | Mode | Idea | Discipline |
 | --- | --- | --- |

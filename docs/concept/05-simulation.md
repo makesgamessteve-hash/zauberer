@@ -17,7 +17,7 @@ The goal is **plausible emergent behaviour at a playable cost**, not scientific 
 
 | Tier | Where | What is simulated |
 | --- | --- | --- |
-| **Active** | ≈ 384 m around the player | Everything: field grids (heat, moisture, gases), shallow-water fluid, fire cells, individual plants' states, individual creatures with full AI, physics objects, particles |
+| **Active** | ≈ 384 m around each present player (heirs close together share one area; separated heirs each get one, and their radii shrink to fit the host's CPU budget) | Everything: field grids (heat, moisture, gases), shallow-water fluid, fire cells, individual plants' states, individual creatures with full AI, physics objects, particles |
 | **Near** | ≈ 384 m – 2 km | Coarser fields (4× cell size); fire as fronts; water at rest except rivers; creatures as simplified agents (move along the navigation graph, no fine perception) |
 | **Far** | Loaded and visible, beyond near | Aggregates per chunk: population counts, vegetation density and growth stage, burning or not, wetness; no individuals |
 | **Dormant** | Visited earlier, now unloaded | Frozen with a timestamp. On reload a **catch-up** step applies closed-form evolution over the elapsed time |

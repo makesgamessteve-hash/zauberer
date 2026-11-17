@@ -23,14 +23,21 @@ context: |
   'Settled world' variant or the optional 'Rise and fall' history simulation; both write one history
   database schema. The result is stored with the save as the world bundle; everything below the
   planet layer is generated lazily from bundle + seed.
+  Co-op: up to four players (the heirs) in one world, host-authoritative, cross-play between all
+  platforms over WebSocket (relay or LAN); clients generate the world locally and receive only
+  deltas and nearby entity states. No module may assume a single player.
+  Art is procedural-first (generator tools write reproducible CC BY 4.0 assets into packages);
+  hand-made art is reserved for key assets. Minimum hardware: 4-core CPU, 8 GB RAM, 2018+
+  integrated GPU; mid-range 2021+ phone for the web build.
 
 rules:
   proposal:
-    - Name the roadmap milestone (M0-M10 in docs/implementation-plan.md) the change belongs to
+    - Name the roadmap milestone (M0-M11 in docs/implementation-plan.md) the change belongs to
     - State platform-specific differences (desktop, web, mobile web, WebXR) or say there are none
   specs:
     - Write scenarios so they can be automated as unit, scenario (headless Lua) or web E2E tests
     - State performance or memory budgets as measurable thresholds where behaviour depends on them
+    - "For gameplay capabilities, state co-op behaviour: what is replicated, who has authority, and what happens with 1 to 4 heirs present"
   design:
     - Respect the module dependency rules in docs/implementation-plan.md section 1.1
     - Explain how determinism is preserved for any simulation or generation work

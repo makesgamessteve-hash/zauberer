@@ -25,6 +25,10 @@ change is in `proposal.md`, and the required behaviour is in this change's `spec
 - Skinned or animated glTF models. Only static meshes in M0.
 - Native mobile builds, and code coverage measured on Windows and macOS (see Open
   Questions).
+- Networking. Co-op arrives with `add-netcode-foundation` in M1. M0 avoids single-player
+  assumptions so that the foundation fits without rework: input snapshots and recordings
+  carry a player index, the state hash is not tied to one player, and no module keeps a
+  global "the player".
 
 ## Decisions
 
@@ -153,6 +157,8 @@ and Emscripten headers, only the render backend sees GL, and only `zb_script` se
 
 - **Pipeline:** SDL events update the raw device state. Bindings resolve it into the
   action snapshot (a fixed array per action), which is sampled once before each tick.
+  Each snapshot carries a player index (always 0 in M0), so that remote players' inputs
+  from M1's netcode use the same path.
 - **Gamepads** use the SDL3 gamepad API with its mapping database. Hot-plug events
   release the actions held by a removed device.
 - **Touch mode on the web:**
@@ -305,4 +311,4 @@ Not applicable: this is a greenfield change with nothing to migrate or roll back
 - Whether to add coverage collection on Windows and macOS later and merge it into the gate
   (it would shrink the exclusion list).
 - Linux distribution format (AppImage or tarball). This is decided in the release
-  milestone (M10).
+  milestone (M11).

@@ -53,6 +53,9 @@ user data (per OS: %APPDATA%, ~/.local/share, ~/Library/Application Support, Ind
   Each patch is applied in load order and logged.
 - **Per-world mod set.** A save records the packages and versions it was created with.
   Loading with a different set shows a compatibility report.
+- **Co-op:** every player in a session needs the same package set. Joining compares the
+  package lists and shows any mismatch. Packages are never transferred automatically,
+  because scripts are code and the Lua sandbox is not a security boundary.
 
 ## 9.4 Lua scripting API (surface overview)
 

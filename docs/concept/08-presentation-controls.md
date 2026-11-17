@@ -6,6 +6,20 @@ The game looks like mid-90s 3D, with low polygon counts, chunky textures and bil
 sprites, but has the view distances, lighting and density that hardware of that era
 couldn't manage.
 
+**Art is produced procedural-first.** Generator tools in the repository create most of the
+assets reproducibly:
+
+- terrain and material textures,
+- palette ramps,
+- tile ornaments (geometric star patterns, arabesques, carpet borders),
+- vegetation sprites rendered from procedural plant models,
+- architecture kit pieces and sound effects.
+
+The outputs are written into packages as ordinary CC BY 4.0 files, so they stay
+moddable. The engine adds runtime variation through palette swaps and pattern
+recombination per culture. Hand-made art is reserved for key assets: the carpet, the
+heirs and characters, creatures, and story set pieces.
+
 | Element | Treatment |
 | --- | --- |
 | **Resolution** | Rendered at a low internal resolution (default 640 × 360, options from 320 × 180 to native) and upscaled with nearest-neighbour filtering. Optional sharp-bilinear for high-DPI screens |
@@ -144,8 +158,7 @@ back to desktop mode on mouse or keyboard input.
 All text lives in string tables inside packages (Lua). The plan is to ship English and
 German first (the game's title is German). The Old Tongue words stay untranslated
 everywhere. The UI must support UTF-8 text and the fonts need extended Latin coverage.
-Other scripts come later through fonts in packages. Given the setting, Persian, Arabic
-and Turkish translations are natural candidates. Right-to-left scripts need
-bidirectional layout and glyph shaping, so the text system is designed so that a shaping
-library (e.g. HarfBuzz, MIT-licensed) can be added later without changing the scripting
-API. The generated cultures' invented scripts are pixel glyph sets in packages.
+Other left-to-right languages (for example Turkish) can be added later through string
+tables and fonts in packages. Right-to-left languages such as Persian and Arabic are **not
+planned**, so the text system stays left-to-right without glyph shaping. The generated
+cultures' invented scripts are pixel glyph sets in packages, written left to right.

@@ -96,16 +96,27 @@ See [the implementation plan](../implementation-plan.md) for architecture and ro
 | 8 | [Presentation and controls](08-presentation-controls.md) | Art direction, sprite forests, audio, UI, desktop/gamepad/touch/XR controls |
 | 9 | [Extensibility](09-extensibility.md) | Folder layout, packages and mods, Lua API surface, data registries, licensing |
 | 10 | [World history](10-world-history.md) | Deep-time geology, Earth-likeness, peopling (*Settled world* or simulated *Rise and fall*), cultures, languages, faiths, polities, lore |
+| 11 | [Co-op](11-co-op.md) | Up to four heirs, splitting the Weave, shared and personal progress, sessions, cross-play, engine implications |
 
 ## Scope boundaries
 
-**In scope for 1.0:** single-player, one planet per save, deep-time world creation with
-both history variants, the full story, all six disciplines, the eight mana colors, the carpet's three modes, enterable settlements and
-castles, caves and dungeons, rival mages, Windows/Linux/macOS/Web/WebXR, and mod support.
+**In scope for 1.0:**
 
-**Out of scope for 1.0 (kept possible by the architecture):** multiplayer or co-op (the
-deterministic simulation keeps the door open), native OpenXR on desktop, a native mobile
-app-store build (mobile is served by the web build), and multiple planets.
+- single-player and **online co-op for up to four heirs**, with cross-play between all
+  platforms,
+- one planet per save, deep-time world creation with both history variants,
+- the full story, all six disciplines, the eight mana colors and the carpet's three modes,
+- enterable settlements and citadels, caves and dungeons, and rival mages,
+- Windows, Linux, macOS, Web and WebXR, and mod support.
+
+**Out of scope for 1.0:**
+
+- native Android and iOS apps (planned after 1.0; mobile is served by the web build until
+  then),
+- native OpenXR on desktop,
+- split-screen co-op, more than four players, and host migration,
+- right-to-left languages,
+- multiple planets.
 
 ## Glossary
 
@@ -121,6 +132,8 @@ app-store build (mobile is served by the web build), and multiple planets.
 | **Domain** | A territory claimed by a mage through a sanctum built on a nexus |
 | **Simulation tier** | Level of detail at which a place is simulated (active, near, far, dormant, global) |
 | **Package** | A folder of assets, data and scripts (the base game is itself a package; mods are packages) |
+| **Heir** | A player character: one of Farrokh's children. One to four heirs share a world |
+| **Host** | The player whose machine runs the authoritative simulation and keeps the save in co-op |
 | **World bundle** | The stored result of world creation (planet fields, rock record, ley graph, history database), saved with each world |
 | **Style family** | A library of architecture, ornament, textile, music and naming vocabulary that generated cultures inherit and blend |
 | **Settled world / Rise and fall** | The two peopling variants: direct placement with a reconstructed chronicle (default), or a full simulation of societies (optional) |

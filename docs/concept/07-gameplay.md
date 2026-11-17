@@ -127,6 +127,10 @@ Combat is a test of everything else. The player rarely wins by raw damage alone.
   save.
 - **Time:** day and night, seasons and years pass. Sleeping, travel and long rituals
   advance time. In-game time doesn't stop on its own, but the game can be paused.
+- **Co-op:** up to four heirs share one world, hosted and saved by one player. Sleeping
+  and time skips need agreement, a downed heir can be revived by another before the
+  carpet carries them off, and the world only pauses when the host pauses it (see
+  [Co-op](11-co-op.md)).
 
 ## 7.8 Example first two hours (vertical slice target)
 

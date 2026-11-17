@@ -6,7 +6,8 @@ Zauberer is an open-source game about a child who inherits a living flying carpe
 murdered father's spellbooks. The child grows into a mage on an endless planet that is
 generated lazily and simulated physically, chemically and biologically. Magic is built
 from words, gestures, ingredients and eight colors of mana, and it acts through the
-world's simulation of heat, fire, water, air and life.
+world's simulation of heat, fire, water, air and life. Play alone, or in online co-op
+with up to three friends as the father's children, the heirs of the carpet.
 
 > **Status: concept and planning.** There is no engine code yet. The first implementation
 > milestone (M0, engine foundation) is fully specified and ready to start.
@@ -16,7 +17,7 @@ world's simulation of heat, fire, water, air and life.
 | Document | What it covers |
 | --- | --- |
 | [Game concept](docs/concept/README.md) | Vision, pillars, story, carpet, magic, world generation, simulation, settlements, gameplay, presentation, modding |
-| [Implementation plan](docs/implementation-plan.md) | Architecture, technology stack, repository layout, quality strategy, milestone roadmap M0–M10, decisions, risks, open questions |
+| [Implementation plan](docs/implementation-plan.md) | Architecture, technology stack, repository layout, quality strategy, milestone roadmap M0–M11, decisions, risks, open questions |
 | [OpenSpec change: engine foundation](openspec/changes/add-engine-foundation/proposal.md) | The first change (M0): proposal, design, nine capability specs, tasks |
 
 ## Technology
@@ -25,7 +26,7 @@ world's simulation of heat, fire, water, air and life.
 | --- | --- |
 | Engine | C11, SDL3, OpenGL 3.3 core / OpenGL ES 3.0 (WebGL 2) |
 | Game layer | Lua 5.4 scripts and data, loaded from package folders next to the binary |
-| Platforms | Windows, Linux, macOS, Web (Emscripten), WebXR; touch controls on mobile web |
+| Platforms | Windows, Linux, macOS, Web (Emscripten), WebXR; touch controls on mobile web; cross-play co-op for up to four players |
 | Quality | Spec-driven development with [OpenSpec](https://github.com/Fission-AI/OpenSpec), ≥ 95 % line coverage (C and Lua), automated headless game tests, CI on all platforms |
 
 ## Working with OpenSpec

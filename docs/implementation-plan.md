@@ -38,6 +38,7 @@ can build on what the earlier ones taught us.
 │  render/  frontend (scene → draw lists) · GL backend · retro post · views   │
 │  audio/   mixer · 3D emitters · streaming music                             │
 │  input/   actions · bindings · gamepad · touch & virtual controls · replay  │
+│  net/     transport (loopback, WebSocket) · sessions · replication          │
 │  script/  Lua host · bindings · sandbox · hot reload · worker Lua states    │
 │  vfs/     packages · overlay lookup · async loading · web fetch + cache     │
 │  platform/ SDL3: window, GL context, input, audio device, threads, paths,   │
@@ -53,9 +54,9 @@ can build on what the earlier ones taught us.
   fully unit-testable.
 - `platform` is the only module that includes SDL or Emscripten headers. It is kept
   **thin**: no logic that could live elsewhere.
-- `world`, `sim`, `game`, `input` and the render **frontend** depend on `core` and on
-  each other downward only. None of them knows SDL or GL. `platform` feeds raw device
-  events into `input`.
+- `world`, `sim`, `game`, `input`, `net` and the render **frontend** depend on `core` and
+  on each other downward only. None of them knows SDL or GL. `platform` feeds raw device
+  events into `input` and provides sockets to `net`.
 - The render **backend** is the only code that calls OpenGL.
 - `script` binds everything for Lua and is the only module that includes Lua headers.
 - `app/main.c` is the composition root. It wires the modules together, and nothing
@@ -73,6 +74,8 @@ can build on what the earlier ones taught us.
 - **Headless mode:** the same loop runs without a window, GL or audio device, as fast
   as possible or stepped explicitly. It is used for automated tests, world-generation
   tools and servers in the future.
+- **Co-op roles:** the same loop runs as *single-player*, *host* or *client*. The host
+  runs the authoritative simulation and the clients predict their own heir (§1.11).
 - **WebXR:** while an XR session is active, the XR frame callback (JavaScript) calls an
   exported engine function that runs the iterate step with the XR views. The normal
   iterate step skips rendering during that time.
@@ -204,6 +207,48 @@ saves/<world>/
 | Web | Emscripten, WebGL 2, pthreads (plus a single-thread fallback build). `index.html` shell, `assets/` folder fetched lazily. Touch UI on coarse-pointer devices |
 | WebXR | `immersive-vr` through a small JS bridge (our own code, MIT). Stereo views, controller poses, select and squeeze events → engine input actions |
 
+### 1.11 Networking (co-op for up to four heirs)
+
+See [Co-op](concept/11-co-op.md) for the player-facing design.
+
+- **Topology:** host-authoritative. One player's game is the server for up to three
+  clients. There are no dedicated game servers in 1.0.
+- **Transport:**
+  - WebSocket, because browsers can't use raw UDP. Desktop builds speak the same
+    protocol, so every platform can play with every other.
+  - Sessions are reached through a small **relay** (invite codes, forwarding only, no
+    game logic, self-hostable, MIT). Desktop hosts also accept direct LAN connections.
+  - A WebRTC data-channel transport is a later optimisation behind the same transport
+    interface.
+- **What travels:**
+  - **Not the world.** Clients generate terrain, vegetation and buildings locally from the
+    world bundle and seed (determinism, §1.5). The bundle is transferred once on first
+    join and cached.
+  - **Deltas:** terrain edits, felled trees, burnt cells, opened doors, structure damage.
+    These are the same deltas the save system stores.
+  - **Entity states** in each client's area of interest, prioritised by distance and
+    relevance, quantised and delta-compressed against acknowledged snapshots.
+  - **Inputs** from clients to the host every tick, with redundancy against loss.
+  - **Field summaries** (fire fronts, water levels, weather) at reduced rates, enough to
+    render. The host keeps the full fields.
+- **Prediction and correction:** each client predicts its own heir and carpet (flight
+  feels instant) and reconciles with host snapshots. Other entities are interpolated.
+  Spells are predicted visually and resolved by the host.
+- **Several active areas:** the simulation tiers support one active area per separated
+  heir. The host divides its CPU budget between them and shrinks their radii as needed.
+- **Desync detection:** host and clients exchange hashes of the replicated state
+  regularly. A mismatch triggers a resync of the affected entities or chunk, and the
+  event is logged with context for debugging.
+- **Engine-wide rules:** player indices appear on input snapshots, entities have owners,
+  and no module may assume a single "the player". Every gameplay change states its co-op
+  behaviour in its specs (enforced by an OpenSpec rule).
+- **Security and privacy:** sessions are private (invite code or LAN). No accounts or
+  personal data are needed, and the relay sees only encrypted traffic and session codes.
+  Clients send inputs, never authoritative state. Mods are not transferred (see the
+  concept, §9.3).
+- **Bandwidth target:** ≤ 64 kbit/s per client on average, ≤ 256 kbit/s peak, at up to
+  150 ms latency, with graceful degradation to 300 ms.
+
 ---
 
 ## 2. Technology stack
@@ -219,7 +264,8 @@ saves/<world>/
 | Fonts | stb_truetype + own bitmap font | MIT / public domain | |
 | Models | cgltf | MIT | glTF 2.0 |
 | Voxels | ogt_vox | MIT (to confirm when vendoring) | MagicaVoxel `.vox` |
-| Compression | LZ4 | BSD-2-Clause | Save regions (decided in the persistence change) |
+| Compression | LZ4 | BSD-2-Clause | Save regions and network snapshots (decided in the persistence change) |
+| Networking | Platform sockets (SDL_net 3 where available) + **mbedTLS** for secure WebSockets on desktop; the browser's WebSocket API on the web | zlib / Apache-2.0 | One protocol for every platform; the relay server is our own small C program (MIT) |
 | Build | CMake ≥ 3.25 with presets; Emscripten SDK | BSD-3 / MIT | Dependencies fetched by pinned hash (FetchContent) or vendored in `third_party/` |
 | C unit tests | **Unity** (ThrowTheSwitch) | MIT | One test executable per module, run by CTest |
 | C coverage | gcov/llvm-cov + **gcovr** | GPL runtime exception / Apache-2.0 / BSD-3 (tools only) | `--fail-under-line 95` |
@@ -230,8 +276,8 @@ saves/<world>/
 | Spec workflow | **OpenSpec** | MIT | `openspec validate --strict` in CI |
 | Profiling | Built-in markers; optional Tracy in dev builds | BSD-3 | |
 
-All shipped dependencies are permissive (MIT, zlib, BSD or public domain) and compatible
-with the MIT-licensed code. `THIRD_PARTY_NOTICES.md` lists them with exact versions.
+All shipped dependencies are permissive (MIT, zlib, BSD, Apache-2.0 or public domain) and
+compatible with the MIT-licensed code. `THIRD_PARTY_NOTICES.md` lists them with exact versions.
 
 ---
 
@@ -241,9 +287,10 @@ with the MIT-licensed code. `THIRD_PARTY_NOTICES.md` lists them with exact versi
 CMakeLists.txt  CMakePresets.json        build entry; presets: dev, release, coverage, asan, web, web-st, web-node
 cmake/                                    toolchains, warnings, coverage, sanitizer, dependency pins
 src/
-  core/ platform/ vfs/ script/ input/ render/ audio/ world/ sim/ game/
+  core/ platform/ vfs/ script/ input/ net/ render/ audio/ world/ sim/ game/
   app/main.c                              composition root
 web/                                      HTML shell, JS bridges (webxr.js, touch detection, fetch cache)
+server/relay/                             the session relay (invite codes, forwarding), self-hostable
 assets/base/                              the base game package (scripts, data, art, audio, …)
 tests/
   unit/<module>/                          Unity tests per C module
@@ -252,6 +299,7 @@ tests/
   replays/                                recorded input streams + expected state hashes
   golden/                                 worldgen hashes, reference images, save fixtures
   web/                                    Playwright tests
+  net/                                    co-op tests: headless host + clients, network conditions
   fuzz/                                   libFuzzer targets (nightly)
 tools/                                    asset index generator, spec-coverage checker, coverage merge, packaging
 third_party/                              vendored sources with their license files
@@ -290,7 +338,8 @@ LICENSES/  REUSE.toml                     MIT, CC-BY-4.0 texts; license map for 
 | **Web E2E** | Web build boots, renders, reacts to input; touch UI on mobile emulation; XR session in emulation | Playwright | Every push (smoke), nightly (full) |
 | **Performance** | Benchmark scenarios (flight path, forest fire, city fly-through) record tick, frame and generation times plus memory | Runner + trend dashboard | Nightly; gating thresholds from M3 |
 | **Soak** | An autopilot explorer flies for 2 game-hours across biomes, checking invariants, Lua errors and memory growth | Runner | Nightly |
-| **Fuzz** | Save loading, package manifests, sprite descriptors, the glTF wrapper and the Lua-facing data validators | libFuzzer | Nightly |
+| **Co-op** | Headless host plus 1–3 headless clients over loopback with simulated latency, jitter and loss; scripted sessions (join, split the Weave, fight, sleep vote, leave); replicated-state hash checks; desktop host with a browser client | Scenario runner + network conditioner, Playwright | Every push (loopback), nightly (cross-platform, long sessions) |
+| **Fuzz** | Network messages, save loading, package manifests, sprite descriptors, the glTF wrapper and the Lua-facing data validators | libFuzzer | Nightly |
 
 ### 4.3 Coverage gates
 
@@ -320,7 +369,8 @@ LICENSES/  REUSE.toml                     MIT, CC-BY-4.0 texts; license map for 
 | `macos` | Universal build → unit and scenario tests |
 | `web` | Emscripten builds (pthreads and single-thread) → Lua and scenario tests under Node → Playwright smoke (desktop, mobile touch, XR emulation) |
 | `determinism` | Collects worldgen and replay hashes from every platform job and fails on any mismatch |
-| `nightly` | Fuzzing, soak, performance trends, full Playwright suite |
+| `coop` | Loopback co-op scenarios (1 host + 3 clients) under network conditions; a Linux host with a web client in Playwright |
+| `nightly` | Fuzzing, soak, performance trends, full Playwright suite, long co-op sessions |
 | `package` (tags) | Per-platform archives (binary + `assets/`), web bundle deployable to static hosting |
 
 ### 4.5 Coding standards
@@ -329,6 +379,8 @@ LICENSES/  REUSE.toml                     MIT, CC-BY-4.0 texts; license map for 
   internal.
 - Errors are returned as result codes with context. `abort` is used only for broken
   invariants, through `ZB_ASSERT`, which is active in debug and test builds.
+- No single-player assumptions: there is no global "the player", inputs carry a player
+  index, and entities have owners.
 - There is no hidden global state. Subsystems are explicit context structs, which makes
   them testable in isolation and runnable several times in one test process.
 - Memory goes through allocators (arena, pool, general purpose with leak tracking in
@@ -360,9 +412,15 @@ M0 Foundation ─► M1 First Flight ─► M2 A Planet ─► M3 Living Physics
                                                                                          │
       ┌──────────────────────────────────────────────────────────────────────────────────┘
       ▼
-M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Places & People ─► M9 The Story ─► M10 Release
-                          (Vertical Slice A after M4, Vertical Slice B after M8 prologue work)
+M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Places & People ─► M9 Together ─┐
+                                                                                                 │
+      ┌──────────────────────────────────────────────────────────────────────────────────────────┘
+      ▼
+M10 The Story ─► M11 Release            (Vertical Slice A after M4, Vertical Slice B after M8)
 ```
+
+Co-op runs through the whole roadmap: the network foundation lands in M1, every later
+change specifies its co-op behaviour, and M9 completes sessions and heir gameplay.
 
 ### M0: Foundation (M)
 
@@ -390,11 +448,17 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
   - `add-carpet-flight`,
   - `add-touch-and-gamepad-controls`,
   - `add-webxr-session` (stereo view of the scene, head tracking: a spike that locks the
-    architecture in early).
+    architecture in early),
+  - `add-netcode-foundation` (transport interface with loopback and WebSocket, host and
+    client roles, player indices, input upload, entity replication with prediction,
+    replicated-state hashes; another early lock-in of the architecture),
+  - `add-art-generators` (the procedural-first art pipeline: texture, palette and tile
+    generators in `tools/gen/`, reproducible outputs in packages).
 - **Exit demo:** 10 minutes of uninterrupted flight in any direction. At least 60 fps on
   a mid-range desktop and at least 30 fps on mid-range mobile web. Golden worldgen
   hashes match across platforms, and an XR headset (or emulation) shows the world in
-  stereo.
+  stereo. Two carpets (a desktop host and a browser client) fly together over the same
+  terrain, generated locally on both sides.
 
 ### M2: A Planet (XL)
 
@@ -440,7 +504,7 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 - **Changes:**
   - `add-mana-fields` (emergent sources, depletion, ley lines, nexuses),
   - `add-weave-grammar` (words, gestures, essence, matter, power, cost model, misfires),
-  - `add-gesture-recognition` (2D mouse/touch/stick; 3D XR in M10),
+  - `add-gesture-recognition` (2D mouse/touch/stick; 3D XR in M11),
   - `add-spellbook` (prepared weaves, hand slots, discovery, familiarity),
   - `add-mana-motes`,
   - `add-creatures-basic` (a few species, utility AI, perception),
@@ -511,8 +575,8 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
   - `add-structural-integrity`,
   - `add-history-simulation` (the optional *Rise and fall* variant: societies, wars,
     faiths, collapse over thousands of years, written into the same history database).
-    It is planned last in M8 and may slip past M9 without blocking anything, because
-    every consumer reads the shared history database.
+    It is planned last in M8 and may slip past the story milestone (M10) without
+    blocking anything, because every consumer reads the shared history database.
 - **Vertical Slice B:** the prologue in Anarvan and Act I through to leaving the
   valley. This needs the set-piece template support from `add-building-generation`.
 - **Exit demo:** fly into a generated oasis city and enter any house. Rest in a
@@ -520,12 +584,33 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
   same war from opposite sides. Trade and get directions, and descend into a karst cave
   with an underground river.
 
-### M9: The Story (XL)
+### M9: Together (L)
+
+- **Goal:** complete co-op for up to four heirs across all platforms.
+- **Changes:**
+  - `add-coop-sessions` (relay service, invite codes, LAN discovery, join and leave,
+    package-set check, world bundle transfer and caching),
+  - `add-heirs` (one to four heirs, character creation, absent heirs resting in the pocket
+    home, shared and personal progress),
+  - `add-weave-splitting` (riding together, splitting into per-heir carpets, rejoining,
+    shared tent and fold),
+  - `add-coop-time-and-scaling` (sleep and time-skip votes, joint rituals, difficulty
+    scaling, friendly-fire option, revival),
+  - `add-multi-area-simulation` (one active area per separated heir within the host's
+    budget),
+  - `add-network-hardening` (latency, loss and reconnect handling, bandwidth budgets,
+    desync recovery).
+- **Exit demo:** four players on Windows, macOS, a desktop browser and a phone browser
+  join one world by invite code. They ride the whole Weave together, split up to explore
+  two regions at once, reunite, pitch the tent and vote to sleep. Then the host saves and
+  quits, and everyone rejoins the next day.
+
+### M10: The Story (XL)
 
 - **Goal:** the complete narrative and the territory game.
 - **Changes:**
   - `add-narrative-director` (beat graph, site anchoring, rumours, backstory written into
-    the history database at world creation),
+    the history database at world creation, reunion beats for heirs who join later),
   - `add-story-act-2` (Circle remnants, Great Weaves),
   - `add-rival-mages-and-domains` (sanctums, servants, contests),
   - `add-enemy-campaign` (global destruction timeline, blight),
@@ -534,7 +619,7 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 - **Exit demo:** the full story can be completed from start to each ending. An automated
   "story bot" scenario plays through all beats headlessly on fixed seeds.
 
-### M10: Release (L)
+### M11: Release (L)
 
 - **Goal:** platform completeness, accessibility, modding and 1.0.
 - **Changes:**
@@ -548,13 +633,23 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 - **Exit:** 1.0 release candidates on all platforms, with the documented example mod
   working.
 
+### After 1.0
+
+These are planned, not committed:
+
+- native Android and iOS apps from the same code base (SDL3, the GLES 3.0 path, and the
+  touch controls already used on the mobile web),
+- a WebRTC transport, if latency measurements call for it,
+- host migration for co-op.
+
 ---
 
 ## 6. Capability map (target structure of `openspec/specs/`)
 
 | Domain | Capabilities (spec folders, created by the changes above) |
 | --- | --- |
-| Engine | `platform-targets`, `game-loop`, `asset-packages`, `lua-scripting`, `input-actions`, `rendering-core`, `audio-playback`, `test-automation`, `content-licensing`, `world-persistence`, `modding` |
+| Engine | `platform-targets`, `game-loop`, `asset-packages`, `lua-scripting`, `input-actions`, `rendering-core`, `audio-playback`, `test-automation`, `content-licensing`, `world-persistence`, `modding`, `art-generators` |
+| Co-op | `netcode`, `coop-sessions`, `heirs`, `weave-splitting`, `coop-time-and-scaling`, `multi-area-simulation` |
 | World | `planet-coordinates`, `deep-time-geology`, `climate-and-biomes`, `world-creation`, `chunk-streaming`, `terrain`, `water-bodies`, `vegetation`, `sky-and-time`, `weather` |
 | Simulation | `materials`, `thermal-and-fire`, `shallow-water`, `air-and-gases`, `simulation-tiers`, `rigid-bodies`, `terrain-deformation`, `chemistry`, `ecology`, `fauna-behaviour`, `small-life`, `structural-integrity` |
 | Magic | `mana`, `weave-grammar`, `gesture-recognition`, `spellbook`, `alchemy`, `artificing`, `ritual-magic`, `summoning`, `discipline-progression` |
@@ -585,6 +680,10 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 | D14 | **World bundle saved with each world** | Recompute from the seed on every load | Long chaotic simulations are expensive and fragile to recompute. Storing 10–30 MB per world keeps saves valid even when the simulations are later tuned |
 | D15 | **Two peopling variants with one output schema** (*Settled world* default, *Rise and fall* optional) | Only one variant | Fast creation by default and deep emergent history for those who want it. One schema means every downstream system works with both |
 | D16 | **Oriental setting through style families; fictional cultures and faiths** | Real cultures and religions; a generic fantasy setting | Matches the flying-carpet fantasy while staying respectful and free to simulate history without depicting real peoples or religions |
+| D17 | **Host-authoritative co-op with local deterministic world generation** | Lockstep simulation; dedicated servers; streaming the world to clients | Lockstep breaks with lazy generation and mixed hardware. Dedicated servers cost money and operations. Generating the world locally cuts bandwidth to deltas and nearby entities |
+| D18 | **WebSocket transport through a self-hostable relay, plus direct LAN** | UDP (not available in browsers); WebRTC first | One protocol for every platform including browsers. TCP latency is acceptable for co-op. WebRTC can come later behind the same interface |
+| D19 | **Procedural-first art** with hand-made key assets | Fully hand-made art; commissioned art | Matches the generative world, scales to many cultures and biomes, keeps every asset reproducible and CC BY 4.0, and lets one person drive production |
+| D20 | **Minimum hardware:** 4-core CPU, 8 GB RAM, 2018+ integrated GPU; mid-range 2021+ phone for the web build | Lower or higher targets | Confirmed by the project owner. Sets the performance budgets from M1 |
 
 ---
 
@@ -606,33 +705,32 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 | Degenerate geology or history (one supercontinent with no mountains, one empire conquering everything, everyone dying of plague) | Boring or broken worlds | Earth-likeness metrics with bounded deterministic retries; stabilisers in the history simulation (overextension costs, fragmentation, recovery); a nightly corpus of seeds checked against acceptance metrics |
 | Cultural insensitivity in an Oriental setting | Hurtful content, reputational damage | Fictional peoples and faiths, documented real-world references per style family, no ethnic villain tropes, and review by people from the inspiring cultures where possible |
 | OpenGL deprecation on macOS | Future breakage | Backend boundary; evaluate SDL_GPU once it reaches the web, or a translation layer |
+| **Co-op scope**: every system must replicate | Late, buggy multiplayer | Netcode foundation in M1, an OpenSpec rule that every gameplay spec states its co-op behaviour, loopback co-op tests on every push, a dedicated M9 |
+| Host CPU with four heirs spread across the planet | Frame drops on the host | One shared budget for all active areas, automatic radius reduction, a hosting recommendation of 6 cores for four separated heirs |
+| Desync between host and clients | Ghost trees, wrong fires | Replicated-state hashes, targeted resync, determinism tests for local generation, network fuzzing |
+| Relay availability and cost | Players can't connect | Self-hostable relay, direct LAN play, low bandwidth because the world is generated locally |
 
 ---
 
 ## 9. Open questions for the project owner
 
-These don't block M0. They should be answered before the milestone listed in brackets.
+1. **Relay hosting** (before M9): should the project run a public relay for invite codes,
+   with small ongoing costs, or ship only the self-hostable relay plus LAN play?
 
-1. **Protagonist aging** (before M5): keep optional aging over in-game years?
-2. **Art production** (before M2): who creates the art? Options are the project owner,
-   contributors, commissioned artists or procedural-first. This affects the pace of M2
-   and later milestones.
-3. **Native mobile apps** (before M10): SDL3 supports Android and iOS. Should store builds
-   follow 1.0, or does mobile stay web-only?
-4. **Multiplayer** (anytime): out of scope for 1.0. Should co-op be planned as a post-1.0
-   goal? The deterministic simulation keeps it feasible.
-5. **Minimum hardware** (before M1): proposed is a 4-core CPU, 8 GB RAM and an
-   integrated GPU from 2018 or later (desktop), and a mid-range 2021+ phone (web).
-6. **Right-to-left languages** (before M10): should Persian, Arabic or Turkish
-   translations be planned for 1.0? Right-to-left scripts need text shaping (see concept
-   §8.7).
+**Resolved by the project owner:**
 
-**Resolved:**
-
-- The world is a **cube-sphere planet** (D1), confirmed by the project owner.
+- The world is a **cube-sphere planet** (D1).
 - The setting is **Oriental**. The placeholder names were replaced accordingly (Anarvan,
   Farrokh, Azhdar), and the title stays *Zauberer* as the working title.
 - World creation simulates **deep-time geology**, then peoples the planet either directly
   (*Settled world*, default) or through a simulation of rising and falling societies
   (*Rise and fall*, optional). Both produce cultures, languages, faiths and history
   (D13–D15).
+- **Minimum hardware** as proposed (D20).
+- **Art** is procedural-first with hand-made key assets (D19).
+- **Protagonist aging** is optional, on by default, and can be switched off at world
+  creation.
+- **Co-op is in 1.0** for up to four players, all of them Farrokh's children, the
+  *heirs* (D17, D18, M9).
+- **Native mobile apps** follow after 1.0. Until then, mobile is served by the web build.
+- **Right-to-left languages** are not planned.
