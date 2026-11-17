@@ -7,13 +7,13 @@
 - [x] 1.3 Add warning and floating-point flags (`-Wall -Wextra -Wpedantic -Wconversion -Werror`, `/W4 /WX`, `-ffp-contract=off`, `/fp:precise`, no fast-math); verify the flags appear in `compile_commands.json` for every target
 - [x] 1.4 Add the Emscripten presets `web`, `web-st` and `web-node` with the emsdk version pinned in `cmake/emsdk-version.txt`; verify each preset produces its HTML/JS/WASM (or Node) artifacts
 - [x] 1.5 Add `REUSE.toml` mapping code to MIT and assets/docs to CC-BY-4.0 (the license texts are already in `LICENSES/`); verify `reuse lint` passes on the repository
-- [ ] 1.6 Add `.github/workflows/ci.yml` with the `lint` job (clang-format check, `reuse lint`, `openspec validate --all --strict`); verify the job passes on a push to the development branch
+- [x] 1.6 Add `.github/workflows/ci.yml` with the `lint` job (clang-format check, `reuse lint`, `openspec validate --all --strict`); verify the job passes on a push to the development branch
 
 ## 2. Test machinery
 
 - [x] 2.1 Integrate Unity and add the `zb_add_unit_test()` CMake helper; verify a deliberately failing sample test makes `ctest` fail and report file, line and test name, then remove the sample
 - [x] 2.2 Add `tools/spec_coverage.py` (collects scenario names from `openspec/specs` and active changes, searches `tests/` for `spec: <capability>: <scenario>` tags) with its own Python unit tests; verify it lists every scenario of this change as uncovered at this point
-- [ ] 2.3 Add the `coverage` workflow job with gcovr (`--fail-under-line 95`), `tools/coverage-exclusions.txt` with the justification and ≤ 1 % checks, and the `tools/coverage-baseline.json` ratchet, each with Python unit tests; verify the job fails on a branch whose coverage is artificially lowered
+- [x] 2.3 Add the `coverage` workflow job with gcovr (`--fail-under-line 95`), `tools/coverage-exclusions.txt` with the justification and ≤ 1 % checks, and the `tools/coverage-baseline.json` ratchet, each with Python unit tests; verify the job fails on a branch whose coverage is artificially lowered
 - [x] 2.4 Add `tools/check_includes.py` that enforces the module dependency rules; verify it fails on a deliberate forbidden include in a scratch commit
 
 ## 3. Core library (`src/core`)
@@ -71,7 +71,7 @@
 - [x] 8.5 Implement instanced, animated sprites; verify the test "Animated sprite"
 - [x] 8.6 Implement bitmap-font text with a replacement glyph; verify the golden test "Missing glyph"
 - [x] 8.7 Implement multi-view rendering and `--debug-views 2`; verify the golden test "Forced stereo"
-- [ ] 8.8 Add the `linux-render` CI job (llvmpipe via SDL offscreen + EGL, xvfb fallback) and the Playwright WebGL golden comparison; verify "Desktop and web agree"
+- [x] 8.8 Add the `linux-render` CI job (llvmpipe via SDL offscreen + EGL, xvfb fallback) and the Playwright WebGL golden comparison; verify "Desktop and web agree"
 
 ## 9. Audio (`src/audio`)
 

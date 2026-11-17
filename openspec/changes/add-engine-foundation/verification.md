@@ -13,11 +13,23 @@ Playwright 1.63).
 | Linux desktop | local, `build/dev/bin/zauberer` with the SDL offscreen video driver on llvmpipe (GL 4.5 core) | Demo runs (carpet, motes, HUD text, music, input actions), first frame presented, exits 0; rendered goldens match |
 | Desktop web | local, headless Chromium (SwiftShader WebGL 2), single-threaded and threaded builds | Both builds start, render and pass the browser tests; WebGL output matches the desktop golden image |
 | Mobile web | local, Chromium with Pixel 7 emulation | Starts in touch mode, on-screen controls set up, frames render without console errors |
-| Windows | CI `windows-msvc` (MSVC, release preset) | Unit, engine (headless) and tool tests; no interactive run |
-| macOS | CI `macos` (universal arm64 + x86-64, release preset) | Unit, engine (headless) and tool tests; no interactive run |
+| Windows | CI `windows-msvc` (MSVC 2022, release preset) | Builds without warnings; unit, headless engine (incl. the replay with recorded hashes) and tool tests pass; the windowed test is skipped (the runner has no OpenGL 3.3 driver) |
+| macOS | CI `macos` (universal arm64 + x86-64, release preset) | Not yet run: the hosted macOS runner was never assigned to the job (queued on every run) |
 
-Interactive play on Windows, macOS and physical phones has not been done yet; the CI jobs
-exercise those builds headless.
+Interactive play on Windows, macOS and physical phones has not been done yet.
+
+## CI (GitHub Actions, run 6)
+
+| Job | Result |
+| --- | --- |
+| lint (clang-format, reuse, OpenSpec, tool tests, layering, licenses, credits, spec coverage, API docs, luacheck, reproducible assets) | pass |
+| linux-gcc-coverage (unit, engine, rendered on llvmpipe; C and Lua gates) | pass |
+| linux-clang-asan (Clang ASan + UBSan, rendered tests excluded) | pass |
+| linux-render (release; goldens and the README commands) | pass |
+| windows-msvc | pass |
+| web (web, web-st, web-node builds; Node.js tests; Playwright) | pass |
+| macos | waiting for a runner |
+| determinism | waits for macos; the replay test already checks the committed hashes on Linux, Windows and WebAssembly |
 
 ## Test levels (local)
 
