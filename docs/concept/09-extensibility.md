@@ -21,7 +21,8 @@ assets/
     package.lua                manifest: id, version, engine API version, dependencies, license
     scripts/                   Lua game logic (entry point: scripts/main.lua)
     data/                      registries as Lua tables: materials, substances, reactions,
-                               species, biomes, cultures, weaves, recipes, rooms, loot, ...
+                               species, biomes, style families, culture and faith
+                               templates, languages, weaves, recipes, rooms, loot, ...
     textures/  sprites/  models/  voxels/  sounds/  music/  shaders/  fonts/  locale/
     credits.lua                attribution for every asset: author, source, license
 mods/
@@ -72,6 +73,7 @@ The API is versioned and documented, and generated reference docs are part of th
 | `input` | Action map, bindings, gesture recognizer results, touch/XR state |
 | `audio` | Play and stop sounds, music layers, 3D emitters |
 | `save` | Persist and restore script state (serialisable tables) |
+| `history` | Query the history database (cultures, languages, faiths, polities, figures, events, perspectives) for lore, dialogue and generation; add history rules in world-creation hooks |
 | `story` | Beat graph, narrative-director queries, journal and Codex entries |
 | `test` | Available only in test runs: deterministic stepping, assertions, input injection, state hashing |
 

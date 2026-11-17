@@ -16,6 +16,13 @@ context: |
   Quality gates: line coverage >= 95 % for C (src/) and Lua (assets/base/scripts), every spec
   scenario covered by an automated test, CI green on all platforms.
   Licenses: code MIT, creative assets CC BY 4.0, every file covered by SPDX/REUSE metadata.
+  Setting: Oriental (Thousand and One Nights, Silk Road; Persian, Arabian, Anatolian, Central Asian,
+  North African and South Asian inspiration) expressed through style families; all peoples and faiths
+  are fictional, no real religion is depicted, no ethnic caricatures.
+  World creation: deep-time geology steered toward Earth-like results, then peopling by the default
+  'Settled world' variant or the optional 'Rise and fall' history simulation; both write one history
+  database schema. The result is stored with the save as the world bundle; everything below the
+  planet layer is generated lazily from bundle + seed.
 
 rules:
   proposal:

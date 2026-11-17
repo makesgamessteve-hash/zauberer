@@ -112,6 +112,11 @@ This is required for portable seeds and saves, replays and stable tests.
   `log` and `pow`. Generation never calls platform `libm`.
 - **Golden hash tests:** given seeds produce identical chunk hashes on Linux, Windows,
   macOS and WebAssembly. CI compares the hashes across platform jobs.
+- **Long simulations are stored, not replayed.** Deep-time geology and the history
+  simulations run for hundreds of steps and are sensitive to tiny differences. Their
+  results are saved as the **world bundle**, so saves never depend on recomputing them.
+  Cross-platform determinism of world creation is still a goal, verified by golden hashes
+  on reduced-size worlds.
 
 ### 1.6 Entities
 
@@ -168,14 +173,22 @@ This is required for portable seeds and saves, replays and stable tests.
 ```
 saves/<world>/
   world.lua        seed, planet options, generator version, package set, play time
+  bundle/          the world bundle, written once at world creation:
+    planet.bin       macro-grid fields (elevation, climate, rivers, biomes, mana, soil)
+    rocks.bin        rock-record dictionary and per-cell strata columns, mineral deposits
+    ley.bin          ley graph and nexuses
+    history.db       cultures, languages, faiths, polities, figures, events, present state
   global.bin       macro simulation state (weather, factions, rivals, story director)
   player.bin       player, carpet, bag, tent interior state
   script.lua       serialised Lua state (quests, journal, Codex)
   regions/<face>.<rx>.<ry>.bin   chunk deltas for a 16 × 16 chunk region (compressed)
 ```
 
-- Only **deltas** are stored: terrain edits, removed or added plants, structure damage,
-  moved items, persistent entities and chunk simulation timestamps.
+- Apart from the world bundle, only **deltas** are stored: terrain edits, removed or
+  added plants, structure damage, moved items, persistent entities and chunk simulation
+  timestamps.
+- The world bundle is typically 10–30 MB compressed and can be exported to share a
+  world.
 - Every file has a versioned header and a checksum. Writes are atomic (write to a temp
   file, then rename). Old save formats are loaded by migration code, with fixtures under
   test.
@@ -383,19 +396,26 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
   hashes match across platforms, and an XR headset (or emulation) shows the world in
   stereo.
 
-### M2: A Planet (L)
+### M2: A Planet (XL)
 
-- **Goal:** a real planet with consistent geography, biomes, water and forests.
+- **Goal:** a real planet with a geological past, consistent geography, biomes, water and
+  forests.
 - **Changes:**
-  - `add-planet-model` (plates, macro erosion, climate, hydrology, biomes, geology, ley
-    graph),
-  - `add-world-creation` (options, progress, seed),
+  - `add-deep-time-geology` (plate tectonics through ≈ 500 Myr, erosion and
+    sedimentation, sea level, ice ages, rock record, minerals, fossils, ley network,
+    Earth-likeness steering, amplification to the macro grid),
+  - `add-climate-and-biomes` (present climate, hydrology, biomes, biogeographic
+    provinces, magical biomes),
+  - `add-world-creation` (creation pipeline, options, time-lapse globe, cancellation,
+    world bundle),
   - `add-water-bodies` (oceans, rivers, lakes: rendering and flow fields),
   - `add-vegetation` (species registry, placement, the four-level sprite forest),
   - `add-sky-and-time` (day and night, seasons visual),
   - `add-world-persistence` (save and load, deltas, migrations).
-- **Exit demo:** create a world, fly from a coastal desert over a rain-shadowed range into
-  a temperate rainforest, follow a river to the sea, then save, quit, load and continue.
+- **Exit demo:** create a world while watching its continents drift in the time-lapse.
+  Fly from a coastal desert over a rain-shadowed range into a temperate rainforest, see
+  the strata in a canyon wall, and follow a river to the sea. Then save, quit, load and
+  continue. A nightly corpus of seeds meets the Earth-likeness targets.
 
 ### M3: Living Physics (L)
 
@@ -474,9 +494,13 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 
 ### M8: Places and People (XL), then Vertical Slice B
 
-- **Goal:** world history, settlements, enterable architecture, castles, dungeons and NPCs.
+- **Goal:** peoples and their history, settlements, enterable architecture, citadels,
+  dungeons and NPCs.
 - **Changes:**
-  - `add-world-history`,
+  - `add-peopling-and-cultures` (style families, cultures, languages, faiths, polities,
+    the *Settled world* variant with a reconstructed chronicle, the history database),
+  - `add-lore-generation` (chronicles told from each culture's perspective, legends,
+    inscriptions, place names, NPC knowledge, Codex history),
   - `add-settlements` (siting, layout, land use),
   - `add-building-generation` (program, massing, floor plans, kit pieces, furnishing, lazy
     detail),
@@ -484,21 +508,27 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
   - `add-caves-and-dungeons` (voxel volumes, graph grammars, simulation puzzles),
   - `add-npcs` (generation, schedules, dialogue, services),
   - `add-factions-and-economy`,
-  - `add-structural-integrity`.
-- **Vertical Slice B:** the prologue in Haselbrunn and Act I through to leaving the
+  - `add-structural-integrity`,
+  - `add-history-simulation` (the optional *Rise and fall* variant: societies, wars,
+    faiths, collapse over thousands of years, written into the same history database).
+    It is planned last in M8 and may slip past M9 without blocking anything, because
+    every consumer reads the shared history database.
+- **Vertical Slice B:** the prologue in Anarvan and Act I through to leaving the
   valley. This needs the set-piece template support from `add-building-generation`.
-- **Exit demo:** fly into a generated market town and enter any house. Explore a castle
-  of 100+ rooms, trade and get directions, and descend into a karst cave with an
-  underground river.
+- **Exit demo:** fly into a generated oasis city and enter any house. Rest in a
+  caravanserai, explore a citadel of 100+ rooms, and read two chronicles that tell the
+  same war from opposite sides. Trade and get directions, and descend into a karst cave
+  with an underground river.
 
 ### M9: The Story (XL)
 
 - **Goal:** the complete narrative and the territory game.
 - **Changes:**
-  - `add-narrative-director` (beat graph, site anchoring, rumours),
+  - `add-narrative-director` (beat graph, site anchoring, rumours, backstory written into
+    the history database at world creation),
   - `add-story-act-2` (Circle remnants, Great Weaves),
   - `add-rival-mages-and-domains` (sanctums, servants, contests),
-  - `add-sereth-campaign` (global destruction timeline, blight),
+  - `add-enemy-campaign` (global destruction timeline, blight),
   - `add-story-act-3-and-endings`,
   - `add-post-game-world-state`.
 - **Exit demo:** the full story can be completed from start to each ending. An automated
@@ -525,12 +555,12 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 | Domain | Capabilities (spec folders, created by the changes above) |
 | --- | --- |
 | Engine | `platform-targets`, `game-loop`, `asset-packages`, `lua-scripting`, `input-actions`, `rendering-core`, `audio-playback`, `test-automation`, `content-licensing`, `world-persistence`, `modding` |
-| World | `planet-coordinates`, `planet-model`, `world-creation`, `chunk-streaming`, `terrain`, `water-bodies`, `vegetation`, `sky-and-time`, `weather` |
+| World | `planet-coordinates`, `deep-time-geology`, `climate-and-biomes`, `world-creation`, `chunk-streaming`, `terrain`, `water-bodies`, `vegetation`, `sky-and-time`, `weather` |
 | Simulation | `materials`, `thermal-and-fire`, `shallow-water`, `air-and-gases`, `simulation-tiers`, `rigid-bodies`, `terrain-deformation`, `chemistry`, `ecology`, `fauna-behaviour`, `small-life`, `structural-integrity` |
 | Magic | `mana`, `weave-grammar`, `gesture-recognition`, `spellbook`, `alchemy`, `artificing`, `ritual-magic`, `summoning`, `discipline-progression` |
 | Player | `carpet-flight`, `carpet-cloak`, `carpet-tent`, `carpet-condition`, `endless-bag`, `survival`, `codex`, `harvest-and-cooking`, `crafting`, `damage-model` |
-| People and places | `world-history`, `settlements`, `building-generation`, `castles`, `caves-and-dungeons`, `npcs`, `factions-and-economy` |
-| Story | `narrative-director`, `story`, `rival-mages`, `sereth-campaign` |
+| People and places | `peopling`, `cultures`, `languages`, `faiths`, `history-database`, `lore`, `history-simulation`, `settlements`, `building-generation`, `castles`, `caves-and-dungeons`, `npcs`, `factions-and-economy` |
+| Story | `narrative-director`, `story`, `rival-mages`, `enemy-campaign` |
 | Presentation | `retro-renderer`, `touch-controls`, `gamepad-controls`, `webxr`, `accessibility`, `localisation` |
 
 ---
@@ -551,6 +581,10 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 | D10 | **Unity + gcovr + LuaCov + Lua scenario tests + Playwright** | CMocka, Criterion, busted | Small, MIT-licensed, portable (also on MSVC and WASM). Scenario tests use the real engine headless |
 | D11 | **Web: pthreads build + single-thread fallback** | Single-thread only | Worldgen and simulation need parallelism. The fallback keeps the game hostable anywhere |
 | D12 | **glTF, PNG, OGG, `.vox`, Lua data** | Custom binary formats | Standard tools (Blender, MagicaVoxel, Audacity) let contributors work without custom tooling |
+| D13 | **Time-stepped deep-time tectonics** (≈ 500 Myr) with Earth-likeness steering | A static plate snapshot plus noise | Only a real history produces old and young ranges, sutures, rift lakes, fossils, strata and minerals in plausible places. Steering keeps results Earth-like |
+| D14 | **World bundle saved with each world** | Recompute from the seed on every load | Long chaotic simulations are expensive and fragile to recompute. Storing 10–30 MB per world keeps saves valid even when the simulations are later tuned |
+| D15 | **Two peopling variants with one output schema** (*Settled world* default, *Rise and fall* optional) | Only one variant | Fast creation by default and deep emergent history for those who want it. One schema means every downstream system works with both |
+| D16 | **Oriental setting through style families; fictional cultures and faiths** | Real cultures and religions; a generic fantasy setting | Matches the flying-carpet fantasy while staying respectful and free to simulate history without depicting real peoples or religions |
 
 ---
 
@@ -568,6 +602,9 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 | Procedural sameness | Boring world | Layered generation with real causes, cultures and history, magical overlays, authored set pieces placed procedurally |
 | Art volume (CC BY 4.0, original) | Content bottleneck | Low-res retro style, palette swaps per biome and culture, modular kits, procedural texture variation, community contributions through the package system |
 | Save bloat over long play | Large saves, slow loads | Delta storage, region compaction, pruning of trivial deltas (e.g. regrown grass) |
+| World creation too slow on web and mobile | Players wait minutes before playing | "Quick" quality preset, work on the job system, an entertaining time-lapse, cancellation, and the stored world bundle so creation happens only once |
+| Degenerate geology or history (one supercontinent with no mountains, one empire conquering everything, everyone dying of plague) | Boring or broken worlds | Earth-likeness metrics with bounded deterministic retries; stabilisers in the history simulation (overextension costs, fragmentation, recovery); a nightly corpus of seeds checked against acceptance metrics |
+| Cultural insensitivity in an Oriental setting | Hurtful content, reputational damage | Fictional peoples and faiths, documented real-world references per style family, no ethnic villain tropes, and review by people from the inspiring cultures where possible |
 | OpenGL deprecation on macOS | Future breakage | Backend boundary; evaluate SDL_GPU once it reaches the web, or a translation layer |
 
 ---
@@ -576,17 +613,26 @@ M5 Living Things ─► M6 Carpet & Home ─► M7 The Disciplines ─► M8 Pla
 
 These don't block M0. They should be answered before the milestone listed in brackets.
 
-1. **Planet vs. infinite plane** (before M1): this plan recommends a cube-sphere planet
-   (D1). Confirm, or choose the Minecraft-style infinite plane.
-2. **Protagonist aging** (before M5): keep optional aging over in-game years?
-3. **Names** (before M8): Zauberer, Haselbrunn, Joren, Sereth Vane, the Circle of the Loom
-   and the Great Weaves are placeholders. Keep them or replace them?
-4. **Art production** (before M2): who creates the art? Options are the project owner,
+1. **Protagonist aging** (before M5): keep optional aging over in-game years?
+2. **Art production** (before M2): who creates the art? Options are the project owner,
    contributors, commissioned artists or procedural-first. This affects the pace of M2
    and later milestones.
-5. **Native mobile apps** (before M10): SDL3 supports Android and iOS. Should store builds
+3. **Native mobile apps** (before M10): SDL3 supports Android and iOS. Should store builds
    follow 1.0, or does mobile stay web-only?
-6. **Multiplayer** (anytime): out of scope for 1.0. Should co-op be planned as a post-1.0
+4. **Multiplayer** (anytime): out of scope for 1.0. Should co-op be planned as a post-1.0
    goal? The deterministic simulation keeps it feasible.
-7. **Minimum hardware** (before M1): proposed is a 4-core CPU, 8 GB RAM and an
+5. **Minimum hardware** (before M1): proposed is a 4-core CPU, 8 GB RAM and an
    integrated GPU from 2018 or later (desktop), and a mid-range 2021+ phone (web).
+6. **Right-to-left languages** (before M10): should Persian, Arabic or Turkish
+   translations be planned for 1.0? Right-to-left scripts need text shaping (see concept
+   §8.7).
+
+**Resolved:**
+
+- The world is a **cube-sphere planet** (D1), confirmed by the project owner.
+- The setting is **Oriental**. The placeholder names were replaced accordingly (Anarvan,
+  Farrokh, Azhdar), and the title stays *Zauberer* as the working title.
+- World creation simulates **deep-time geology**, then peoples the planet either directly
+  (*Settled world*, default) or through a simulation of rising and falling societies
+  (*Rise and fall*, optional). Both produce cultures, languages, faiths and history
+  (D13–D15).

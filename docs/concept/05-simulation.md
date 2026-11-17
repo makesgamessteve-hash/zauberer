@@ -21,7 +21,7 @@ The goal is **plausible emergent behaviour at a playable cost**, not scientific 
 | **Near** | ≈ 384 m – 2 km | Coarser fields (4× cell size); fire as fronts; water at rest except rivers; creatures as simplified agents (move along the navigation graph, no fine perception) |
 | **Far** | Loaded and visible, beyond near | Aggregates per chunk: population counts, vegetation density and growth stage, burning or not, wetness; no individuals |
 | **Dormant** | Visited earlier, now unloaded | Frozen with a timestamp. On reload a **catch-up** step applies closed-form evolution over the elapsed time |
-| **Global** | Whole planet, macro grid | Weather systems, seasons, ley network, migrations, settlements and factions, rival mages, Sereth's campaign, economy |
+| **Global** | Whole planet, macro grid | Weather systems, seasons, ley network, migrations, settlements and factions, rival mages, Azhdar's campaign, economy |
 
 ### Catch-up (time skip) model
 
@@ -177,6 +177,11 @@ evaporates them.
   floors, beams and roofs. When pieces are destroyed, by burning, by force or by Earth
   magic, a support check finds unsupported pieces. Those pieces fall as rigid debris.
   Castles can be breached, bridges can collapse and towers can topple.
+- **Earthquakes and eruptions:** the deep-time simulation records which plate boundaries
+  and volcanoes are still active (see [World history](10-world-history.md)). Rare
+  earthquakes shake structures there and test their integrity. Active volcanoes erupt
+  with ash, lava (the shallow-fluid model) and fires, and their mana and ecology follow.
+  Earthquakes in the history database and in folk memory match the real fault lines.
 
 ## 5.11 Chemistry
 

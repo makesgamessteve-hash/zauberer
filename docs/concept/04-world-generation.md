@@ -7,7 +7,10 @@
 2. **Deterministic.** Every layer is a pure function of *(world seed, generator version,
    coordinates, coarser layers)*. The same seed gives the same world on every platform,
    including the web build. Generated data is never saved, only player-caused and
-   simulation-caused **changes** (deltas) are.
+   simulation-caused **changes** (deltas) are. The one exception is the planet layer,
+   which is the result of long deep-time and history simulations. It is computed once
+   and stored with the save as the **world bundle** (see
+   [World history §10.14](10-world-history.md#1014-budgets-determinism-and-storage)).
 3. **Consistent at every scale.** Local detail follows from global structure. A desert
    exists because of a rain shadow behind a mountain range, which exists because of a
    plate collision. A river always has a source and a mouth.
@@ -47,7 +50,7 @@
 
 | Layer | Extent | When generated | Contents |
 | --- | --- | --- | --- |
-| **Planet** | Whole globe, ≈ 6 km macro cells | Once, at world creation (seconds; progress screen "The world is being woven…") | Plates, elevation, climate, rivers, biomes, geology provinces, ley network, history, factions |
+| **Planet** | Whole globe, ≈ 6 km macro cells | Once, at world creation: deep-time geology and history simulations (about 1–4 minutes with a time-lapse globe), then stored in the world bundle | Elevation, rock record, minerals, climate, rivers, biomes, ley network, cultures, languages, faiths, realms, history |
 | **Region** | 16 × 16 chunks ≈ 4 km | When the player comes within ≈ 20 km | River and lake shapes, roads, settlement and structure plans, cave networks, story set-piece placement, magical anomalies |
 | **Chunk** | 256 m × 256 m | In stages as the player approaches (see 4.6) | Terrain heights, surface materials, strata, vegetation, props, structure shells, creature populations |
 | **Detail** | Building, cave or room | On approach (< 100 m) or entering | Interiors, furnishing, books, loot, NPC households |
@@ -58,24 +61,18 @@ chunk borders, such as a castle or a town, are **planned at the region level** a
 
 ## 4.4 Planet layer (global model)
 
-### Tectonics (simplified)
+### Relief from deep time
 
-- 12–40 plates from a spherical Voronoi partition. Each plate has a random rotation pole
-  and speed, and a crust type (continental or oceanic).
-- Relative motion at boundaries determines the boundary type:
-  - **Convergent:** fold mountains (continent–continent), volcanic arcs and trenches
-    (ocean–continent), island arcs (ocean–ocean).
-  - **Divergent:** rift valleys and mid-ocean ridges.
-  - **Transform:** fault lines and offset ridges.
-- **Hotspots** create volcanic island chains along a plate's motion.
-- Age per region gives old, eroded mountains and young, jagged ones.
-
-### Elevation and erosion
-
-- Base elevation by crust type, plus uplift profiles at boundaries, plus multi-scale noise.
-- **Macro erosion** runs a stream-power iteration and thermal erosion on the macro grid.
-  This gives realistic drainage networks, valleys, foothills and alluvial plains.
-- **Sea level** is chosen to hit a target land fraction (default 35 %).
+- The planet's relief is the outcome of a **geological history simulation** covering
+  about 500 million years: drifting plates, subduction, collisions, rifting,
+  supercontinent cycles, hotspots, erosion, sedimentation, sea-level change and ice ages
+  (see [World history §10.2](10-world-history.md#102-phase-1-deep-time-geological-history)).
+- The result is checked against **Earth-likeness** targets and steered toward them, so
+  the planet settles into something similar to Earth unless an exotic target was chosen.
+- The final tectonic state is amplified onto the macro grid. Then **macro erosion** runs a
+  stream-power iteration and thermal erosion, which gives realistic drainage networks,
+  valleys, foothills and alluvial plains.
+- **Sea level** is fitted to the target land fraction (default 35 %).
 
 ### Climate
 
@@ -102,16 +99,19 @@ chunk borders, such as a castle or a town, are **planned at the region level** a
 
 ### Geology and minerals
 
-- **Rock provinces:** igneous (volcanic arcs, hotspots), sedimentary (basins, shelves,
-  deltas) and metamorphic (old mountain belts). Strata sequences per province are used
-  when digging.
+- **Rock record:** every macro cell carries the stratigraphic column laid down in deep
+  time: igneous rock from arcs and hotspots, sedimentary layers from basins, shelves and
+  deltas, and metamorphic rock in old mountain belts. Digging, cliff faces and canyon
+  walls show these layers.
 - **Mineral deposits** follow geological logic:
   - copper, gold and silver in veins near igneous intrusions,
   - iron in sedimentary bands,
   - salt and gypsum in evaporite basins,
   - sulfur near volcanoes,
   - coal in old swamp basins,
-  - gemstones and **mana crystals** in metamorphic and nexus zones,
+  - naphtha and bitumen seeps in sedimentary basins,
+  - gemstones (lapis lazuli, turquoise, carnelian) and **mana crystals** in metamorphic
+    and nexus zones,
   - clay in floodplains,
   - limestone (and therefore **karst caves**) on old marine shelves.
 
@@ -141,11 +141,13 @@ across transition zones instead of switching hard at borders.
   volcanoes, great river confluences and extreme mana cells. It is built as a sparse
   spanning network with extra loops, and its edges follow ridges and faults.
 
-### History and factions
+### Peoples and history
 
-A coarse **world history** is simulated at world creation. It produces settlements,
-roads, castles, ruins, cultures and lore books. See
-[Settlements and architecture](06-settlements-architecture.md).
+After the geology settles, the planet is peopled. By default, peoples are placed directly
+and a chronicle is reconstructed backwards from the present (*Settled world*). As an
+option, the history of societies is simulated over thousands of years (*Rise and fall*).
+Both produce cultures, languages, faiths, realms, settlements, ruins and lore. See
+[World history](10-world-history.md).
 
 ## 4.5 Region layer
 
@@ -232,9 +234,12 @@ These are the options on the "new world" screen:
 
 - seed,
 - planet radius,
+- geology target (Earth-like by default, or *Pangaea*, *Archipelago*, *Ice world*,
+  *Hothouse*),
 - land fraction,
 - global temperature offset (ice age to hothouse),
 - magic intensity (mana abundance and the number of magical biomes),
-- history depth (number of simulated centuries, which means more ruins and lore),
+- history variant (*Settled world* or *Rise and fall*),
+- history length, number of founding peoples, conflict intensity and religious diversity,
 - survival difficulty,
 - story on or off (a pure sandbox is possible).

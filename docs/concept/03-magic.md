@@ -25,14 +25,18 @@
 
 | Color | Name (in-world) | Physical domain and levers | Natural sources | Glyph |
 | --- | --- | --- | --- | --- |
-| Red | **Fire** (*Pyr*) | Heat, combustion, thermal radiation, melting | Volcanoes, wildfires, hot springs, sunlit deserts at noon, fire creatures | △ |
-| Yellow | **Storm** (*Aer*) | Gases, wind, pressure, electricity, kinetic motion | Thunderstorms, high altitudes, windswept cliffs, steppe | ⟁ (△ with bar) |
-| White | **Light** (*Phos*) | Light, perception, order, crystal lattices, binding | Clear skies, snowfields, crystal caves, holy sites, starlight | ○ |
-| Green | **Life** (*Zoe*) | Growth, metabolism, healing, fertility | Forests, jungles, meadows, coral reefs, dense animal life | ✚ |
-| Blue | **Water** (*Hydor*) | Liquids, solvation, cold, flow, erosion | Seas, rivers, lakes, rain, glaciers, mist | ▽ |
-| Ochre | **Earth** (*Ge*) | Solids, mass, structure, stone, metals, gravity | Mountains, caves, ore veins, deep bedrock | ⏚ (▽ with bar) |
-| Violet | **Void** (*Kenon*) | Space, distance, folding, illusion, mind, dreams | Night sky, auroras, ancient ruins, ley nexus, deep caverns | ◐ |
-| Black | **Decay** (*Phthora*) | Entropy, rot, fermentation, poison, endings | Swamps, fungal forests, carrion, battlefields, old graveyards | ✕ |
+| Red | **Fire** (*Âtash*) | Heat, combustion, thermal radiation, melting | Volcanoes, wildfires, hot springs, sunlit deserts at noon, fire creatures | △ |
+| Yellow | **Storm** (*Vâd*) | Gases, wind, pressure, electricity, kinetic motion | Thunderstorms, high altitudes, windswept cliffs, steppe | ⟁ (△ with bar) |
+| White | **Light** (*Roshan*) | Light, perception, order, crystal lattices, binding | Clear skies, snowfields, crystal caves, holy sites, starlight | ○ |
+| Green | **Life** (*Jân*) | Growth, metabolism, healing, fertility | Forests, jungles, meadows, coral reefs, dense animal life | ✚ |
+| Blue | **Water** (*Âb*) | Liquids, solvation, cold, flow, erosion | Seas, rivers, lakes, rain, glaciers, mist | ▽ |
+| Ochre | **Earth** (*Khâk*) | Solids, mass, structure, stone, metals, gravity | Mountains, caves, ore veins, deep bedrock | ⏚ (▽ with bar) |
+| Violet | **Void** (*Khalâ*) | Space, distance, folding, illusion, mind, dreams | Night sky, auroras, ancient ruins, ley nexus, deep caverns | ◐ |
+| Black | **Decay** (*Zavâl*) | Entropy, rot, fermentation, poison, endings | Swamps, fungal forests, carrion, battlefields, old graveyards | ✕ |
+
+The in-world names are those of the protagonist's home culture, which are inspired by
+Persian words for the classical elements. Other generated cultures name and value the
+colors differently (see [World history](10-world-history.md)).
 
 Each color also has a **distinct glyph and pattern**, so color-blind players never rely on
 hue alone. The fire, water, air and earth glyphs come from the classical alchemical
@@ -75,7 +79,7 @@ coarse resolution (macro cell globally, about 32 m locally).
 - **Depletion.** Drawing mana lowers the local reservoir. A depleted area is a
   "thin" zone: magic costs more, magical creatures leave, and mana-dependent plants wilt.
   Large rituals that draw too much cause **blight**, a long-lasting Decay surge. This is
-  why Sereth's path is visibly blighted.
+  why Azhdar's path is visibly blighted.
 
 ### Ley lines and nexuses
 
@@ -183,7 +187,7 @@ a lava pool.
 | **Focus** | Lowers cost and improves aim for a color | Amber (Storm), silver (Light), obsidian (Void), oak heartwood (Life) |
 | **Catalyst** | Unlocks a variant | Sulfur makes fire burn hotter and smokier; salt makes water brine; quicksilver enables transmutation |
 | **Material** | Supplies the matter for *Create*, cutting its cost sharply | Carry water for a water jet, carry sand for a sand wall |
-| **Sympathetic link** | Targets something far away | A feather of a bird to scry its flock; a scrap of Sereth's cloak to locate him |
+| **Sympathetic link** | Targets something far away | A feather of a bird to scry its flock; a scrap of Azhdar's cloak to locate him |
 
 Ingredients are consumed, which ties magic to gathering and alchemy.
 
@@ -256,7 +260,7 @@ to a teacher or a story site).
   - Gate between two attuned nexuses (fast travel).
   - Expand the tent with a new room.
   - Bind greater summons.
-  - Long-range divination, such as locating a Great Weave or Sereth.
+  - Long-range divination, such as locating a Great Weave or Azhdar.
 - **Risk:** rituals draw a lot from the local field and can cause blight if overdone.
   Interrupted rituals backlash.
 

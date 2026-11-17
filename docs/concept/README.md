@@ -5,17 +5,19 @@
 
 ## One-line pitch
 
-A child survives the destruction of their village, inherits a living flying carpet and a
-father's secret spellbooks, and grows into a powerful mage in an endless, simulated planet
-where fire spreads, water flows, forests grow and rot, and every spell pushes on the real
-physics, chemistry and biology of the world.
+A weaver's child survives the destruction of their oasis village, inherits a living
+flying carpet and a father's secret spellbooks, and grows into a powerful mage. The
+setting is an endless, simulated planet in the spirit of the *Thousand and One Nights*
+and the Silk Road. Fire spreads, water flows, forests grow and rot, and every spell
+pushes on the real physics, chemistry and biology of the world.
 
 ## The game in one paragraph
 
 You fly a carpet over a whole planet that is generated lazily, chunk by chunk, as you
 explore it. The planet has continents, oceans, mountain ranges, deserts, rainforests,
-tundra and magical biomes. All of it follows a coarse but consistent simulation of climate,
-geology and hydrology. Thick sprite forests hide animals, insects and fungi that live,
+tundra and magical biomes. All of it is the result of a simulated geological history and
+a consistent model of climate and hydrology. Peoples, languages, faiths, realms and ruins
+come from a reconstructed or fully simulated human history. Thick sprite forests hide animals, insects and fungi that live,
 hunt, migrate and die whether you watch or not. Villages, towns, castles and ruins are real
 places that you can enter, room by room. Magic is built from **words, gestures, ingredients
 and colored mana**, and it acts *through* the simulation. A fireball adds heat that ignites
@@ -29,22 +31,25 @@ family.
 1. **A world that exists without you.** The planet is consistent from the global climate
    down to a mushroom on a rotting log. Things happen off-screen at reduced detail and are
    caught up when you return.
-2. **Magic is physics with intent.** Spells never trigger canned effects. They inject heat,
+2. **A world with a past.** Mountains come from colliding plates, deserts from rain
+   shadows, ruins from real wars, place names from dead languages, and faiths from
+   remembered disasters. Everything has a cause that the player can uncover.
+3. **Magic is physics with intent.** Spells never trigger canned effects. They inject heat,
    matter, force, growth, decay, light or folded space into the simulation, and the world
    reacts on its own.
-3. **Knowledge is power.** Progression comes from learning: spell formulae, the properties
+4. **Knowledge is power.** Progression comes from learning: spell formulae, the properties
    of plants and minerals, creatures' habits, recipes and rituals. A level-up screen is not
    the main source of growth.
-4. **The carpet is home.** The carpet is your vehicle, your cloak and your house: a tent
+5. **The carpet is home.** The carpet is your vehicle, your cloak and your house: a tent
    that is far bigger inside than outside. It is the emotional anchor, the last thing left
    of your family.
-5. **Endless but meaningful.** Procedural content is generated in layers, from planet to
+6. **Endless but meaningful.** Procedural content is generated in layers, from planet to
    region to chunk to room. The story is anchored into that procedural world, so every
    world has its own geography for the same tale.
-6. **Retro look, modern depth.** Low-poly 3D, pixel textures, billboard sprites and
+7. **Retro look, modern depth.** Low-poly 3D, pixel textures, billboard sprites and
    optional voxels, rendered at a low internal resolution with fog and a limited palette.
    The style keeps the scope achievable and lets the systems carry the experience.
-7. **Open and moddable.** A C core engine and a Lua game layer. All assets, scripts and data
+8. **Open and moddable.** A C core engine and a Lua game layer. All assets, scripts and data
    sit in plain folders next to the executable. Code is MIT, art is CC BY 4.0.
 
 ## Inspiration, not recreation
@@ -54,6 +59,12 @@ and *Magic Carpet 2* (1995) gave us the carpet as a vehicle, collecting mana, re
 terrain with spells, and rival wizards competing over territory. Zauberer borrows those
 **mechanics and that fantasy**. It uses its own title, world, characters, story, art, music
 and level design. No names, assets, levels or visual identity from those games are used.
+
+The **setting is intentionally Oriental**, because that is where flying carpets belong.
+It draws on the *Thousand and One Nights*, Persian carpet weaving and miniature painting,
+and the cultures of the Silk Road from North Africa to Central and South Asia. The
+inspiration comes from real history and craft, with fictional peoples and faiths and no
+caricatures (see [World history §10.4](10-world-history.md#104-phase-3-peopling-common-foundations)).
 Other influences on systems include the falling-sand and systemic games (emergent fire and
 fluids), survival-crafting games (gathering and base building), Dwarf-Fortress-style world
 histories, and voxel sandbox games (endless chunked worlds).
@@ -84,11 +95,12 @@ See [the implementation plan](../implementation-plan.md) for architecture and ro
 | 7 | [Gameplay](07-gameplay.md) | Core loops, survival, knowledge, progression, combat, rival mages, saving |
 | 8 | [Presentation and controls](08-presentation-controls.md) | Art direction, sprite forests, audio, UI, desktop/gamepad/touch/XR controls |
 | 9 | [Extensibility](09-extensibility.md) | Folder layout, packages and mods, Lua API surface, data registries, licensing |
+| 10 | [World history](10-world-history.md) | Deep-time geology, Earth-likeness, peopling (*Settled world* or simulated *Rise and fall*), cultures, languages, faiths, polities, lore |
 
 ## Scope boundaries
 
-**In scope for 1.0:** single-player, one planet per save, the full story, all six
-disciplines, the eight mana colors, the carpet's three modes, enterable settlements and
+**In scope for 1.0:** single-player, one planet per save, deep-time world creation with
+both history variants, the full story, all six disciplines, the eight mana colors, the carpet's three modes, enterable settlements and
 castles, caves and dungeons, rival mages, Windows/Linux/macOS/Web/WebXR, and mod support.
 
 **Out of scope for 1.0 (kept possible by the architecture):** multiplayer or co-op (the
@@ -109,3 +121,6 @@ app-store build (mobile is served by the web build), and multiple planets.
 | **Domain** | A territory claimed by a mage through a sanctum built on a nexus |
 | **Simulation tier** | Level of detail at which a place is simulated (active, near, far, dormant, global) |
 | **Package** | A folder of assets, data and scripts (the base game is itself a package; mods are packages) |
+| **World bundle** | The stored result of world creation (planet fields, rock record, ley graph, history database), saved with each world |
+| **Style family** | A library of architecture, ornament, textile, music and naming vocabulary that generated cultures inherit and blend |
+| **Settled world / Rise and fall** | The two peopling variants: direct placement with a reconstructed chronicle (default), or a full simulation of societies (optional) |

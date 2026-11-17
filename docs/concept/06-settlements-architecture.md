@@ -10,35 +10,24 @@
 - **Grounded.** Settlements are where people would really settle. Architecture follows
   climate, available materials and culture.
 
-## 6.2 World history (generated at world creation)
+## 6.2 Where settlements come from
 
-A coarse agent-based history runs on the macro grid for a configurable number of
-centuries (default 600 years, in 5-year steps). It takes seconds and runs at world
-creation.
+Settlements are not scattered at random. They are the present-day output of the world's
+history (see [World history](10-world-history.md)), produced either by the *Settled
+world* placement or by the *Rise and fall* simulation. Either way, every settlement
+arrives with:
 
-1. **Peoples emerge** in fertile, well-watered lowlands. Each **culture** gets traits from
-   its homeland: building materials, architectural style, naming language (phoneme sets),
-   clothing palette, crafts and its stance on magic.
-2. **Settlements are founded** at sites scored for:
-   - fresh water and fertile soil,
-   - defensibility (hilltops, river bends),
-   - resources (ore, salt, timber, fish),
-   - trade (crossings, passes, coasts).
-3. **Growth and decline** depend on food, trade, plague and war. Roads connect
-   settlements that trade.
-4. **Realms** form, and castles are built at borders, passes and river crossings.
-5. **Wars** leave ruins, battlefields (Decay hotspots) and shifted borders. **Mage towers**
-   appear on nexuses, and some fall.
-6. **The ancient layer.** Before recorded history, the Circle's predecessors left
-   **elder ruins** at major nexuses: glyph-covered stone, vaults and gates. These are
-   placed before the history run starts.
-7. **Event log becomes lore.** Founding dates, battles, famous people and disasters
-   generate place names, chronicles, inscriptions, songs and books that the player can
-   find in libraries. Templates and grammars turn the events into text.
+- **a site** scored for fresh water, fertile soil, defensibility (hilltops, river bends),
+  resources (ore, salt, timber, fish) and trade (crossings, passes, oases, coasts),
+- **a people and a faith:** culture, language, style family, majority faith and minorities,
+- **a past:** founding date, rulers, wars, disasters, great works and, for ruins, the cause
+  and date of their fall,
+- **a present:** population, prosperity, realm, trade links and grudges.
 
-The result is the **present-day state**: settlements with population and prosperity,
-roads, realms and borders, castles (held or ruined), ruins, and faction relationships.
-The global simulation continues to evolve it during play (6.12).
+The **ancient layer** of elder ruins at the major nexuses comes from the first mage
+cultures (glyph-covered stone, vaults and gates in the Old Tongue). Region generation
+turns these records into streets, buildings and rooms. The global simulation continues to
+evolve them during play (6.12).
 
 ## 6.3 Settlement types
 
@@ -49,9 +38,11 @@ The global simulation continues to evolve it during play (6.12).
 | Fishing village | 10–40 | Coasts, large lakes |
 | Mining camp / town | 10–80 | Ore provinces, mountains |
 | Market town | 60–250 | Crossroads, rivers |
-| Walled city | 250–1,500 | Major rivers, coasts, realm capitals |
-| Castle | 1 complex, 50–150 rooms | Borders, passes, hilltops |
-| Monastery / temple complex | 10–40 | Remote heights, holy sites |
+| Oasis town | 20–150 | Desert springs, qanat outlets, wadis |
+| Caravanserai | 1 fortified courtyard complex, 20–60 rooms | About a day's journey apart along caravan routes |
+| Walled city with bazaar and citadel | 250–1,500 | Major rivers, oasis chains, coasts, realm capitals |
+| Citadel or castle | 1 complex, 50–150 rooms | Borders, passes, hilltops |
+| Temple complex or monastery (fictional faiths) | 10–40 | Remote heights, holy sites, nexuses |
 | Mage tower | 1 tower plus outbuildings | Ley nexuses, isolated places |
 | Nomad camp | 5–30 tents (moving) | Steppe, desert, tundra |
 | Stilt village | 10–50 | Swamps, mangroves, floodplains |
@@ -67,7 +58,8 @@ The global simulation continues to evolve it during play (6.12).
    - homes,
    - workshops by local trades (smithy, tannery near water and downwind, mill on the
      river),
-   - tavern or inn, temple, market hall, granary, wells and cisterns, and docks,
+   - inn or caravanserai, temples and shrines, bazaar, bathhouse, granary, wells, cisterns
+     and covered water reservoirs, qanat outlets, and docks,
    - walls, gates and towers for larger settlements.
 4. **Land use around the settlement:** fields with crops by climate, pastures, orchards,
    woodlots, fishing grounds and quarries.
@@ -79,7 +71,7 @@ The global simulation continues to evolve it during play (6.12).
 | Step | What happens | When |
 | --- | --- | --- |
 | 1. **Program** | The building type defines required and optional rooms and their relations. Example: farmhouse = hearth room, sleeping loft, pantry, attached byre | Region plan |
-| 2. **Massing** | A shape grammar in the style of the culture produces the footprint, storeys, roof type (gable, hip, flat, dome, thatch), wall material and openings | Chunk stage 4 (exterior shell) |
+| 2. **Massing** | A shape grammar in the style of the culture produces the footprint, storeys, roof type (dome, vault, flat roof with windcatchers, gable, thatch), courtyards and iwans, wall material and openings | Chunk stage 4 (exterior shell) |
 | 3. **Floor plan** | Rooms are placed by constrained subdivision of the footprint, with corridors for larger buildings. Doors follow the room adjacency graph, windows go on exterior walls (by style and climate), and stairs and ladders connect storeys | Player within ≈ 100 m, or interior visible |
 | 4. **Construction** | The building is assembled from **modular kit pieces** on a 0.5 m grid: wall segments, floors, beams, roof tiles, stairs, doors, shutters and windows. Each piece has a material, so fire, force and decay act on individual pieces | Same as 3 |
 | 5. **Furnishing** | Room-type rules place furniture: anchors against walls, clearances, functional groups (bed + chest, table + chairs, hearth + pot). Then clutter, light sources, containers and books, all matched to the **household** (profession, wealth, culture) | Player within ≈ 30 m, or opening the door |
@@ -92,9 +84,9 @@ taken items, broken doors, burnt walls and moved furniture.
 space and use the same simulation: smoke fills rooms, fire spreads along timber, and doors
 and windows control airflow and light.
 
-## 6.6 Castles
+## 6.6 Citadels and castles
 
-Castles are the showpiece of procedural architecture.
+Citadels and castles are the showpiece of procedural architecture.
 
 - **Siting:** hilltop, ridge spur, river bend, lake island or coastal promontory. The
   curtain wall follows the terrain's defensible contour.
@@ -102,16 +94,20 @@ Castles are the showpiece of procedural architecture.
   - curtain wall with wall-walks and crenellations, corner and flanking towers, and a
     gatehouse with gate, portcullis and murder holes,
   - optional moat or ditch, inner and outer bailey,
-  - keep, great hall, lord's chambers and solar, chapel, kitchens, bakery, brewery,
-    buttery, well house, barracks, stables, smithy and armoury,
+  - keep or palace core, audience hall with an iwan, the ruler's quarters, a garden court,
+    a shrine of the realm's faith, kitchens, bakery, storerooms, bathhouse, cistern and
+    well house, barracks, stables, smithy and armoury,
   - library, cellars, dungeon and secret passages.
-- **Styles by culture:** stone keeps in temperate hills, brick fortresses in river plains,
-  mud-brick kasbahs in deserts, timber-and-earth forts in the north, and cliff-carved
-  strongholds in canyons.
-- **States:** held by a lord with guards, servants and a daily life schedule, abandoned,
-  ruined, occupied by bandits or a rival mage, or seized by Sereth's followers.
+- **Styles by culture** (from the style families, see
+  [World history §10.4](10-world-history.md#104-phase-3-peopling-common-foundations)):
+  highland citadels of mud brick and stone above oasis towns, kasbahs and fortified
+  granaries in arid mountains, round-towered desert forts, stone fortresses in temperate
+  uplands, brick river fortresses, steppe ring-forts and cliff-carved strongholds in
+  canyons.
+- **States:** held by a ruler with guards, servants and a daily life schedule, abandoned,
+  ruined, occupied by bandits or a rival mage, or seized by Azhdar's followers.
 - **Gameplay:** infiltration (use the cloak's camouflage, the guards' sight model, night),
-  negotiation with lords, sieges, which the player can break with terrain and fire
+  negotiation with rulers, sieges, which the player can break with terrain and fire
   magic, and libraries holding rare spellbooks.
 
 ## 6.7 Caves and dungeons
@@ -123,8 +119,8 @@ Castles are the showpiece of procedural architecture.
   - glacier caves.
   They are built from sparse voxel volumes, with a separate 3D simulation for air, water
   and heat.
-- **Built dungeons** include crypts, catacombs, abandoned mines, elder vaults, mage
-  sanctums and bandit hideouts. They are generated as **graph grammars**: a mission graph
+- **Built dungeons** include crypts, catacombs, **tombs of notable figures** from the
+  history database, abandoned mines, elder vaults, mage sanctums and bandit hideouts. They are generated as **graph grammars**: a mission graph
   with locks and keys, loops and optional branches is laid out spatially and then
   furnished with kit pieces.
 - **Simulation-based puzzles and traps:**
@@ -135,7 +131,7 @@ Castles are the showpiece of procedural architecture.
   - avoid pressure plates that release gas (gas fields!),
   - extinguish torches to sneak past.
 - **Inhabitants** are cave-adapted creatures (bats, blind salamanders, fungal life,
-  predators), bandits, rival mages and Sereth's servants.
+  predators), bandits, rival mages and Azhdar's servants.
 
 ## 6.8 Ruins and decay
 
@@ -149,14 +145,14 @@ Any structure can be generated in a **ruined state**, parameterised by age and c
 - **Burial:** sand in deserts, silt in floodplains and snow in cold regions.
 - Basements are flooded, and loot is sparse and scattered.
 
-**Burnt villages** from Sereth's campaign are ruins that appear *during play*. The global
+**Burnt villages** from Azhdar's campaign are ruins that appear *during play*. The global
 simulation flips a settlement to "destroyed", and its chunks regenerate with fire damage
 and no inhabitants.
 
 ## 6.9 Set pieces
 
-Story locations use **parametric templates** written in Lua. Examples are Haselbrunn,
-Joren's sanctum, the hermit's tower, the Circle's vaults and Sereth's citadel. A template
+Story locations use **parametric templates** written in Lua. Examples are Anarvan,
+Farrokh's sanctum, the hermit's tower, the Circle's vaults and Azhdar's citadel. A template
 fixes the essential layout and scripted elements and lets the procedural pipeline fill in
 the rest (terrain fit, style, furnishing). The narrative director places them (see
 [Story](01-story.md)).
@@ -165,16 +161,19 @@ the rest (terrain fit, style, furnishing). The narrative director places them (s
 
 - **Generated lazily:** a settlement knows its population and household count. Individual
   NPCs are generated when the settlement reaches the near tier: name (culture language),
-  age, family, profession, wealth, traits and relationships. NPCs become **persistent**
+  age, family, profession, wealth, faith, traits and relationships. NPCs become **persistent**
   once the player has interacted with them.
-- **Daily life:** schedules for work, meals, sleep, worship, the tavern and the market.
+- **Daily life:** schedules for work, meals, sleep, worship, the teahouse and the bazaar,
+  plus festivals from the culture's calendar.
   NPCs respond to weather, fire (they fight it with buckets), raids (they flee or defend)
   and night.
 - **Perception of the player:** a reputation per settlement and faction, the cloak
   appearance (drab traveller or vivid mage), and magic they have seen (awe, fear,
-  hostility, depending on culture).
+  hostility, depending on culture and faith). Guest rights and hospitality customs
+  matter: a guest who breaks them loses reputation fast.
 - **Dialogue:** topic-based. Authored lines are combined with templated lines filled from
-  world state: rumours about nearby events, directions, local lore and prices.
+  world state and the history database: rumours about nearby events, directions, local
+  history told from the culture's point of view, songs, grudges and prices.
 - **Services:** trade, lodging, healing, teaching (herbalists, hunters, hedge mages and
   Circle remnants teach disciplines), and hiring guides.
 - **Procedural requests** come from world state:
@@ -187,11 +186,11 @@ the rest (terrain fit, style, furnishing). The narrative director places them (s
 
 | Faction | Attitude to the player | Role |
 | --- | --- | --- |
-| Realms and lords | Varies, often wary of mages | Castles, law, taxes, sieges |
+| Realms and rulers (titles in the culture's language) | Varies, often wary of mages | Citadels, law, taxes, edicts on magic, sieges |
 | Towns and guilds (herbalists, miners, merchants) | Pragmatic | Trade, teaching, materials |
-| Religious orders | Suspicious to hostile toward magic | Monasteries, healing, wards |
+| Faiths and temple orders | Depends on doctrine: revere, license or hunt mages | Temples, pilgrimages, healing, wards, inquisitorial orders |
 | Free mages (rivals) | Varies by personality | Domains, competition, teaching, betrayal |
-| The Ashen (Sereth's followers) | Hostile | Raids, agents, lieutenants, the endgame |
+| The Ashen (Azhdar's followers) | Hostile | Raids, agents, lieutenants, the endgame |
 | Bandits and raiders | Hostile | Camps, ambushes on roads |
 | Nomads and forest folk | Neutral, can be won over | Guides, rare knowledge, beasts |
 

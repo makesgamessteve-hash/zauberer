@@ -10,7 +10,7 @@
  cast · dodge · fight             discover · gather · survive     mana capacity and attunement
  collect motes                    ↓                               carpet, bag, tent upgrades
  react to fire, weather, beasts   return · craft · brew · enchant domains and Great Weaves
-                                  research · plan · sleep         the hunt for Sereth
+                                  research · plan · sleep         the hunt for Azhdar
 ```
 
 1. **Explore.** Fly over an endless planet that is worth looking at. Discovery itself is
@@ -22,7 +22,7 @@
 5. **Craft.** Alchemy, artificing and cooking turn gathered materials into power.
 6. **Master.** Higher discipline tiers unlock bigger magic: rituals that reshape the land,
    summons and Great Weaves.
-7. **Pursue.** Story threads lead toward Sereth, and the world darkens if ignored.
+7. **Pursue.** Story threads lead toward Azhdar, and the world darkens if ignored.
 
 ## 7.2 Survival
 
@@ -48,8 +48,11 @@
 - The **Codex** is a natural-history encyclopaedia:
   - species of plants, fungi, animals and insects,
   - minerals and substances,
-  - phenomena (weather, ley lines),
-  - peoples and places.
+  - phenomena (weather, ley lines, strata and fossils),
+  - peoples, languages, faiths, realms, places and history (see
+    [World history §10.11](10-world-history.md#1011-the-history-database-and-lore)).
+    History entries collect each culture's version of an event side by side, so the
+    player can compare accounts and piece together what really happened.
 - **Entry levels:** *Seen → Observed → Studied → Understood*. Each level reveals more
   properties: what it is, where it lives, what it is good for, how to harvest it and what
   is dangerous about it.
@@ -93,8 +96,8 @@ Combat is a test of everything else. The player rarely wins by raw damage alone.
   - bandits,
   - rival mages: the hardest regular fights, since they use the same weave system as the
     player,
-  - the Ashen and Sereth's constructs (ash golems, cinder hounds),
-  - Sereth's lieutenants (boss duels).
+  - the Ashen and Azhdar's constructs (ash golems, cinder hounds),
+  - Azhdar's lieutenants (boss duels).
 - **Damage model:** damage is mostly *physical through the simulation*. Heat burns,
   impact bruises and breaks, cold freezes, poison is a substance in the body, and smoke
   suffocates. Wards and resistances act on these channels.
@@ -110,8 +113,8 @@ Combat is a test of everything else. The player rarely wins by raw damage alone.
 - **They live in the global simulation.** They expand domains, raid each other, trade with
   settlements and react to the player's growing power.
 - **Possible relationships:** rivalry, a truce or trade agreement, an apprenticeship
-  (teaching), an alliance against Sereth, or betrayal.
-- **Sereth's lieutenants** are named rival mages with authored traits and story roles.
+  (teaching), an alliance against Azhdar, or betrayal.
+- **Azhdar's lieutenants** are named rival mages with authored traits and story roles.
 
 ## 7.7 Death, saving and time
 
@@ -127,8 +130,8 @@ Combat is a test of everything else. The player rarely wins by raw damage alone.
 
 ## 7.8 Example first two hours (vertical slice target)
 
-1. Prologue in Haselbrunn: chores, the attack, hiding.
-2. Ashes. Bury Joren, find the sanctum, take the books and the bag.
+1. Prologue in Anarvan: chores, the attack, hiding.
+2. Ashes. Bury Farrokh, find the sanctum, take the books and the bag.
 3. First weaves: *Kindle*, *Light*, *Lift*. The carpet bonding dream. The first flight.
 4. Forage berries and mushrooms (one is poisonous, and the Codex warns at *Observed*).
    Boil water. Spend the first night in the tent: hearth room and bedchamber.

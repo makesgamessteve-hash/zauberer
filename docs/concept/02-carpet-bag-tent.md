@@ -63,8 +63,10 @@ On command, the carpet wraps around the player's shoulders as a hooded cloak.
     stealth tool.
   - **Vivid or regal:** bright, rich colors and patterns. NPCs read it as "a mage". Some
     respect or fear this, some get hostile, and it can intimidate predators.
-  - The pattern library grows as the player discovers dyes through alchemy and natural
-    pigments, which are recorded in the Codex.
+  - The pattern library grows in two ways. The player discovers dyes through alchemy and
+    natural pigments, which are recorded in the Codex. The player also learns the
+    carpet and textile motifs of the cultures they visit; as a weaver's child, they can
+    weave any motif they have studied into the cloak.
 - **Glide.** If the player falls from height while cloaked, the cloak spreads into a
   glider. This prevents fall damage and gives short-range gliding.
 - **Ward lining** (upgrade). Artificing can weave passive wards into the cloak, such as
@@ -76,21 +78,24 @@ On command, the carpet wraps around the player's shoulders as a hooded cloak.
 
 On flat ground the carpet folds itself into a small, ordinary-looking canvas tent. The
 player crouches to enter. Inside is a **pocket space** that is vastly larger than the tent.
+It is built like the pavilion of a wealthy weaver's house in Farrokh's home culture:
+carpeted rooms with tiled arches around a central courtyard with a walled garden and a
+fountain.
 
 ### Rooms
 
 The interior is a home hub that grows over the game. Rooms are unlocked by ritual magic and
-artificing ("folding" more space) and by finding Joren's notes.
+artificing ("folding" more space) and by finding Farrokh's notes.
 
 | Room | Purpose | Unlock |
 | --- | --- | --- |
 | **Hearth room** | Entry, fireplace, cooking, eating | Start |
 | **Bedchamber** | Sleep (time skip, healing, dreams and visions), saving | Start |
-| **Study / library** | Spellbooks, journal, Codex, research desk, map table | Start (Joren's books) |
+| **Study / library** | Spellbooks, journal, Codex, research desk, map table | Start (Farrokh's books) |
 | **Memorial alcove** | Family keepsakes, story mementos, trophies | Act I |
 | **Pantry and cold store** | Food storage with a slowed-time shelf (reduced spoilage) | Early |
 | **Alchemy laboratory** | Furnace, alembic, mortar, bain-marie, athanor, glassware | Early-mid |
-| **Garden / greenhouse** | Plant beds with an enchanted sun; grow herbs, fungi, crops in chosen climates | Mid |
+| **Garden courtyard** | A walled four-part garden with an enchanted sun and a fountain; grow herbs, fungi and crops in chosen climates | Mid |
 | **Workshop** | Workbench, loom, forge corner, enchanting table (artificing) | Mid |
 | **Ritual chamber** | Inlaid circle for rituals, linked to the tent's ley anchor | Mid |
 | **Menagerie** | Habitats for familiars and bound creatures | Mid-late |
@@ -114,12 +119,12 @@ rooms.
   Pitching takes a moment, and packing up is instant. Wards from ritual magic protect the
   campsite.
 - **No pitching** on steep slopes, in water, or inside buildings smaller than the tent.
-- **Dreams.** Sleeping can trigger story dreams, where Joren's memories carry backstory
+- **Dreams.** Sleeping can trigger story dreams, where Farrokh's memories carry backstory
   and hints, and divination dreams, which hint at nearby resources or dangers.
 
 ## 2.4 The endless bag
 
-Joren's bag looks like a small leather satchel. It holds a folded space.
+Farrokh's bag looks like a small leather satchel. It holds a folded space.
 
 - **Capacity by folds, not weight.** Items occupy slots ("folds") with stack limits, and
   carry weight doesn't apply to items in the bag. The number of folds grows with Void
@@ -143,7 +148,7 @@ Joren's bag looks like a small leather satchel. It holds a folded space.
   (whistle) within a radius.
 - **Personality.** The carpet is not a talking companion. It has expressive animations:
   ruffling, curling corners and shivering in the cold.
-- **Antagonist pull.** Sereth can sense the carpet when it's used near his agents or in
+- **Antagonist pull.** Azhdar can sense the carpet when it's used near his agents or in
   high-Void areas. The silent-glide and ward upgrades counter this.
 
 ## 2.6 Optional extra modes (proposals, not committed)

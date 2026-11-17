@@ -17,7 +17,8 @@ couldn't manage.
 | **Sprites** | Billboards for vegetation, small creatures, items, particles and effects. 8-direction sprites for some creatures for a classic look |
 | **Voxels** | Optional voxel volumes (caves, overhangs, floating islands, destructibles) rendered as greedy-meshed textured cubes, which fits the retro look |
 | **Particles** | Fire, smoke, steam, sparks, embers, mana motes, spores and insects. All are sprite particles driven by simulation fields |
-| **UI** | Pixel fonts, hand-drawn frames, and diegetic elements where possible (spellbook, map table, mana ring on the wrist) |
+| **Cultural look** | The Oriental setting is expressed through each culture's style family (see [World history §10.4](10-world-history.md#104-phase-3-peopling-common-foundations)): domes, iwans, tiled portals, windcatchers, mud-brick towers, carpets and kilims; geometric star patterns and arabesques redrawn as low-res pixel tiles; palettes of lapis, turquoise, saffron, pomegranate and ochre; date palms, cypresses, poplars and pomegranate orchards as vegetation sprites |
+| **UI** | Pixel fonts, hand-drawn frames with carpet-border ornament, and diegetic elements where possible (spellbook, map table, mana ring on the wrist) |
 
 ## 8.2 Thick forests with sprites
 
@@ -53,8 +54,10 @@ instances and 200,000+ total visible instances on mid-range desktop hardware.
   - insects at dusk, birds by species,
   - river and surf sounds by distance to water.
 - **Music** is adaptive and layered. Stems per biome and time of day, with tension
-  layers for danger and combat, and leitmotifs for story moments. The style is folk
-  instruments with a retro synth touch.
+  layers for danger and combat, and leitmotifs for story moments. Each culture's music
+  uses the instruments and modes of its style family, such as oud, ney, santur,
+  kamancheh, setar, frame drums and steppe fiddles, blended with a retro synth touch.
+  Musicians and references are credited, and clichéd "exotic" tropes are avoided.
 - **Voice:** the protagonist and NPCs use a few expressive barks and an invented-language
   "murmur", with text subtitles. Incantations are spoken in the Old Tongue.
 
@@ -141,4 +144,8 @@ back to desktop mode on mouse or keyboard input.
 All text lives in string tables inside packages (Lua). The plan is to ship English and
 German first (the game's title is German). The Old Tongue words stay untranslated
 everywhere. The UI must support UTF-8 text and the fonts need extended Latin coverage.
-Other scripts come later through fonts in packages.
+Other scripts come later through fonts in packages. Given the setting, Persian, Arabic
+and Turkish translations are natural candidates. Right-to-left scripts need
+bidirectional layout and glyph shaping, so the text system is designed so that a shaping
+library (e.g. HarfBuzz, MIT-licensed) can be added later without changing the scripting
+API. The generated cultures' invented scripts are pixel glyph sets in packages.
