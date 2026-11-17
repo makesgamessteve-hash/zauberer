@@ -1,0 +1,98 @@
+/* SPDX-License-Identifier: MIT */
+/* The Lua 5.4 host: package entry scripts, lifecycle hooks, sandbox, error
+ * isolation, deterministic randomness, hot reload, instruction budget, line
+ * coverage, and the Lua test and scenario runners. */
+#ifndef ZB_SCRIPT_SCRIPT_H
+#define ZB_SCRIPT_SCRIPT_H
+
+#include "audio/audio.h"
+#include "core/fs.h"
+#include "input/input.h"
+#include "render/render.h"
+#include "vfs/vfs.h"
+
+typedef struct zb_script zb_script;
+
+typedef struct zb_script_info {
+  const char *platform;
+  const char *build; /* "development" or "release" */
+  const char *input_mode;
+  int drawable_w, drawable_h;
+  uint64_t seed;
+} zb_script_info;
+
+/* Application-level services the scripts can use. */
+typedef struct zb_script_host {
+  void *ctx;
+  void (*quit)(void *ctx, int code);
+  void (*get_info)(void *ctx, zb_script_info *out);
+  double (*sim_time)(void *ctx);
+  uint64_t (*tick_count)(void *ctx);
+  void (*set_paused)(void *ctx, bool paused);
+  void (*set_time_scale)(void *ctx, double scale);
+  void (*set_fullscreen)(void *ctx, bool on);
+  /* Persists the user's input bindings. */
+  zb_result (*save_bindings)(void *ctx);
+} zb_script_host;
+
+typedef struct zb_script_config {
+  const zb_allocator *a;
+  zb_vfs *vfs;
+  zb_input *input;
+  zb_render *render;
+  zb_audio *audio;
+  const zb_fs_api *fs;     /* real file system: user data, tests */
+  const char *user_dir;    /* with trailing '/' */
+  zb_script_host host;
+  uint64_t seed;
+  bool dev;                /* hot reload, on-screen errors */
+  bool test_api;           /* test and scenario helpers, input injection */
+  uint64_t instruction_budget; /* per hook invocation; 0 = unlimited */
+  const char *coverage_path;   /* LuaCov-compatible stats file, or NULL */
+} zb_script_config;
+
+#define ZB_SCRIPT_DEFAULT_BUDGET 10000000u
+
+zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_len);
+/* Writes coverage (if enabled) and closes the Lua state. */
+void zb_script_destroy(zb_script *s);
+
+/* Runs scripts/main.lua of every enabled package in load order. Errors are
+ * isolated per package; returns the number of packages whose script failed. */
+size_t zb_script_run_packages(zb_script *s);
+
+/* Hook dispatch (in package load order; shutdown in reverse). */
+void zb_script_init_hooks(zb_script *s);
+void zb_script_tick(zb_script *s, double dt);
+void zb_script_frame(zb_script *s, double alpha);
+void zb_script_shutdown(zb_script *s);
+/* Named events: "resize" (w, h), "input_mode" (mode), "audio_unlocked". */
+void zb_script_event(zb_script *s, const char *name, int a, int b, const char *text);
+
+/* Development: checks script files for changes (at most every 250 ms) and
+ * reloads changed packages; returns the number of packages reloaded. */
+size_t zb_script_poll_reload(zb_script *s, uint64_t now_ns);
+
+/* Errors reported so far (for the on-screen overlay). */
+size_t zb_script_error_count(const zb_script *s);
+const char *zb_script_error(const zb_script *s, size_t i);
+
+/* Runs Lua test files (a file or a directory of *_test.lua / test_*.lua);
+ * writes JUnit XML when junit_path is set. Returns the number of failures
+ * (or -1 when nothing could be run). */
+int zb_script_run_tests(zb_script *s, const char *path, const char *junit_path);
+
+/* Scenario: loads the file as a coroutine. Each resume returns the number of
+ * ticks to run before the next resume; false when the scenario finished. */
+zb_result zb_script_scenario_start(zb_script *s, const char *path);
+bool zb_script_scenario_resume(zb_script *s, uint64_t *ticks);
+/* Number of failed expectations (or errors) of the scenario. */
+int zb_script_scenario_failures(const zb_script *s);
+const char *zb_script_scenario_name(const zb_script *s);
+/* Sets the directory for golden images and their output (scenario runs). */
+void zb_script_set_golden_dirs(zb_script *s, const char *golden_dir, const char *out_dir);
+
+/* Coverage: flushes collected line counts into the stats file. */
+zb_result zb_script_write_coverage(zb_script *s);
+
+#endif

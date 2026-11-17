@@ -1,0 +1,75 @@
+/* SPDX-License-Identifier: MIT */
+/* Shared internals of the script module (not part of its public API). */
+#ifndef ZB_SCRIPT_INTERNAL_H
+#define ZB_SCRIPT_INTERNAL_H
+
+#include "core/array.h"
+#include "core/hash.h"
+#include "script/script.h"
+
+#include "lauxlib.h"
+#include "lua.h"
+#include "lualib.h"
+
+#define ZB_SCRIPT_MAX_ERRORS 16
+#define ZB_SCRIPT_REGISTRY_HOOKS "zb.hooks"
+#define ZB_SCRIPT_REGISTRY_PRESERVE "zb.preserve"
+#define ZB_SCRIPT_REGISTRY_LOADED "zb.loaded"
+#define ZB_SCRIPT_REGISTRY_ENGINE "zb.engine"
+
+typedef struct watched_file {
+  size_t pkg;
+  char *real;
+  uint64_t mtime;
+} watched_file;
+
+typedef struct cov_file {
+  char *name;
+  uint32_t *hits;
+  size_t max;
+} cov_file;
+
+struct zb_script {
+  zb_script_config cfg;
+  lua_State *L;
+  zb_rng rng;
+  size_t pkg_count;
+  int *env_refs;
+  bool *pkg_failed;
+  int current_pkg;
+  uint64_t budget_count;
+  bool budget_active;
+  char errors[ZB_SCRIPT_MAX_ERRORS][512];
+  size_t error_count;
+  zb_array watched; /* watched_file */
+  uint64_t last_poll_ns;
+  bool coverage;
+  zb_array cov_files; /* cov_file */
+  zb_map cov_index;   /* hash(name) -> index */
+  /* scenario */
+  lua_State *co;
+  int co_ref;
+  int scenario_failures;
+  bool scenario_started;
+  char scenario_name[128];
+  char golden_dir[512];
+  char out_dir[512];
+  char scenario_dir[512];
+};
+
+/* Records an error message for the log and the overlay. */
+void zb_script_report(zb_script *s, const char *pkg, const char *msg);
+/* pcall with a traceback message handler; reports and returns false on error. */
+bool zb_script_pcall(zb_script *s, int nargs, int nresults, const char *pkg, bool budget);
+/* The script owning L (stored in the state's extra space). */
+zb_script *zb_script_from(lua_State *L);
+/* Registers engine, vfs, input, render, audio and save in the global table. */
+void zb_script_open_api(zb_script *s);
+/* Adds the test helpers (test.*) and scenario helpers to the global table. */
+void zb_script_open_test_api(zb_script *s);
+/* Canonical hash of a Lua value (sorted keys, IEEE bit patterns). */
+void zb_script_hash_value(lua_State *L, int idx, zb_hasher *h, int depth);
+/* Makes a sandboxed environment table (index -> globals) on the stack. */
+void zb_script_new_env(zb_script *s, int pkg);
+
+#endif

@@ -1,0 +1,527 @@
+/* SPDX-License-Identifier: MIT */
+#include "app/engine.h"
+
+#include "core/log.h"
+#include "core/luon.h"
+#include "core/version.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define HEADLESS_BATCH 600u
+#define CONFIG_FILE "config.lua"
+
+/* ---- Script host callbacks ---------------------------------------------------- */
+
+static void host_quit(void *ctx, int code) {
+  zb_engine *e = ctx;
+  e->quit = true;
+  e->exit_code = code;
+}
+
+static void host_info(void *ctx, zb_script_info *out) {
+  zb_engine *e = ctx;
+  out->platform = zb_platform_name();
+#ifdef ZB_DEV
+  out->build = "development";
+#else
+  out->build = "release";
+#endif
+  out->input_mode = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop";
+  out->drawable_w = e->drawable_w;
+  out->drawable_h = e->drawable_h;
+  out->seed = e->seed;
+}
+
+static double host_time(void *ctx) {
+  zb_engine *e = ctx;
+  return (double)e->ticks * zb_loop_tick_seconds();
+}
+
+static uint64_t host_ticks(void *ctx) { return ((zb_engine *)ctx)->ticks; }
+
+static void host_pause(void *ctx, bool paused) { zb_loop_set_paused(&((zb_engine *)ctx)->loop, paused); }
+
+static void host_time_scale(void *ctx, double scale) {
+  zb_loop_set_time_scale(&((zb_engine *)ctx)->loop, scale);
+}
+
+static void host_fullscreen(void *ctx, bool on) {
+  zb_platform_set_fullscreen(((zb_engine *)ctx)->platform, on);
+}
+
+static zb_result write_config(zb_engine *e) {
+  char bindings[8192];
+  zb_input_write_user(e->input, bindings, sizeof bindings);
+  char text[8400];
+  int n = snprintf(text, sizeof text, "return {\n  bindings = %s,\n}\n", bindings);
+  char path[1100];
+  snprintf(path, sizeof path, "%s%s", e->user_dir, CONFIG_FILE);
+  const zb_fs_api *fs = zb_platform_fs(e->platform);
+  zb_result r = fs->write(fs->ctx, path, text, (size_t)n);
+  zb_platform_user_data_sync(e->platform);
+  return r;
+}
+
+static zb_result host_save_bindings(void *ctx) { return write_config(ctx); }
+
+/* ---- Setup helpers ------------------------------------------------------------- */
+
+static void ensure_slash(char *path, size_t len) {
+  size_t n = strlen(path);
+  if (n > 0 && path[n - 1] != '/' && path[n - 1] != '\\' && n + 1 < len) {
+    path[n] = '/';
+    path[n + 1] = '\0';
+  }
+}
+
+static void load_input_defaults(zb_engine *e) {
+  for (size_t i = 0; i < zb_vfs_load_count(e->vfs); ++i) {
+    const zb_package *p = zb_vfs_load_order(e->vfs, i);
+    char *text = NULL;
+    size_t len = 0;
+    if (zb_vfs_read_package(e->vfs, p, "data/input.lua", e->a, &text, &len) != ZB_OK) {
+      continue;
+    }
+    zb_luon_doc doc;
+    zb_luon_error err;
+    if (zb_luon_parse(&doc, e->a, text, len, &err) == ZB_OK) {
+      char msg[256];
+      if (zb_input_apply_defaults(e->input, &doc.root, msg, sizeof msg) != ZB_OK) {
+        zb_error("[%s] data/input.lua: %s", p->id, msg);
+      }
+      zb_luon_free(&doc);
+    } else {
+      zb_error("[%s] data/input.lua:%d: %s", p->id, err.line, err.message);
+    }
+    zb_free(e->a, text);
+  }
+}
+
+static void load_user_config(zb_engine *e) {
+  char path[1100];
+  snprintf(path, sizeof path, "%s%s", e->user_dir, CONFIG_FILE);
+  const zb_fs_api *fs = zb_platform_fs(e->platform);
+  char *text = NULL;
+  size_t len = 0;
+  if (fs->read(fs->ctx, path, e->a, &text, &len) != ZB_OK) {
+    return;
+  }
+  zb_luon_doc doc;
+  zb_luon_error err;
+  if (zb_luon_parse(&doc, e->a, text, len, &err) == ZB_OK) {
+    zb_input_apply_user(e->input, zb_table_get(&doc.root, "bindings"));
+    const zb_value *vol = zb_table_get(&doc.root, "volume");
+    if (vol) {
+      zb_audio_set_master_volume(e->audio, (float)zb_value_num(zb_table_get(vol, "master"), 1.0));
+      zb_audio_set_group_volume(e->audio, ZB_AUDIO_MUSIC, (float)zb_value_num(zb_table_get(vol, "music"), 1.0));
+      zb_audio_set_group_volume(e->audio, ZB_AUDIO_EFFECTS, (float)zb_value_num(zb_table_get(vol, "effects"), 1.0));
+    }
+    zb_luon_free(&doc);
+  } else {
+    zb_warn("%s:%d: %s (configuration ignored)", path, err.line, err.message);
+  }
+  zb_free(e->a, text);
+}
+
+static void audio_fill(void *user, float *out, int frames) { zb_audio_mix(user, out, frames); }
+
+static zb_gl_fn gl_loader(void *ctx, const char *name) {
+  return (zb_gl_fn)zb_platform_gl_proc(ctx, name);
+}
+
+static bool setup_replay(zb_engine *e) {
+  if (e->opt.replay_path) {
+    const zb_fs_api *fs = zb_platform_fs(e->platform);
+    size_t len = 0;
+    if (fs->read(fs->ctx, e->opt.replay_path, e->a, &e->replay_data, &len) != ZB_OK) {
+      zb_platform_show_error(e->platform, "Zauberer", "The replay file could not be read.");
+      return false;
+    }
+    char err[200];
+    e->replay = zb_input_replay_open(e->a, e->input, (const unsigned char *)e->replay_data, len, err, sizeof err);
+    if (!e->replay) {
+      zb_error("replay %s: %s", e->opt.replay_path, err);
+      return false;
+    }
+    if (!e->opt.seed_set) {
+      e->seed = zb_input_replay_seed(e->replay);
+    }
+  }
+  if (e->opt.record_path) {
+    e->recorder = zb_input_recorder_create(e->a, e->input, e->seed, zb_vfs_package_set_hash(e->vfs));
+  }
+  return true;
+}
+
+static void fail(zb_engine *e, const char *message) {
+  zb_platform_show_error(e->platform, "Zauberer", message);
+}
+
+/* ---- Creation --------------------------------------------------------------------- */
+
+zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
+  *out = NULL;
+  zb_options opt;
+  char err[1600];
+  if (zb_options_parse(&opt, argc, argv, err, sizeof err) != ZB_OK) {
+    fprintf(stderr, "zauberer: %s\n", err);
+    return ZB_HOST_FAILURE;
+  }
+  if (opt.help || opt.version) {
+    fputs(opt.help ? zb_options_usage() : "zauberer " ZB_VERSION " (scripting API " ZB_API_VERSION ")\n", stdout);
+    return ZB_HOST_SUCCESS;
+  }
+  const zb_allocator *a = zb_heap_allocator();
+  zb_engine *e = zb_calloc(a, sizeof(*e));
+  if (!e) {
+    return ZB_HOST_FAILURE;
+  }
+  *out = e;
+  e->a = a;
+  e->opt = opt;
+  e->mode = opt.test_path ? ZB_MODE_TEST : (opt.scenario_path ? ZB_MODE_SCENARIO : ZB_MODE_GAME);
+  e->headless = opt.headless || e->mode == ZB_MODE_TEST;
+  e->seed = opt.seed_set ? opt.seed : 0x5a617562u;
+  zb_loop_init(&e->loop);
+  e->platform = zb_platform_create(a);
+  if (!e->platform) {
+    return ZB_HOST_FAILURE;
+  }
+  const zb_fs_api *fs = zb_platform_fs(e->platform);
+
+  /* Content folder next to the binary (or --assets). */
+  if (opt.assets_dir) {
+    snprintf(e->assets_dir, sizeof e->assets_dir, "%s", opt.assets_dir);
+  } else {
+    snprintf(e->assets_dir, sizeof e->assets_dir, "%sassets", zb_platform_base_path(e->platform));
+  }
+  zb_fs_stat st;
+  if (fs->stat(fs->ctx, e->assets_dir, &st) != ZB_OK || !st.is_dir) {
+    snprintf(err, sizeof err,
+             "The game content was not found.\n\nExpected the 'assets' folder at:\n%s\n\n"
+             "Reinstall the game or start it with --assets <folder>.",
+             e->assets_dir);
+    fail(e, err);
+    return ZB_HOST_FAILURE;
+  }
+
+  /* User data directory. */
+  if (opt.user_dir) {
+    snprintf(e->user_dir, sizeof e->user_dir, "%s", opt.user_dir);
+    fs->mkdirs(fs->ctx, e->user_dir);
+  } else if (zb_platform_user_dir(e->platform, e->user_dir, sizeof e->user_dir) != ZB_OK) {
+    snprintf(e->user_dir, sizeof e->user_dir, "./user/");
+  }
+  ensure_slash(e->user_dir, sizeof e->user_dir);
+
+  /* Jobs, packages. */
+  unsigned cpus = zb_platform_cpu_count(e->platform);
+  e->jobs = zb_jobs_create(a, zb_platform_threads(e->platform), cpus > 1 ? cpus - 1 : 1);
+  e->vfs = zb_vfs_create(a, fs, e->jobs);
+  if (!e->jobs || !e->vfs) {
+    return ZB_HOST_FAILURE;
+  }
+  char root[1100];
+  zb_vfs_add_root(e->vfs, e->assets_dir);
+  snprintf(root, sizeof root, "%smods", zb_platform_base_path(e->platform));
+  zb_vfs_add_root(e->vfs, root);
+  snprintf(root, sizeof root, "%smods", e->user_dir);
+  zb_vfs_add_root(e->vfs, root);
+  if (zb_vfs_mount(e->vfs, ZB_API_VERSION_MAJOR, ZB_API_VERSION_MINOR) != ZB_OK ||
+      zb_vfs_load_count(e->vfs) == 0) {
+    snprintf(err, sizeof err, "No usable content package was found in:\n%s", e->assets_dir);
+    fail(e, err);
+    return ZB_HOST_FAILURE;
+  }
+
+  /* Window and renderer. */
+  zb_render_backend *backend = NULL;
+  if (!e->headless) {
+    zb_window_desc desc = {"Zauberer", 1280, 720, false};
+    const char *size = getenv("ZB_WINDOW_SIZE");
+    if (size) {
+      sscanf(size, "%dx%d", &desc.width, &desc.height);
+    }
+    if (zb_platform_open_window(e->platform, &desc, err, sizeof err) != ZB_OK) {
+      fail(e, err);
+      return ZB_HOST_FAILURE;
+    }
+    zb_platform_drawable_size(e->platform, &e->drawable_w, &e->drawable_h);
+    backend = zb_render_gl_backend(a, gl_loader, e->platform, zb_platform_is_gles(e->platform), e->vfs, err,
+                                   sizeof err);
+    if (!backend) {
+      fail(e, err);
+      return ZB_HOST_FAILURE;
+    }
+  } else {
+    backend = zb_render_null_backend(a);
+    e->drawable_w = 1280;
+    e->drawable_h = 720;
+  }
+  e->render = zb_render_create(a, e->vfs, backend);
+  if (!e->render) {
+    return ZB_HOST_FAILURE;
+  }
+  zb_render_set_view_count(e->render, opt.debug_views);
+
+  /* Audio. */
+  e->audio = zb_audio_create(a, e->vfs, zb_platform_threads(e->platform));
+#ifdef __EMSCRIPTEN__
+  zb_audio_set_locked(e->audio, !e->headless);
+#else
+  if (!e->headless) {
+    int rate = 0;
+    zb_audio_set_device(e->audio, zb_platform_audio_open(e->platform, audio_fill, e->audio, &rate) == ZB_OK);
+  }
+#endif
+
+  /* Input. */
+  e->input = zb_input_create(a);
+  if (!e->audio || !e->input) {
+    return ZB_HOST_FAILURE;
+  }
+  if (zb_platform_touch_primary(e->platform)) {
+    zb_input_set_mode(e->input, ZB_INPUT_TOUCH);
+  }
+  load_input_defaults(e);
+  load_user_config(e);
+  if (!setup_replay(e)) {
+    return ZB_HOST_FAILURE;
+  }
+
+  /* Scripts. */
+  zb_script_config sc;
+  memset(&sc, 0, sizeof sc);
+  sc.a = a;
+  sc.vfs = e->vfs;
+  sc.input = e->input;
+  sc.render = e->render;
+  sc.audio = e->audio;
+  sc.fs = fs;
+  sc.user_dir = e->user_dir;
+  sc.host.ctx = e;
+  sc.host.quit = host_quit;
+  sc.host.get_info = host_info;
+  sc.host.sim_time = host_time;
+  sc.host.tick_count = host_ticks;
+  sc.host.set_paused = host_pause;
+  sc.host.set_time_scale = host_time_scale;
+  sc.host.set_fullscreen = host_fullscreen;
+  sc.host.save_bindings = host_save_bindings;
+  sc.seed = e->seed;
+  sc.test_api = e->mode != ZB_MODE_GAME;
+#if defined(ZB_DEV)
+  sc.dev = true;
+#endif
+#if defined(ZB_DEV) || !defined(NDEBUG)
+  sc.instruction_budget = ZB_SCRIPT_DEFAULT_BUDGET;
+#endif
+  sc.coverage_path = opt.lua_coverage_path;
+  e->script = zb_script_create(&sc, err, sizeof err);
+  if (!e->script) {
+    fail(e, err);
+    return ZB_HOST_FAILURE;
+  }
+  zb_script_run_packages(e->script);
+  e->scripts_ready = true;
+  zb_script_init_hooks(e->script);
+  if (zb_input_take_mode_change(e->input)) {
+    zb_script_event(e->script, "input_mode", 0, 0,
+                    zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
+  }
+  e->overlay_font = zb_render_load_font(e->render, "fonts/pixel.lua");
+
+  if (e->mode == ZB_MODE_TEST) {
+    int failures = zb_script_run_tests(e->script, opt.test_path, opt.junit_path);
+    e->quit = true;
+    e->exit_code = failures == 0 ? 0 : 1;
+  } else if (e->mode == ZB_MODE_SCENARIO) {
+    char golden[1100];
+    snprintf(golden, sizeof golden, "%s", opt.scenario_path);
+    char *slash = strrchr(golden, '/');
+    if (slash) {
+      snprintf(slash, sizeof golden - (size_t)(slash - golden), "/../golden");
+    } else {
+      snprintf(golden, sizeof golden, "../golden");
+    }
+    const char *outdir = getenv("ZB_GOLDEN_OUT");
+    zb_script_set_golden_dirs(e->script, golden, outdir ? outdir : "golden-out");
+    if (zb_script_scenario_start(e->script, opt.scenario_path) != ZB_OK) {
+      return ZB_HOST_FAILURE;
+    }
+  }
+  return ZB_HOST_CONTINUE;
+}
+
+/* ---- Running ------------------------------------------------------------------------ */
+
+static void tick(zb_engine *e) {
+  zb_vfs_poll(e->vfs);
+  if (e->replay) {
+    if (!zb_input_replay_next(e->replay, e->input)) {
+      zb_info("replay finished after %llu ticks", (unsigned long long)e->ticks);
+      e->quit = true;
+      return;
+    }
+  } else {
+    zb_input_sample(e->input, zb_platform_now_ns(e->platform));
+  }
+  if (e->recorder) {
+    zb_input_recorder_add(e->recorder, e->input);
+  }
+  zb_audio_tick(e->audio, zb_loop_tick_seconds());
+  e->ticks++;
+  zb_script_tick(e->script, zb_loop_tick_seconds());
+}
+
+static void frame(zb_engine *e, double alpha) {
+  zb_render_begin(e->render, e->drawable_w, e->drawable_h);
+  zb_script_frame(e->script, alpha);
+#ifdef ZB_DEV
+  /* On-screen script errors in development builds. */
+  size_t n = zb_script_error_count(e->script);
+  static const float red[4] = {1.0f, 0.3f, 0.3f, 1.0f};
+  for (size_t i = 0; i < n && i < 4; ++i) {
+    zb_render_draw_text(e->render, e->overlay_font, zb_script_error(e->script, n - 1 - i), 4.0f,
+                        4.0f + (float)i * 10.0f, 1.0f, red);
+  }
+#endif
+  zb_render_end(e->render);
+}
+
+static zb_host_status finish(zb_engine *e) {
+  if (e->mode == ZB_MODE_SCENARIO) {
+    int failures = zb_script_scenario_failures(e->script);
+    if (failures) {
+      zb_error("scenario '%s': %d failure(s)", zb_script_scenario_name(e->script), failures);
+      return ZB_HOST_FAILURE;
+    }
+    zb_info("scenario '%s': passed after %llu ticks", zb_script_scenario_name(e->script),
+            (unsigned long long)e->ticks);
+  }
+  return e->exit_code == 0 ? ZB_HOST_SUCCESS : ZB_HOST_FAILURE;
+}
+
+static void run_scenario(zb_engine *e) {
+  unsigned budget = HEADLESS_BATCH;
+  while (budget-- > 0 && !e->quit) {
+    if (e->scenario_pending == 0) {
+      uint64_t ticks = 0;
+      if (!zb_script_scenario_resume(e->script, &ticks)) {
+        e->quit = true;
+        return;
+      }
+      e->scenario_pending = ticks;
+      if (ticks == 0) {
+        zb_vfs_poll(e->vfs);
+        frame(e, 0.0);
+        continue;
+      }
+    }
+    tick(e);
+    frame(e, 0.0);
+    e->scenario_pending--;
+  }
+}
+
+zb_host_status zb_engine_iterate(zb_engine *e) {
+  if (e->quit) {
+    return finish(e);
+  }
+  uint64_t now = zb_platform_now_ns(e->platform);
+  zb_script_poll_reload(e->script, now);
+  if (e->mode == ZB_MODE_SCENARIO) {
+    run_scenario(e);
+  } else if (e->headless) {
+    for (unsigned i = 0; i < HEADLESS_BATCH && !e->quit; ++i) {
+      if (e->opt.ticks >= 0 && e->ticks >= (uint64_t)e->opt.ticks) {
+        e->quit = true;
+        break;
+      }
+      tick(e);
+      frame(e, 0.0);
+    }
+  } else {
+    unsigned n = zb_loop_advance(&e->loop, now);
+    for (unsigned i = 0; i < n && !e->quit; ++i) {
+      if (e->opt.ticks >= 0 && e->ticks >= (uint64_t)e->opt.ticks) {
+        e->quit = true;
+        break;
+      }
+      tick(e);
+    }
+    zb_vfs_poll(e->vfs);
+    frame(e, zb_loop_alpha(&e->loop));
+  }
+  if (!e->headless) {
+    zb_platform_swap(e->platform);
+  }
+  return e->quit ? finish(e) : ZB_HOST_CONTINUE;
+}
+
+zb_host_status zb_engine_event(zb_engine *e, const zb_event *ev) {
+  switch (ev->type) {
+    case ZB_EV_QUIT:
+      e->quit = true;
+      return finish(e);
+    case ZB_EV_RESIZE:
+      e->drawable_w = ev->u.resize.width;
+      e->drawable_h = ev->u.resize.height;
+      zb_script_event(e->script, "resize", e->drawable_w, e->drawable_h, NULL);
+      break;
+    case ZB_EV_AUDIO_UNLOCKED:
+      if (zb_audio_is_locked(e->audio)) {
+        int rate = 0;
+        zb_audio_set_device(e->audio, zb_platform_audio_open(e->platform, audio_fill, e->audio, &rate) == ZB_OK);
+        zb_audio_set_locked(e->audio, false);
+        zb_script_event(e->script, "audio_unlocked", 0, 0, NULL);
+      }
+      break;
+    default:
+      if (!e->replay) {
+        zb_input_handle_event(e->input, ev);
+      }
+      break;
+  }
+  if (zb_input_take_mode_change(e->input)) {
+    zb_script_event(e->script, "input_mode", 0, 0,
+                    zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
+  }
+  return ZB_HOST_CONTINUE;
+}
+
+void zb_engine_destroy(zb_engine *e) {
+  if (!e) {
+    return;
+  }
+  if (e->script && e->scripts_ready) {
+    zb_script_shutdown(e->script);
+  }
+  if (e->recorder && e->platform) {
+    size_t len = 0;
+    const unsigned char *bytes = zb_input_recorder_bytes(e->recorder, &len);
+    const zb_fs_api *fs = zb_platform_fs(e->platform);
+    if (!bytes || fs->write(fs->ctx, e->opt.record_path, bytes, len) != ZB_OK) {
+      zb_error("could not write the input recording to %s", e->opt.record_path);
+    }
+  }
+  zb_script_destroy(e->script);
+  zb_input_recorder_destroy(e->recorder);
+  zb_input_replay_close(e->replay);
+  zb_free(e->a, e->replay_data);
+  if (e->platform) {
+    zb_platform_audio_close(e->platform);
+  }
+  zb_audio_destroy(e->audio);
+  zb_render_destroy(e->render);
+  zb_input_destroy(e->input);
+  zb_vfs_destroy(e->vfs);
+  zb_jobs_destroy(e->jobs);
+  if (e->platform) {
+    zb_platform_user_data_sync(e->platform);
+  }
+  zb_platform_destroy(e->platform);
+  zb_free(e->a, e);
+}

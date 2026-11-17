@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+/build*/
+/out/
+/golden-out/
+/test-tmp/
+*.o
+*.a
+__pycache__/
+/node_modules/
+/tests/web/node_modules/
+/tests/web/test-results/
+luacov.stats.out
+luacov.report.out

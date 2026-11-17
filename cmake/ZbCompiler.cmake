@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: MIT
+# Compiler settings shared by all first-party targets.
+
+set(ZB_IS_MSVC OFF)
+if(MSVC)
+  set(ZB_IS_MSVC ON)
+endif()
+
+# Floating-point determinism: no FMA contraction, no fast-math (design §4).
+if(ZB_IS_MSVC)
+  add_compile_options(/fp:precise)
+else()
+  add_compile_options(-ffp-contract=off -fno-fast-math)
+endif()
+
+if(ZB_COVERAGE)
+  if(ZB_IS_MSVC)
+    message(FATAL_ERROR "ZB_COVERAGE requires GCC or Clang")
+  endif()
+  add_compile_options(--coverage -O0 -fno-inline)
+  add_link_options(--coverage)
+endif()
+
+if(ZB_SANITIZE)
+  add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined)
+  add_link_options(-fsanitize=address,undefined)
+endif()
+
+if(EMSCRIPTEN AND ZB_WEB_THREADS AND NOT ZB_HEADLESS_ONLY)
+  add_compile_options(-pthread)
+  add_link_options(-pthread)
+endif()
+
+# Apply warnings and common definitions to a first-party target.
+function(zb_target_defaults target)
+  if(ZB_IS_MSVC)
+    target_compile_options(${target} PRIVATE /W4 /wd4204 /wd4221)
+    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    if(ZB_WERROR)
+      target_compile_options(${target} PRIVATE /WX)
+    endif()
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+      -Wstrict-prototypes -Wmissing-prototypes -Wno-unused-parameter)
+    if(ZB_WERROR)
+      target_compile_options(${target} PRIVATE -Werror)
+    endif()
+  endif()
+  if(ZB_DEV)
+    target_compile_definitions(${target} PRIVATE ZB_DEV=1)
+  endif()
+  if(ZB_COVERAGE)
+    target_compile_definitions(${target} PRIVATE ZB_COVERAGE=1)
+  endif()
+endfunction()
+
+# Third-party code: build quietly, never with -Werror.
+function(zb_thirdparty_defaults target)
+  if(ZB_IS_MSVC)
+    target_compile_options(${target} PRIVATE /W0)
+    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+  else()
+    target_compile_options(${target} PRIVATE -w)
+  endif()
+endfunction()
