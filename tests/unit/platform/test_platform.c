@@ -40,7 +40,8 @@ static void test_name_and_clock(void) {
   TEST_ASSERT_TRUE(zb_platform_now_ns(g_p) > a);
   const char *base = zb_platform_base_path(g_p);
   TEST_ASSERT_TRUE(strlen(base) > 0);
-  TEST_ASSERT_EQUAL_CHAR('/', base[strlen(base) - 1]);
+  char last = base[strlen(base) - 1];
+  TEST_ASSERT_TRUE_MESSAGE(last == '/' || last == '\\', base);
   zb_platform_destroy(NULL);
   zb_failing_allocator fa;
   TEST_ASSERT_NULL(zb_platform_create(zb_failing_init(&fa, zb_test_alloc(), 0)));
