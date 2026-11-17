@@ -632,25 +632,31 @@ zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load
   zb_array_init(&c->textures, a, sizeof(GLuint));
   zb_array_init(&c->meshes, a, sizeof(gl_mesh));
   zb_array_init(&c->instances, a, sizeof(sprite_instance));
+  /* Check the version first: an old driver (e.g. Windows' GDI OpenGL 1.1)
+   * lacks most functions, and the version is the useful message then. */
+  typedef const GLubyte *(ZB_GLAPI * get_string_fn)(GLenum name);
+  get_string_fn get_string = (get_string_fn)load_proc(loader_ctx, "glGetString");
+  const char *version = get_string ? (const char *)get_string(GL_VERSION) : NULL;
+  snprintf(c->version, sizeof c->version, "%s", version ? version : "unknown");
+  bool es = gles;
+  int major = 0, minor = 0;
+  if (!zb_gl_parse_version(version, &es, &major, &minor) || !zb_gl_version_ok(es || gles, major, minor)) {
+    const char *renderer = get_string ? (const char *)get_string(GL_RENDERER) : NULL;
+    snprintf(err, err_len, "%s is required, but the detected version is %s (%s)",
+             gles ? "OpenGL ES 3.0 / WebGL 2" : "OpenGL 3.3 core profile", c->version,
+             renderer ? renderer : "unknown renderer");
+    gl_destroy(c);
+    return NULL;
+  }
 #define LOAD(ret, name, args) \
   c->gl.name = (ret(ZB_GLAPI *) args)load_proc(loader_ctx, #name); \
   if (!c->gl.name) { \
-    snprintf(err, err_len, "OpenGL function %s is missing", #name); \
+    snprintf(err, err_len, "OpenGL function %s is missing (OpenGL %s)", #name, c->version); \
     gl_destroy(c); \
     return NULL; \
   }
   ZB_GL_FUNCS(LOAD)
 #undef LOAD
-  const char *version = (const char *)c->gl.glGetString(GL_VERSION);
-  snprintf(c->version, sizeof c->version, "%s", version ? version : "unknown");
-  bool es = gles;
-  int major = 0, minor = 0;
-  if (!zb_gl_parse_version(version, &es, &major, &minor) || !zb_gl_version_ok(es || gles, major, minor)) {
-    snprintf(err, err_len, "%s is required, but the detected version is %s",
-             gles ? "OpenGL ES 3.0 / WebGL 2" : "OpenGL 3.3 core profile", c->version);
-    gl_destroy(c);
-    return NULL;
-  }
   static const char *const model_attribs[] = {"a_pos", "a_normal", "a_color", "a_uv", NULL};
   static const char *const sprite_attribs[] = {"a_corner", "i_pos", "i_size_pivot", "i_uv", NULL};
   static const char *const text_attribs[] = {"a_pos", "a_uv", "a_color", NULL};

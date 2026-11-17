@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT */
-/* Lua bindings: engine, vfs, input, render, audio, save. */
+/* Lua bindings: engine, vfs, input, render, audio, save (world: script_world.c). */
 #include "script/script_internal.h"
 
 #include "core/log.h"
@@ -1292,4 +1292,5 @@ void zb_script_open_api(zb_script *s) {
   reg(L, "audio", audio_fns);
   static const luaL_Reg save_fns[] = {{"get", s_get}, {"set", s_set}, {"flush", s_flush}, {NULL, NULL}};
   reg(L, "save", save_fns);
+  zb_script_open_world(s);
 }

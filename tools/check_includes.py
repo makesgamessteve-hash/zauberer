@@ -20,7 +20,7 @@ from pathlib import Path
 from tool_common import (EXIT_ERROR, EXIT_FAIL, EXIT_OK, REPO_ROOT, ToolError,
                          rel_posix, walk_files)
 
-MODULES = ("core", "platform", "vfs", "input", "render", "audio", "script", "app")
+MODULES = ("core", "platform", "vfs", "input", "render", "audio", "world", "game", "net", "script", "app")
 
 ALLOWED: dict[str, frozenset[str]] = {
     "core": frozenset({"core"}),
@@ -29,7 +29,10 @@ ALLOWED: dict[str, frozenset[str]] = {
     "input": frozenset({"core", "input"}),
     "render": frozenset({"core", "vfs", "render"}),
     "audio": frozenset({"core", "vfs", "audio"}),
-    "script": frozenset({"core", "vfs", "input", "render", "audio", "script"}),
+    "world": frozenset({"core", "world"}),
+    "game": frozenset({"core", "world", "input", "game"}),
+    "net": frozenset({"core", "net"}),
+    "script": frozenset({"core", "vfs", "input", "render", "audio", "world", "game", "net", "script"}),
     "app": frozenset(MODULES),
 }
 

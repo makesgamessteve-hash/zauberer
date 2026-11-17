@@ -196,7 +196,9 @@ jobs:
           gh release download --repo pal1000/mesa-dist-win --pattern '*release-msvc.7z' --dir "$RUNNER_TEMP"
           7z x -y -o"$RUNNER_TEMP/mesa" "$RUNNER_TEMP"/*release-msvc.7z > /dev/null
           cp "$RUNNER_TEMP"/mesa/x64/*.dll build/release/bin/
-          build/release/bin/zauberer.exe --ticks 120 --user-dir "$RUNNER_TEMP/user" | tee smoke.log
+          # Make SDL load Mesa's opengl32.dll rather than the system's GDI OpenGL 1.1.
+          export SDL_OPENGL_LIBRARY="$(cygpath -w "$PWD/build/release/bin/opengl32.dll")"
+          build/release/bin/zauberer.exe --ticks 120 --user-dir "$RUNNER_TEMP/user" 2>&1 | tee smoke.log
           grep -q "first frame presented" smoke.log
       - uses: actions/upload-artifact@v4
         with:

@@ -3,7 +3,7 @@
 
     gen_api_docs.py [--root DIR] [--check]
 
-Annotations live in C comments of src/script/*.c:
+Annotations live in C comments of src/script/*.c (all files, in name order):
 
     /* @lua render.model(path: string): integer
      * Starts loading a glTF model; returns its handle. */
@@ -27,11 +27,11 @@ from pathlib import Path
 
 from tool_common import EXIT_ERROR, EXIT_FAIL, EXIT_OK, REPO_ROOT, ToolError
 
-SOURCES = ("src/script/script.c", "src/script/script_api.c", "src/script/script_test.c")
+SOURCE_DIR = "src/script"
 OUT_MD = "docs/api/README.md"
 OUT_LUA = "docs/api/zauberer.d.lua"
 SPDX_TAG = "SPDX-" + "License-Identifier:"  # split so license scanners skip it
-MODULE_ORDER = ("engine", "vfs", "input", "render", "audio", "save", "test", "math", "")
+MODULE_ORDER = ("engine", "vfs", "input", "render", "audio", "save", "world", "test", "math", "")
 MODULE_TITLES = {
     "engine": "engine: lifecycle, time and state",
     "vfs": "vfs: package files",
@@ -39,6 +39,7 @@ MODULE_TITLES = {
     "render": "render: models, sprites, text and camera",
     "audio": "audio: sounds and music",
     "save": "save: player data",
+    "world": "world: planet coordinates",
     "test": "test: Lua tests",
     "math": "math: deterministic randomness",
     "": "Globals",
@@ -226,11 +227,14 @@ def render_stubs(functions: list[Function], classes: list[LuaClass], variables: 
 
 def generate(root: Path) -> dict[str, str]:
     functions, classes, variables = [], [], []
-    for rel in SOURCES:
-        path = root / rel
+    sources = sorted((root / SOURCE_DIR).glob("*.c"))
+    if not sources:
+        raise ToolError(f"no C sources in {SOURCE_DIR}")
+    for path in sources:
+        rel = f"{SOURCE_DIR}/{path.name}"
         try:
             text = path.read_text(encoding="utf-8")
-        except OSError as error:
+        except OSError as error:  # pragma: no cover - race between glob and read
             raise ToolError(f"cannot read {rel}: {error}") from error
         f, c, v = parse_source(text, rel)
         functions += f

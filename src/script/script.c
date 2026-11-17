@@ -644,12 +644,18 @@ size_t zb_script_poll_reload(zb_script *s, uint64_t now_ns) {
 /* ---- Lifecycle ------------------------------------------------------------------ */
 
 zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_len) {
+  zb_planet planet;
+  if (!zb_planet_init(&planet, cfg->planet_radius > 0.0 ? cfg->planet_radius : ZB_PLANET_DEFAULT_RADIUS, err,
+                      err_len)) {
+    return NULL;
+  }
   zb_script *s = zb_calloc(cfg->a, sizeof(*s));
   if (!s) {
     snprintf(err, err_len, "out of memory");
     return NULL;
   }
   s->cfg = *cfg;
+  s->planet = planet;
   s->current_pkg = -1;
   s->co_ref = LUA_NOREF;
   s->rng = zb_rng_make(cfg->seed, 0x72616e64);

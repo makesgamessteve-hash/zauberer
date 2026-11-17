@@ -53,10 +53,12 @@ typedef struct zb_script_config {
   bool test_api;               /* test and scenario helpers, input injection */
   uint64_t instruction_budget; /* per hook invocation; 0 = unlimited */
   const char *coverage_path;   /* LuaCov-compatible stats file, or NULL */
+  double planet_radius;        /* metres; 0 = ZB_PLANET_DEFAULT_RADIUS */
 } zb_script_config;
 
 #define ZB_SCRIPT_DEFAULT_BUDGET 10000000u
 
+/* Fails when the planet radius is out of range. */
 zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_len);
 /* Writes coverage (if enabled) and closes the Lua state. */
 void zb_script_destroy(zb_script *s);

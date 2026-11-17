@@ -87,8 +87,11 @@ class GenApiDocsTest(TempDirTestCase):
         code, out = run_main(gen_api_docs.main, "--root", self.root)
         self.assertEqual(code, 2)
         self.assertIn("documented more than once: print", out)
-        (src / "script.c").unlink()
-        self.assertEqual(run_main(gen_api_docs.main, "--root", self.root)[0], 2)
+        for path in src.glob("*.c"):
+            path.unlink()
+        code, out = run_main(gen_api_docs.main, "--root", self.root)
+        self.assertEqual(code, 2)
+        self.assertIn("no C sources", out)
 
     def test_repository_docs_are_current(self):
         self.assertEqual(run_main(gen_api_docs.main, "--root", REPO_ROOT, "--check")[0], 0,

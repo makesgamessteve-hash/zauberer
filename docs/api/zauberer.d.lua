@@ -54,6 +54,19 @@
 ---@field load_order integer? Position in the load order (enabled packages)
 ---@field error string? Why the package is disabled
 
+---@class PlanetInfo
+---@field radius number Sea-level radius in metres
+---@field chunks_per_edge integer Chunks along one cube-face edge
+---@field chunk_size number Nominal chunk width in metres (256)
+
+---@class PlanetPos
+---@field face integer Cube face 0..5 (+X, -X, +Y, -Y, +Z, -Z)
+---@field x integer Chunk column on the face
+---@field y integer Chunk row on the face
+---@field lx number Offset inside the chunk, nominal metres 0..256
+---@field ly number Offset inside the chunk, nominal metres 0..256
+---@field alt number Metres above sea level
+
 ---@class PlayOptions
 ---@field volume number? Volume (default 1)
 ---@field pitch number? Playback rate (default 1)
@@ -398,6 +411,52 @@ function save.get(key) end
 ---@param key string
 ---@param value nil|boolean|number|string|table
 function save.set(key, value) end
+
+world = {}
+
+---The chunk's stable 64-bit key.
+---@param pos PlanetPos
+---@return integer
+function world.chunk_key(pos) end
+
+---Great-circle distance at sea level in metres.
+---@param a PlanetPos
+---@param b PlanetPos
+---@return number
+function world.distance(a, b) end
+
+---The position of planet-centred coordinates in metres.
+---@param x number
+---@param y number
+---@param z number
+---@return PlanetPos
+function world.from_cartesian(x, y, z) end
+
+---Centres of the chunks sharing an edge or corner with the position's chunk (7 or 8).
+---@param pos PlanetPos
+---@return PlanetPos[]
+function world.neighbors(pos) end
+
+---Describes the planet.
+---@return PlanetInfo
+function world.planet() end
+
+---Makes a position; the offsets default to 0. Errors when the chunk is not on the planet.
+---@param face integer
+---@param x integer
+---@param y integer
+---@param lx? number
+---@param ly? number
+---@param alt? number
+---@return PlanetPos
+function world.position(face, x, y, lx, ly, alt) end
+
+---Planet-centred coordinates in metres (+Z is the north pole).
+---@param pos PlanetPos
+---@return number
+---@return number
+---@return number
+function world.to_cartesian(pos) end
 
 test = {}
 

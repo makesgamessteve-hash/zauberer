@@ -451,9 +451,14 @@ static void test_gl_backend_rejects_old_versions(void) {
   g_fake_version = NULL;
   TEST_ASSERT_NULL(zb_render_gl_backend(zb_test_alloc(), fake_loader, NULL, false, NULL, err, sizeof err));
   TEST_ASSERT_NOT_NULL(strstr(err, "unknown"));
+  g_fake_version = "3.3 Mesa";
   g_missing_fn = "glBlitFramebuffer";
   TEST_ASSERT_NULL(zb_render_gl_backend(zb_test_alloc(), fake_loader, NULL, false, NULL, err, sizeof err));
-  TEST_ASSERT_EQUAL_STRING("OpenGL function glBlitFramebuffer is missing", err);
+  TEST_ASSERT_EQUAL_STRING("OpenGL function glBlitFramebuffer is missing (OpenGL 3.3 Mesa)", err);
+  /* A legacy 1.1 context (Windows without a driver) reports its version. */
+  g_missing_fn = "glGetString";
+  TEST_ASSERT_NULL(zb_render_gl_backend(zb_test_alloc(), fake_loader, NULL, false, NULL, err, sizeof err));
+  TEST_ASSERT_NOT_NULL(strstr(err, "detected version is unknown (unknown renderer)"));
   g_missing_fn = NULL;
   zb_failing_allocator fa;
   TEST_ASSERT_NULL(

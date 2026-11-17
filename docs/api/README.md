@@ -252,6 +252,36 @@ Reads a value from the player's save data.
 
 Stores a value (nested tables of plain values) in the save data.
 
+## world: planet coordinates
+
+### `world.chunk_key(pos: PlanetPos): integer`
+
+The chunk's stable 64-bit key.
+
+### `world.distance(a: PlanetPos, b: PlanetPos): number`
+
+Great-circle distance at sea level in metres.
+
+### `world.from_cartesian(x: number, y: number, z: number): PlanetPos`
+
+The position of planet-centred coordinates in metres.
+
+### `world.neighbors(pos: PlanetPos): PlanetPos[]`
+
+Centres of the chunks sharing an edge or corner with the position's chunk (7 or 8).
+
+### `world.planet(): PlanetInfo`
+
+Describes the planet.
+
+### `world.position(face: integer, x: integer, y: integer, lx?: number, ly?: number, alt?: number): PlanetPos`
+
+Makes a position; the offsets default to 0. Errors when the chunk is not on the planet.
+
+### `world.to_cartesian(pos: PlanetPos): number, number, number`
+
+Planet-centred coordinates in metres (+Z is the north pole).
+
 ## test: Lua tests
 
 ### `test.case(name: string, fn: function)`
@@ -384,6 +414,25 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `enabled` | `boolean` | Whether the package is loaded |
 | `load_order` | `integer?` | Position in the load order (enabled packages) |
 | `error` | `string?` | Why the package is disabled |
+
+### PlanetInfo
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `radius` | `number` | Sea-level radius in metres |
+| `chunks_per_edge` | `integer` | Chunks along one cube-face edge |
+| `chunk_size` | `number` | Nominal chunk width in metres (256) |
+
+### PlanetPos
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `face` | `integer` | Cube face 0..5 (+X, -X, +Y, -Y, +Z, -Z) |
+| `x` | `integer` | Chunk column on the face |
+| `y` | `integer` | Chunk row on the face |
+| `lx` | `number` | Offset inside the chunk, nominal metres 0..256 |
+| `ly` | `number` | Offset inside the chunk, nominal metres 0..256 |
+| `alt` | `number` | Metres above sea level |
 
 ### PlayOptions
 

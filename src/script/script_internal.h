@@ -6,6 +6,7 @@
 #include "core/array.h"
 #include "core/hash.h"
 #include "script/script.h"
+#include "world/planet.h"
 
 #include "lauxlib.h"
 #include "lua.h"
@@ -33,6 +34,7 @@ struct zb_script {
   zb_script_config cfg;
   lua_State *L;
   zb_rng rng;
+  zb_planet planet;
   size_t pkg_count;
   int *env_refs;
   bool *pkg_failed;
@@ -65,6 +67,8 @@ bool zb_script_pcall(zb_script *s, int nargs, int nresults, const char *pkg, boo
 zb_script *zb_script_from(lua_State *L);
 /* Registers engine, vfs, input, render, audio and save in the global table. */
 void zb_script_open_api(zb_script *s);
+/* Registers world (planet coordinates). */
+void zb_script_open_world(zb_script *s);
 /* Adds the test helpers (test.*) and scenario helpers to the global table. */
 void zb_script_open_test_api(zb_script *s);
 /* Canonical hash of a Lua value (sorted keys, IEEE bit patterns). */
