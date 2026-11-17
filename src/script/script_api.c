@@ -16,6 +16,99 @@
 
 static zb_script *S(lua_State *L) { return zb_script_from(L); }
 
+/* ---- API types (documentation, see tools/gen_api_docs.py) ---------------------
+ *
+ * @luaclass EngineInfo
+ * @field version string Engine version, e.g. "0.1.0"
+ * @field api string Scripting API version, e.g. "1.0"
+ * @field platform string "windows", "linux", "macos", "web" or "web-node"
+ * @field build string "development" or "release"
+ * @field input_mode string "desktop" or "touch"
+ * @field drawable_size integer[] Drawable width and height in pixels
+ * @field seed integer The run's random seed
+ *
+ * @luaclass PackageInfo
+ * @field id string Package id
+ * @field name string Display name
+ * @field version string Package version
+ * @field license string License of the package's code
+ * @field license_assets string License of the package's assets
+ * @field enabled boolean Whether the package is loaded
+ * @field load_order integer? Position in the load order (enabled packages)
+ * @field error string? Why the package is disabled
+ *
+ * @luaclass Credit
+ * @field package string Package id, or "engine" for third-party code
+ * @field kind string "asset" or "code"
+ * @field file string? Asset path inside the package
+ * @field name string? Name of the third-party component
+ * @field author string? Author of the asset
+ * @field source string? Where the asset or code comes from
+ * @field license string SPDX license identifier
+ *
+ * @luaclass DirEntry
+ * @field name string File or directory name
+ * @field dir boolean Whether it is a directory
+ *
+ * @luaclass ActionState
+ * @field pressed boolean Went down this tick
+ * @field released boolean Went up this tick
+ * @field held boolean Is down
+ * @field x number Axis value (axis1, axis2)
+ * @field y number Second axis value (axis2)
+ *
+ * @luaclass Camera
+ * @field eye number[]? Eye position {x, y, z} (default {0, 1.5, 4})
+ * @field target number[]? Point looked at (default the origin)
+ * @field up number[]? Up direction (default {0, 1, 0})
+ * @field fov number? Vertical field of view in degrees (default 60)
+ * @field near number? Near plane (default 0.1)
+ * @field far number? Far plane (default 500)
+ *
+ * @luaclass Light
+ * @field direction number[]? Direction the light travels
+ * @field color number[]? Light colour
+ * @field ambient number[]|number? Ambient colour
+ *
+ * @luaclass Transform
+ * @field position number[]? Translation {x, y, z}
+ * @field rotation number[]? Euler angles in degrees (applied Y, X, Z)
+ * @field scale number[]|number? Scale per axis or uniform
+ *
+ * @luaclass RenderStats
+ * @field internal_width integer Internal framebuffer width
+ * @field internal_height integer Internal framebuffer height
+ * @field scale integer Integer upscale factor, 0 when scaled fractionally
+ * @field out_x integer Destination rectangle in the window
+ * @field out_y integer Destination rectangle in the window
+ * @field out_width integer Destination rectangle in the window
+ * @field out_height integer Destination rectangle in the window
+ * @field drawable_width integer Window drawable width in pixels
+ * @field drawable_height integer Window drawable height in pixels
+ * @field views integer Rendered views (2 in stereo)
+ * @field model_draws integer Model draw items
+ * @field sprite_draws integer Sprite draw items
+ * @field glyphs integer Text glyphs
+ * @field culled integer Items culled by the view frustum
+ * @field frames integer Frames rendered so far
+ * @field backend string "gl" or "null"
+ *
+ * @luaclass PlayOptions
+ * @field volume number? Volume (default 1)
+ * @field pitch number? Playback rate (default 1)
+ * @field loop boolean? Repeat until stopped
+ * @field group string? "music" or "effects" (default)
+ *
+ * @luavar engine.version: string
+ * The engine version.
+ *
+ * @luavar engine.api_version: string
+ * The scripting API version packages declare in package.lua ("api").
+ *
+ * @luavar package_id: string
+ * Id of the package whose script is running (package environments only).
+ */
+
 /* ---- Canonical value hashing ------------------------------------------------- */
 
 typedef struct key_ref {
@@ -63,9 +156,7 @@ void zb_script_hash_value(lua_State *L, int idx, zb_hasher *h, int depth) {
   int t = lua_type(L, idx);
   zb_hasher_u64(h, (uint64_t)t);
   switch (t) {
-    case LUA_TBOOLEAN:
-      zb_hasher_u64(h, (uint64_t)lua_toboolean(L, idx));
-      break;
+    case LUA_TBOOLEAN: zb_hasher_u64(h, (uint64_t)lua_toboolean(L, idx)); break;
     case LUA_TNUMBER:
       if (lua_isinteger(L, idx)) {
         zb_hasher_u64(h, 1);
@@ -131,13 +222,13 @@ void zb_script_hash_value(lua_State *L, int idx, zb_hasher *h, int depth) {
       }
       break;
     }
-    default:
-      break;
+    default: break;
   }
 }
 
-/* ---- engine --------------------------------------------------------------------- */
-
+/* @lua engine.info(): EngineInfo
+ * Engine version, scripting API, platform, build, input mode, drawable size and seed.
+ */
 static int e_info(lua_State *L) {
   zb_script *s = S(L);
   zb_script_info info;
@@ -167,6 +258,10 @@ static int e_info(lua_State *L) {
   return 1;
 }
 
+/* @lua engine.quit(code?: integer)
+ * Ends the game after this tick; shutdown hooks run in reverse load order. The process exits with code
+ * (default 0).
+ */
 static int e_quit(lua_State *L) {
   zb_script *s = S(L);
   int code = (int)luaL_optinteger(L, 1, 0);
@@ -176,18 +271,27 @@ static int e_quit(lua_State *L) {
   return 0;
 }
 
+/* @lua engine.time(): number
+ * Simulation time in seconds (ticks / 60). Use it instead of wall-clock time.
+ */
 static int e_time(lua_State *L) {
   zb_script *s = S(L);
   lua_pushnumber(L, s->cfg.host.sim_time ? s->cfg.host.sim_time(s->cfg.host.ctx) : 0.0);
   return 1;
 }
 
+/* @lua engine.tick(): integer
+ * Number of simulation ticks run so far.
+ */
 static int e_tick(lua_State *L) {
   zb_script *s = S(L);
   lua_pushinteger(L, s->cfg.host.tick_count ? (lua_Integer)s->cfg.host.tick_count(s->cfg.host.ctx) : 0);
   return 1;
 }
 
+/* @lua engine.pause(paused: boolean)
+ * Pauses or resumes the simulation; frames and frame hooks continue while paused.
+ */
 static int e_pause(lua_State *L) {
   zb_script *s = S(L);
   if (s->cfg.host.set_paused) {
@@ -196,6 +300,9 @@ static int e_pause(lua_State *L) {
   return 0;
 }
 
+/* @lua engine.set_time_scale(scale: number)
+ * Development and test builds only: simulation speed factor (0.1 to 10).
+ */
 static int e_time_scale(lua_State *L) {
   zb_script *s = S(L);
   double scale = luaL_checknumber(L, 1);
@@ -208,6 +315,9 @@ static int e_time_scale(lua_State *L) {
   return 0;
 }
 
+/* @lua engine.set_fullscreen(on: boolean)
+ * Switches the window to fullscreen or back; scripts receive a resize event.
+ */
 static int e_fullscreen(lua_State *L) {
   zb_script *s = S(L);
   if (s->cfg.host.set_fullscreen) {
@@ -216,18 +326,25 @@ static int e_fullscreen(lua_State *L) {
   return 0;
 }
 
+/* @lua engine.log(level: "debug"|"info"|"warn"|"error", message: string)
+ * Writes a message to the engine log.
+ */
 static int e_log(lua_State *L) {
   const char *level = luaL_checkstring(L, 1);
   const char *msg = luaL_checkstring(L, 2);
-  zb_log_level lv = strcmp(level, "error") == 0 ? ZB_LOG_ERROR
-                    : strcmp(level, "warn") == 0 ? ZB_LOG_WARN
-                    : strcmp(level, "debug") == 0 ? ZB_LOG_DEBUG : ZB_LOG_INFO;
+  zb_log_level lv = strcmp(level, "error") == 0   ? ZB_LOG_ERROR
+                    : strcmp(level, "warn") == 0  ? ZB_LOG_WARN
+                    : strcmp(level, "debug") == 0 ? ZB_LOG_DEBUG
+                                                  : ZB_LOG_INFO;
   zb_log(lv, "[lua] %s", msg);
   return 0;
 }
 
-/* engine.hash_state([value]): the base state hash, extended by value; with
- * no argument, the full engine state hash including the "hash" hooks. */
+/* @lua engine.hash_state(value?: any): string
+ * Canonical 64-bit state hash as 16 hex digits. Without an argument: tick, input, random-number counter and
+ * every package's "hash" hook; with a value: the same base extended by that value (sorted keys, exact
+ * numbers).
+ */
 static int e_hash_state(lua_State *L) {
   zb_script *s = S(L);
   uint64_t value;
@@ -245,6 +362,9 @@ static int e_hash_state(lua_State *L) {
   return 1;
 }
 
+/* @lua engine.resize_window(width: integer, height: integer)
+ * Test API (scenarios and Lua tests only): resizes the window.
+ */
 static int e_resize_window(lua_State *L) {
   zb_script *s = S(L);
   int w = (int)luaL_checkinteger(L, 1), h = (int)luaL_checkinteger(L, 2);
@@ -260,6 +380,9 @@ static void set_str(lua_State *L, const char *k, const char *v) {
   lua_setfield(L, -2, k);
 }
 
+/* @lua engine.packages(): PackageInfo[]
+ * Enabled packages in load order, then disabled ones with the reason.
+ */
 static int e_packages(lua_State *L) {
   zb_script *s = S(L);
   lua_newtable(L);
@@ -322,8 +445,9 @@ static void push_luon(lua_State *L, const zb_value *v) {
   }
 }
 
-/* engine.credits(): asset credits of every loaded package plus third-party
- * code notices (data/third_party.lua). */
+/* @lua engine.credits(): Credit[]
+ * Asset credits of every loaded package (credits.lua) and the third-party code notices.
+ */
 static int e_credits(lua_State *L) {
   zb_script *s = S(L);
   lua_newtable(L);
@@ -377,13 +501,18 @@ static int e_credits(lua_State *L) {
   return 1;
 }
 
-/* ---- vfs ------------------------------------------------------------------------- */
-
+/* @lua vfs.exists(path: string): boolean
+ * Whether a file exists in the merged package view.
+ */
 static int v_exists(lua_State *L) {
   lua_pushboolean(L, zb_vfs_exists(S(L)->cfg.vfs, luaL_checkstring(L, 1)));
   return 1;
 }
 
+/* @lua vfs.read(path: string): string?, string?
+ * Reads a file synchronously through the overlay; returns nil and an error message on failure. Prefer vfs.load
+ * for large files.
+ */
 static int v_read(lua_State *L) {
   zb_script *s = S(L);
   const char *path = luaL_checkstring(L, 1);
@@ -416,6 +545,9 @@ static bool list_cb(const char *name, bool is_dir, void *user) {
   return true;
 }
 
+/* @lua vfs.list(dir?: string): DirEntry[]?, string?
+ * Merged listing of a directory across packages.
+ */
 static int v_list(lua_State *L) {
   zb_script *s = S(L);
   const char *dir = luaL_optstring(L, 1, "");
@@ -456,7 +588,9 @@ static void v_loaded(zb_vfs_req *req, void *user) {
   zb_script_pcall(s, 2, 0, "vfs.load", true);
 }
 
-/* vfs.load(path, fn): fn(data | nil, err) is called in a later frame. Returns "pending". */
+/* @lua vfs.load(path: string, callback: fun(data: string?, err: string?)): "pending"
+ * Loads a file asynchronously; callback runs in a later frame.
+ */
 static int v_load(lua_State *L) {
   zb_script *s = S(L);
   const char *path = luaL_checkstring(L, 1);
@@ -489,12 +623,16 @@ static int action_arg(lua_State *L, int idx) {
   return id;
 }
 
+/* @lua input.define(name: string, kind?: "button"|"axis1"|"axis2"): integer
+ * Defines an action (or returns the existing one of the same kind).
+ */
 static int i_define(lua_State *L) {
   zb_script *s = S(L);
   const char *name = luaL_checkstring(L, 1);
   const char *type = luaL_optstring(L, 2, "button");
-  zb_action_type t = strcmp(type, "axis1") == 0 ? ZB_ACTION_AXIS1
-                     : strcmp(type, "axis2") == 0 ? ZB_ACTION_AXIS2 : ZB_ACTION_BUTTON;
+  zb_action_type t = strcmp(type, "axis1") == 0   ? ZB_ACTION_AXIS1
+                     : strcmp(type, "axis2") == 0 ? ZB_ACTION_AXIS2
+                                                  : ZB_ACTION_BUTTON;
   luaL_argcheck(L, strcmp(type, "button") == 0 || t != ZB_ACTION_BUTTON, 2, "button, axis1 or axis2 expected");
   int id = zb_input_define(s->cfg.input, name, t);
   if (id < 0) {
@@ -504,6 +642,9 @@ static int i_define(lua_State *L) {
   return 1;
 }
 
+/* @lua input.bind(action: string, binding: string)
+ * Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_stick", "touch:button:spin".
+ */
 static int i_bind(lua_State *L) {
   zb_script *s = S(L);
   int id = action_arg(L, 1);
@@ -514,11 +655,17 @@ static int i_bind(lua_State *L) {
   return 0;
 }
 
+/* @lua input.clear(action: string)
+ * Removes all bindings of an action.
+ */
 static int i_clear(lua_State *L) {
   zb_input_clear_bindings(S(L)->cfg.input, action_arg(L, 1));
   return 0;
 }
 
+/* @lua input.bindings(action: string): string[]
+ * Current bindings of an action.
+ */
 static int i_bindings(lua_State *L) {
   zb_script *s = S(L);
   int id = action_arg(L, 1);
@@ -530,6 +677,9 @@ static int i_bindings(lua_State *L) {
   return 1;
 }
 
+/* @lua input.state(action: string): ActionState
+ * The action's snapshot for this tick.
+ */
 static int i_state(lua_State *L) {
   zb_script *s = S(L);
   const zb_action_state *st = zb_input_state(s->cfg.input, action_arg(L, 1));
@@ -547,11 +697,17 @@ static int i_state(lua_State *L) {
   return 1;
 }
 
+/* @lua input.mode(): "desktop"|"touch"
+ * The current input mode.
+ */
 static int i_mode(lua_State *L) {
   lua_pushstring(L, zb_input_get_mode(S(L)->cfg.input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
   return 1;
 }
 
+/* @lua input.add_stick(name: string, x: number, y: number, radius: number)
+ * Adds an on-screen stick (normalised screen coordinates) for "touch:stick:<name>" bindings.
+ */
 static int i_add_stick(lua_State *L) {
   zb_script *s = S(L);
   int id = zb_input_add_stick(s->cfg.input, luaL_checkstring(L, 1), (float)luaL_checknumber(L, 2),
@@ -562,17 +718,23 @@ static int i_add_stick(lua_State *L) {
   return 0;
 }
 
+/* @lua input.add_button(name: string, x: number, y: number, w: number, h: number)
+ * Adds an on-screen button for "touch:button:<name>" bindings.
+ */
 static int i_add_button(lua_State *L) {
   zb_script *s = S(L);
-  int id = zb_input_add_button(s->cfg.input, luaL_checkstring(L, 1), (float)luaL_checknumber(L, 2),
-                               (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4),
-                               (float)luaL_checknumber(L, 5));
+  int id =
+      zb_input_add_button(s->cfg.input, luaL_checkstring(L, 1), (float)luaL_checknumber(L, 2),
+                          (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4), (float)luaL_checknumber(L, 5));
   if (id < 0) {
     return luaL_error(L, "cannot add button '%s'", lua_tostring(L, 1));
   }
   return 0;
 }
 
+/* @lua input.set_user_binding(action: string, bindings: string[]): boolean
+ * Replaces the player's bindings of an action and saves the configuration; returns whether saving succeeded.
+ */
 static int i_set_user_binding(lua_State *L) {
   zb_script *s = S(L);
   int id = action_arg(L, 1);
@@ -593,6 +755,9 @@ static int i_set_user_binding(lua_State *L) {
   return 1;
 }
 
+/* @lua input.inject(action: string, x?: number, y?: number, ticks?: integer)
+ * Test API: overrides an action's value for the next ticks (default 1, 0, 1).
+ */
 static int i_inject(lua_State *L) {
   zb_script *s = S(L);
   int id = action_arg(L, 1);
@@ -608,11 +773,26 @@ static int r_load(lua_State *L, uint32_t (*fn)(zb_render *, const char *)) {
   return 1;
 }
 
+/* @lua render.model(path: string): integer
+ * Starts loading a glTF model (.glb/.gltf); returns its handle.
+ */
 static int r_model(lua_State *L) { return r_load(L, zb_render_load_model); }
+/* @lua render.texture(path: string): integer
+ * Starts loading a PNG texture; returns its handle.
+ */
 static int r_texture(lua_State *L) { return r_load(L, zb_render_load_texture); }
+/* @lua render.sprite(path: string): integer
+ * Starts loading a sprite descriptor (texture, frame size, frames, fps, pivot, size).
+ */
 static int r_sprite(lua_State *L) { return r_load(L, zb_render_load_sprite); }
+/* @lua render.font(path: string): integer
+ * Starts loading a bitmap-font descriptor.
+ */
 static int r_font(lua_State *L) { return r_load(L, zb_render_load_font); }
 
+/* @lua render.state(handle: integer): "pending"|"ready"|"failed"
+ * Loading state of an asset; failed assets draw placeholders.
+ */
 static int r_state(lua_State *L) {
   zb_asset_state st = zb_render_asset_state(S(L)->cfg.render, (uint32_t)luaL_checkinteger(L, 1));
   lua_pushstring(L, st == ZB_ASSET_READY ? "ready" : (st == ZB_ASSET_PENDING ? "pending" : "failed"));
@@ -650,6 +830,9 @@ static float num_field(lua_State *L, int t, const char *key, float def) {
   return v;
 }
 
+/* @lua render.camera(camera: Camera)
+ * Sets the camera for the following frames.
+ */
 static int r_camera(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   zb_render_set_camera(S(L)->cfg.render, vec_field(L, 1, "eye", zb_v3(0, 1.5f, 4)),
@@ -658,6 +841,9 @@ static int r_camera(lua_State *L) {
   return 0;
 }
 
+/* @lua render.light(light: Light)
+ * Sets the directional light and ambient term.
+ */
 static int r_light(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   zb_render_set_light(S(L)->cfg.render, vec_field(L, 1, "direction", zb_v3(-0.4f, -1, -0.3f)),
@@ -665,12 +851,18 @@ static int r_light(lua_State *L) {
   return 0;
 }
 
+/* @lua render.clear_color(r: number, g: number, b: number)
+ * Background colour.
+ */
 static int r_clear_color(lua_State *L) {
   zb_render_set_clear_color(S(L)->cfg.render, (float)luaL_checknumber(L, 1), (float)luaL_checknumber(L, 2),
                             (float)luaL_checknumber(L, 3));
   return 0;
 }
 
+/* @lua render.internal_height(height?: integer): integer
+ * Gets or sets the internal rendering height (default 360).
+ */
 static int r_internal_height(lua_State *L) {
   zb_script *s = S(L);
   if (!lua_isnoneornil(L, 1)) {
@@ -680,6 +872,9 @@ static int r_internal_height(lua_State *L) {
   return 1;
 }
 
+/* @lua render.draw_model(model: integer, transform?: Transform)
+ * Draws a model this frame (call from a frame hook).
+ */
 static int r_draw_model(lua_State *L) {
   uint32_t h = (uint32_t)luaL_checkinteger(L, 1);
   zb_mat4 m = zb_m4_identity();
@@ -688,15 +883,18 @@ static int r_draw_model(lua_State *L) {
     zb_vec3 rot = vec_field(L, 2, "rotation", zb_v3(0, 0, 0)); /* Euler degrees, Y-X-Z */
     zb_vec3 scale = vec_field(L, 2, "scale", zb_v3(1, 1, 1));
     float d = ZB_PI / 180.0f;
-    zb_quat q = zb_quat_mul(zb_quat_axis_angle(zb_v3(0, 1, 0), rot.y * d),
-                            zb_quat_mul(zb_quat_axis_angle(zb_v3(1, 0, 0), rot.x * d),
-                                        zb_quat_axis_angle(zb_v3(0, 0, 1), rot.z * d)));
+    zb_quat q = zb_quat_mul(
+        zb_quat_axis_angle(zb_v3(0, 1, 0), rot.y * d),
+        zb_quat_mul(zb_quat_axis_angle(zb_v3(1, 0, 0), rot.x * d), zb_quat_axis_angle(zb_v3(0, 0, 1), rot.z * d)));
     m = zb_m4_trs(pos, q, scale);
   }
   zb_render_draw_model(S(L)->cfg.render, h, m);
   return 0;
 }
 
+/* @lua render.draw_sprite(sprite: integer, position: number[], scale?: number, time?: number)
+ * Draws a camera-facing sprite; the animation frame follows time (default: simulation time).
+ */
 static int r_draw_sprite(lua_State *L) {
   zb_script *s = S(L);
   uint32_t h = (uint32_t)luaL_checkinteger(L, 1);
@@ -708,6 +906,9 @@ static int r_draw_sprite(lua_State *L) {
   return 0;
 }
 
+/* @lua render.draw_text(font: integer, text: string, x: number, y: number, scale?: number, color?: number[])
+ * Draws UTF-8 text in internal pixels (origin top-left); missing characters use the replacement glyph.
+ */
 static int r_draw_text(lua_State *L) {
   zb_script *s = S(L);
   uint32_t font = (uint32_t)luaL_checkinteger(L, 1);
@@ -726,6 +927,9 @@ static int r_draw_text(lua_State *L) {
   return 0;
 }
 
+/* @lua render.stats(): RenderStats
+ * Layout and draw statistics of the last frame.
+ */
 static int r_stats(lua_State *L) {
   const zb_render_stats *st = zb_render_get_stats(S(L)->cfg.render);
   lua_newtable(L);
@@ -764,16 +968,22 @@ static int r_stats(lua_State *L) {
   return 1;
 }
 
+/* @lua render.sprite_frame(sprite: integer, time: number): integer
+ * Number of animation frames the sprite has advanced at time.
+ */
 static int r_sprite_frame(lua_State *L) {
   lua_pushinteger(L, (lua_Integer)zb_render_sprite_frame_number(S(L)->cfg.render, (uint32_t)luaL_checkinteger(L, 1),
-                                                                 luaL_checknumber(L, 2)));
+                                                                luaL_checknumber(L, 2)));
   return 1;
 }
 
+/* @lua render.text_glyphs(font: integer, text: string): integer[]
+ * Glyph indices the font uses for text.
+ */
 static int r_text_glyphs(lua_State *L) {
   uint32_t glyphs[256];
-  size_t n = zb_render_text_glyphs(S(L)->cfg.render, (uint32_t)luaL_checkinteger(L, 1), luaL_checkstring(L, 2),
-                                   glyphs, ZB_ARRAY_LEN(glyphs));
+  size_t n = zb_render_text_glyphs(S(L)->cfg.render, (uint32_t)luaL_checkinteger(L, 1), luaL_checkstring(L, 2), glyphs,
+                                   ZB_ARRAY_LEN(glyphs));
   lua_newtable(L);
   for (size_t i = 0; i < n; ++i) {
     lua_pushinteger(L, glyphs[i]);
@@ -782,8 +992,9 @@ static int r_text_glyphs(lua_State *L) {
   return 1;
 }
 
-/* ---- audio ------------------------------------------------------------------------- */
-
+/* @lua audio.play(path: string, options?: PlayOptions): integer
+ * Plays a WAV or OGG file; returns a voice handle (0 when all voices are busy).
+ */
 static int a_play(lua_State *L) {
   zb_script *s = S(L);
   const char *path = luaL_checkstring(L, 1);
@@ -802,22 +1013,34 @@ static int a_play(lua_State *L) {
   return 1;
 }
 
+/* @lua audio.stop(voice: integer)
+ * Stops a voice.
+ */
 static int a_stop(lua_State *L) {
   zb_audio_stop(S(L)->cfg.audio, (uint32_t)luaL_checkinteger(L, 1));
   return 0;
 }
 
+/* @lua audio.state(voice: integer): "playing"|"stopped"
+ * Whether a voice still plays.
+ */
 static int a_state(lua_State *L) {
   zb_voice_state st = zb_audio_voice_state(S(L)->cfg.audio, (uint32_t)luaL_checkinteger(L, 1));
   lua_pushstring(L, st == ZB_VOICE_PLAYING ? "playing" : "stopped");
   return 1;
 }
 
+/* @lua audio.set_volume(voice: integer, volume: number)
+ * Changes a voice's volume.
+ */
 static int a_set_volume(lua_State *L) {
   zb_audio_set_voice_volume(S(L)->cfg.audio, (uint32_t)luaL_checkinteger(L, 1), (float)luaL_checknumber(L, 2));
   return 0;
 }
 
+/* @lua audio.group_volume(group: "master"|"music"|"effects", volume?: number): number?
+ * Gets or sets a volume group (setting "master" returns nothing).
+ */
 static int a_group_volume(lua_State *L) {
   zb_script *s = S(L);
   const char *g = luaL_checkstring(L, 1);
@@ -833,16 +1056,25 @@ static int a_group_volume(lua_State *L) {
   return 1;
 }
 
+/* @lua audio.voices(): integer
+ * Number of active voices.
+ */
 static int a_voices(lua_State *L) {
   lua_pushinteger(L, (lua_Integer)zb_audio_active_voices(S(L)->cfg.audio));
   return 1;
 }
 
+/* @lua audio.decoder_bytes(voice: integer): integer
+ * Decoder memory of a streaming voice.
+ */
 static int a_decoder_bytes(lua_State *L) {
   lua_pushinteger(L, (lua_Integer)zb_audio_voice_decoder_bytes(S(L)->cfg.audio, (uint32_t)luaL_checkinteger(L, 1)));
   return 1;
 }
 
+/* @lua audio.locked(): boolean
+ * Web: true until the first user gesture allows audio.
+ */
 static int a_locked(lua_State *L) {
   lua_pushboolean(L, zb_audio_is_locked(S(L)->cfg.audio));
   return 1;
@@ -877,6 +1109,9 @@ static void push_save_table(lua_State *L) {
   lua_setfield(L, LUA_REGISTRYINDEX, REG_SAVE);
 }
 
+/* @lua save.get(key: string): any
+ * Reads a value from the player's save data.
+ */
 static int s_get(lua_State *L) {
   const char *key = luaL_checkstring(L, 1);
   push_save_table(L);
@@ -884,6 +1119,9 @@ static int s_get(lua_State *L) {
   return 1;
 }
 
+/* @lua save.set(key: string, value: nil|boolean|number|string|table)
+ * Stores a value (nested tables of plain values) in the save data.
+ */
 static int s_set(lua_State *L) {
   const char *key = luaL_checkstring(L, 1);
   int t = lua_type(L, 2);
@@ -944,6 +1182,9 @@ static void write_value(lua_State *L, int idx, luaL_Buffer *b, int depth) {
   }
 }
 
+/* @lua save.flush(): boolean
+ * Writes the save data to the user data directory.
+ */
 static int s_flush(lua_State *L) {
   zb_script *s = S(L);
   push_save_table(L);
@@ -978,10 +1219,18 @@ static void reg(lua_State *L, const char *name, const luaL_Reg *fns) {
 
 void zb_script_open_api(zb_script *s) {
   lua_State *L = s->L;
-  static const luaL_Reg engine_fns[] = {
-    {"info", e_info}, {"quit", e_quit}, {"time", e_time}, {"tick", e_tick}, {"pause", e_pause},
-    {"set_time_scale", e_time_scale}, {"set_fullscreen", e_fullscreen}, {"log", e_log},
-    {"hash_state", e_hash_state}, {"packages", e_packages}, {"credits", e_credits}, {NULL, NULL}};
+  static const luaL_Reg engine_fns[] = {{"info", e_info},
+                                        {"quit", e_quit},
+                                        {"time", e_time},
+                                        {"tick", e_tick},
+                                        {"pause", e_pause},
+                                        {"set_time_scale", e_time_scale},
+                                        {"set_fullscreen", e_fullscreen},
+                                        {"log", e_log},
+                                        {"hash_state", e_hash_state},
+                                        {"packages", e_packages},
+                                        {"credits", e_credits},
+                                        {NULL, NULL}};
   luaL_newlib(L, engine_fns);
   lua_pushstring(L, ZB_VERSION);
   lua_setfield(L, -2, "version");
@@ -991,12 +1240,18 @@ void zb_script_open_api(zb_script *s) {
   lua_setfield(L, LUA_REGISTRYINDEX, ZB_SCRIPT_REGISTRY_ENGINE);
   lua_setglobal(L, "engine");
   static const luaL_Reg vfs_fns[] = {
-    {"exists", v_exists}, {"read", v_read}, {"list", v_list}, {"load", v_load}, {NULL, NULL}};
+      {"exists", v_exists}, {"read", v_read}, {"list", v_list}, {"load", v_load}, {NULL, NULL}};
   reg(L, "vfs", vfs_fns);
-  static const luaL_Reg input_fns[] = {
-    {"define", i_define}, {"bind", i_bind}, {"clear", i_clear}, {"bindings", i_bindings}, {"state", i_state},
-    {"mode", i_mode}, {"add_stick", i_add_stick}, {"add_button", i_add_button},
-    {"set_user_binding", i_set_user_binding}, {NULL, NULL}};
+  static const luaL_Reg input_fns[] = {{"define", i_define},
+                                       {"bind", i_bind},
+                                       {"clear", i_clear},
+                                       {"bindings", i_bindings},
+                                       {"state", i_state},
+                                       {"mode", i_mode},
+                                       {"add_stick", i_add_stick},
+                                       {"add_button", i_add_button},
+                                       {"set_user_binding", i_set_user_binding},
+                                       {NULL, NULL}};
   reg(L, "input", input_fns);
   if (s->cfg.test_api) {
     lua_getglobal(L, "engine");
@@ -1008,17 +1263,32 @@ void zb_script_open_api(zb_script *s) {
     lua_setfield(L, -2, "inject");
     lua_pop(L, 1);
   }
-  static const luaL_Reg render_fns[] = {
-    {"model", r_model}, {"texture", r_texture}, {"sprite", r_sprite}, {"font", r_font}, {"state", r_state},
-    {"camera", r_camera}, {"light", r_light}, {"clear_color", r_clear_color},
-    {"internal_height", r_internal_height}, {"draw_model", r_draw_model}, {"draw_sprite", r_draw_sprite},
-    {"draw_text", r_draw_text}, {"stats", r_stats}, {"sprite_frame", r_sprite_frame},
-    {"text_glyphs", r_text_glyphs}, {NULL, NULL}};
+  static const luaL_Reg render_fns[] = {{"model", r_model},
+                                        {"texture", r_texture},
+                                        {"sprite", r_sprite},
+                                        {"font", r_font},
+                                        {"state", r_state},
+                                        {"camera", r_camera},
+                                        {"light", r_light},
+                                        {"clear_color", r_clear_color},
+                                        {"internal_height", r_internal_height},
+                                        {"draw_model", r_draw_model},
+                                        {"draw_sprite", r_draw_sprite},
+                                        {"draw_text", r_draw_text},
+                                        {"stats", r_stats},
+                                        {"sprite_frame", r_sprite_frame},
+                                        {"text_glyphs", r_text_glyphs},
+                                        {NULL, NULL}};
   reg(L, "render", render_fns);
-  static const luaL_Reg audio_fns[] = {
-    {"play", a_play}, {"stop", a_stop}, {"state", a_state}, {"set_volume", a_set_volume},
-    {"group_volume", a_group_volume}, {"voices", a_voices}, {"decoder_bytes", a_decoder_bytes},
-    {"locked", a_locked}, {NULL, NULL}};
+  static const luaL_Reg audio_fns[] = {{"play", a_play},
+                                       {"stop", a_stop},
+                                       {"state", a_state},
+                                       {"set_volume", a_set_volume},
+                                       {"group_volume", a_group_volume},
+                                       {"voices", a_voices},
+                                       {"decoder_bytes", a_decoder_bytes},
+                                       {"locked", a_locked},
+                                       {NULL, NULL}};
   reg(L, "audio", audio_fns);
   static const luaL_Reg save_fns[] = {{"get", s_get}, {"set", s_set}, {"flush", s_flush}, {NULL, NULL}};
   reg(L, "save", save_fns);

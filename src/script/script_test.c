@@ -51,6 +51,10 @@ static int fail(lua_State *L, const char *fmt, ...) {
   return lua_error(L);
 }
 
+/* @lua test.expect(value: any, message?: string): boolean
+ * Fails unless value is truthy. Also available as expect() in scenarios, where failures are counted and the
+ * scenario continues.
+ */
 static int t_expect(lua_State *L) {
   if (!lua_toboolean(L, 1)) {
     return fail(L, "expectation failed: %s", luaL_optstring(L, 2, "(no message)"));
@@ -59,6 +63,9 @@ static int t_expect(lua_State *L) {
   return 1;
 }
 
+/* @lua test.expect_eq(actual: any, expected: any, message?: string): boolean
+ * Fails unless actual == expected. Also expect_eq() in scenarios.
+ */
 static int t_expect_eq(lua_State *L) {
   if (!lua_compare(L, 1, 2, LUA_OPEQ)) {
     char a[200], b[200];
@@ -70,6 +77,9 @@ static int t_expect_eq(lua_State *L) {
   return 1;
 }
 
+/* @lua test.expect_near(actual: number, expected: number, eps?: number, message?: string): boolean
+ * Fails unless |actual - expected| <= eps (default 1e-6). Also expect_near() in scenarios.
+ */
 static int t_expect_near(lua_State *L) {
   double a = luaL_checknumber(L, 1), b = luaL_checknumber(L, 2), eps = luaL_optnumber(L, 3, 1e-6);
   if (!(a >= b - eps && a <= b + eps)) {
@@ -79,6 +89,9 @@ static int t_expect_near(lua_State *L) {
   return 1;
 }
 
+/* @lua test.expect_error(fn: function, substring?: string): boolean
+ * Fails unless fn raises an error (containing substring). Also expect_error() in scenarios.
+ */
 static int t_expect_error(lua_State *L) {
   luaL_checktype(L, 1, LUA_TFUNCTION);
   const char *pattern = luaL_optstring(L, 2, NULL);
@@ -94,8 +107,9 @@ static int t_expect_error(lua_State *L) {
   return 1;
 }
 
-/* ---- tests ------------------------------------------------------------------------ */
-
+/* @lua test.case(name: string, fn: function)
+ * Lua tests (--test): registers a test case.
+ */
 static int t_case(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   luaL_checktype(L, 2, LUA_TFUNCTION);
@@ -136,9 +150,7 @@ static bool collect(const char *name, bool is_dir, void *user) {
   return true;
 }
 
-static int cmp_names(const void *a, const void *b) {
-  return strcmp(*(char *const *)a, *(char *const *)b);
-}
+static int cmp_names(const void *a, const void *b) { return strcmp(*(char *const *)a, *(char *const *)b); }
 
 static bool load_test_file(zb_script *s, const char *path) {
   lua_State *L = s->L;
@@ -241,8 +253,8 @@ int zb_script_run_tests(zb_script *s, const char *path, const char *junit_path) 
       fputs("\">", xml);
       if (!ok) {
         fputs("<failure message=\"", xml);
-        xml_escape(xml, s->error_count > errors_before ? s->errors[(s->error_count - 1) % ZB_SCRIPT_MAX_ERRORS]
-                                                       : "failed");
+        xml_escape(xml,
+                   s->error_count > errors_before ? s->errors[(s->error_count - 1) % ZB_SCRIPT_MAX_ERRORS] : "failed");
         fputs("\"/>", xml);
       }
       fputs("</testcase>\n", xml);
@@ -258,8 +270,9 @@ int zb_script_run_tests(zb_script *s, const char *path, const char *junit_path) 
   return failures;
 }
 
-/* ---- scenarios -------------------------------------------------------------------- */
-
+/* @lua scenario(info: { name: string })
+ * Scenarios (--scenario): names the scenario in reports.
+ */
 static int sc_scenario(lua_State *L) {
   zb_script *s = zb_script_from(L);
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -271,6 +284,9 @@ static int sc_scenario(lua_State *L) {
   return 0;
 }
 
+/* @lua step(ticks?: integer)
+ * Scenarios: runs ticks simulation ticks (default 1) before continuing.
+ */
 static int sc_step(lua_State *L) {
   lua_Integer n = luaL_optinteger(L, 1, 1);
   luaL_argcheck(L, n >= 0, 1, "tick count must not be negative");
@@ -298,7 +314,9 @@ static zb_result capture_into_registry(lua_State *L, bool internal) {
   return ZB_OK;
 }
 
-/* render.capture("internal" | "window") -> { width, height } or nil, err */
+/* @lua render.capture(target?: "internal"|"window"): { width: integer, height: integer }?, string?
+ * Test API: reads back the last frame.
+ */
 static int sc_capture(lua_State *L) {
   const char *target = luaL_optstring(L, 1, "internal");
   zb_result r = capture_into_registry(L, strcmp(target, "window") != 0);
@@ -315,7 +333,9 @@ static int sc_capture(lua_State *L) {
   return 1;
 }
 
-/* render.pixel(x, y) -> r, g, b, a of the last capture (origin top-left). */
+/* @lua render.pixel(x: integer, y: integer): integer, integer, integer, integer
+ * Test API: RGBA of a pixel of the last capture (origin top-left).
+ */
 static int sc_pixel(lua_State *L) {
   lua_Integer x = luaL_checkinteger(L, 1), y = luaL_checkinteger(L, 2);
   if (lua_getfield(L, LUA_REGISTRYINDEX, REG_CAPTURE) != LUA_TTABLE) {
@@ -333,7 +353,10 @@ static int sc_pixel(lua_State *L) {
   return 4;
 }
 
-/* render.match_golden(name [, target]) -> ok, info */
+/* @lua render.match_golden(name: string, target?: "internal"|"window"): boolean, string
+ * Test API: compares the frame with tests/golden/<name>.png (channel delta <= 8, <= 0.5 % pixels);
+ * ZB_UPDATE_GOLDEN=1 creates missing images.
+ */
 static int sc_match_golden(lua_State *L) {
   zb_script *s = zb_script_from(L);
   const char *name = luaL_checkstring(L, 1);
@@ -388,9 +411,12 @@ static int sc_match_golden(lua_State *L) {
 
 void zb_script_open_test_api(zb_script *s) {
   lua_State *L = s->L;
-  static const luaL_Reg test_fns[] = {
-    {"case", t_case}, {"expect", t_expect}, {"expect_eq", t_expect_eq}, {"expect_near", t_expect_near},
-    {"expect_error", t_expect_error}, {NULL, NULL}};
+  static const luaL_Reg test_fns[] = {{"case", t_case},
+                                      {"expect", t_expect},
+                                      {"expect_eq", t_expect_eq},
+                                      {"expect_near", t_expect_near},
+                                      {"expect_error", t_expect_error},
+                                      {NULL, NULL}};
   luaL_newlib(L, test_fns);
   lua_setglobal(L, "test");
   lua_getglobal(L, "render");
@@ -429,9 +455,13 @@ zb_result zb_script_scenario_start(zb_script *s, const char *path) {
   }
   zb_script_new_env(s, -1);
   int env = lua_gettop(L);
-  static const luaL_Reg fns[] = {
-    {"scenario", sc_scenario}, {"step", sc_step}, {"expect", t_expect}, {"expect_eq", t_expect_eq},
-    {"expect_near", t_expect_near}, {"expect_error", t_expect_error}, {NULL, NULL}};
+  static const luaL_Reg fns[] = {{"scenario", sc_scenario},
+                                 {"step", sc_step},
+                                 {"expect", t_expect},
+                                 {"expect_eq", t_expect_eq},
+                                 {"expect_near", t_expect_near},
+                                 {"expect_error", t_expect_error},
+                                 {NULL, NULL}};
   for (const luaL_Reg *f = fns; f->name; ++f) {
     lua_pushcfunction(L, f->func);
     lua_setfield(L, env, f->name);

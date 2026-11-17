@@ -271,9 +271,7 @@ void zb_input_clear_bindings(zb_input *in, int action_id) {
   }
 }
 
-size_t zb_input_binding_count(const zb_input *in, int action_id) {
-  return (size_t)in->actions[action_id].nbinds;
-}
+size_t zb_input_binding_count(const zb_input *in, int action_id) { return (size_t)in->actions[action_id].nbinds; }
 
 const char *zb_input_binding(const zb_input *in, int action_id, size_t i) {
   const action *ac = &in->actions[action_id];
@@ -382,7 +380,8 @@ size_t zb_input_write_user(const zb_input *in, char *buf, size_t len) {
 #define EMIT(...) \
   do { \
     int n_ = snprintf(buf + used, used < len ? len - used : 0, __VA_ARGS__); \
-    if (n_ > 0) used += (size_t)n_; \
+    if (n_ > 0) \
+      used += (size_t)n_; \
   } while (0)
   EMIT("{\n");
   for (size_t i = 0; i < in->count; ++i) {
@@ -529,9 +528,7 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
         }
       }
       break;
-    case ZB_EV_GAMEPAD_ADDED:
-      find_pad(in, ev->u.gamepad.id, true);
-      break;
+    case ZB_EV_GAMEPAD_ADDED: find_pad(in, ev->u.gamepad.id, true); break;
     case ZB_EV_GAMEPAD_REMOVED: {
       pad *p = find_pad(in, ev->u.gamepad.id, false);
       if (p) {
@@ -581,8 +578,7 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
       }
       break;
     }
-    default:
-      break;
+    default: break;
   }
 }
 
@@ -626,22 +622,14 @@ static float eval_binding(const zb_input *in, const binding *b, float *x, float 
   *x = 0.0f;
   *y = 0.0f;
   switch (b->kind) {
-    case SRC_KEY:
-      *x = key_value(in, b->a);
-      break;
-    case SRC_MOUSE_BUTTON:
-      *x = (in->mouse[b->a].down || in->mouse[b->a].pressed_since) ? 1.0f : 0.0f;
-      break;
+    case SRC_KEY: *x = key_value(in, b->a); break;
+    case SRC_MOUSE_BUTTON: *x = (in->mouse[b->a].down || in->mouse[b->a].pressed_since) ? 1.0f : 0.0f; break;
     case SRC_MOUSE_MOTION:
       *x = in->mouse_dx;
       *y = -in->mouse_dy;
       break;
-    case SRC_PAD_BUTTON:
-      *x = pad_button(in, b->a) ? 1.0f : 0.0f;
-      break;
-    case SRC_PAD_AXIS:
-      *x = pad_axis(in, b->a);
-      break;
+    case SRC_PAD_BUTTON: *x = pad_button(in, b->a) ? 1.0f : 0.0f; break;
+    case SRC_PAD_AXIS: *x = pad_axis(in, b->a); break;
     case SRC_PAD_STICK: {
       float sx = pad_axis(in, b->a), sy = -pad_axis(in, b->b);
       if (sqrtf(sx * sx + sy * sy) >= STICK_DEADZONE) {
@@ -650,9 +638,7 @@ static float eval_binding(const zb_input *in, const binding *b, float *x, float 
       }
       break;
     }
-    case SRC_KEYS_1D:
-      *x = key_value(in, b->b) - key_value(in, b->a);
-      break;
+    case SRC_KEYS_1D: *x = key_value(in, b->b) - key_value(in, b->a); break;
     case SRC_KEYS_2D:
       *y = key_value(in, b->a) - key_value(in, b->b);
       *x = key_value(in, b->d) - key_value(in, b->c);
@@ -812,8 +798,7 @@ static void put(bytes *b, const void *src, size_t n) {
 }
 
 static void put_u32(bytes *b, uint32_t v) {
-  unsigned char c[4] = {(unsigned char)v, (unsigned char)(v >> 8), (unsigned char)(v >> 16),
-                        (unsigned char)(v >> 24)};
+  unsigned char c[4] = {(unsigned char)v, (unsigned char)(v >> 8), (unsigned char)(v >> 16), (unsigned char)(v >> 24)};
   put(b, c, 4);
 }
 
@@ -921,7 +906,7 @@ struct zb_input_replay {
   size_t len, pos;
   uint64_t seed, package_hash;
   uint32_t actions;
-  int *map; /* recorded index -> action id (-1 if unknown) */
+  int *map;           /* recorded index -> action id (-1 if unknown) */
   uint32_t remaining; /* repeats left of the current record */
   size_t record_pos;
   uint64_t ticks;
@@ -954,8 +939,8 @@ static bool get_u64(zb_input_replay *rp, uint64_t *v) {
   return true;
 }
 
-zb_input_replay *zb_input_replay_open(const zb_allocator *a, zb_input *in, const unsigned char *data,
-                                      size_t len, char *err, size_t err_len) {
+zb_input_replay *zb_input_replay_open(const zb_allocator *a, zb_input *in, const unsigned char *data, size_t len,
+                                      char *err, size_t err_len) {
   zb_input_replay *rp = zb_calloc(a, sizeof(*rp));
   if (!rp) {
     snprintf(err, err_len, "out of memory");
@@ -971,8 +956,8 @@ zb_input_replay *zb_input_replay_open(const zb_allocator *a, zb_input *in, const
     zb_input_replay_close(rp);
     return NULL;
   }
-  if (!get_u32(rp, &version) || version != REC_VERSION || !get_u64(rp, &rp->seed) ||
-      !get_u64(rp, &rp->package_hash) || !get_u32(rp, &rp->actions) || rp->actions > ZB_INPUT_MAX_ACTIONS) {
+  if (!get_u32(rp, &version) || version != REC_VERSION || !get_u64(rp, &rp->seed) || !get_u64(rp, &rp->package_hash) ||
+      !get_u32(rp, &rp->actions) || rp->actions > ZB_INPUT_MAX_ACTIONS) {
     snprintf(err, err_len, "unsupported or truncated recording header");
     zb_input_replay_close(rp);
     return NULL;

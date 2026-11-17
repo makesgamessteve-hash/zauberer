@@ -51,20 +51,20 @@ typedef struct opt_def {
 #define OFF(field) offsetof(zb_options, field)
 
 static const opt_def k_opts[] = {
-  {"--assets", OPT_PATH, OFF(assets_dir)},
-  {"--user-dir", OPT_PATH, OFF(user_dir)},
-  {"--headless", OPT_FLAG, OFF(headless)},
-  {"--ticks", OPT_TICKS, OFF(ticks)},
-  {"--test", OPT_PATH, OFF(test_path)},
-  {"--scenario", OPT_PATH, OFF(scenario_path)},
-  {"--junit", OPT_PATH, OFF(junit_path)},
-  {"--record", OPT_PATH, OFF(record_path)},
-  {"--replay", OPT_PATH, OFF(replay_path)},
-  {"--debug-views", OPT_VIEWS, OFF(debug_views)},
-  {"--lua-coverage", OPT_PATH, OFF(lua_coverage_path)},
-  {"--seed", OPT_SEED, OFF(seed)},
-  {"--help", OPT_FLAG, OFF(help)},
-  {"--version", OPT_FLAG, OFF(version)},
+    {"--assets", OPT_PATH, OFF(assets_dir)},
+    {"--user-dir", OPT_PATH, OFF(user_dir)},
+    {"--headless", OPT_FLAG, OFF(headless)},
+    {"--ticks", OPT_TICKS, OFF(ticks)},
+    {"--test", OPT_PATH, OFF(test_path)},
+    {"--scenario", OPT_PATH, OFF(scenario_path)},
+    {"--junit", OPT_PATH, OFF(junit_path)},
+    {"--record", OPT_PATH, OFF(record_path)},
+    {"--replay", OPT_PATH, OFF(replay_path)},
+    {"--debug-views", OPT_VIEWS, OFF(debug_views)},
+    {"--lua-coverage", OPT_PATH, OFF(lua_coverage_path)},
+    {"--seed", OPT_SEED, OFF(seed)},
+    {"--help", OPT_FLAG, OFF(help)},
+    {"--version", OPT_FLAG, OFF(version)},
 };
 
 zb_result zb_options_parse(zb_options *o, int argc, char **argv, char *err, size_t err_len) {
@@ -93,9 +93,7 @@ zb_result zb_options_parse(zb_options *o, int argc, char **argv, char *err, size
     }
     const char *value = argv[++i];
     switch (def->kind) {
-      case OPT_PATH:
-        *(const char **)field = value;
-        break;
+      case OPT_PATH: *(const char **)field = value; break;
       case OPT_TICKS: {
         int64_t v;
         if (!parse_i64(value, &v) || v < 0) {
@@ -121,8 +119,7 @@ zb_result zb_options_parse(zb_options *o, int argc, char **argv, char *err, size
         }
         o->seed_set = true;
         break;
-      case OPT_FLAG:
-        break;
+      case OPT_FLAG: break;
     }
   }
   return ZB_OK;

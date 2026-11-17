@@ -25,8 +25,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
 SDL_AppResult SDL_AppIterate(void *appstate) { return to_sdl(zb_host_iterate(appstate)); }
 
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-  return to_sdl(zb_host_event(appstate, event));
-}
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) { return to_sdl(zb_host_event(appstate, event)); }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) { zb_host_quit(appstate, from_sdl(result)); }

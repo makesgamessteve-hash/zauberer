@@ -5,11 +5,7 @@
 #ifndef ZB_PLATFORM_HOST_H
 #define ZB_PLATFORM_HOST_H
 
-typedef enum zb_host_status {
-  ZB_HOST_CONTINUE,
-  ZB_HOST_SUCCESS,
-  ZB_HOST_FAILURE
-} zb_host_status;
+typedef enum zb_host_status { ZB_HOST_CONTINUE, ZB_HOST_SUCCESS, ZB_HOST_FAILURE } zb_host_status;
 
 zb_host_status zb_host_init(void **state, int argc, char **argv);
 zb_host_status zb_host_iterate(void *state);

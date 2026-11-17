@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+# Formatting of first-party C sources (checked in CI with clang-format 18).
+BasedOnStyle: Google
+ColumnLimit: 120
+IndentWidth: 2
+PointerAlignment: Right
+DerivePointerAlignment: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: true
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+SpaceAfterCStyleCast: false
+AlignAfterOpenBracket: Align
+BinPackArguments: true
+BinPackParameters: true
+ContinuationIndentWidth: 4
+AlignEscapedNewlines: DontAlign
+ReflowComments: false
+MaxEmptyLinesToKeep: 1

@@ -15,9 +15,9 @@ typedef struct zb_vertex {
 } zb_vertex;
 
 typedef struct zb_submesh {
-  uint32_t first;  /* first index */
-  uint32_t count;  /* index count */
-  int image;       /* index into zb_mesh_data.images, or -1 */
+  uint32_t first; /* first index */
+  uint32_t count; /* index count */
+  int image;      /* index into zb_mesh_data.images, or -1 */
 } zb_submesh;
 
 typedef struct zb_mesh_data {
@@ -39,8 +39,8 @@ typedef zb_result (*zb_mesh_read_fn)(void *user, const char *relative_path, cons
 
 /* Parses .glb or .gltf from memory. Node transforms are baked into the
  * vertices; vertex colors are multiplied by the material's base color. */
-zb_result zb_mesh_load_gltf(const zb_allocator *a, const void *data, size_t len, zb_mesh_read_fn read,
-                            void *read_user, zb_mesh_data *out, char *err, size_t err_len);
+zb_result zb_mesh_load_gltf(const zb_allocator *a, const void *data, size_t len, zb_mesh_read_fn read, void *read_user,
+                            zb_mesh_data *out, char *err, size_t err_len);
 /* A unit cube centred at the origin (the missing-model placeholder). */
 zb_result zb_mesh_cube(const zb_allocator *a, zb_mesh_data *out);
 void zb_mesh_compute_bounds(zb_mesh_data *m);

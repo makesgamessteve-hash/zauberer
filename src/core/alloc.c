@@ -7,17 +7,23 @@
 /* ---- Heap allocator --------------------------------------------------------- */
 
 static void *heap_alloc(void *ctx, size_t size, const char *file, int line) {
-  (void)ctx; (void)file; (void)line;
+  (void)ctx;
+  (void)file;
+  (void)line;
   return malloc(size ? size : 1);
 }
 
 static void *heap_realloc(void *ctx, void *ptr, size_t size, const char *file, int line) {
-  (void)ctx; (void)file; (void)line;
+  (void)ctx;
+  (void)file;
+  (void)line;
   return realloc(ptr, size ? size : 1);
 }
 
 static void heap_free(void *ctx, void *ptr, const char *file, int line) {
-  (void)ctx; (void)file; (void)line;
+  (void)ctx;
+  (void)file;
+  (void)line;
   free(ptr);
 }
 
@@ -207,9 +213,7 @@ static void tracking_unlock(zb_tracking_allocator *t) {
 }
 
 /* Makes room for one more entry; must be called with the lock held. */
-static bool tracking_reserve(zb_tracking_allocator *t) {
-  return (t->count + 1) * 2 <= t->capacity || tracking_grow(t);
-}
+static bool tracking_reserve(zb_tracking_allocator *t) { return (t->count + 1) * 2 <= t->capacity || tracking_grow(t); }
 
 static void tracking_record(zb_tracking_allocator *t, void *p, size_t size, const char *file, int line) {
   zb_tracking_entry e = {p, size, file, line};
@@ -293,8 +297,8 @@ size_t zb_tracking_live_count(const zb_tracking_allocator *t) { return t->count;
 
 size_t zb_tracking_live_bytes(const zb_tracking_allocator *t) { return t->bytes; }
 
-size_t zb_tracking_report(const zb_tracking_allocator *t,
-                          void (*fn)(const zb_tracking_entry *e, void *user), void *user) {
+size_t zb_tracking_report(const zb_tracking_allocator *t, void (*fn)(const zb_tracking_entry *e, void *user),
+                          void *user) {
   size_t n = 0;
   for (size_t i = 0; i < t->capacity; ++i) {
     const zb_tracking_entry *e = &t->entries[i];

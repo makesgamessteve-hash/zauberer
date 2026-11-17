@@ -48,8 +48,7 @@ typedef struct leak_buf {
 static void describe_one(const zb_tracking_entry *e, void *user) {
   leak_buf *b = user;
   if (b->used < b->len) {
-    int n = snprintf(b->buf + b->used, b->len - b->used, "  leak: %s:%d (%zu bytes)\n",
-                     e->file, e->line, e->size);
+    int n = snprintf(b->buf + b->used, b->len - b->used, "  leak: %s:%d (%zu bytes)\n", e->file, e->line, e->size);
     if (n > 0) {
       b->used += (size_t)n;
       if (b->used > b->len) {

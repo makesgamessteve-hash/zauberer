@@ -368,8 +368,7 @@ static void test_hooks(void) {
 
 /* spec: lua-scripting: Failing tick hook */
 static void test_failing_tick_hook(void) {
-  package("assets/base", "base", NULL,
-          "engine.on('tick', function() _G.base_ticks = (_G.base_ticks or 0) + 1 end)\n");
+  package("assets/base", "base", NULL, "engine.on('tick', function() _G.base_ticks = (_G.base_ticks or 0) + 1 end)\n");
   package("mods/flaky", "flaky", NULL,
           "local n = 0\n"
           "engine.on('tick', function() n = n + 1; _G.flaky_ticks = n; if n == 2 then error('flaky broke') end end)\n");
@@ -398,7 +397,8 @@ static void test_instruction_budget(void) {
   zb_script_tick(F.script, 1.0 / 60.0);
   zb_script_tick(F.script, 1.0 / 60.0);
   TEST_ASSERT_EQUAL_DOUBLE(1.0, gnum("entered"));
-  TEST_ASSERT_TRUE_MESSAGE(error_contains("instruction budget of 200000 exceeded"), zb_script_error_count(F.script) ? zb_script_error(F.script, 0) : "no errors");
+  TEST_ASSERT_TRUE_MESSAGE(error_contains("instruction budget of 200000 exceeded"),
+                           zb_script_error_count(F.script) ? zb_script_error(F.script, 0) : "no errors");
   zb_script_frame(F.script, 0.0);
   TEST_ASSERT_EQUAL_DOUBLE(500500.0, gnum("sum"));
 }
@@ -570,9 +570,10 @@ static void test_engine_controls(void) {
   run();
   F.host.time = 2.5;
   F.host.ticks = 150;
-  exec("t = engine.time(); n = engine.tick()\n"
-       "engine.pause(true); engine.set_time_scale(0.5); engine.set_fullscreen(true); engine.quit(3)\n"
-       "engine.log('error', 'e'); engine.log('warn', 'w'); engine.log('debug', 'd'); engine.log('info', 'i')\n");
+  exec(
+      "t = engine.time(); n = engine.tick()\n"
+      "engine.pause(true); engine.set_time_scale(0.5); engine.set_fullscreen(true); engine.quit(3)\n"
+      "engine.log('error', 'e'); engine.log('warn', 'w'); engine.log('debug', 'd'); engine.log('info', 'i')\n");
   TEST_ASSERT_EQUAL_DOUBLE(2.5, gnum("t"));
   TEST_ASSERT_EQUAL_DOUBLE(150.0, gnum("n"));
   TEST_ASSERT_TRUE(F.host.paused);
@@ -588,21 +589,22 @@ static void test_hash_state(void) {
   package("assets/base", "base", NULL, NULL);
   start();
   run();
-  exec("a = engine.hash_state({ x = 1, y = { 1, 2, 3 }, [true] = 'b', [2.5] = false })\n"
-       "local t = {}; t[2.5] = false; t[true] = 'b'; t.y = { 1, 2, 3 }; t.x = 1\n"
-       "b = engine.hash_state(t)\n"
-       "c = engine.hash_state({ x = 1, y = { 1, 2, 4 }, [true] = 'b', [2.5] = false })\n"
-       "d = engine.hash_state({ x = 1.0 })\n"
-       "e = engine.hash_state({ x = 1 })\n"
-       "local big = {}; for i = 1, 100 do big['k' .. i] = i end\n"
-       "f = engine.hash_state(big)\n"
-       "local deep = {}; local cur = deep; for i = 1, 30 do cur.next = {}; cur = cur.next end\n"
-       "g = engine.hash_state(deep)\n"
-       "h = engine.hash_state({ [print] = 1, fn = print })\n"
-       "s1 = engine.hash_state(); math.random(); s2 = engine.hash_state()\n");
+  exec(
+      "a = engine.hash_state({ x = 1, y = { 1, 2, 3 }, [true] = 'b', [2.5] = false })\n"
+      "local t = {}; t[2.5] = false; t[true] = 'b'; t.y = { 1, 2, 3 }; t.x = 1\n"
+      "b = engine.hash_state(t)\n"
+      "c = engine.hash_state({ x = 1, y = { 1, 2, 4 }, [true] = 'b', [2.5] = false })\n"
+      "d = engine.hash_state({ x = 1.0 })\n"
+      "e = engine.hash_state({ x = 1 })\n"
+      "local big = {}; for i = 1, 100 do big['k' .. i] = i end\n"
+      "f = engine.hash_state(big)\n"
+      "local deep = {}; local cur = deep; for i = 1, 30 do cur.next = {}; cur = cur.next end\n"
+      "g = engine.hash_state(deep)\n"
+      "h = engine.hash_state({ [print] = 1, fn = print })\n"
+      "s1 = engine.hash_state(); math.random(); s2 = engine.hash_state()\n");
   TEST_ASSERT_EQUAL_STRING(gstr("a"), gstr("b"));
   TEST_ASSERT_FALSE(strcmp(gstr("a"), gstr("c")) == 0);
-  TEST_ASSERT_FALSE(strcmp(gstr("d"), gstr("e")) == 0); /* integer and float differ */
+  TEST_ASSERT_FALSE(strcmp(gstr("d"), gstr("e")) == 0);   /* integer and float differ */
   TEST_ASSERT_FALSE(strcmp(gstr("s1"), gstr("s2")) == 0); /* random draws change the state */
   int before = (int)F.host.ticks;
   F.host.ticks = (uint64_t)before + 1;
@@ -612,8 +614,7 @@ static void test_hash_state(void) {
 
 static void test_packages_and_credits(void) {
   package("assets/base", "base", "name = 'Base'", NULL);
-  put("assets/base/credits.lua",
-      "return { { file = 'a.png', author = 'A', license = 'CC-BY-4.0' }, 'not a table' }");
+  put("assets/base/credits.lua", "return { { file = 'a.png', author = 'A', license = 'CC-BY-4.0' }, 'not a table' }");
   put("assets/base/data/third_party.lua", "return { { name = 'Lua', license = 'MIT' }, 5 }");
   package("mods/mod", "mod", "requires = { base = '>=1.0' }", NULL);
   put("mods/mod/credits.lua", "return { { file = 'b.png', author = 'B', license = 'CC0-1.0', size = 1.5 } }");
@@ -622,17 +623,18 @@ static void test_packages_and_credits(void) {
   package("mods/future", "future", "requires = { base = '>=9.0' }", NULL);
   start();
   run();
-  exec("local p = engine.packages()\n"
-       "pk = {}\n"
-       "for _, e in ipairs(p) do pk[#pk + 1] = e.id .. ':' .. tostring(e.enabled) .. ':' .. "
-       "tostring(e.load_order) end\n"
-       "pk = table.concat(pk, ',')\n"
-       "for _, e in ipairs(p) do if not e.enabled then why = e.error end end\n"
-       "local c = engine.credits()\n"
-       "cr = {}\n"
-       "for _, e in ipairs(c) do cr[#cr + 1] = e.package .. ':' .. e.kind .. ':' .. (e.file or e.name) end\n"
-       "cr = table.concat(cr, ',')\n"
-       "size = c[2].size\n");
+  exec(
+      "local p = engine.packages()\n"
+      "pk = {}\n"
+      "for _, e in ipairs(p) do pk[#pk + 1] = e.id .. ':' .. tostring(e.enabled) .. ':' .. "
+      "tostring(e.load_order) end\n"
+      "pk = table.concat(pk, ',')\n"
+      "for _, e in ipairs(p) do if not e.enabled then why = e.error end end\n"
+      "local c = engine.credits()\n"
+      "cr = {}\n"
+      "for _, e in ipairs(c) do cr[#cr + 1] = e.package .. ':' .. e.kind .. ':' .. (e.file or e.name) end\n"
+      "cr = table.concat(cr, ',')\n"
+      "size = c[2].size\n");
   TEST_ASSERT_EQUAL_STRING("base:true:1,broken:true:2,mod:true:3,future:false:nil", gstr("pk"));
   TEST_ASSERT_NOT_NULL(strstr(gstr("why"), "requires 'base'"));
   TEST_ASSERT_EQUAL_STRING("base:asset:a.png,mod:asset:b.png,engine:code:Lua", gstr("cr"));
@@ -648,16 +650,17 @@ static void test_vfs_api(void) {
   put("assets/base/data/sub/b.txt", "beta");
   start();
   run();
-  exec("e1 = vfs.exists('data/a.txt'); e2 = vfs.exists('data/zzz')\n"
-       "r1 = vfs.read('data/a.txt'); r2, r2e = vfs.read('data/zzz')\n"
-       "local l = vfs.list('data'); names = {}\n"
-       "for _, e in ipairs(l) do names[#names + 1] = e.name .. (e.dir and '/' or '') end\n"
-       "names = table.concat(names, ',')\n"
-       "l2, l2e = vfs.list('nowhere')\n"
-       "root = #vfs.list()\n"
-       "p = vfs.load('data/sub/b.txt', function(d, err) got = d; goterr = err end)\n"
-       "vfs.load('data/none', function(d, err) miss = err end)\n"
-       "vfs.load('data/a.txt', function() error('callback failure') end)\n");
+  exec(
+      "e1 = vfs.exists('data/a.txt'); e2 = vfs.exists('data/zzz')\n"
+      "r1 = vfs.read('data/a.txt'); r2, r2e = vfs.read('data/zzz')\n"
+      "local l = vfs.list('data'); names = {}\n"
+      "for _, e in ipairs(l) do names[#names + 1] = e.name .. (e.dir and '/' or '') end\n"
+      "names = table.concat(names, ',')\n"
+      "l2, l2e = vfs.list('nowhere')\n"
+      "root = #vfs.list()\n"
+      "p = vfs.load('data/sub/b.txt', function(d, err) got = d; goterr = err end)\n"
+      "vfs.load('data/none', function(d, err) miss = err end)\n"
+      "vfs.load('data/a.txt', function() error('callback failure') end)\n");
   TEST_ASSERT_TRUE(gbool("e1"));
   TEST_ASSERT_FALSE(gbool("e2"));
   TEST_ASSERT_EQUAL_STRING("alpha", gstr("r1"));
@@ -679,22 +682,23 @@ static void test_input_api(void) {
   package("assets/base", "base", NULL, NULL);
   start();
   run();
-  exec("id = input.define('jump')\n"
-       "input.define('move', 'axis2'); input.define('zoom', 'axis1')\n"
-       "bad_type = select(2, pcall(input.define, 'x', 'trackball'))\n"
-       "conflict = select(2, pcall(input.define, 'jump', 'axis1'))\n"
-       "input.bind('jump', 'key:space'); input.bind('jump', 'gamepad:a')\n"
-       "bad_bind = select(2, pcall(input.bind, 'jump', 'key:nope'))\n"
-       "unknown = select(2, pcall(input.bind, 'fly', 'key:f'))\n"
-       "b = table.concat(input.bindings('jump'), ',')\n"
-       "input.clear('jump'); nb = #input.bindings('jump')\n"
-       "mode = input.mode()\n"
-       "input.add_stick('move', 0.2, 0.7, 0.15); input.add_button('jump', 0.8, 0.7, 0.1, 0.1)\n"
-       "ok_saved = input.set_user_binding('jump', { 'key:j' })\n"
-       "too_many = select(2, pcall(input.set_user_binding, 'jump', { 'key:a','key:b','key:c','key:d','key:e',"
-       "'key:f','key:g','key:h','key:i' }))\n"
-       "invalid_user = select(2, pcall(input.set_user_binding, 'jump', { 'key:nope' }))\n"
-       "input.inject('jump'); input.inject('move', 0.5, -0.25, 2)\n");
+  exec(
+      "id = input.define('jump')\n"
+      "input.define('move', 'axis2'); input.define('zoom', 'axis1')\n"
+      "bad_type = select(2, pcall(input.define, 'x', 'trackball'))\n"
+      "conflict = select(2, pcall(input.define, 'jump', 'axis1'))\n"
+      "input.bind('jump', 'key:space'); input.bind('jump', 'gamepad:a')\n"
+      "bad_bind = select(2, pcall(input.bind, 'jump', 'key:nope'))\n"
+      "unknown = select(2, pcall(input.bind, 'fly', 'key:f'))\n"
+      "b = table.concat(input.bindings('jump'), ',')\n"
+      "input.clear('jump'); nb = #input.bindings('jump')\n"
+      "mode = input.mode()\n"
+      "input.add_stick('move', 0.2, 0.7, 0.15); input.add_button('jump', 0.8, 0.7, 0.1, 0.1)\n"
+      "ok_saved = input.set_user_binding('jump', { 'key:j' })\n"
+      "too_many = select(2, pcall(input.set_user_binding, 'jump', { 'key:a','key:b','key:c','key:d','key:e',"
+      "'key:f','key:g','key:h','key:i' }))\n"
+      "invalid_user = select(2, pcall(input.set_user_binding, 'jump', { 'key:nope' }))\n"
+      "input.inject('jump'); input.inject('move', 0.5, -0.25, 2)\n");
   TEST_ASSERT_NOT_NULL(strstr(gstr("bad_type"), "button, axis1 or axis2 expected"));
   TEST_ASSERT_NOT_NULL(strstr(gstr("conflict"), "cannot define action 'jump'"));
   TEST_ASSERT_NOT_NULL(strstr(gstr("bad_bind"), "invalid binding 'key:nope'"));
@@ -707,13 +711,15 @@ static void test_input_api(void) {
   TEST_ASSERT_NOT_NULL(strstr(gstr("too_many"), "too many bindings"));
   TEST_ASSERT_NOT_NULL(strstr(gstr("invalid_user"), "invalid binding for action 'jump'"));
   zb_input_sample(F.input, 0);
-  exec("local j = input.state('jump'); local m = input.state('move')\n"
-       "st = tostring(j.pressed) .. tostring(j.held) .. tostring(j.released) .. ':' .. m.x .. ':' .. m.y\n");
+  exec(
+      "local j = input.state('jump'); local m = input.state('move')\n"
+      "st = tostring(j.pressed) .. tostring(j.held) .. tostring(j.released) .. ':' .. m.x .. ':' .. m.y\n");
   TEST_ASSERT_EQUAL_STRING("truetruefalse:0.5:-0.25", gstr("st"));
   zb_input_set_mode(F.input, ZB_INPUT_TOUCH);
-  exec("mode = input.mode()\n"
-       "stick_err = select(2, pcall(input.add_stick, 'zoom', 0, 0, 0))\n"
-       "button_err = select(2, pcall(input.add_button, '', 0, 0, 1, 1))\n");
+  exec(
+      "mode = input.mode()\n"
+      "stick_err = select(2, pcall(input.add_stick, 'zoom', 0, 0, 0))\n"
+      "button_err = select(2, pcall(input.add_button, '', 0, 0, 1, 1))\n");
   TEST_ASSERT_EQUAL_STRING("touch", gstr("mode"));
   F.host.save_result = ZB_ERR_IO;
   exec("saved = input.set_user_binding('jump', { 'key:k' })");
@@ -741,35 +747,38 @@ static void test_render_api(void) {
   put_real("assets/base/sprites/mote.png", "assets/base/sprites/mote.png");
   start();
   run();
-  exec("carpet = render.model('models/carpet.glb'); font = render.font('fonts/pixel.lua')\n"
-       "mote = render.sprite('sprites/mote.lua'); tex = render.texture('sprites/mote.png')\n"
-       "s0 = render.state(carpet)\n");
+  exec(
+      "carpet = render.model('models/carpet.glb'); font = render.font('fonts/pixel.lua')\n"
+      "mote = render.sprite('sprites/mote.lua'); tex = render.texture('sprites/mote.png')\n"
+      "s0 = render.state(carpet)\n");
   TEST_ASSERT_EQUAL_STRING("pending", gstr("s0"));
   settle();
   F.host.time = 1.0;
   zb_render_begin(F.render, 1280, 720);
-  exec("s1 = render.state(carpet); s2 = render.state(9999)\n"
-       "render.camera({ eye = { 0, 1, 5 }, target = { 0, 0, 0 }, fov = 50 })\n"
-       "render.camera({ eye = 3, up = { 0, 1 } })\n"
-       "render.camera({ eye = { 0, 1, 5 } })\n"
-       "render.light({ direction = { 0, -1, 0 }, color = { 1, 0.9, 0.8 }, ambient = 0.2 })\n"
-       "render.clear_color(0.1, 0.2, 0.3)\n"
-       "ih = render.internal_height(); ih2 = render.internal_height(240)\n"
-       "render.internal_height(360)\n"
-       "render.draw_model(carpet)\n"
-       "render.draw_model(carpet, { position = { 1, 0, 0 }, rotation = { 0, 90, 0 }, scale = 2 })\n"
-       "render.draw_sprite(mote, { 0, 1, 0 })\n"
-       "render.draw_sprite(mote, { 0, 1, 0 }, 2, 0.5)\n"
-       "render.draw_text(font, 'Hi', 4, 4)\n"
-       "render.draw_text(font, 'Ho', 4, 14, 2, { 1, 0, 0 })\n"
-       "frame0 = render.sprite_frame(mote, 0); frame1 = render.sprite_frame(mote, 10)\n"
-       "glyphs = #render.text_glyphs(font, 'abc')\n");
+  exec(
+      "s1 = render.state(carpet); s2 = render.state(9999)\n"
+      "render.camera({ eye = { 0, 1, 5 }, target = { 0, 0, 0 }, fov = 50 })\n"
+      "render.camera({ eye = 3, up = { 0, 1 } })\n"
+      "render.camera({ eye = { 0, 1, 5 } })\n"
+      "render.light({ direction = { 0, -1, 0 }, color = { 1, 0.9, 0.8 }, ambient = 0.2 })\n"
+      "render.clear_color(0.1, 0.2, 0.3)\n"
+      "ih = render.internal_height(); ih2 = render.internal_height(240)\n"
+      "render.internal_height(360)\n"
+      "render.draw_model(carpet)\n"
+      "render.draw_model(carpet, { position = { 1, 0, 0 }, rotation = { 0, 90, 0 }, scale = 2 })\n"
+      "render.draw_sprite(mote, { 0, 1, 0 })\n"
+      "render.draw_sprite(mote, { 0, 1, 0 }, 2, 0.5)\n"
+      "render.draw_text(font, 'Hi', 4, 4)\n"
+      "render.draw_text(font, 'Ho', 4, 14, 2, { 1, 0, 0 })\n"
+      "frame0 = render.sprite_frame(mote, 0); frame1 = render.sprite_frame(mote, 10)\n"
+      "glyphs = #render.text_glyphs(font, 'abc')\n");
   zb_render_end(F.render);
-  exec("local st = render.stats()\n"
-       "stats = st.model_draws .. ',' .. st.sprite_draws .. ',' .. st.glyphs .. ',' .. st.views .. ',' .. "
-       "st.internal_width .. 'x' .. st.internal_height .. ',' .. st.scale .. ',' .. st.backend .. ',' .. st.frames "
-       ".. ',' .. st.drawable_width .. ',' .. st.out_width .. ',' .. st.culled .. ',' .. st.out_x .. ',' .. "
-       "st.out_y .. ',' .. st.out_height .. ',' .. st.drawable_height\n");
+  exec(
+      "local st = render.stats()\n"
+      "stats = st.model_draws .. ',' .. st.sprite_draws .. ',' .. st.glyphs .. ',' .. st.views .. ',' .. "
+      "st.internal_width .. 'x' .. st.internal_height .. ',' .. st.scale .. ',' .. st.backend .. ',' .. st.frames "
+      ".. ',' .. st.drawable_width .. ',' .. st.out_width .. ',' .. st.culled .. ',' .. st.out_x .. ',' .. "
+      "st.out_y .. ',' .. st.out_height .. ',' .. st.drawable_height\n");
   TEST_ASSERT_EQUAL_STRING("ready", gstr("s1"));
   TEST_ASSERT_EQUAL_STRING("failed", gstr("s2"));
   TEST_ASSERT_EQUAL_DOUBLE(360.0, gnum("ih"));
@@ -789,20 +798,22 @@ static void test_audio_api(void) {
   start();
   run();
   zb_audio_set_device(F.audio, true);
-  exec("chime = audio.play('sounds/chime.wav')\n"
-       "music = audio.play('music/loop.ogg', { group = 'music', loop = true, volume = 0.5, pitch = 1.0 })\n"
-       "fx = audio.play('sounds/chime.wav', { group = 7 })\n");
+  exec(
+      "chime = audio.play('sounds/chime.wav')\n"
+      "music = audio.play('music/loop.ogg', { group = 'music', loop = true, volume = 0.5, pitch = 1.0 })\n"
+      "fx = audio.play('sounds/chime.wav', { group = 7 })\n");
   settle();
   float buf[256 * 2];
   zb_audio_mix(F.audio, buf, 256);
-  exec("st = audio.state(chime) .. ',' .. audio.state(music)\n"
-       "voices = audio.voices()\n"
-       "bytes = audio.decoder_bytes(music)\n"
-       "audio.set_volume(music, 0.25)\n"
-       "mv = audio.group_volume('music', 0.5); ev = audio.group_volume('effects')\n"
-       "audio.group_volume('master', 0.8)\n"
-       "locked = audio.locked()\n"
-       "audio.stop(chime); after = audio.state(chime)\n");
+  exec(
+      "st = audio.state(chime) .. ',' .. audio.state(music)\n"
+      "voices = audio.voices()\n"
+      "bytes = audio.decoder_bytes(music)\n"
+      "audio.set_volume(music, 0.25)\n"
+      "mv = audio.group_volume('music', 0.5); ev = audio.group_volume('effects')\n"
+      "audio.group_volume('master', 0.8)\n"
+      "locked = audio.locked()\n"
+      "audio.stop(chime); after = audio.state(chime)\n");
   TEST_ASSERT_EQUAL_STRING("playing,playing", gstr("st"));
   TEST_ASSERT_EQUAL_DOUBLE(3.0, gnum("voices"));
   TEST_ASSERT_EQUAL_DOUBLE((double)ZB_AUDIO_STREAM_BUFFER, gnum("bytes"));
@@ -818,22 +829,24 @@ static void test_save_api(void) {
   package("assets/base", "base", NULL, NULL);
   start();
   run();
-  exec("save.set('name', 'Lei \"the\" heir'); save.set('level', 3); save.set('ratio', 0.5)\n"
-       "save.set('flags', { a = true, list = { 1, 2, 3 }, nested = { deep = 'x' } })\n"
-       "save.set('gone', nil)\n"
-       "bad = select(2, pcall(save.set, 'f', print))\n"
-       "local deep = {}; local cur = deep; for i = 1, 12 do cur.n = {}; cur = cur.n end\n"
-       "save.set('deep', deep); save.set('odd', { [true] = 1, f = print })\n"
-       "ok = save.flush()\n");
+  exec(
+      "save.set('name', 'Lei \"the\" heir'); save.set('level', 3); save.set('ratio', 0.5)\n"
+      "save.set('flags', { a = true, list = { 1, 2, 3 }, nested = { deep = 'x' } })\n"
+      "save.set('gone', nil)\n"
+      "bad = select(2, pcall(save.set, 'f', print))\n"
+      "local deep = {}; local cur = deep; for i = 1, 12 do cur.n = {}; cur = cur.n end\n"
+      "save.set('deep', deep); save.set('odd', { [true] = 1, f = print })\n"
+      "ok = save.flush()\n");
   TEST_ASSERT_TRUE(gbool("ok"));
   TEST_ASSERT_TRUE(g_user_data_changes > 0);
   TEST_ASSERT_NOT_NULL(strstr(gstr("bad"), "nil, boolean, number, string or table expected"));
   stop();
   start();
   run();
-  exec("n = save.get('name'); l = save.get('level'); r = save.get('ratio')\n"
-       "f = save.get('flags'); fl = tostring(f.a) .. #f.list .. f.nested.deep\n"
-       "missing = save.get('nothing')\n");
+  exec(
+      "n = save.get('name'); l = save.get('level'); r = save.get('ratio')\n"
+      "f = save.get('flags'); fl = tostring(f.a) .. #f.list .. f.nested.deep\n"
+      "missing = save.get('nothing')\n");
   TEST_ASSERT_EQUAL_STRING("Lei \"the\" heir", gstr("n"));
   TEST_ASSERT_EQUAL_DOUBLE(3.0, gnum("l"));
   TEST_ASSERT_EQUAL_DOUBLE(0.5, gnum("r"));
@@ -954,7 +967,7 @@ static void test_scenarios(void) {
   while (zb_script_scenario_resume(F.script, &ticks)) {
     F.host.ticks += ticks;
   }
-  TEST_ASSERT_TRUE(gbool("after_failures")); /* failed expectations do not stop the scenario */
+  TEST_ASSERT_TRUE(gbool("after_failures"));                       /* failed expectations do not stop the scenario */
   TEST_ASSERT_EQUAL_INT(3, zb_script_scenario_failures(F.script)); /* two expectations and step(-1) */
   TEST_ASSERT_NOT_NULL(strstr(g_last_error, "must not be negative"));
   stop();

@@ -13,14 +13,14 @@
 #define ZB_MAX_CATCHUP_TICKS 8u
 
 typedef struct zb_loop {
-  uint64_t acc;          /* elapsed time * ZB_TICK_HZ, in ns */
+  uint64_t acc; /* elapsed time * ZB_TICK_HZ, in ns */
   uint64_t last_ns;
   bool started;
   bool paused;
   double time_scale;
-  uint64_t tick;         /* total ticks issued */
-  uint64_t dropped;      /* ticks discarded by the catch-up clamp */
-  unsigned stalls;       /* number of frames that hit the clamp */
+  uint64_t tick;    /* total ticks issued */
+  uint64_t dropped; /* ticks discarded by the catch-up clamp */
+  unsigned stalls;  /* number of frames that hit the clamp */
 } zb_loop;
 
 void zb_loop_init(zb_loop *l);

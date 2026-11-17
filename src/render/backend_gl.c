@@ -90,37 +90,37 @@ typedef ptrdiff_t GLintptr;
   X(void, glDepthFunc, (GLenum func)) \
   X(void, glCullFace, (GLenum mode)) \
   X(void, glBlendFunc, (GLenum s, GLenum d)) \
-  X(void, glGenTextures, (GLsizei n, GLuint *t)) \
+  X(void, glGenTextures, (GLsizei n, GLuint * t)) \
   X(void, glDeleteTextures, (GLsizei n, const GLuint *t)) \
   X(void, glBindTexture, (GLenum target, GLuint t)) \
-  X(void, glTexImage2D, (GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, GLint border, \
-                         GLenum fmt, GLenum type, const void *data)) \
+  X(void, glTexImage2D, \
+    (GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, GLint border, GLenum fmt, GLenum type, \
+     const void *data)) \
   X(void, glTexParameteri, (GLenum target, GLenum pname, GLint param)) \
   X(void, glActiveTexture, (GLenum t)) \
   X(void, glPixelStorei, (GLenum pname, GLint param)) \
-  X(void, glGenBuffers, (GLsizei n, GLuint *b)) \
+  X(void, glGenBuffers, (GLsizei n, GLuint * b)) \
   X(void, glDeleteBuffers, (GLsizei n, const GLuint *b)) \
   X(void, glBindBuffer, (GLenum target, GLuint b)) \
   X(void, glBufferData, (GLenum target, GLsizeiptr size, const void *data, GLenum usage)) \
-  X(void, glGenVertexArrays, (GLsizei n, GLuint *a)) \
+  X(void, glGenVertexArrays, (GLsizei n, GLuint * a)) \
   X(void, glDeleteVertexArrays, (GLsizei n, const GLuint *a)) \
   X(void, glBindVertexArray, (GLuint a)) \
   X(void, glEnableVertexAttribArray, (GLuint i)) \
-  X(void, glVertexAttribPointer, (GLuint i, GLint size, GLenum type, GLboolean norm, GLsizei stride, \
-                                  const void *ptr)) \
+  X(void, glVertexAttribPointer, (GLuint i, GLint size, GLenum type, GLboolean norm, GLsizei stride, const void *ptr)) \
   X(void, glVertexAttribDivisor, (GLuint i, GLuint divisor)) \
   X(GLuint, glCreateShader, (GLenum type)) \
   X(void, glShaderSource, (GLuint s, GLsizei count, const GLchar *const *src, const GLint *len)) \
   X(void, glCompileShader, (GLuint s)) \
-  X(void, glGetShaderiv, (GLuint s, GLenum pname, GLint *v)) \
-  X(void, glGetShaderInfoLog, (GLuint s, GLsizei max, GLsizei *len, GLchar *log)) \
+  X(void, glGetShaderiv, (GLuint s, GLenum pname, GLint * v)) \
+  X(void, glGetShaderInfoLog, (GLuint s, GLsizei max, GLsizei * len, GLchar * log)) \
   X(void, glDeleteShader, (GLuint s)) \
   X(GLuint, glCreateProgram, (void)) \
   X(void, glAttachShader, (GLuint p, GLuint s)) \
   X(void, glBindAttribLocation, (GLuint p, GLuint i, const GLchar *name)) \
   X(void, glLinkProgram, (GLuint p)) \
-  X(void, glGetProgramiv, (GLuint p, GLenum pname, GLint *v)) \
-  X(void, glGetProgramInfoLog, (GLuint p, GLsizei max, GLsizei *len, GLchar *log)) \
+  X(void, glGetProgramiv, (GLuint p, GLenum pname, GLint * v)) \
+  X(void, glGetProgramInfoLog, (GLuint p, GLsizei max, GLsizei * len, GLchar * log)) \
   X(void, glDeleteProgram, (GLuint p)) \
   X(void, glUseProgram, (GLuint p)) \
   X(GLint, glGetUniformLocation, (GLuint p, const GLchar *name)) \
@@ -131,18 +131,19 @@ typedef ptrdiff_t GLintptr;
   X(void, glDrawElements, (GLenum mode, GLsizei count, GLenum type, const void *indices)) \
   X(void, glDrawArrays, (GLenum mode, GLint first, GLsizei count)) \
   X(void, glDrawArraysInstanced, (GLenum mode, GLint first, GLsizei count, GLsizei instances)) \
-  X(void, glGenFramebuffers, (GLsizei n, GLuint *f)) \
+  X(void, glGenFramebuffers, (GLsizei n, GLuint * f)) \
   X(void, glDeleteFramebuffers, (GLsizei n, const GLuint *f)) \
   X(void, glBindFramebuffer, (GLenum target, GLuint f)) \
   X(void, glFramebufferTexture2D, (GLenum target, GLenum att, GLenum tt, GLuint t, GLint level)) \
   X(GLenum, glCheckFramebufferStatus, (GLenum target)) \
-  X(void, glGenRenderbuffers, (GLsizei n, GLuint *r)) \
+  X(void, glGenRenderbuffers, (GLsizei n, GLuint * r)) \
   X(void, glDeleteRenderbuffers, (GLsizei n, const GLuint *r)) \
   X(void, glBindRenderbuffer, (GLenum target, GLuint r)) \
   X(void, glRenderbufferStorage, (GLenum target, GLenum fmt, GLsizei w, GLsizei h)) \
   X(void, glFramebufferRenderbuffer, (GLenum target, GLenum att, GLenum rt, GLuint r)) \
-  X(void, glBlitFramebuffer, (GLint sx0, GLint sy0, GLint sx1, GLint sy1, GLint dx0, GLint dy0, GLint dx1, \
-                              GLint dy1, GLbitfield mask, GLenum filter)) \
+  X(void, glBlitFramebuffer, \
+    (GLint sx0, GLint sy0, GLint sx1, GLint sy1, GLint dx0, GLint dy0, GLint dx1, GLint dy1, GLbitfield mask, \
+     GLenum filter)) \
   X(void, glReadPixels, (GLint x, GLint y, GLsizei w, GLsizei h, GLenum fmt, GLenum type, void *data)) \
   X(void, glFinish, (void))
 
@@ -471,8 +472,8 @@ static void draw_sprites(gl_ctx *c, const zb_frame *f, int view) {
     }
     c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, tex));
     c->gl.glBindBuffer(GL_ARRAY_BUFFER, c->inst_vbo);
-    c->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(c->instances.len * sizeof(sprite_instance)),
-                       c->instances.data, GL_STREAM_DRAW);
+    c->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(c->instances.len * sizeof(sprite_instance)), c->instances.data,
+                       GL_STREAM_DRAW);
     c->gl.glDrawArraysInstanced(GL_TRIANGLES, 0, 6, (GLsizei)c->instances.len);
   }
   if (started) {
@@ -493,8 +494,7 @@ static void draw_text(gl_ctx *c, const zb_frame *f) {
   c->gl.glUniform1i(p->tex, 0);
   c->gl.glBindVertexArray(c->text_vao);
   c->gl.glBindBuffer(GL_ARRAY_BUFFER, c->text_vbo);
-  c->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(f->text_count * sizeof(zb_text_vertex)), f->text,
-                     GL_STREAM_DRAW);
+  c->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(f->text_count * sizeof(zb_text_vertex)), f->text, GL_STREAM_DRAW);
   for (size_t b = 0; b < f->text_batch_count; ++b) {
     c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, f->text_batches[b].texture));
     c->gl.glDrawArrays(GL_TRIANGLES, (GLint)f->text_batches[b].first, (GLsizei)f->text_batches[b].count);
@@ -560,9 +560,12 @@ static zb_result gl_capture(void *ctx, bool internal, const zb_allocator *a, zb_
 
 static void gl_destroy(void *ctx) {
   gl_ctx *c = ctx;
-  if (c->model.id) c->gl.glDeleteProgram(c->model.id);
-  if (c->sprite.id) c->gl.glDeleteProgram(c->sprite.id);
-  if (c->text.id) c->gl.glDeleteProgram(c->text.id);
+  if (c->model.id)
+    c->gl.glDeleteProgram(c->model.id);
+  if (c->sprite.id)
+    c->gl.glDeleteProgram(c->sprite.id);
+  if (c->text.id)
+    c->gl.glDeleteProgram(c->text.id);
   if (c->sprite_vao) {
     c->gl.glDeleteVertexArrays(1, &c->sprite_vao);
     c->gl.glDeleteBuffers(1, &c->quad_vbo);
@@ -617,8 +620,8 @@ static void setup_geometry(gl_ctx *c) {
   c->gl.glBindVertexArray(0);
 }
 
-zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load_proc, void *loader_ctx,
-                                        bool gles, zb_vfs *vfs, char *err, size_t err_len) {
+zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load_proc, void *loader_ctx, bool gles,
+                                        zb_vfs *vfs, char *err, size_t err_len) {
   gl_ctx *c = zb_calloc(a, sizeof(*c));
   if (!c) {
     snprintf(err, err_len, "out of memory");

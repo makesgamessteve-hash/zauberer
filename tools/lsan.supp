@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+# LeakSanitizer suppressions for the sanitizer CI job: allocations the
+# system's OpenGL/EGL driver (Mesa, llvmpipe) keeps until process exit.
+leak:SDL_EGL_InitializeOffscreen
+leak:SDL_EGL_LoadLibrary
+leak:SDL_EGL_CreateContext
+leak:SDL_GL_LoadLibrary
+leak:libEGL
+leak:libEGL_mesa
+leak:libgallium
+leak:libGLX
+leak:libLLVM
+leak:libdrm

@@ -6,21 +6,21 @@
 #include "core/base.h"
 
 typedef struct zb_options {
-  const char *assets_dir;     /* --assets <dir> */
-  const char *user_dir;       /* --user-dir <dir> */
-  bool headless;              /* --headless */
-  int64_t ticks;              /* --ticks <n>; -1 = until quit */
-  const char *test_path;      /* --test <file|dir> */
-  const char *scenario_path;  /* --scenario <file> */
-  const char *junit_path;     /* --junit <file> */
-  const char *record_path;    /* --record <file> */
-  const char *replay_path;    /* --replay <file> */
-  int debug_views;            /* --debug-views <1|2> */
+  const char *assets_dir;        /* --assets <dir> */
+  const char *user_dir;          /* --user-dir <dir> */
+  bool headless;                 /* --headless */
+  int64_t ticks;                 /* --ticks <n>; -1 = until quit */
+  const char *test_path;         /* --test <file|dir> */
+  const char *scenario_path;     /* --scenario <file> */
+  const char *junit_path;        /* --junit <file> */
+  const char *record_path;       /* --record <file> */
+  const char *replay_path;       /* --replay <file> */
+  int debug_views;               /* --debug-views <1|2> */
   const char *lua_coverage_path; /* --lua-coverage <file> */
-  uint64_t seed;              /* --seed <n> */
+  uint64_t seed;                 /* --seed <n> */
   bool seed_set;
-  bool help;                  /* --help */
-  bool version;               /* --version */
+  bool help;    /* --help */
+  bool version; /* --version */
 } zb_options;
 
 void zb_options_defaults(zb_options *o);

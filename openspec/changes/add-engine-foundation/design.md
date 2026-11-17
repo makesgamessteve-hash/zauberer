@@ -300,6 +300,45 @@ carpet.
 - [Async VFS complicates scripts] → Scripts and data are preloaded at boot, so `require`
   is synchronous, and only heavy assets use handles.
 
+## Implementation Notes
+
+Decisions that changed or became concrete while implementing M0 (they do not change any
+requirement):
+
+- **Manifests and data files** are read by `luon`, a literal-only parser in `src/core`
+  (tables, strings, numbers, booleans, `nil`, comments), instead of an empty Lua state with
+  an instruction cap. It cannot run code by construction, needs no Lua state in the VFS and
+  reports line and column for errors. `credits.lua`, `data/input.lua` and save data use it
+  too.
+- **GL loading:** instead of a generated glad loader, the GL backend declares the ~60
+  entry points it uses in one X-macro table and resolves them through the platform
+  (`SDL_GL_GetProcAddress`, WebGL on the web). A missing entry point is a startup error.
+  When the 3.3 core context cannot be created, the platform asks the driver for its
+  default context to name the detected version in the error.
+- **Readbacks** (`render.capture`, golden images) call `glFinish` first: threaded llvmpipe
+  returned partially rendered frames otherwise.
+- **Web assets:** the page loader (`web/zauberer-loader.js`) writes the boot set into
+  MEMFS and creates empty placeholders for the other indexed files, so discovery and
+  listings work unchanged. The VFS fetcher (`zb_vfs_set_fetcher`) asks the loader to fetch
+  a placeholder's content through Cache Storage (keyed by path and SHA-256) before
+  reading it. `web/lib_zauberer.js` replaces `vfs_fetch.js`. External `.gltf` buffers and
+  images are read synchronously and must therefore be in the boot set or embedded (`.glb`).
+- **Lua coverage:** the C line hook writes LuaCov's stats format directly (merging with an
+  existing file), so the engine needs no `debug` library in package environments; the
+  vendored LuaCov reporter turns the stats into a report (`tools/luacov_report.py`), and
+  one gate tool (`tools/coverage_gate.py c|lua`) serves both languages.
+- **Replays** store their expected state hashes beside the recording
+  (`<file>.hashes`, every 60 ticks and the last tick). Packages contribute simulation state
+  to the hash through a `hash` hook. The "long track" check loops a short OGG track until
+  ten minutes of track time have played, which exercises the same streaming path.
+- **Scenarios:** paused steps render without ticking; windowed scenarios run one step per
+  frame so window events arrive in between; `engine.resize_window` exists in the test API.
+- **web-node** builds link every executable (engine and unit tests) for Node.js with the
+  real file system; thread tests are skipped there because the build has no pthreads.
+- **Sanitizers:** the sanitizer job skips the rendered tests, because LeakSanitizer
+  cannot attribute the Mesa driver's own allocations; they run in the coverage and render
+  jobs.
+
 ## Migration Plan
 
 Not applicable: this is a greenfield change with nothing to migrate or roll back.

@@ -57,10 +57,10 @@ void zb_map_free(zb_map *m);
 
 typedef struct zb_strtab {
   zb_arena arena;
-  zb_map index; /* hash -> first id with that hash (chained through next) */
+  zb_map index;     /* hash -> first id with that hash (chained through next) */
   zb_array strings; /* const char * */
   zb_array lengths; /* size_t */
-  zb_array next; /* uint32_t: next id with the same hash, or UINT32_MAX */
+  zb_array next;    /* uint32_t: next id with the same hash, or UINT32_MAX */
 } zb_strtab;
 
 #define ZB_STR_NONE UINT32_MAX

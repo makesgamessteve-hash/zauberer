@@ -33,11 +33,10 @@ static void test_defaults(void) {
 static void test_all_options(void) {
   zb_options o;
   char err[256];
-  TEST_ASSERT_EQUAL_INT(ZB_OK, parse(&o, err, 25, "--headless", "--ticks", "600", "--assets", "a",
-                                     "--user-dir", "u", "--test", "t", "--scenario", "s.lua",
-                                     "--junit", "j.xml", "--record", "r.bin", "--replay", "p.bin",
-                                     "--debug-views", "2", "--lua-coverage", "c.out", "--seed", "0x2A",
-                                     "--help"));
+  TEST_ASSERT_EQUAL_INT(
+      ZB_OK, parse(&o, err, 25, "--headless", "--ticks", "600", "--assets", "a", "--user-dir", "u", "--test", "t",
+                   "--scenario", "s.lua", "--junit", "j.xml", "--record", "r.bin", "--replay", "p.bin", "--debug-views",
+                   "2", "--lua-coverage", "c.out", "--seed", "0x2A", "--help"));
   TEST_ASSERT_TRUE(o.headless);
   TEST_ASSERT_EQUAL_INT64(600, o.ticks);
   TEST_ASSERT_EQUAL_STRING("a", o.assets_dir);

@@ -22,6 +22,7 @@ typedef struct asset {
   char path[ZB_VFS_MAX_PATH];
   zb_asset_state state;
   zb_vfs_req *req;
+  void *load_box; /* the request's callback context, freed on completion or release */
   /* texture */
   uint32_t tex;
   int width, height;
@@ -66,8 +67,8 @@ struct zb_render {
   /* frame state */
   zb_frame frame;
   zb_frustum frustums[ZB_RENDER_MAX_VIEWS];
-  zb_array items;       /* zb_draw_item */
-  zb_array text;        /* zb_text_vertex */
+  zb_array items; /* zb_draw_item */
+  zb_array text;  /* zb_text_vertex */
   zb_array text_batches;
   zb_render_stats stats;
   bool in_frame;
@@ -129,6 +130,8 @@ static void asset_release(zb_render *r, asset *as) {
     zb_vfs_req_release(r->vfs, as->req);
     as->req = NULL;
   }
+  zb_free(r->a, as->load_box);
+  as->load_box = NULL;
   if (as->tex && as->tex != r->checker_tex) {
     r->backend->destroy_texture(r->backend->ctx, as->tex);
   }
@@ -185,8 +188,8 @@ void zb_render_set_clear_color(zb_render *r, float red, float green, float blue)
   r->clear[2] = blue;
 }
 
-void zb_render_set_camera(zb_render *r, zb_vec3 eye, zb_vec3 target, zb_vec3 up, float fovy_deg,
-                          float znear, float zfar) {
+void zb_render_set_camera(zb_render *r, zb_vec3 eye, zb_vec3 target, zb_vec3 up, float fovy_deg, float znear,
+                          float zfar) {
   r->eye = eye;
   r->target = target;
   r->up = up;
@@ -218,8 +221,7 @@ static uint32_t find_asset(const zb_render *r, asset_kind kind, const char *path
 static void warn_missing(const char *path, zb_result err) {
   char key[ZB_VFS_MAX_PATH + 16];
   snprintf(key, sizeof key, "missing:%s", path);
-  zb_log_once(ZB_LOG_WARN, key, "asset '%s' could not be loaded (%s); using a placeholder", path,
-              zb_result_str(err));
+  zb_log_once(ZB_LOG_WARN, key, "asset '%s' could not be loaded (%s); using a placeholder", path, zb_result_str(err));
 }
 
 typedef struct load_ctx {
@@ -249,9 +251,11 @@ static uint32_t new_asset(zb_render *r, asset_kind kind, const char *path) {
     lc->r = r;
     lc->handle = handle;
     asset *stored = asset_at(r, handle);
+    stored->load_box = lc;
     stored->req = zb_vfs_request(r->vfs, path, on_loaded, lc);
     if (!stored->req) {
       zb_free(r->a, lc);
+      stored->load_box = NULL;
       stored->state = ZB_ASSET_FAILED;
     }
   }
@@ -428,6 +432,7 @@ static void on_loaded(zb_vfs_req *req, void *user) {
   zb_free(r->a, lc);
   asset *as = asset_at(r, handle);
   as->req = NULL;
+  as->load_box = NULL;
   size_t len = 0;
   const char *data = zb_vfs_req_data(req, &len);
   zb_result err = zb_vfs_req_error(req);
@@ -542,8 +547,10 @@ zb_layout zb_render_compute_layout(int drawable_w, int drawable_h, int internal_
     l.scale = 0;
     l.out_w = (int)(l.internal_w * s + 0.5);
     l.out_h = (int)(l.internal_h * s + 0.5);
-    if (l.out_w > drawable_w) l.out_w = drawable_w;
-    if (l.out_h > drawable_h) l.out_h = drawable_h;
+    if (l.out_w > drawable_w)
+      l.out_w = drawable_w;
+    if (l.out_h > drawable_h)
+      l.out_h = drawable_h;
   }
   l.out_x = (drawable_w - l.out_w) / 2;
   l.out_y = (drawable_h - l.out_h) / 2;
@@ -705,10 +712,10 @@ void zb_render_draw_text(zb_render *r, uint32_t font, const char *utf8, float x,
     float u1 = u0 + (float)f->glyph_w / (float)tex->width;
     float v1 = v0 + (float)f->glyph_h / (float)tex->height;
     zb_text_vertex q[4] = {
-      {pen, y, u0, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
-      {pen + gw, y, u1, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
-      {pen + gw, y + gh, u1, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
-      {pen, y + gh, u0, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+        {pen, y, u0, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+        {pen + gw, y, u1, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+        {pen + gw, y + gh, u1, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+        {pen, y + gh, u0, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
     };
     static const int order[6] = {0, 1, 2, 0, 2, 3};
     for (int k = 0; k < 6; ++k) {

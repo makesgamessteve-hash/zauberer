@@ -42,7 +42,10 @@ static void *m_create(void) {
   InitializeCriticalSection(m);
   return m;
 }
-static void m_destroy(void *m) { DeleteCriticalSection(m); free(m); }
+static void m_destroy(void *m) {
+  DeleteCriticalSection(m);
+  free(m);
+}
 static void m_lock(void *m) { EnterCriticalSection(m); }
 static void m_unlock(void *m) { LeaveCriticalSection(m); }
 static void *c_create(void) {
@@ -92,7 +95,10 @@ static void *m_create(void) {
   pthread_mutex_init(m, NULL);
   return m;
 }
-static void m_destroy(void *m) { pthread_mutex_destroy(m); free(m); }
+static void m_destroy(void *m) {
+  pthread_mutex_destroy(m);
+  free(m);
+}
 static void m_lock(void *m) { pthread_mutex_lock(m); }
 static void m_unlock(void *m) { pthread_mutex_unlock(m); }
 static void *c_create(void) {
@@ -100,13 +106,16 @@ static void *c_create(void) {
   pthread_cond_init(c, NULL);
   return c;
 }
-static void c_destroy(void *c) { pthread_cond_destroy(c); free(c); }
+static void c_destroy(void *c) {
+  pthread_cond_destroy(c);
+  free(c);
+}
 static void c_wait(void *c, void *m) { pthread_cond_wait(c, m); }
 static void c_broadcast(void *c) { pthread_cond_broadcast(c); }
 #endif
 
-static const zb_thread_api k_api = {t_create, t_join, m_create, m_destroy, m_lock, m_unlock,
-                                    c_create, c_destroy, c_wait, c_broadcast};
+static const zb_thread_api k_api = {t_create, t_join,   m_create,  m_destroy, m_lock,
+                                    m_unlock, c_create, c_destroy, c_wait,    c_broadcast};
 
 const zb_thread_api *zb_test_thread_api(void) {
 #if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)

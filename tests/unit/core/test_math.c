@@ -91,9 +91,9 @@ static void test_frustum(void) {
   zb_mat4 v = zb_m4_look_at(zb_v3(0, 0, 0), zb_v3(0, 0, -1), zb_v3(0, 1, 0));
   zb_frustum f = zb_frustum_from_matrix(zb_m4_mul(p, v));
   TEST_ASSERT_TRUE(zb_frustum_sphere_visible(&f, zb_v3(0, 0, -10), 1.0f));
-  TEST_ASSERT_FALSE(zb_frustum_sphere_visible(&f, zb_v3(0, 0, 10), 1.0f));   /* behind */
-  TEST_ASSERT_FALSE(zb_frustum_sphere_visible(&f, zb_v3(0, 0, -200), 1.0f)); /* too far */
-  TEST_ASSERT_FALSE(zb_frustum_sphere_visible(&f, zb_v3(50, 0, -10), 1.0f)); /* right */
+  TEST_ASSERT_FALSE(zb_frustum_sphere_visible(&f, zb_v3(0, 0, 10), 1.0f));     /* behind */
+  TEST_ASSERT_FALSE(zb_frustum_sphere_visible(&f, zb_v3(0, 0, -200), 1.0f));   /* too far */
+  TEST_ASSERT_FALSE(zb_frustum_sphere_visible(&f, zb_v3(50, 0, -10), 1.0f));   /* right */
   TEST_ASSERT_TRUE(zb_frustum_sphere_visible(&f, zb_v3(10.5f, 0, -10), 1.0f)); /* touching edge */
 }
 

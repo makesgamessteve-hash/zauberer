@@ -83,8 +83,8 @@ const zb_allocator *zb_tracking_iface(zb_tracking_allocator *t);
 size_t zb_tracking_live_count(const zb_tracking_allocator *t);
 size_t zb_tracking_live_bytes(const zb_tracking_allocator *t);
 /* Calls fn for every live allocation; returns the number of live allocations. */
-size_t zb_tracking_report(const zb_tracking_allocator *t,
-                          void (*fn)(const zb_tracking_entry *e, void *user), void *user);
+size_t zb_tracking_report(const zb_tracking_allocator *t, void (*fn)(const zb_tracking_entry *e, void *user),
+                          void *user);
 void zb_tracking_destroy(zb_tracking_allocator *t);
 
 #endif

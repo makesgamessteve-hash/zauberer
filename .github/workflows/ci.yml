@@ -1,0 +1,271 @@
+# SPDX-License-Identifier: MIT
+# Every push and pull request: lint, Linux coverage (with rendered tests),
+# Linux sanitizers, Windows, macOS and web, then a cross-platform
+# determinism check. Any failing job fails the run.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENSPEC_TELEMETRY: "0"
+  ZB_NO_DIALOGS: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18 lua-check vorbis-tools
+          pip install reuse==6.3.0
+      - name: clang-format
+        run: git ls-files '*.c' '*.h' ':!:third_party/**' | xargs clang-format-18 --dry-run --Werror
+      - name: reuse lint
+        run: reuse lint
+      - name: OpenSpec
+        run: npx --yes @fission-ai/openspec@2.1.0 validate --all --strict
+      - name: Tool tests
+        run: python3 -m unittest discover -s tests/tools -t .
+      - name: Module layering
+        run: python3 tools/check_includes.py
+      - name: License split
+        run: python3 tools/check_licenses.py
+      - name: Credits
+        run: python3 tools/check_credits.py
+      - name: Spec scenario coverage
+        run: python3 tools/spec_coverage.py
+      - name: Lua API reference is current
+        run: python3 tools/gen_api_docs.py --check
+      - name: luacheck
+        run: luacheck --no-color assets tests/lua tests/scenarios tests/fixtures
+      - name: Generated assets are reproducible
+        run: |
+          python3 tools/gen/gen_all.py
+          git diff --exit-code -- assets
+
+  linux-gcc-coverage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 \
+            libegl-dev libgl-dev libx11-dev libxext-dev libxkbcommon-dev libwayland-dev \
+            libasound2-dev libpulse-dev
+          pip install gcovr==8.8
+      - name: Configure
+        run: cmake --preset coverage
+      - name: Build
+        run: cmake --build --preset coverage
+      - name: Test (unit, engine, rendered on llvmpipe)
+        env:
+          ZB_LUA_COVERAGE: ${{ github.workspace }}/build/coverage/luacov.stats.out
+          ZB_HASH_REPORT: ${{ github.workspace }}/hash-linux.txt
+        run: ctest --preset coverage
+      - name: C coverage gate
+        run: |
+          gcovr --root . --filter src/ \
+            --json-summary build/coverage/coverage.json --html-details build/coverage/coverage.html build/coverage
+          python3 tools/coverage_gate.py c --gcovr-json build/coverage/coverage.json \
+            --exclusions tools/coverage-exclusions.txt --baseline tools/coverage-baseline.json
+      - name: Lua coverage gate
+        run: |
+          python3 tools/luacov_report.py --lua build/coverage/zb_lua \
+            --stats build/coverage/luacov.stats.out --report build/coverage/luacov.report.out \
+            --include assets/base/scripts
+          python3 tools/coverage_gate.py lua --luacov-report build/coverage/luacov.report.out \
+            --include assets/base/scripts --exclusions tools/coverage-exclusions.txt \
+            --baseline tools/coverage-baseline.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hash-linux
+          path: hash-linux.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            build/coverage/coverage.html*
+            build/coverage/luacov.report.out
+          if-no-files-found: ignore
+
+  linux-clang-asan:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      LSAN_OPTIONS: suppressions=${{ github.workspace }}/tools/lsan.supp
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 \
+            libegl-dev libgl-dev libx11-dev libxext-dev libxkbcommon-dev libwayland-dev libasound2-dev
+      - name: Configure
+        run: cmake --preset asan
+      - name: Build
+        run: cmake --build --preset asan
+      - name: Test
+        # Rendered tests run in linux-gcc-coverage and linux-render: under LSan the
+        # Mesa driver's own allocations (unloaded at exit) cannot be attributed.
+        run: ctest --preset asan -LE render
+
+  linux-render:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 \
+            libegl-dev libgl-dev libx11-dev libxext-dev libxkbcommon-dev libwayland-dev libasound2-dev
+      - name: Configure and build (release)
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+      - name: Rendered tests (SDL offscreen + llvmpipe)
+        env:
+          ZB_GOLDEN_OUT: ${{ github.workspace }}/golden-out
+        run: ctest --preset release -L render
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-out
+          path: golden-out
+          if-no-files-found: ignore
+
+  windows-msvc:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure
+        run: cmake --preset release
+      - name: Build
+        run: cmake --build --preset release
+      - name: Test
+        env:
+          ZB_HASH_REPORT: ${{ github.workspace }}/hash-windows.txt
+        run: ctest --preset release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hash-windows
+          path: hash-windows.txt
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Ninja
+        run: brew install ninja
+      - name: Configure
+        run: cmake --preset release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+      - name: Build
+        run: cmake --build --preset release
+      - name: Test
+        env:
+          ZB_HASH_REPORT: ${{ github.workspace }}/hash-macos.txt
+        run: ctest --preset release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hash-macos
+          path: hash-macos.txt
+
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Emscripten
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install "$(cat cmake/emsdk-version.txt)"
+          "$RUNNER_TEMP/emsdk/emsdk" activate "$(cat cmake/emsdk-version.txt)"
+          echo "EMSDK=$RUNNER_TEMP/emsdk" >> "$GITHUB_ENV"
+      - name: Build web, web-st and web-node
+        run: |
+          source "$EMSDK/emsdk_env.sh"
+          for preset in web web-st web-node; do
+            cmake --preset "$preset"
+            cmake --build --preset "$preset"
+          done
+      - name: Unit and headless engine tests under Node.js
+        env:
+          ZB_HASH_REPORT: ${{ github.workspace }}/hash-web.txt
+        run: |
+          source "$EMSDK/emsdk_env.sh"
+          ctest --preset web-node
+      - name: Browser tests (Playwright, Chromium)
+        working-directory: tests/web
+        env:
+          ZB_WEB_ST_DIR: ${{ github.workspace }}/build/web-st/bin
+          ZB_WEB_MT_DIR: ${{ github.workspace }}/build/web/bin
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node --test --test-concurrency=1 web.test.mjs
+      - name: Assemble the web build
+        run: |
+          mkdir -p dist
+          cp -r build/web-st/bin/. dist/
+          cp build/web/bin/zauberer.js build/web/bin/zauberer.wasm dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zauberer-web
+          path: dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hash-web
+          path: hash-web.txt
+
+  determinism:
+    needs: [linux-gcc-coverage, windows-msvc, macos, web]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hash-*
+          path: hashes
+      - name: Compare final replay hashes
+        run: |
+          python3 tools/compare_hashes.py \
+            linux=hashes/hash-linux/hash-linux.txt windows=hashes/hash-windows/hash-windows.txt \
+            macos=hashes/hash-macos/hash-macos.txt web=hashes/hash-web/hash-web.txt

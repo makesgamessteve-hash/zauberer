@@ -14,12 +14,7 @@ typedef enum zb_job_priority {
   ZB_JOB_PRIORITY_COUNT
 } zb_job_priority;
 
-typedef enum zb_job_state {
-  ZB_JOB_PENDING,
-  ZB_JOB_RUNNING,
-  ZB_JOB_DONE,
-  ZB_JOB_CANCELLED
-} zb_job_state;
+typedef enum zb_job_state { ZB_JOB_PENDING, ZB_JOB_RUNNING, ZB_JOB_DONE, ZB_JOB_CANCELLED } zb_job_state;
 
 typedef struct zb_jobs zb_jobs;
 typedef struct zb_job zb_job;

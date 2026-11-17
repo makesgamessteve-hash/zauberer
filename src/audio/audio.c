@@ -28,8 +28,8 @@ typedef struct voice {
   bool active;
   uint16_t generation;
   sound *snd;
-  bool deferred;  /* waiting for unlock */
-  double pos;     /* in source frames */
+  bool deferred; /* waiting for unlock */
+  double pos;    /* in source frames */
   float volume;
   float pitch;
   bool loop;
@@ -38,7 +38,7 @@ typedef struct voice {
   stb_vorbis *vorbis;
   unsigned char *vorbis_mem;
   float stream_buf[2048 * 2];
-  int stream_len;   /* frames in stream_buf */
+  int stream_len; /* frames in stream_buf */
   int stream_pos;
   double stream_frac;
   bool stream_end;
@@ -98,8 +98,8 @@ static float sample_at(const unsigned char *p, int bits, bool is_float) {
   }
 }
 
-zb_result zb_audio_decode_wav(const zb_allocator *a, const void *data, size_t len, float **samples,
-                              size_t *frames, int *rate) {
+zb_result zb_audio_decode_wav(const zb_allocator *a, const void *data, size_t len, float **samples, size_t *frames,
+                              int *rate) {
   const unsigned char *d = data;
   if (len < 12 || memcmp(d, "RIFF", 4) != 0 || memcmp(d + 8, "WAVE", 4) != 0) {
     return ZB_ERR_PARSE;
@@ -432,8 +432,8 @@ static bool stream_open(zb_audio *au, voice *v) {
   }
   stb_vorbis_alloc alloc = {(char *)v->vorbis_mem, (int)ZB_AUDIO_STREAM_BUFFER};
   int error = 0;
-  v->vorbis = stb_vorbis_open_memory((const unsigned char *)v->snd->compressed, (int)v->snd->compressed_len,
-                                     &error, &alloc);
+  v->vorbis =
+      stb_vorbis_open_memory((const unsigned char *)v->snd->compressed, (int)v->snd->compressed_len, &error, &alloc);
   return v->vorbis != NULL;
 }
 

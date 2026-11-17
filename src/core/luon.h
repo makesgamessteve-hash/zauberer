@@ -8,13 +8,7 @@
 
 #include "core/alloc.h"
 
-typedef enum zb_value_type {
-  ZB_VAL_NIL,
-  ZB_VAL_BOOL,
-  ZB_VAL_NUMBER,
-  ZB_VAL_STRING,
-  ZB_VAL_TABLE
-} zb_value_type;
+typedef enum zb_value_type { ZB_VAL_NIL, ZB_VAL_BOOL, ZB_VAL_NUMBER, ZB_VAL_STRING, ZB_VAL_TABLE } zb_value_type;
 
 typedef struct zb_table zb_table;
 
@@ -23,7 +17,10 @@ typedef struct zb_value {
   union {
     bool b;
     double num;
-    struct { const char *ptr; size_t len; } str;
+    struct {
+      const char *ptr;
+      size_t len;
+    } str;
     zb_table *table;
   } as;
 } zb_value;
@@ -51,8 +48,7 @@ typedef struct zb_luon_doc {
 
 #define ZB_LUON_MAX_DEPTH 64
 
-zb_result zb_luon_parse(zb_luon_doc *doc, const zb_allocator *a, const char *text, size_t len,
-                        zb_luon_error *err);
+zb_result zb_luon_parse(zb_luon_doc *doc, const zb_allocator *a, const char *text, size_t len, zb_luon_error *err);
 void zb_luon_free(zb_luon_doc *doc);
 
 /* Lookups return NULL when t is not a table or the key is missing. */

@@ -5,15 +5,30 @@
 
 #include "core/base.h"
 
-typedef struct zb_vec2 { float x, y; } zb_vec2;
-typedef struct zb_vec3 { float x, y, z; } zb_vec3;
-typedef struct zb_vec4 { float x, y, z, w; } zb_vec4;
-typedef struct zb_quat { float x, y, z, w; } zb_quat;
+typedef struct zb_vec2 {
+  float x, y;
+} zb_vec2;
+typedef struct zb_vec3 {
+  float x, y, z;
+} zb_vec3;
+typedef struct zb_vec4 {
+  float x, y, z, w;
+} zb_vec4;
+typedef struct zb_quat {
+  float x, y, z, w;
+} zb_quat;
 /* m[column * 4 + row] */
-typedef struct zb_mat4 { float m[16]; } zb_mat4;
+typedef struct zb_mat4 {
+  float m[16];
+} zb_mat4;
 /* Plane: dot(normal, p) + d >= 0 means inside. */
-typedef struct zb_plane { zb_vec3 n; float d; } zb_plane;
-typedef struct zb_frustum { zb_plane planes[6]; } zb_frustum;
+typedef struct zb_plane {
+  zb_vec3 n;
+  float d;
+} zb_plane;
+typedef struct zb_frustum {
+  zb_plane planes[6];
+} zb_frustum;
 
 #define ZB_PI 3.14159265358979323846f
 

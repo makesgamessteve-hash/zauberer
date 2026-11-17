@@ -108,9 +108,9 @@ static void test_define_and_bind_rules(void) {
   for (size_t i = 0; i < ZB_ARRAY_LEN(ok2); ++i) {
     TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, a, ok2[i]));
   }
-  const char *bad2[] = {"key:a", "keys:w,s,a", "keys:w,s,a,d,e", "keys:w,s,a,nope", "mouse:left", "gamepad:a",
-                        "touch:button:x", "nonsense", "joystick:1", "gamepad:wheel", "touch:stick:", "touch:other",
-                        "keys:a,d"};
+  const char *bad2[] = {"key:a",        "keys:w,s,a",     "keys:w,s,a,d,e", "keys:w,s,a,nope", "mouse:left",
+                        "gamepad:a",    "touch:button:x", "nonsense",       "joystick:1",      "gamepad:wheel",
+                        "touch:stick:", "touch:other",    "keys:a,d"};
   for (size_t i = 0; i < ZB_ARRAY_LEN(bad2); ++i) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(ZB_ERR_INVALID, zb_input_bind(in, a, bad2[i]), bad2[i]);
   }
@@ -118,7 +118,8 @@ static void test_define_and_bind_rules(void) {
   TEST_ASSERT_EQUAL_STRING("mouse:motion", zb_input_binding(in, a, 3));
   TEST_ASSERT_NULL(zb_input_binding(in, a, 9));
   int b = zb_input_define(in, "fire", ZB_ACTION_BUTTON);
-  const char *okb[] = {"key:f", "mouse:right", "gamepad:a", "gamepad:right_trigger", "touch:button:fire", "gamepad:left_stick"};
+  const char *okb[] = {
+      "key:f", "mouse:right", "gamepad:a", "gamepad:right_trigger", "touch:button:fire", "gamepad:left_stick"};
   for (size_t i = 0; i < ZB_ARRAY_LEN(okb); ++i) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(ZB_OK, zb_input_bind(in, b, okb[i]), okb[i]);
   }
@@ -262,8 +263,9 @@ static void test_unplug_while_holding(void) {
 /* spec: input-actions: Mod changes a default binding */
 static void test_defaults_overlay(void) {
   zb_luon_doc base, mod;
-  zb_value b = parse(&base, "{ jump = { type = 'button', bind = { 'key:space', 'gamepad:a' } },"
-                            "  move = { type = 'axis2', bind = { 'keys:w,s,a,d' } } }");
+  zb_value b = parse(&base,
+                     "{ jump = { type = 'button', bind = { 'key:space', 'gamepad:a' } },"
+                     "  move = { type = 'axis2', bind = { 'keys:w,s,a,d' } } }");
   zb_value m = parse(&mod, "{ jump = { type = 'button', bind = { 'key:j' } } }");
   char err[200];
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_apply_defaults(in, &b, err, sizeof err));
@@ -429,8 +431,10 @@ static void test_record_and_replay(void) {
   zb_input_recorder *rec = zb_input_recorder_create(zb_test_alloc(), in, 42, 99);
   zb_action_state seen[30][2];
   for (int t = 0; t < 30; ++t) {
-    if (t == 5) zb_input_inject(in, fire, 1, 0, 3);
-    if (t == 10) zb_input_inject(in, move, 0.5f, -0.25f, 10);
+    if (t == 5)
+      zb_input_inject(in, fire, 1, 0, 3);
+    if (t == 10)
+      zb_input_inject(in, move, 0.5f, -0.25f, 10);
     zb_input_sample(in, 0);
     zb_input_recorder_add(rec, in);
     seen[t][0] = *zb_input_state(in, fire);

@@ -29,7 +29,8 @@ static void manifest(const char *root, const char *id, const char *version, cons
   char path[256], text[1024];
   snprintf(path, sizeof path, "%s/package.lua", root);
   snprintf(text, sizeof text,
-           "return { id = \"%s\", version = \"%s\", api = \"%s\", license = { code = \"MIT\", assets = \"CC-BY-4.0\" }, %s }",
+           "return { id = \"%s\", version = \"%s\", api = \"%s\", license = { code = \"MIT\", assets = \"CC-BY-4.0\" "
+           "}, %s }",
            id, version, api, extra ? extra : "");
   put(path, text);
 }
@@ -73,7 +74,8 @@ static void test_invalid_manifest(void) {
   put("mods/notable/package.lua", "return 42");
   put("mods/baddeps/package.lua",
       "return { id = \"baddeps\", version = \"1.0\", api = \"1.0\", license = \"MIT\", requires = { \"base\" } }");
-  put("mods/strlicense/package.lua", "return { id = \"strlicense\", version = \"1.0\", api = \"1.0\", license = \"MIT\" }");
+  put("mods/strlicense/package.lua",
+      "return { id = \"strlicense\", version = \"1.0\", api = \"1.0\", license = \"MIT\" }");
   put("mods/notapackage/readme.txt", "no manifest here");
   put("mods/.hidden/package.lua", "return {}");
   zb_vfs *v = mount();
@@ -204,8 +206,8 @@ static void test_overlay_and_listing(void) {
                                                    zb_test_alloc(), &data, &len));
   TEST_ASSERT_EQUAL_STRING("BASE", data);
   zb_free(zb_test_alloc(), data);
-  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_vfs_read_package(v, zb_vfs_find_package(v, "base"), "../x",
-                                                            zb_test_alloc(), &data, &len));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID,
+                        zb_vfs_read_package(v, zb_vfs_find_package(v, "base"), "../x", zb_test_alloc(), &data, &len));
   names nm;
   memset(&nm, 0, sizeof nm);
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_vfs_list(v, "sounds", collect, &nm));

@@ -53,9 +53,7 @@ zb_rng zb_rng_make(uint64_t seed, uint64_t stream) {
 
 uint64_t zb_rng_next(zb_rng *r) { return zb_rng_at(r->seed, r->stream, r->counter++); }
 
-double zb_rng_next_double(zb_rng *r) {
-  return (double)(zb_rng_next(r) >> 11) * (1.0 / 9007199254740992.0);
-}
+double zb_rng_next_double(zb_rng *r) { return (double)(zb_rng_next(r) >> 11) * (1.0 / 9007199254740992.0); }
 
 int64_t zb_rng_range(zb_rng *r, int64_t lo, int64_t hi) {
   ZB_ASSERT(lo <= hi);

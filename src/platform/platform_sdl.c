@@ -148,9 +148,7 @@ static zb_result sdl_fs_remove(void *ctx, const char *path) {
 /* ---- Threads --------------------------------------------------------------- */
 
 #if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
-static void *th_create(int (*fn)(void *), void *arg, const char *name) {
-  return SDL_CreateThread(fn, name, arg);
-}
+static void *th_create(int (*fn)(void *), void *arg, const char *name) { return SDL_CreateThread(fn, name, arg); }
 static void th_join(void *t) { SDL_WaitThread(t, NULL); }
 static void *mx_create(void) { return SDL_CreateMutex(); }
 static void mx_destroy(void *m) { SDL_DestroyMutex(m); }
@@ -161,8 +159,8 @@ static void cv_destroy(void *c) { SDL_DestroyCondition(c); }
 static void cv_wait(void *c, void *m) { SDL_WaitCondition(c, m); }
 static void cv_broadcast(void *c) { SDL_BroadcastCondition(c); }
 
-static const zb_thread_api k_threads = {th_create, th_join, mx_create, mx_destroy, mx_lock, mx_unlock,
-                                        cv_create, cv_destroy, cv_wait, cv_broadcast};
+static const zb_thread_api k_threads = {th_create, th_join,   mx_create,  mx_destroy, mx_lock,
+                                        mx_unlock, cv_create, cv_destroy, cv_wait,    cv_broadcast};
 #endif
 
 /* ---- Lifecycle ------------------------------------------------------------- */
@@ -327,8 +325,7 @@ zb_result zb_platform_open_window(zb_platform *p, const zb_window_desc *desc, ch
   }
   p->window = SDL_CreateWindow(desc->title, desc->width, desc->height, flags);
   if (!p->window) {
-    snprintf(err, err_len, "%s is required, but no window could be created (detected: %s)", required,
-             SDL_GetError());
+    snprintf(err, err_len, "%s is required, but no window could be created (detected: %s)", required, SDL_GetError());
     return ZB_ERR_UNSUPPORTED;
   }
   p->gl = SDL_GL_CreateContext(p->window);
@@ -392,38 +389,86 @@ typedef struct scancode_map {
 } scancode_map;
 
 static const scancode_map k_scancodes[] = {
-  {SDL_SCANCODE_A, ZB_KEY_A}, {SDL_SCANCODE_B, ZB_KEY_B}, {SDL_SCANCODE_C, ZB_KEY_C},
-  {SDL_SCANCODE_D, ZB_KEY_D}, {SDL_SCANCODE_E, ZB_KEY_E}, {SDL_SCANCODE_F, ZB_KEY_F},
-  {SDL_SCANCODE_G, ZB_KEY_G}, {SDL_SCANCODE_H, ZB_KEY_H}, {SDL_SCANCODE_I, ZB_KEY_I},
-  {SDL_SCANCODE_J, ZB_KEY_J}, {SDL_SCANCODE_K, ZB_KEY_K}, {SDL_SCANCODE_L, ZB_KEY_L},
-  {SDL_SCANCODE_M, ZB_KEY_M}, {SDL_SCANCODE_N, ZB_KEY_N}, {SDL_SCANCODE_O, ZB_KEY_O},
-  {SDL_SCANCODE_P, ZB_KEY_P}, {SDL_SCANCODE_Q, ZB_KEY_Q}, {SDL_SCANCODE_R, ZB_KEY_R},
-  {SDL_SCANCODE_S, ZB_KEY_S}, {SDL_SCANCODE_T, ZB_KEY_T}, {SDL_SCANCODE_U, ZB_KEY_U},
-  {SDL_SCANCODE_V, ZB_KEY_V}, {SDL_SCANCODE_W, ZB_KEY_W}, {SDL_SCANCODE_X, ZB_KEY_X},
-  {SDL_SCANCODE_Y, ZB_KEY_Y}, {SDL_SCANCODE_Z, ZB_KEY_Z},
-  {SDL_SCANCODE_0, ZB_KEY_N0}, {SDL_SCANCODE_1, ZB_KEY_N1}, {SDL_SCANCODE_2, ZB_KEY_N2},
-  {SDL_SCANCODE_3, ZB_KEY_N3}, {SDL_SCANCODE_4, ZB_KEY_N4}, {SDL_SCANCODE_5, ZB_KEY_N5},
-  {SDL_SCANCODE_6, ZB_KEY_N6}, {SDL_SCANCODE_7, ZB_KEY_N7}, {SDL_SCANCODE_8, ZB_KEY_N8},
-  {SDL_SCANCODE_9, ZB_KEY_N9},
-  {SDL_SCANCODE_F1, ZB_KEY_F1}, {SDL_SCANCODE_F2, ZB_KEY_F2}, {SDL_SCANCODE_F3, ZB_KEY_F3},
-  {SDL_SCANCODE_F4, ZB_KEY_F4}, {SDL_SCANCODE_F5, ZB_KEY_F5}, {SDL_SCANCODE_F6, ZB_KEY_F6},
-  {SDL_SCANCODE_F7, ZB_KEY_F7}, {SDL_SCANCODE_F8, ZB_KEY_F8}, {SDL_SCANCODE_F9, ZB_KEY_F9},
-  {SDL_SCANCODE_F10, ZB_KEY_F10}, {SDL_SCANCODE_F11, ZB_KEY_F11}, {SDL_SCANCODE_F12, ZB_KEY_F12},
-  {SDL_SCANCODE_SPACE, ZB_KEY_SPACE}, {SDL_SCANCODE_RETURN, ZB_KEY_RETURN},
-  {SDL_SCANCODE_ESCAPE, ZB_KEY_ESCAPE}, {SDL_SCANCODE_TAB, ZB_KEY_TAB},
-  {SDL_SCANCODE_BACKSPACE, ZB_KEY_BACKSPACE}, {SDL_SCANCODE_DELETE, ZB_KEY_DELETE},
-  {SDL_SCANCODE_INSERT, ZB_KEY_INSERT}, {SDL_SCANCODE_HOME, ZB_KEY_HOME}, {SDL_SCANCODE_END, ZB_KEY_END},
-  {SDL_SCANCODE_PAGEUP, ZB_KEY_PAGEUP}, {SDL_SCANCODE_PAGEDOWN, ZB_KEY_PAGEDOWN},
-  {SDL_SCANCODE_UP, ZB_KEY_UP}, {SDL_SCANCODE_DOWN, ZB_KEY_DOWN}, {SDL_SCANCODE_LEFT, ZB_KEY_LEFT},
-  {SDL_SCANCODE_RIGHT, ZB_KEY_RIGHT}, {SDL_SCANCODE_LSHIFT, ZB_KEY_LSHIFT},
-  {SDL_SCANCODE_RSHIFT, ZB_KEY_RSHIFT}, {SDL_SCANCODE_LCTRL, ZB_KEY_LCTRL},
-  {SDL_SCANCODE_RCTRL, ZB_KEY_RCTRL}, {SDL_SCANCODE_LALT, ZB_KEY_LALT}, {SDL_SCANCODE_RALT, ZB_KEY_RALT},
-  {SDL_SCANCODE_MINUS, ZB_KEY_MINUS}, {SDL_SCANCODE_EQUALS, ZB_KEY_EQUALS},
-  {SDL_SCANCODE_COMMA, ZB_KEY_COMMA}, {SDL_SCANCODE_PERIOD, ZB_KEY_PERIOD},
-  {SDL_SCANCODE_SLASH, ZB_KEY_SLASH}, {SDL_SCANCODE_SEMICOLON, ZB_KEY_SEMICOLON},
-  {SDL_SCANCODE_APOSTROPHE, ZB_KEY_APOSTROPHE}, {SDL_SCANCODE_GRAVE, ZB_KEY_GRAVE},
-  {SDL_SCANCODE_LEFTBRACKET, ZB_KEY_LBRACKET}, {SDL_SCANCODE_RIGHTBRACKET, ZB_KEY_RBRACKET},
-  {SDL_SCANCODE_BACKSLASH, ZB_KEY_BACKSLASH},
+    {SDL_SCANCODE_A, ZB_KEY_A},
+    {SDL_SCANCODE_B, ZB_KEY_B},
+    {SDL_SCANCODE_C, ZB_KEY_C},
+    {SDL_SCANCODE_D, ZB_KEY_D},
+    {SDL_SCANCODE_E, ZB_KEY_E},
+    {SDL_SCANCODE_F, ZB_KEY_F},
+    {SDL_SCANCODE_G, ZB_KEY_G},
+    {SDL_SCANCODE_H, ZB_KEY_H},
+    {SDL_SCANCODE_I, ZB_KEY_I},
+    {SDL_SCANCODE_J, ZB_KEY_J},
+    {SDL_SCANCODE_K, ZB_KEY_K},
+    {SDL_SCANCODE_L, ZB_KEY_L},
+    {SDL_SCANCODE_M, ZB_KEY_M},
+    {SDL_SCANCODE_N, ZB_KEY_N},
+    {SDL_SCANCODE_O, ZB_KEY_O},
+    {SDL_SCANCODE_P, ZB_KEY_P},
+    {SDL_SCANCODE_Q, ZB_KEY_Q},
+    {SDL_SCANCODE_R, ZB_KEY_R},
+    {SDL_SCANCODE_S, ZB_KEY_S},
+    {SDL_SCANCODE_T, ZB_KEY_T},
+    {SDL_SCANCODE_U, ZB_KEY_U},
+    {SDL_SCANCODE_V, ZB_KEY_V},
+    {SDL_SCANCODE_W, ZB_KEY_W},
+    {SDL_SCANCODE_X, ZB_KEY_X},
+    {SDL_SCANCODE_Y, ZB_KEY_Y},
+    {SDL_SCANCODE_Z, ZB_KEY_Z},
+    {SDL_SCANCODE_0, ZB_KEY_N0},
+    {SDL_SCANCODE_1, ZB_KEY_N1},
+    {SDL_SCANCODE_2, ZB_KEY_N2},
+    {SDL_SCANCODE_3, ZB_KEY_N3},
+    {SDL_SCANCODE_4, ZB_KEY_N4},
+    {SDL_SCANCODE_5, ZB_KEY_N5},
+    {SDL_SCANCODE_6, ZB_KEY_N6},
+    {SDL_SCANCODE_7, ZB_KEY_N7},
+    {SDL_SCANCODE_8, ZB_KEY_N8},
+    {SDL_SCANCODE_9, ZB_KEY_N9},
+    {SDL_SCANCODE_F1, ZB_KEY_F1},
+    {SDL_SCANCODE_F2, ZB_KEY_F2},
+    {SDL_SCANCODE_F3, ZB_KEY_F3},
+    {SDL_SCANCODE_F4, ZB_KEY_F4},
+    {SDL_SCANCODE_F5, ZB_KEY_F5},
+    {SDL_SCANCODE_F6, ZB_KEY_F6},
+    {SDL_SCANCODE_F7, ZB_KEY_F7},
+    {SDL_SCANCODE_F8, ZB_KEY_F8},
+    {SDL_SCANCODE_F9, ZB_KEY_F9},
+    {SDL_SCANCODE_F10, ZB_KEY_F10},
+    {SDL_SCANCODE_F11, ZB_KEY_F11},
+    {SDL_SCANCODE_F12, ZB_KEY_F12},
+    {SDL_SCANCODE_SPACE, ZB_KEY_SPACE},
+    {SDL_SCANCODE_RETURN, ZB_KEY_RETURN},
+    {SDL_SCANCODE_ESCAPE, ZB_KEY_ESCAPE},
+    {SDL_SCANCODE_TAB, ZB_KEY_TAB},
+    {SDL_SCANCODE_BACKSPACE, ZB_KEY_BACKSPACE},
+    {SDL_SCANCODE_DELETE, ZB_KEY_DELETE},
+    {SDL_SCANCODE_INSERT, ZB_KEY_INSERT},
+    {SDL_SCANCODE_HOME, ZB_KEY_HOME},
+    {SDL_SCANCODE_END, ZB_KEY_END},
+    {SDL_SCANCODE_PAGEUP, ZB_KEY_PAGEUP},
+    {SDL_SCANCODE_PAGEDOWN, ZB_KEY_PAGEDOWN},
+    {SDL_SCANCODE_UP, ZB_KEY_UP},
+    {SDL_SCANCODE_DOWN, ZB_KEY_DOWN},
+    {SDL_SCANCODE_LEFT, ZB_KEY_LEFT},
+    {SDL_SCANCODE_RIGHT, ZB_KEY_RIGHT},
+    {SDL_SCANCODE_LSHIFT, ZB_KEY_LSHIFT},
+    {SDL_SCANCODE_RSHIFT, ZB_KEY_RSHIFT},
+    {SDL_SCANCODE_LCTRL, ZB_KEY_LCTRL},
+    {SDL_SCANCODE_RCTRL, ZB_KEY_RCTRL},
+    {SDL_SCANCODE_LALT, ZB_KEY_LALT},
+    {SDL_SCANCODE_RALT, ZB_KEY_RALT},
+    {SDL_SCANCODE_MINUS, ZB_KEY_MINUS},
+    {SDL_SCANCODE_EQUALS, ZB_KEY_EQUALS},
+    {SDL_SCANCODE_COMMA, ZB_KEY_COMMA},
+    {SDL_SCANCODE_PERIOD, ZB_KEY_PERIOD},
+    {SDL_SCANCODE_SLASH, ZB_KEY_SLASH},
+    {SDL_SCANCODE_SEMICOLON, ZB_KEY_SEMICOLON},
+    {SDL_SCANCODE_APOSTROPHE, ZB_KEY_APOSTROPHE},
+    {SDL_SCANCODE_GRAVE, ZB_KEY_GRAVE},
+    {SDL_SCANCODE_LEFTBRACKET, ZB_KEY_LBRACKET},
+    {SDL_SCANCODE_RIGHTBRACKET, ZB_KEY_RBRACKET},
+    {SDL_SCANCODE_BACKSLASH, ZB_KEY_BACKSLASH},
 };
 
 static zb_key map_scancode(SDL_Scancode sc) {
@@ -464,9 +509,7 @@ bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *o
   out->time_ns = e->common.timestamp;
   switch (e->type) {
     case SDL_EVENT_QUIT:
-    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-      out->type = ZB_EV_QUIT;
-      return true;
+    case SDL_EVENT_WINDOW_CLOSE_REQUESTED: out->type = ZB_EV_QUIT; return true;
     case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
       out->type = ZB_EV_RESIZE;
       out->u.resize.width = e->window.data1;
@@ -540,13 +583,13 @@ bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *o
     case SDL_EVENT_FINGER_UP:
     case SDL_EVENT_FINGER_MOTION:
       out->type = e->type == SDL_EVENT_FINGER_DOWN ? ZB_EV_TOUCH_DOWN
-                  : e->type == SDL_EVENT_FINGER_UP ? ZB_EV_TOUCH_UP : ZB_EV_TOUCH_MOTION;
+                  : e->type == SDL_EVENT_FINGER_UP ? ZB_EV_TOUCH_UP
+                                                   : ZB_EV_TOUCH_MOTION;
       out->u.touch.finger = (uint64_t)e->tfinger.fingerID;
       out->u.touch.x = e->tfinger.x;
       out->u.touch.y = e->tfinger.y;
       return true;
-    default:
-      return false;
+    default: return false;
   }
 }
 

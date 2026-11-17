@@ -34,8 +34,8 @@ unsigned zb_loop_advance(zb_loop *l, uint64_t now_ns) {
     uint64_t dropped = due - ZB_MAX_CATCHUP_TICKS;
     l->dropped += dropped;
     l->stalls++;
-    zb_warn("simulation fell behind by %llu ticks; running %u and skipping the rest",
-            (unsigned long long)due, ZB_MAX_CATCHUP_TICKS);
+    zb_warn("simulation fell behind by %llu ticks; running %u and skipping the rest", (unsigned long long)due,
+            ZB_MAX_CATCHUP_TICKS);
     due = ZB_MAX_CATCHUP_TICKS;
     l->acc %= ZB_NS_PER_SEC;
   } else {

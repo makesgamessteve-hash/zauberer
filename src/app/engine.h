@@ -16,11 +16,7 @@
 #include "script/script.h"
 #include "vfs/vfs.h"
 
-typedef enum zb_engine_mode {
-  ZB_MODE_GAME,
-  ZB_MODE_TEST,
-  ZB_MODE_SCENARIO
-} zb_engine_mode;
+typedef enum zb_engine_mode { ZB_MODE_GAME, ZB_MODE_TEST, ZB_MODE_SCENARIO } zb_engine_mode;
 
 typedef struct zb_engine {
   zb_options opt;
@@ -49,12 +45,12 @@ typedef struct zb_engine {
   uint32_t overlay_font;
   bool scripts_ready;
   bool first_frame_shown;
-  uint64_t steps;            /* ticks plus paused steps (headless and scenario modes) */
+  uint64_t steps; /* ticks plus paused steps (headless and scenario modes) */
   /* Replay state hashes: expected (from <replay>.hashes) and recorded. */
-  zb_array expected_hashes;  /* zb_tick_hash */
+  zb_array expected_hashes; /* zb_tick_hash */
   size_t next_expected;
   bool replay_diverged;
-  zb_array recorded_hashes;  /* zb_tick_hash */
+  zb_array recorded_hashes; /* zb_tick_hash */
 } zb_engine;
 
 typedef struct zb_tick_hash {

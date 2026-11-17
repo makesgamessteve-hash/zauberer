@@ -122,8 +122,14 @@ static void test_tracking_counts_and_report(void) {
 }
 
 static int g_locks;
-static void fake_lock(void *m) { (void)m; g_locks++; }
-static void fake_unlock(void *m) { (void)m; g_locks--; }
+static void fake_lock(void *m) {
+  (void)m;
+  g_locks++;
+}
+static void fake_unlock(void *m) {
+  (void)m;
+  g_locks--;
+}
 
 static void test_tracking_lock_and_failures(void) {
   zb_failing_allocator f;

@@ -36,8 +36,8 @@ void zb_render_set_internal_height(zb_render *r, int height);
 int zb_render_internal_height(const zb_render *r);
 void zb_render_set_view_count(zb_render *r, int views);
 void zb_render_set_clear_color(zb_render *r, float red, float green, float blue);
-void zb_render_set_camera(zb_render *r, zb_vec3 eye, zb_vec3 target, zb_vec3 up, float fovy_deg,
-                          float znear, float zfar);
+void zb_render_set_camera(zb_render *r, zb_vec3 eye, zb_vec3 target, zb_vec3 up, float fovy_deg, float znear,
+                          float zfar);
 void zb_render_set_light(zb_render *r, zb_vec3 direction, zb_vec3 color, zb_vec3 ambient);
 /* Distance between the eyes in stereo mode (metres). */
 void zb_render_set_eye_separation(zb_render *r, float metres);

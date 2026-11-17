@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 /* Implements the platform's host lifecycle with the engine. */
-#include "app/engine.h"
 #include "platform/host.h"
+#include "app/engine.h"
 
 zb_host_status zb_host_init(void **state, int argc, char **argv) {
   zb_engine *e = NULL;

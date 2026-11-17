@@ -8,23 +8,16 @@
 #include "core/event.h"
 #include "core/luon.h"
 
-typedef enum zb_action_type {
-  ZB_ACTION_BUTTON,
-  ZB_ACTION_AXIS1,
-  ZB_ACTION_AXIS2
-} zb_action_type;
+typedef enum zb_action_type { ZB_ACTION_BUTTON, ZB_ACTION_AXIS1, ZB_ACTION_AXIS2 } zb_action_type;
 
-typedef enum zb_input_mode {
-  ZB_INPUT_DESKTOP,
-  ZB_INPUT_TOUCH
-} zb_input_mode;
+typedef enum zb_input_mode { ZB_INPUT_DESKTOP, ZB_INPUT_TOUCH } zb_input_mode;
 
 typedef struct zb_action_state {
   bool pressed;  /* went down since the previous tick */
   bool released; /* went up since the previous tick */
   bool held;
-  float x;       /* button: 0/1, axis1: -1..1, axis2: x */
-  float y;       /* axis2: y */
+  float x; /* button: 0/1, axis1: -1..1, axis2: x */
+  float y; /* axis2: y */
 } zb_action_state;
 
 typedef struct zb_input zb_input;
@@ -98,8 +91,8 @@ void zb_input_recorder_destroy(zb_input_recorder *rec);
 typedef struct zb_input_replay zb_input_replay;
 
 /* Parses a recording; actions are matched by name. */
-zb_input_replay *zb_input_replay_open(const zb_allocator *a, zb_input *in, const unsigned char *data,
-                                      size_t len, char *err, size_t err_len);
+zb_input_replay *zb_input_replay_open(const zb_allocator *a, zb_input *in, const unsigned char *data, size_t len,
+                                      char *err, size_t err_len);
 uint64_t zb_input_replay_seed(const zb_input_replay *rp);
 uint64_t zb_input_replay_package_hash(const zb_input_replay *rp);
 uint64_t zb_input_replay_tick_count(const zb_input_replay *rp);

@@ -166,8 +166,14 @@ void zb_platform_destroy(zb_platform *p) {
 }
 
 const zb_fs_api *zb_platform_fs(zb_platform *p) { return &p->fs; }
-const zb_thread_api *zb_platform_threads(zb_platform *p) { (void)p; return NULL; }
-unsigned zb_platform_cpu_count(zb_platform *p) { (void)p; return 1; }
+const zb_thread_api *zb_platform_threads(zb_platform *p) {
+  (void)p;
+  return NULL;
+}
+unsigned zb_platform_cpu_count(zb_platform *p) {
+  (void)p;
+  return 1;
+}
 
 uint64_t zb_platform_now_ns(zb_platform *p) {
   (void)p;
@@ -219,14 +225,38 @@ zb_result zb_platform_open_window(zb_platform *p, const zb_window_desc *desc, ch
   return ZB_ERR_UNSUPPORTED;
 }
 
-bool zb_platform_has_window(zb_platform *p) { (void)p; return false; }
-void zb_platform_drawable_size(zb_platform *p, int *w, int *h) { (void)p; *w = 0; *h = 0; }
+bool zb_platform_has_window(zb_platform *p) {
+  (void)p;
+  return false;
+}
+void zb_platform_drawable_size(zb_platform *p, int *w, int *h) {
+  (void)p;
+  *w = 0;
+  *h = 0;
+}
 void zb_platform_swap(zb_platform *p) { (void)p; }
-void zb_platform_set_fullscreen(zb_platform *p, bool on) { (void)p; (void)on; }
-bool zb_platform_is_fullscreen(zb_platform *p) { (void)p; return false; }
-void zb_platform_set_window_size(zb_platform *p, int w, int h) { (void)p; (void)w; (void)h; }
-zb_gl_proc zb_platform_gl_proc(zb_platform *p, const char *name) { (void)p; (void)name; return NULL; }
-bool zb_platform_is_gles(zb_platform *p) { (void)p; return false; }
+void zb_platform_set_fullscreen(zb_platform *p, bool on) {
+  (void)p;
+  (void)on;
+}
+bool zb_platform_is_fullscreen(zb_platform *p) {
+  (void)p;
+  return false;
+}
+void zb_platform_set_window_size(zb_platform *p, int w, int h) {
+  (void)p;
+  (void)w;
+  (void)h;
+}
+zb_gl_proc zb_platform_gl_proc(zb_platform *p, const char *name) {
+  (void)p;
+  (void)name;
+  return NULL;
+}
+bool zb_platform_is_gles(zb_platform *p) {
+  (void)p;
+  return false;
+}
 
 bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *out) {
   (void)p;
@@ -256,10 +286,16 @@ zb_result zb_platform_audio_open(zb_platform *p, zb_audio_fill_fn fill, void *us
 }
 
 void zb_platform_audio_close(zb_platform *p) { (void)p; }
-bool zb_platform_audio_is_open(zb_platform *p) { (void)p; return false; }
+bool zb_platform_audio_is_open(zb_platform *p) {
+  (void)p;
+  return false;
+}
 void zb_platform_user_data_sync(zb_platform *p) { (void)p; }
 
-bool zb_platform_has_fetch(zb_platform *p) { (void)p; return false; }
+bool zb_platform_has_fetch(zb_platform *p) {
+  (void)p;
+  return false;
+}
 
 zb_result zb_platform_fetch(zb_platform *p, const char *path, zb_fetch_done_fn done, void *user) {
   (void)p;

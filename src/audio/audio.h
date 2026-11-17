@@ -13,11 +13,7 @@
 #define ZB_AUDIO_RATE 48000
 #define ZB_AUDIO_STREAM_BUFFER (512u * 1024u)
 
-typedef enum zb_audio_group {
-  ZB_AUDIO_EFFECTS,
-  ZB_AUDIO_MUSIC,
-  ZB_AUDIO_GROUP_COUNT
-} zb_audio_group;
+typedef enum zb_audio_group { ZB_AUDIO_EFFECTS, ZB_AUDIO_MUSIC, ZB_AUDIO_GROUP_COUNT } zb_audio_group;
 
 typedef enum zb_voice_state {
   ZB_VOICE_PLAYING, /* includes loading */
@@ -25,8 +21,8 @@ typedef enum zb_voice_state {
 } zb_voice_state;
 
 typedef struct zb_play_desc {
-  float volume;  /* 0..1+ */
-  float pitch;   /* playback rate factor, > 0 */
+  float volume; /* 0..1+ */
+  float pitch;  /* playback rate factor, > 0 */
   bool loop;
   zb_audio_group group;
 } zb_play_desc;
@@ -65,7 +61,7 @@ void zb_audio_tick(zb_audio *au, double dt);
 
 /* Decodes a WAV (PCM 8/16/24/32-bit or float32, mono/stereo) into float
  * stereo. Exposed for tests. */
-zb_result zb_audio_decode_wav(const zb_allocator *a, const void *data, size_t len, float **samples,
-                              size_t *frames, int *rate);
+zb_result zb_audio_decode_wav(const zb_allocator *a, const void *data, size_t len, float **samples, size_t *frames,
+                              int *rate);
 
 #endif

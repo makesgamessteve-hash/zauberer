@@ -44,13 +44,9 @@ static uint64_t host_ticks(void *ctx) { return ((zb_engine *)ctx)->ticks; }
 
 static void host_pause(void *ctx, bool paused) { zb_loop_set_paused(&((zb_engine *)ctx)->loop, paused); }
 
-static void host_time_scale(void *ctx, double scale) {
-  zb_loop_set_time_scale(&((zb_engine *)ctx)->loop, scale);
-}
+static void host_time_scale(void *ctx, double scale) { zb_loop_set_time_scale(&((zb_engine *)ctx)->loop, scale); }
 
-static void host_fullscreen(void *ctx, bool on) {
-  zb_platform_set_fullscreen(((zb_engine *)ctx)->platform, on);
-}
+static void host_fullscreen(void *ctx, bool on) { zb_platform_set_fullscreen(((zb_engine *)ctx)->platform, on); }
 
 static zb_result write_config(zb_engine *e) {
   char bindings[8192];
@@ -134,9 +130,7 @@ static void load_user_config(zb_engine *e) {
 
 static void audio_fill(void *user, float *out, int frames) { zb_audio_mix(user, out, frames); }
 
-static zb_gl_fn gl_loader(void *ctx, const char *name) {
-  return (zb_gl_fn)zb_platform_gl_proc(ctx, name);
-}
+static zb_gl_fn gl_loader(void *ctx, const char *name) { return (zb_gl_fn)zb_platform_gl_proc(ctx, name); }
 
 /* Reads "<tick> <16 hex digits>" lines of <replay>.hashes, if present. */
 static void load_expected_hashes(zb_engine *e) {
@@ -208,8 +202,7 @@ static void check_state_hash(zb_engine *e) {
         char a[17], b[17];
         zb_hash_hex(want->hash, a);
         zb_hash_hex(got, b);
-        zb_error("replay diverged at tick %llu: expected state hash %s, got %s", (unsigned long long)e->ticks, a,
-                 b);
+        zb_error("replay diverged at tick %llu: expected state hash %s, got %s", (unsigned long long)e->ticks, a, b);
         e->replay_diverged = true;
         e->quit = true;
       }
@@ -290,14 +283,13 @@ static void web_state(void *user, char *out, size_t len) {
            e->input && zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop",
            e->audio && zb_audio_is_locked(e->audio) ? "true" : "false",
            e->audio && zb_audio_has_device(e->audio) ? "true" : "false",
-           e->audio ? zb_audio_active_voices(e->audio) : (size_t)0, ready ? zb_script_error_count(e->script) : (size_t)0,
-           e->drawable_w, e->drawable_h, e->quit ? "true" : "false");
+           e->audio ? zb_audio_active_voices(e->audio) : (size_t)0,
+           ready ? zb_script_error_count(e->script) : (size_t)0, e->drawable_w, e->drawable_h,
+           e->quit ? "true" : "false");
 }
 #endif
 
-static void fail(zb_engine *e, const char *message) {
-  zb_platform_show_error(e->platform, "Zauberer", message);
-}
+static void fail(zb_engine *e, const char *message) { zb_platform_show_error(e->platform, "Zauberer", message); }
 
 /* ---- Creation --------------------------------------------------------------------- */
 
@@ -386,8 +378,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   zb_vfs_add_root(e->vfs, root);
   snprintf(root, sizeof root, "%smods", e->user_dir);
   zb_vfs_add_root(e->vfs, root);
-  if (zb_vfs_mount(e->vfs, ZB_API_VERSION_MAJOR, ZB_API_VERSION_MINOR) != ZB_OK ||
-      zb_vfs_load_count(e->vfs) == 0) {
+  if (zb_vfs_mount(e->vfs, ZB_API_VERSION_MAJOR, ZB_API_VERSION_MINOR) != ZB_OK || zb_vfs_load_count(e->vfs) == 0) {
     snprintf(err, sizeof err, "No usable content package was found in:\n%s", e->assets_dir);
     fail(e, err);
     return ZB_HOST_FAILURE;
@@ -406,8 +397,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
       return ZB_HOST_FAILURE;
     }
     zb_platform_drawable_size(e->platform, &e->drawable_w, &e->drawable_h);
-    backend = zb_render_gl_backend(a, gl_loader, e->platform, zb_platform_is_gles(e->platform), e->vfs, err,
-                                   sizeof err);
+    backend =
+        zb_render_gl_backend(a, gl_loader, e->platform, zb_platform_is_gles(e->platform), e->vfs, err, sizeof err);
     if (!backend) {
       fail(e, err);
       return ZB_HOST_FAILURE;
@@ -487,8 +478,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   e->scripts_ready = true;
   zb_script_init_hooks(e->script);
   if (zb_input_take_mode_change(e->input)) {
-    zb_script_event(e->script, "input_mode", 0, 0,
-                    zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
+    zb_script_event(e->script, "input_mode", 0, 0, zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
   }
   e->overlay_font = zb_render_load_font(e->render, "fonts/pixel.lua");
 
@@ -579,8 +569,7 @@ static zb_host_status finish(zb_engine *e) {
       zb_error("scenario '%s': %d failure(s)", zb_script_scenario_name(e->script), failures);
       return ZB_HOST_FAILURE;
     }
-    zb_info("scenario '%s': passed after %llu ticks", zb_script_scenario_name(e->script),
-            (unsigned long long)e->ticks);
+    zb_info("scenario '%s': passed after %llu ticks", zb_script_scenario_name(e->script), (unsigned long long)e->ticks);
   }
   return e->exit_code == 0 ? ZB_HOST_SUCCESS : ZB_HOST_FAILURE;
 }
@@ -647,9 +636,7 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
 
 zb_host_status zb_engine_event(zb_engine *e, const zb_event *ev) {
   switch (ev->type) {
-    case ZB_EV_QUIT:
-      e->quit = true;
-      return finish(e);
+    case ZB_EV_QUIT: e->quit = true; return finish(e);
     case ZB_EV_RESIZE:
       e->drawable_w = ev->u.resize.width;
       e->drawable_h = ev->u.resize.height;
@@ -670,8 +657,7 @@ zb_host_status zb_engine_event(zb_engine *e, const zb_event *ev) {
       break;
   }
   if (zb_input_take_mode_change(e->input)) {
-    zb_script_event(e->script, "input_mode", 0, 0,
-                    zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
+    zb_script_event(e->script, "input_mode", 0, 0, zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
   }
   return ZB_HOST_CONTINUE;
 }

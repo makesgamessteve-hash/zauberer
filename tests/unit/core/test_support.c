@@ -45,7 +45,7 @@ static void test_alloc_restarts(void) {
   zb_free(a, p);
   zb_test_begin(); /* restart while active */
   zb_test_end();
-  zb_test_end(); /* idempotent */
+  zb_test_end();       /* idempotent */
   a = zb_test_alloc(); /* lazily begins again */
   TEST_ASSERT_NOT_NULL(a);
 }

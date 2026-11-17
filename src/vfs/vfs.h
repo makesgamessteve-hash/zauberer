@@ -27,14 +27,15 @@ typedef struct zb_package {
   char *api;
   char *license_code;
   char *license_assets;
-  char *root;       /* directory of the package in the file system */
-  zb_pkg_dep *requires;
+  char *root; /* directory of the package in the file system */
+  zb_pkg_dep *
+    requires;
   size_t requires_count;
   zb_pkg_dep *optional;
   size_t optional_count;
   bool affects_worldgen;
   bool enabled;
-  char error[256];  /* why the package is disabled */
+  char error[256]; /* why the package is disabled */
 } zb_package;
 
 typedef struct zb_vfs zb_vfs;
@@ -70,8 +71,8 @@ zb_result zb_vfs_real_path(const zb_vfs *v, const char *path, char *out, size_t 
 /* Synchronous overlay read (boot set only). */
 zb_result zb_vfs_read(zb_vfs *v, const char *path, const zb_allocator *a, char **data, size_t *len);
 /* Synchronous read of one specific package's file (no overlay). */
-zb_result zb_vfs_read_package(zb_vfs *v, const zb_package *pkg, const char *path, const zb_allocator *a,
-                              char **data, size_t *len);
+zb_result zb_vfs_read_package(zb_vfs *v, const zb_package *pkg, const char *path, const zb_allocator *a, char **data,
+                              size_t *len);
 /* Merged, sorted, de-duplicated listing of the direct children of dir. */
 zb_result zb_vfs_list(zb_vfs *v, const char *dir, zb_fs_list_fn fn, void *user);
 /* Number of overlaid files. */

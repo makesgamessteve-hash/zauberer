@@ -70,7 +70,9 @@ static void test_scalars_and_keywords(void) {
   d = parse_ok("  true ; ");
   TEST_ASSERT_TRUE(d.root.as.b);
   zb_luon_free(&d);
-  d = parse_ok("\xEF\xBB\xBF" "false");
+  d = parse_ok(
+      "\xEF\xBB\xBF"
+      "false");
   TEST_ASSERT_FALSE(d.root.as.b);
   zb_luon_free(&d);
   d = parse_ok("- 12");
@@ -82,9 +84,10 @@ static void test_scalars_and_keywords(void) {
 }
 
 static void test_strings_and_escapes(void) {
-  zb_luon_doc d = parse_ok("{ a = \"tab\\tnl\\nq\\\"s\\'bs\\\\\", b = '\\x41\\65\\u{263A}\\u{10348}\\u{7FF}', "
-                           "c = [[\nlong\nstring]], d = [==[with ]] inside]==], e = \"\\a\\b\\f\\v\\r\", "
-                           "f = \"line\\\ncont\", g = \"a\\z   \n  b\" }");
+  zb_luon_doc d = parse_ok(
+      "{ a = \"tab\\tnl\\nq\\\"s\\'bs\\\\\", b = '\\x41\\65\\u{263A}\\u{10348}\\u{7FF}', "
+      "c = [[\nlong\nstring]], d = [==[with ]] inside]==], e = \"\\a\\b\\f\\v\\r\", "
+      "f = \"line\\\ncont\", g = \"a\\z   \n  b\" }");
   TEST_ASSERT_EQUAL_STRING("tab\tnl\nq\"s'bs\\", zb_value_str(zb_table_get(&d.root, "a"), NULL));
   TEST_ASSERT_EQUAL_STRING("AA\xE2\x98\xBA\xF0\x90\x8D\x88\xDF\xBF", zb_value_str(zb_table_get(&d.root, "b"), NULL));
   TEST_ASSERT_EQUAL_STRING("long\nstring", zb_value_str(zb_table_get(&d.root, "c"), NULL));
@@ -159,8 +162,8 @@ static void test_out_of_memory(void) {
     zb_failing_allocator f;
     zb_luon_doc doc;
     zb_luon_error err;
-    zb_result r = zb_luon_parse(&doc, zb_failing_init(&f, zb_test_alloc(), budget),
-                                "{ a = { 'x', 'y' }, b = \"str\" }", 31, &err);
+    zb_result r = zb_luon_parse(&doc, zb_failing_init(&f, zb_test_alloc(), budget), "{ a = { 'x', 'y' }, b = \"str\" }",
+                                31, &err);
     if (r == ZB_OK) {
       zb_luon_free(&doc);
     } else {

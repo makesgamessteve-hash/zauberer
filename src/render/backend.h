@@ -16,15 +16,15 @@ typedef struct zb_draw_item {
   zb_draw_kind kind;
   uint8_t view;
   uint64_t sort_key;
-  uint32_t mesh;      /* backend mesh handle (models) */
-  uint32_t texture;   /* backend texture handle (0 = white) */
-  uint32_t first;     /* first index (models) */
-  uint32_t count;     /* index count (models) */
-  zb_mat4 model;      /* model matrix (models) */
-  zb_vec3 position;   /* sprite anchor (sprites) */
-  float size[2];      /* sprite world size */
-  float pivot[2];     /* sprite pivot (0..1) */
-  float uv[4];        /* sprite uv rect: u0, v0, u1, v1 */
+  uint32_t mesh;    /* backend mesh handle (models) */
+  uint32_t texture; /* backend texture handle (0 = white) */
+  uint32_t first;   /* first index (models) */
+  uint32_t count;   /* index count (models) */
+  zb_mat4 model;    /* model matrix (models) */
+  zb_vec3 position; /* sprite anchor (sprites) */
+  float size[2];    /* sprite world size */
+  float pivot[2];   /* sprite pivot (0..1) */
+  float uv[4];      /* sprite uv rect: u0, v0, u1, v1 */
 } zb_draw_item;
 
 typedef struct zb_view {
@@ -38,15 +38,15 @@ typedef struct zb_view {
 } zb_view;
 
 typedef struct zb_text_vertex {
-  float x, y;   /* internal-framebuffer pixels, origin top-left */
+  float x, y; /* internal-framebuffer pixels, origin top-left */
   float u, v;
   float rgba[4];
 } zb_text_vertex;
 
 typedef struct zb_text_batch {
   uint32_t texture;
-  uint32_t first;  /* first vertex */
-  uint32_t count;  /* vertex count (6 per glyph) */
+  uint32_t first; /* first vertex */
+  uint32_t count; /* vertex count (6 per glyph) */
 } zb_text_batch;
 
 typedef struct zb_layout {
@@ -61,7 +61,7 @@ typedef struct zb_frame {
   float clear[4];
   zb_view views[ZB_RENDER_MAX_VIEWS];
   int view_count;
-  zb_vec3 light_dir;   /* direction the light travels */
+  zb_vec3 light_dir; /* direction the light travels */
   zb_vec3 light_color;
   zb_vec3 ambient;
   const zb_draw_item *items;
@@ -96,8 +96,8 @@ size_t zb_render_null_frames(const zb_render_backend *b);
 typedef void (*zb_gl_fn)(void);
 typedef zb_gl_fn (*zb_gl_loader)(void *ctx, const char *name);
 struct zb_vfs;
-zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load_proc, void *loader_ctx,
-                                        bool gles, struct zb_vfs *vfs, char *err, size_t err_len);
+zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load_proc, void *loader_ctx, bool gles,
+                                        struct zb_vfs *vfs, char *err, size_t err_len);
 /* Parses a GL_VERSION string ("4.6 (Core Profile) Mesa", "OpenGL ES 3.0 ...",
  * "WebGL 2.0 ..."). */
 bool zb_gl_parse_version(const char *s, bool *es, int *major, int *minor);

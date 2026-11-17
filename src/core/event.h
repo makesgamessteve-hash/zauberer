@@ -27,15 +27,44 @@ typedef enum zb_event_type {
 typedef struct zb_event {
   zb_event_type type;
   union {
-    struct { int width, height; } resize;           /* drawable pixels */
-    struct { uint16_t key; bool down; bool repeat; } key; /* zb_key */
-    struct { uint8_t button; bool down; float x, y; bool synthetic; } mouse_button;
-    struct { float x, y, dx, dy; bool synthetic; } mouse_motion;
-    struct { float dx, dy; } wheel;
-    struct { uint32_t id; } gamepad;
-    struct { uint32_t id; uint8_t button; bool down; } gamepad_button;
-    struct { uint32_t id; uint8_t axis; float value; } gamepad_axis;
-    struct { uint64_t finger; float x, y; } touch;  /* normalized 0..1 */
+    struct {
+      int width, height;
+    } resize; /* drawable pixels */
+    struct {
+      uint16_t key;
+      bool down;
+      bool repeat;
+    } key; /* zb_key */
+    struct {
+      uint8_t button;
+      bool down;
+      float x, y;
+      bool synthetic;
+    } mouse_button;
+    struct {
+      float x, y, dx, dy;
+      bool synthetic;
+    } mouse_motion;
+    struct {
+      float dx, dy;
+    } wheel;
+    struct {
+      uint32_t id;
+    } gamepad;
+    struct {
+      uint32_t id;
+      uint8_t button;
+      bool down;
+    } gamepad_button;
+    struct {
+      uint32_t id;
+      uint8_t axis;
+      float value;
+    } gamepad_axis;
+    struct {
+      uint64_t finger;
+      float x, y;
+    } touch; /* normalized 0..1 */
   } u;
   uint64_t time_ns;
 } zb_event;

@@ -45,12 +45,12 @@ typedef struct zb_script_config {
   zb_input *input;
   zb_render *render;
   zb_audio *audio;
-  const zb_fs_api *fs;     /* real file system: user data, tests */
-  const char *user_dir;    /* with trailing '/' */
+  const zb_fs_api *fs;  /* real file system: user data, tests */
+  const char *user_dir; /* with trailing '/' */
   zb_script_host host;
   uint64_t seed;
-  bool dev;                /* hot reload, on-screen errors */
-  bool test_api;           /* test and scenario helpers, input injection */
+  bool dev;                    /* hot reload, on-screen errors */
+  bool test_api;               /* test and scenario helpers, input injection */
   uint64_t instruction_budget; /* per hook invocation; 0 = unlimited */
   const char *coverage_path;   /* LuaCov-compatible stats file, or NULL */
 } zb_script_config;

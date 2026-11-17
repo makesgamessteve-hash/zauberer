@@ -123,9 +123,7 @@ static void skip_space(parser *p) {
   }
 }
 
-static bool is_name_start(int c) {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-}
+static bool is_name_start(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
 
 static bool is_name_char(int c) { return is_name_start(c) || (c >= '0' && c <= '9'); }
 
@@ -152,9 +150,12 @@ static bool match_keyword(parser *p, const char *kw) {
 }
 
 static int hex_digit(int c) {
-  if (c >= '0' && c <= '9') return c - '0';
-  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
   return -1;
 }
 
@@ -464,9 +465,8 @@ static bool parse_table(parser *p, zb_value *out) {
   }
   if (ok) {
     zb_table *t = zb_arena_alloc(&p->doc->arena, sizeof(*t), sizeof(void *));
-    zb_table_entry *copy = entries.len
-        ? zb_arena_alloc(&p->doc->arena, entries.len * sizeof(zb_table_entry), sizeof(double))
-        : NULL;
+    zb_table_entry *copy =
+        entries.len ? zb_arena_alloc(&p->doc->arena, entries.len * sizeof(zb_table_entry), sizeof(double)) : NULL;
     if (!t || (entries.len && !copy)) {
       fail(p, "out of memory");
       ok = false;
@@ -541,8 +541,7 @@ static bool parse_value(parser *p, zb_value *out) {
   return false;
 }
 
-zb_result zb_luon_parse(zb_luon_doc *doc, const zb_allocator *a, const char *text, size_t len,
-                        zb_luon_error *err) {
+zb_result zb_luon_parse(zb_luon_doc *doc, const zb_allocator *a, const char *text, size_t len, zb_luon_error *err) {
   memset(doc, 0, sizeof(*doc));
   zb_arena_init(&doc->arena, a, 4096);
   parser p = {text, len, 0, 1, 0, 0, doc, a, err, false};
@@ -550,8 +549,7 @@ zb_result zb_luon_parse(zb_luon_doc *doc, const zb_allocator *a, const char *tex
     memset(err, 0, sizeof(*err));
   }
   /* Skip a UTF-8 byte order mark. */
-  if (len >= 3 && (unsigned char)text[0] == 0xEF && (unsigned char)text[1] == 0xBB &&
-      (unsigned char)text[2] == 0xBF) {
+  if (len >= 3 && (unsigned char)text[0] == 0xEF && (unsigned char)text[1] == 0xBB && (unsigned char)text[2] == 0xBF) {
     p.pos = 3;
     p.line_start = 3;
   }
@@ -589,8 +587,7 @@ const zb_value *zb_table_get(const zb_value *t, const char *key) {
   size_t n = strlen(key);
   for (size_t i = 0; i < t->as.table->count; ++i) {
     const zb_table_entry *e = &t->as.table->entries[i];
-    if (e->key.type == ZB_VAL_STRING && e->key.as.str.len == n &&
-        memcmp(e->key.as.str.ptr, key, n) == 0) {
+    if (e->key.type == ZB_VAL_STRING && e->key.as.str.len == n && memcmp(e->key.as.str.ptr, key, n) == 0) {
       return &e->value;
     }
   }
@@ -618,9 +615,7 @@ size_t zb_table_len(const zb_value *t) {
   return n;
 }
 
-size_t zb_table_count(const zb_value *t) {
-  return (t && t->type == ZB_VAL_TABLE) ? t->as.table->count : 0;
-}
+size_t zb_table_count(const zb_value *t) { return (t && t->type == ZB_VAL_TABLE) ? t->as.table->count : 0; }
 
 const zb_table_entry *zb_table_entry_at(const zb_value *t, size_t i) {
   if (i >= zb_table_count(t)) {
@@ -635,13 +630,9 @@ const char *zb_value_str(const zb_value *v, const char *def) {
   return zb_value_is(v, ZB_VAL_STRING) ? v->as.str.ptr : def;
 }
 
-double zb_value_num(const zb_value *v, double def) {
-  return zb_value_is(v, ZB_VAL_NUMBER) ? v->as.num : def;
-}
+double zb_value_num(const zb_value *v, double def) { return zb_value_is(v, ZB_VAL_NUMBER) ? v->as.num : def; }
 
-bool zb_value_bool(const zb_value *v, bool def) {
-  return zb_value_is(v, ZB_VAL_BOOL) ? v->as.b : def;
-}
+bool zb_value_bool(const zb_value *v, bool def) { return zb_value_is(v, ZB_VAL_BOOL) ? v->as.b : def; }
 
 const char *zb_value_type_name(zb_value_type type) {
   switch (type) {

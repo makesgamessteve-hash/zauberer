@@ -62,8 +62,7 @@ void zb_array_remove_swap(zb_array *arr, size_t index) {
 
 void zb_array_remove(zb_array *arr, size_t index) {
   ZB_ASSERT(index < arr->len);
-  memmove(arr->data + index * arr->elem, arr->data + (index + 1) * arr->elem,
-          (arr->len - index - 1) * arr->elem);
+  memmove(arr->data + index * arr->elem, arr->data + (index + 1) * arr->elem, (arr->len - index - 1) * arr->elem);
   arr->len--;
 }
 
@@ -235,8 +234,7 @@ uint32_t zb_strtab_intern(zb_strtab *t, const char *s, size_t len) {
   uint32_t next = (uint32_t)first;
   if (!copy || zb_array_reserve(&t->strings, t->strings.len + 1) != ZB_OK ||
       zb_array_reserve(&t->lengths, t->lengths.len + 1) != ZB_OK ||
-      zb_array_reserve(&t->next, t->next.len + 1) != ZB_OK ||
-      zb_map_put(&t->index, h, id) != ZB_OK) {
+      zb_array_reserve(&t->next, t->next.len + 1) != ZB_OK || zb_map_put(&t->index, h, id) != ZB_OK) {
     return ZB_STR_NONE;
   }
   zb_array_push(&t->strings, &copy);

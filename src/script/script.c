@@ -122,8 +122,9 @@ static void debug_hook(lua_State *L, lua_Debug *ar) {
   }
 }
 
-/* ---- Sandbox ------------------------------------------------------------------ */
-
+/* @lua print(...: any)
+ * Writes the values to the engine log.
+ */
 static int l_print(lua_State *L) {
   int n = lua_gettop(L);
   luaL_Buffer b;
@@ -144,6 +145,9 @@ static int l_unavailable(lua_State *L) {
   return luaL_error(L, "%s is unavailable in the Zauberer sandbox", lua_tostring(L, lua_upvalueindex(1)));
 }
 
+/* @lua load(chunk: string, name?: string, mode?: string, env?: table): function?, string?
+ * Compiles Lua source text; binary chunks are always rejected.
+ */
 static int l_load(lua_State *L) {
   /* load(chunk [, chunkname [, mode [, env]]]) with the mode forced to text. */
   size_t len;
@@ -164,6 +168,9 @@ static int l_load(lua_State *L) {
   return 1;
 }
 
+/* @lua math.random(m?: integer, n?: integer): number
+ * Deterministic random numbers from the run's seed.
+ */
 static int l_random(lua_State *L) {
   zb_script *s = zb_script_from(L);
   int n = lua_gettop(L);
@@ -183,6 +190,9 @@ static int l_random(lua_State *L) {
   return 1;
 }
 
+/* @lua math.randomseed(seed?: integer)
+ * Restarts the random sequence (default: the run's seed).
+ */
 static int l_randomseed(lua_State *L) {
   zb_script *s = zb_script_from(L);
   lua_Integer seed = luaL_optinteger(L, 1, (lua_Integer)s->cfg.seed);
@@ -291,7 +301,9 @@ static bool load_chunk(zb_script *s, const char *text, size_t len, const char *r
   return true;
 }
 
-/* require(name): scripts/<name with dots as slashes>.lua through the overlay. */
+/* @lua require(name: string): any
+ * Loads scripts/<name with dots as slashes>.lua through the package overlay, once.
+ */
 static int l_require(lua_State *L) {
   zb_script *s = zb_script_from(L);
   const char *name = luaL_checkstring(L, 1);
@@ -350,7 +362,11 @@ static int l_require(lua_State *L) {
   return 1;
 }
 
-/* engine.on(event, fn) bound to a package (upvalue 1). */
+/* @lua engine.on(event: "init"|"tick"|"frame"|"event"|"shutdown"|"reload"|"hash", fn: function)
+ * Registers a lifecycle hook of the calling package: tick(dt), frame(alpha), event(name, args),
+ * reload(preserved) and hash() (returns the package's simulation state for replays). A hook that raises an
+ * error is disabled.
+ */
 static int l_on(lua_State *L) {
   int pkg = (int)lua_tointeger(L, lua_upvalueindex(1));
   const char *event = luaL_checkstring(L, 1);
@@ -373,7 +389,9 @@ static int l_on(lua_State *L) {
   return 0;
 }
 
-/* engine.preserve(tbl): kept across hot reloads of this package. */
+/* @lua engine.preserve(state: table)
+ * Development builds: keeps state across hot reloads; it is passed to the package's reload hook.
+ */
 static int l_preserve(lua_State *L) {
   int pkg = (int)lua_tointeger(L, lua_upvalueindex(1));
   luaL_checktype(L, 1, LUA_TTABLE);

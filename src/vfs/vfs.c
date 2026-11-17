@@ -23,7 +23,7 @@ struct zb_vfs_req {
   zb_vfs_req_fn fn;
   void *user;
   zb_job *job;
-  bool done;      /* result available, callback not yet delivered */
+  bool done; /* result available, callback not yet delivered */
   bool released;
   /* written by the worker */
   zb_result job_result;
@@ -35,12 +35,12 @@ struct zb_vfs {
   const zb_allocator *a;
   const zb_fs_api *fs;
   zb_jobs *jobs;
-  zb_array roots;      /* char * */
-  zb_array packages;   /* zb_package */
-  zb_array order;      /* size_t index into packages */
+  zb_array roots;    /* char * */
+  zb_array packages; /* zb_package */
+  zb_array order;    /* size_t index into packages */
   zb_strtab paths;
-  zb_array owners;     /* uint32_t package index per path id */
-  zb_array requests;   /* zb_vfs_req * */
+  zb_array owners;   /* uint32_t package index per path id */
+  zb_array requests; /* zb_vfs_req * */
   zb_vfs_fetcher fetcher;
   bool has_fetcher;
 };
@@ -89,9 +89,12 @@ bool zb_version_parse(const char *s, zb_version *out) {
 }
 
 int zb_version_compare(zb_version a, zb_version b) {
-  if (a.major != b.major) return a.major < b.major ? -1 : 1;
-  if (a.minor != b.minor) return a.minor < b.minor ? -1 : 1;
-  if (a.patch != b.patch) return a.patch < b.patch ? -1 : 1;
+  if (a.major != b.major)
+    return a.major < b.major ? -1 : 1;
+  if (a.minor != b.minor)
+    return a.minor < b.minor ? -1 : 1;
+  if (a.patch != b.patch)
+    return a.patch < b.patch ? -1 : 1;
   return 0;
 }
 
@@ -113,11 +116,16 @@ static bool satisfies_one(zb_version v, const char *c, bool *valid) {
     return false;
   }
   int cmp = zb_version_compare(v, want);
-  if (strcmp(op, ">=") == 0) return cmp >= 0;
-  if (strcmp(op, "<=") == 0) return cmp <= 0;
-  if (op[0] == '>') return cmp > 0;
-  if (op[0] == '<') return cmp < 0;
-  if (op[0] == '^') return v.major == want.major && cmp >= 0;
+  if (strcmp(op, ">=") == 0)
+    return cmp >= 0;
+  if (strcmp(op, "<=") == 0)
+    return cmp <= 0;
+  if (op[0] == '>')
+    return cmp > 0;
+  if (op[0] == '<')
+    return cmp < 0;
+  if (op[0] == '^')
+    return v.major == want.major && cmp >= 0;
   return cmp == 0;
 }
 
@@ -139,8 +147,7 @@ bool zb_version_satisfies(zb_version v, const char *constraint, bool *valid) {
 /* ---- Paths ---------------------------------------------------------------------- */
 
 zb_result zb_vfs_normalize(const char *path, char *out, size_t out_len) {
-  if (!path || path[0] == '/' || path[0] == '\\' ||
-      (isalpha((unsigned char)path[0]) && path[1] == ':')) {
+  if (!path || path[0] == '/' || path[0] == '\\' || (isalpha((unsigned char)path[0]) && path[1] == ':')) {
     return ZB_ERR_INVALID;
   }
   size_t seg_starts[64];
@@ -439,7 +446,9 @@ static void check_dependencies(zb_vfs *v) {
     for (size_t i = 0; i < v->packages.len; ++i) {
       zb_package *p = pkg_at(v, i);
       for (size_t d = 0; p->enabled && d < p->requires_count; ++d) {
-        zb_pkg_dep *dep = &p->requires[d];
+        zb_pkg_dep *dep = &p->
+                             requires[
+                                 d];
         size_t k = find_enabled(v, dep->id);
         if (k == SIZE_MAX) {
           disable(p, "missing dependency '%s'", dep->id);
@@ -631,8 +640,7 @@ zb_result zb_vfs_mount(zb_vfs *v, int api_major, int api_minor) {
   for (size_t i = 0; i < v->packages.len; ++i) {
     zb_package *p = pkg_at(v, i);
     zb_version want;
-    if (p->enabled && zb_version_parse(p->api, &want) &&
-        (want.major != api_major || want.minor > api_minor)) {
+    if (p->enabled && zb_version_parse(p->api, &want) && (want.major != api_major || want.minor > api_minor)) {
       disable(p, "requires scripting API %s but the engine provides %d.%d", p->api, api_major, api_minor);
     }
   }
@@ -652,17 +660,14 @@ zb_result zb_vfs_mount(zb_vfs *v, int api_major, int api_minor) {
     if (w.oom) {
       return ZB_ERR_NOMEM;
     }
-    zb_info("package %s %s loaded from %s", pkg_at(v, idx)->id, pkg_at(v, idx)->version,
-            pkg_at(v, idx)->root);
+    zb_info("package %s %s loaded from %s", pkg_at(v, idx)->id, pkg_at(v, idx)->version, pkg_at(v, idx)->root);
   }
   return ZB_OK;
 }
 
 size_t zb_vfs_package_count(const zb_vfs *v) { return v->packages.len; }
 
-const zb_package *zb_vfs_package(const zb_vfs *v, size_t i) {
-  return i < v->packages.len ? pkg_at(v, i) : NULL;
-}
+const zb_package *zb_vfs_package(const zb_vfs *v, size_t i) { return i < v->packages.len ? pkg_at(v, i) : NULL; }
 
 size_t zb_vfs_load_count(const zb_vfs *v) { return v->order.len; }
 
@@ -734,8 +739,8 @@ zb_result zb_vfs_read(zb_vfs *v, const char *path, const zb_allocator *a, char *
   return v->fs->read(v->fs->ctx, real, a, data, len);
 }
 
-zb_result zb_vfs_read_package(zb_vfs *v, const zb_package *pkg, const char *path, const zb_allocator *a,
-                              char **data, size_t *len) {
+zb_result zb_vfs_read_package(zb_vfs *v, const zb_package *pkg, const char *path, const zb_allocator *a, char **data,
+                              size_t *len) {
   char norm[ZB_VFS_MAX_PATH];
   char real[ZB_VFS_MAX_PATH * 2];
   zb_result r = zb_vfs_normalize(path, norm, sizeof norm);

@@ -20,9 +20,7 @@ static int find(const char *const *names, int count, const char *name) {
   return -1;
 }
 
-const char *zb_key_name(zb_key key) {
-  return (unsigned)key < (unsigned)ZB_KEY_COUNT ? k_key_names[key] : "unknown";
-}
+const char *zb_key_name(zb_key key) { return (unsigned)key < (unsigned)ZB_KEY_COUNT ? k_key_names[key] : "unknown"; }
 
 zb_key zb_key_from_name(const char *name) {
   int i = find(k_key_names, ZB_KEY_COUNT, name);
@@ -42,9 +40,7 @@ const char *zb_pad_button_name(zb_pad_button button) {
   return (unsigned)button < (unsigned)ZB_PAD_BUTTON_COUNT ? k_pad_button_names[button] : "?";
 }
 
-int zb_pad_button_from_name(const char *name) {
-  return find(k_pad_button_names, ZB_PAD_BUTTON_COUNT, name);
-}
+int zb_pad_button_from_name(const char *name) { return find(k_pad_button_names, ZB_PAD_BUTTON_COUNT, name); }
 
 const char *zb_pad_axis_name(zb_pad_axis axis) {
   return (unsigned)axis < (unsigned)ZB_PAD_AXIS_COUNT ? k_pad_axis_names[axis] : "?";

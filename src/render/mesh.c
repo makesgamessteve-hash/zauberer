@@ -117,8 +117,7 @@ static cgltf_result cg_read(const struct cgltf_memory_options *mem, const struct
   return cgltf_result_success;
 }
 
-static void cg_release(const struct cgltf_memory_options *mem, const struct cgltf_file_options *file,
-                       void *data) {
+static void cg_release(const struct cgltf_memory_options *mem, const struct cgltf_file_options *file, void *data) {
   (void)mem;
   read_ctx *rc = file->user_data;
   zb_free(rc->a, data);
@@ -133,8 +132,8 @@ static int find_image(const cgltf_data *g, const cgltf_image *img) {
   return -1;
 }
 
-static zb_result decode_images(const zb_allocator *a, const cgltf_data *g, read_ctx *rc, zb_mesh_data *out,
-                               char *err, size_t err_len) {
+static zb_result decode_images(const zb_allocator *a, const cgltf_data *g, read_ctx *rc, zb_mesh_data *out, char *err,
+                               size_t err_len) {
   if (g->images_count == 0) {
     return ZB_OK;
   }
@@ -194,10 +193,14 @@ static void bake_primitive(const cgltf_node *node, const cgltf_primitive *prim, 
   const cgltf_accessor *pos = NULL, *nrm = NULL, *col = NULL, *uv = NULL;
   for (cgltf_size k = 0; k < prim->attributes_count; ++k) {
     const cgltf_attribute *at = &prim->attributes[k];
-    if (at->type == cgltf_attribute_type_position) pos = at->data;
-    else if (at->type == cgltf_attribute_type_normal) nrm = at->data;
-    else if (at->type == cgltf_attribute_type_color && at->index == 0) col = at->data;
-    else if (at->type == cgltf_attribute_type_texcoord && at->index == 0) uv = at->data;
+    if (at->type == cgltf_attribute_type_position)
+      pos = at->data;
+    else if (at->type == cgltf_attribute_type_normal)
+      nrm = at->data;
+    else if (at->type == cgltf_attribute_type_color && at->index == 0)
+      col = at->data;
+    else if (at->type == cgltf_attribute_type_texcoord && at->index == 0)
+      uv = at->data;
   }
   float base[4] = {1, 1, 1, 1};
   int image = -1;
@@ -255,8 +258,8 @@ static void bake_primitive(const cgltf_node *node, const cgltf_primitive *prim, 
   sm->count = (uint32_t)out->index_count - sm->first;
 }
 
-zb_result zb_mesh_load_gltf(const zb_allocator *a, const void *data, size_t len, zb_mesh_read_fn read,
-                            void *read_user, zb_mesh_data *out, char *err, size_t err_len) {
+zb_result zb_mesh_load_gltf(const zb_allocator *a, const void *data, size_t len, zb_mesh_read_fn read, void *read_user,
+                            zb_mesh_data *out, char *err, size_t err_len) {
   memset(out, 0, sizeof(*out));
   read_ctx rc = {read, read_user, a};
   cgltf_options opts;
@@ -298,7 +301,8 @@ zb_result zb_mesh_load_gltf(const zb_allocator *a, const void *data, size_t len,
       const cgltf_mesh *mesh = g->nodes[n].mesh;
       for (cgltf_size p = 0; mesh && p < mesh->primitives_count; ++p) {
         const cgltf_primitive *prim = &mesh->primitives[p];
-        if (prim->type == cgltf_primitive_type_triangles && cgltf_find_accessor(prim, cgltf_attribute_type_position, 0)) {
+        if (prim->type == cgltf_primitive_type_triangles &&
+            cgltf_find_accessor(prim, cgltf_attribute_type_position, 0)) {
           bake_primitive(&g->nodes[n], prim, out, g);
         }
       }

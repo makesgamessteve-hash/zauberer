@@ -138,7 +138,7 @@ static void test_draw_list_and_culling(void) {
   zb_render_draw_model(w.r, carpet, zb_m4_identity());
   zb_render_draw_model(w.r, carpet, zb_m4_translate(zb_v3(1, 0, 0)));
   zb_render_draw_model(w.r, carpet, zb_m4_translate(zb_v3(0, 0, 20))); /* behind the camera */
-  zb_render_draw_model(w.r, 999, zb_m4_identity());                     /* invalid handle */
+  zb_render_draw_model(w.r, 999, zb_m4_identity());                    /* invalid handle */
   zb_render_end(w.r);
   TEST_ASSERT_EQUAL_size_t(3, zb_render_null_item_count(w.backend, ZB_DRAW_MODEL));
   const zb_render_stats *st = zb_render_get_stats(w.r);
@@ -332,14 +332,14 @@ static void test_gltf_variants(void) {
       "\"bufferViews\":[{\"buffer\":0,\"byteLength\":36}],"
       "\"accessors\":[{\"bufferView\":0,\"componentType\":5126,\"count\":3,\"type\":\"VEC3\","
       "\"min\":[0,0,0],\"max\":[1,1,0]}]}";
-  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_mesh_load_gltf(zb_test_alloc(), tri, strlen(tri), NULL, NULL, &mesh, err, sizeof err));
+  TEST_ASSERT_EQUAL_INT(ZB_OK,
+                        zb_mesh_load_gltf(zb_test_alloc(), tri, strlen(tri), NULL, NULL, &mesh, err, sizeof err));
   TEST_ASSERT_EQUAL_size_t(3, mesh.vertex_count);
   TEST_ASSERT_EQUAL_size_t(3, mesh.index_count);
   TEST_ASSERT_FLOAT_WITHIN(1e-5f, 1.0f, mesh.vertices[0].pos[0]); /* node translation baked in */
   zb_mesh_free(zb_test_alloc(), &mesh);
   /* external buffer resolved through the read callback */
-  zb_memfs_put(g_fs, "tri.bin",
-               "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x80\x3f\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x80\x3f\0\0\0\0", 36);
+  zb_memfs_put(g_fs, "tri.bin", "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x80\x3f\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x80\x3f\0\0\0\0", 36);
   const char *ext =
       "{\"asset\":{\"version\":\"2.0\"},\"nodes\":[{\"mesh\":0}],"
       "\"meshes\":[{\"primitives\":[{\"attributes\":{\"POSITION\":0}}]}],"
@@ -347,14 +347,14 @@ static void test_gltf_variants(void) {
       "\"bufferViews\":[{\"buffer\":0,\"byteLength\":36}],"
       "\"accessors\":[{\"bufferView\":0,\"componentType\":5126,\"count\":3,\"type\":\"VEC3\","
       "\"min\":[0,0,0],\"max\":[1,1,0]}]}";
-  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_mesh_load_gltf(zb_test_alloc(), ext, strlen(ext), read_from_memfs, NULL, &mesh, err,
-                                                 sizeof err));
+  TEST_ASSERT_EQUAL_INT(
+      ZB_OK, zb_mesh_load_gltf(zb_test_alloc(), ext, strlen(ext), read_from_memfs, NULL, &mesh, err, sizeof err));
   zb_mesh_free(zb_test_alloc(), &mesh);
-  TEST_ASSERT_EQUAL_INT(ZB_ERR_PARSE, zb_mesh_load_gltf(zb_test_alloc(), ext, strlen(ext), NULL, NULL, &mesh, err,
-                                                        sizeof err));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_PARSE,
+                        zb_mesh_load_gltf(zb_test_alloc(), ext, strlen(ext), NULL, NULL, &mesh, err, sizeof err));
   const char *empty = "{\"asset\":{\"version\":\"2.0\"},\"nodes\":[{}]}";
-  TEST_ASSERT_EQUAL_INT(ZB_ERR_PARSE, zb_mesh_load_gltf(zb_test_alloc(), empty, strlen(empty), NULL, NULL, &mesh,
-                                                        err, sizeof err));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_PARSE,
+                        zb_mesh_load_gltf(zb_test_alloc(), empty, strlen(empty), NULL, NULL, &mesh, err, sizeof err));
   TEST_ASSERT_NOT_NULL(strstr(err, "no triangle meshes"));
   zb_mesh_data cube;
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_mesh_cube(zb_test_alloc(), &cube));
@@ -374,6 +374,14 @@ static void test_gltf_variants(void) {
       zb_mesh_free(zb_failing_init(&fa, zb_test_alloc(), -1), &m);
     }
   }
+}
+
+/* Destroying the renderer while loads are pending frees their contexts. */
+static void test_destroy_with_pending_loads(void) {
+  world w = make_world();
+  zb_render_load_model(w.r, "models/carpet.glb");
+  zb_render_load_font(w.r, "fonts/pixel.lua");
+  free_world(&w);
 }
 
 static void test_create_failure(void) {
@@ -465,6 +473,7 @@ int main(void) {
   RUN_TEST(test_utf8);
   RUN_TEST(test_images);
   RUN_TEST(test_gltf_variants);
+  RUN_TEST(test_destroy_with_pending_loads);
   RUN_TEST(test_create_failure);
   RUN_TEST(test_gl_version_parsing);
   RUN_TEST(test_gl_backend_rejects_old_versions);
