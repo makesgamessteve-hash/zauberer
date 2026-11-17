@@ -8,8 +8,11 @@ sys.path.insert(0, HERE)
 
 import gen_carpet  # noqa: E402
 import gen_font  # noqa: E402
+import gen_ornaments  # noqa: E402
+import gen_palette  # noqa: E402
 import gen_sounds  # noqa: E402
 import gen_sprites  # noqa: E402
+import gen_terrain  # noqa: E402
 
 
 def main(base):
@@ -17,6 +20,9 @@ def main(base):
     gen_sprites.main(os.path.join(base, "sprites"))
     gen_carpet.main(os.path.join(base, "models", "carpet.glb"))
     gen_sounds.main(base)
+    gen_palette.main(os.path.join(base, "palettes"))
+    gen_terrain.main(os.path.join(base, "textures", "terrain"))
+    gen_ornaments.main(os.path.join(base, "textures", "ornaments"))
 
 
 if __name__ == "__main__":
