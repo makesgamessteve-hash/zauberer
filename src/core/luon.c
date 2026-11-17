@@ -384,6 +384,8 @@ static bool parse_table(parser *p, zb_value *out) {
       break;
     }
     zb_value key, value;
+    memset(&key, 0, sizeof key); /* assigned on every path; MSVC cannot prove it (C4701) */
+    memset(&value, 0, sizeof value);
     if (peek(p, 0) == '[' && long_bracket_level(p) < 0) {
       advance(p);
       skip_space(p);

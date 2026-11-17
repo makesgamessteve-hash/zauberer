@@ -20,6 +20,12 @@ env:
   OPENSPEC_TELEMETRY: "0"
   ZB_NO_DIALOGS: "1"
   PYTHONUNBUFFERED: "1"
+  # SDL 3 build dependencies (X11, Wayland, EGL/GL, audio) and Mesa for the rendered tests.
+  LINUX_DEPS: >-
+    ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 libegl-dev libgl-dev libgles-dev
+    libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxfixes-dev libxss-dev libxtst-dev
+    libxkbcommon-dev libwayland-dev libwayland-bin wayland-protocols libdecor-0-dev
+    libasound2-dev libpulse-dev libdbus-1-dev libudev-dev
 
 jobs:
   lint:
@@ -72,9 +78,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 \
-            libegl-dev libgl-dev libx11-dev libxext-dev libxkbcommon-dev libwayland-dev \
-            libasound2-dev libpulse-dev
+          sudo apt-get install -y $LINUX_DEPS
           pip install gcovr==8.8
       - name: Configure
         run: cmake --preset coverage
@@ -124,8 +128,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 \
-            libegl-dev libgl-dev libx11-dev libxext-dev libxkbcommon-dev libwayland-dev libasound2-dev
+          sudo apt-get install -y $LINUX_DEPS
       - name: Configure
         run: cmake --preset asan
       - name: Build
@@ -142,8 +145,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 \
-            libegl-dev libgl-dev libx11-dev libxext-dev libxkbcommon-dev libwayland-dev libasound2-dev
+          sudo apt-get install -y $LINUX_DEPS
       - name: Configure and build (release)
         run: |
           cmake --preset release
@@ -152,6 +154,16 @@ jobs:
         env:
           ZB_GOLDEN_OUT: ${{ github.workspace }}/golden-out
         run: ctest --preset release -L render
+      - name: Documented commands (README)
+        env:
+          SDL_VIDEO_DRIVER: offscreen
+          SDL_AUDIO_DRIVER: dummy
+        run: |
+          build/release/bin/zauberer --ticks 120 --user-dir "$RUNNER_TEMP/user"
+          build/release/bin/zauberer --headless --test tests/lua --junit "$RUNNER_TEMP/lua.xml"
+          build/release/bin/zauberer --headless --scenario tests/scenarios/demo_runs.lua
+          build/release/bin/zauberer --headless --replay tests/replays/demo.zbrec
+          build/release/bin/zauberer --help
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -181,7 +193,7 @@ jobs:
           path: hash-windows.txt
 
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

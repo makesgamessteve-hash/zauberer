@@ -41,8 +41,10 @@ endif()
 # Apply warnings and common definitions to a first-party target.
 function(zb_target_defaults target)
   if(ZB_IS_MSVC)
-    target_compile_options(${target} PRIVATE /W4 /wd4204 /wd4221)
-    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    # Matches the GCC/Clang set: no unused-parameter warnings (C4100); C99
+    # aggregate initialisers (C4204, C4221) and constant loop conditions (C4127) are fine.
+    target_compile_options(${target} PRIVATE /W4 /wd4100 /wd4127 /wd4204 /wd4221)
+    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
     if(ZB_WERROR)
       target_compile_options(${target} PRIVATE /WX)
     endif()
