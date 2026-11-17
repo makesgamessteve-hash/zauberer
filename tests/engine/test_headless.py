@@ -51,7 +51,7 @@ class StartupTests(EngineTestCase):
         shutil.copytree(ASSETS, copy)
         result = self.run_engine("--headless", "--ticks", "10", assets=copy)
         self.assert_ok(result)
-        self.assertIn(f"loaded from {copy / 'base'}", result.stdout)
+        self.assert_loaded_from(result.stdout, copy / "base")
 
     def test_no_usable_package(self):
         empty = self.tmp / "empty-assets"

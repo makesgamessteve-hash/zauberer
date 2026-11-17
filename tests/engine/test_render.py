@@ -53,7 +53,7 @@ class RenderTests(EngineTestCase):
         shutil.copy2(Path(ASSETS).parent / "tests" / "golden" / "stereo.png", golden / "golden" / "carpet.png")
         result = self.run_engine("--scenario", str(golden / "scenarios" / "render_carpet.lua"),
                                  env={"SDL_VIDEO_DRIVER": os.environ.get("SDL_VIDEO_DRIVER", "offscreen"),
-                                      "ZB_WINDOW_SIZE": "640x360"})
+                                      "ZB_WINDOW_SIZE": "640x360", "ZB_GOLDEN_OUT": str(self.tmp / "golden-out")})
         self.assert_fails(result)
         self.assertIn("pixels differ", result.stdout)
         self.assertTrue((self.tmp / "golden-out" / "carpet.png").is_file(), "the actual image is kept")
@@ -69,7 +69,7 @@ class RenderTests(EngineTestCase):
                                  env={"SDL_VIDEO_DRIVER": os.environ.get("SDL_VIDEO_DRIVER", "offscreen"),
                                       "SDL_AUDIO_DRIVER": "dummy"})
         self.assert_ok(result)
-        self.assertIn(f"loaded from {staged / 'assets' / 'base'}", result.stdout)
+        self.assert_loaded_from(result.stdout, staged / "assets" / "base")
         self.assertIn("first frame presented", result.stdout)
 
     # spec: platform-targets: Unsupported graphics context

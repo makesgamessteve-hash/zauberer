@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* Runs with SDL_VIDEO_DRIVER=offscreen, SDL_AUDIO_DRIVER=dummy and
@@ -26,7 +27,13 @@ void tearDown(void) {
 }
 
 static void test_name_and_clock(void) {
+#if defined(_WIN32)
+  TEST_ASSERT_EQUAL_STRING("windows", zb_platform_name());
+#elif defined(__APPLE__)
+  TEST_ASSERT_EQUAL_STRING("macos", zb_platform_name());
+#else
   TEST_ASSERT_EQUAL_STRING("linux", zb_platform_name());
+#endif
   TEST_ASSERT_TRUE(zb_platform_cpu_count(g_p) >= 1);
   uint64_t a = zb_platform_now_ns(g_p);
   SDL_Delay(2);
@@ -137,7 +144,13 @@ static void test_user_dir(void) {
   SDL_SetEnvironmentVariable(SDL_GetEnvironment(), "XDG_DATA_HOME", home, true);
   char out[1024];
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_platform_user_dir(g_p, out, sizeof out));
+#if defined(_WIN32)
+  TEST_ASSERT_NOT_NULL_MESSAGE(strstr(out, "\\Zauberer\\"), out); /* %APPDATA%\Zauberer\ */
+#elif defined(__APPLE__)
+  TEST_ASSERT_NOT_NULL_MESSAGE(strstr(out, "Application Support/Zauberer/"), out);
+#else
   TEST_ASSERT_NOT_NULL_MESSAGE(strstr(out, "xdg/zauberer/"), out);
+#endif
   zb_fs_stat st;
   const zb_fs_api *fs = zb_platform_fs(g_p);
   TEST_ASSERT_EQUAL_INT(ZB_OK, fs->stat(fs->ctx, out, &st));
@@ -168,6 +181,9 @@ static void test_window(void) {
   zb_window_desc desc = {"Zauberer test", 640, 360, false};
   char err[256] = "";
   zb_result r = zb_platform_open_window(g_p, &desc, err, sizeof err);
+  if (r != ZB_OK && !getenv("ZB_REQUIRE_GL")) {
+    TEST_IGNORE_MESSAGE(err); /* CI machines without OpenGL 3.3 (Linux CI sets ZB_REQUIRE_GL) */
+  }
   TEST_ASSERT_EQUAL_INT_MESSAGE(ZB_OK, r, err);
   TEST_ASSERT_TRUE(zb_platform_has_window(g_p));
   TEST_ASSERT_FALSE(zb_platform_is_gles(g_p));

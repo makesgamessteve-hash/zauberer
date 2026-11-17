@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
 
+import os
 import unittest
 from pathlib import Path
 
@@ -15,9 +16,10 @@ class LuacovReportTests(TempDirTestCase):
         self.assertEqual(luacov_report.lua_pattern("a-b.c"), "a%-b%.c/")
 
     def test_config_lists_files_and_includes(self):
-        text = luacov_report.make_config(Path("/s/stats"), Path("/s/report"), ["assets/base/scripts"])
-        self.assertIn('statsfile = "/s/stats"', text)
-        self.assertIn('reportfile = "/s/report"', text)
+        stats, report = Path("/s/stats"), Path("/s/report")
+        text = luacov_report.make_config(stats, report, ["assets/base/scripts"])
+        self.assertIn(f"statsfile = {luacov_report.lua_string(str(stats))}", text)
+        self.assertIn(f"reportfile = {luacov_report.lua_string(str(report))}", text)
         self.assertIn('include = { "assets/base/scripts/" }', text)
         self.assertNotIn("include", luacov_report.make_config(Path("a"), Path("b"), []))
 
@@ -38,6 +40,7 @@ class LuacovReportTests(TempDirTestCase):
         self.assertEqual(code, 2)
         self.assertIn("cannot run", out)
 
+    @unittest.skipIf(os.name == "nt", "uses a shell script as the fake interpreter")
     def test_interpreter_failure(self):
         stats = self.root / "stats"
         stats.write_text("", encoding="utf-8")

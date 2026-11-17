@@ -84,6 +84,12 @@ class EngineTestCase(unittest.TestCase):
         extra = ["--headless"] if headless else []
         return self.run_engine(*extra, "--scenario", f"tests/scenarios/{name}.lua", *args, **kwargs)
 
+    def assert_loaded_from(self, output: str, package_dir: Path) -> None:
+        """The log names package_dir as a package root (separators may be mixed on Windows)."""
+        roots = [os.path.normcase(os.path.normpath(line.split(" loaded from ", 1)[1].strip()))
+                 for line in output.splitlines() if " loaded from " in line]
+        self.assertIn(os.path.normcase(os.path.normpath(str(package_dir))), roots, output[-2000:])
+
     @staticmethod
     def final_hash(output: str) -> str:
         for line in reversed(output.splitlines()):

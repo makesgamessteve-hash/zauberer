@@ -13,8 +13,13 @@ zb_add_unit_test(test_audio SOURCES audio/test_audio.c LIBS zb_audio)
 zb_add_unit_test(test_script SOURCES script/test_script.c LIBS zb_script)
 if(NOT ZB_HEADLESS_ONLY)
   zb_add_unit_test(test_platform SOURCES platform/test_platform.c LIBS zb_platform SDL3::SDL3)
-  set_tests_properties(test_platform PROPERTIES ENVIRONMENT
+  set(ZB_PLATFORM_TEST_ENV
     "SDL_VIDEO_DRIVER=offscreen;SDL_AUDIO_DRIVER=dummy;ZB_NO_DIALOGS=1;ZB_SOURCE_DIR=${PROJECT_SOURCE_DIR};ZB_BINARY_DIR=${PROJECT_BINARY_DIR}")
+  if(UNIX AND NOT APPLE)
+    # Linux CI always has Mesa (llvmpipe): the window test must not be skipped there.
+    string(APPEND ZB_PLATFORM_TEST_ENV ";ZB_REQUIRE_GL=1")
+  endif()
+  set_tests_properties(test_platform PROPERTIES ENVIRONMENT "${ZB_PLATFORM_TEST_ENV}")
 endif()
 if(UNIX)
   if(ZB_HEADLESS_ONLY)
