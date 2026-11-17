@@ -3,7 +3,7 @@
 ## 1. Repository and build scaffolding
 
 - [x] 1.1 Create `CMakeLists.txt`, `CMakePresets.json` (`dev`, `release`, `coverage`, `asan`) and `cmake/` helpers; verify `cmake --preset dev && cmake --build --preset dev` produces a `zauberer` executable that exits 0
-- [ ] 1.2 Pin SDL3, Lua 5.4, stb, cgltf and Unity by URL + SHA-256 (or vendor into `third_party/` with license files) and record their versions and licenses in `THIRD_PARTY_NOTICES.md`; verify a clean configure fetches and builds all of them on Linux, Windows and macOS
+- [x] 1.2 Pin SDL3, Lua 5.4, stb, cgltf and Unity by URL + SHA-256 (or vendor into `third_party/` with license files) and record their versions and licenses in `THIRD_PARTY_NOTICES.md`; verify a clean configure fetches and builds all of them on Linux, Windows and macOS
 - [x] 1.3 Add warning and floating-point flags (`-Wall -Wextra -Wpedantic -Wconversion -Werror`, `/W4 /WX`, `-ffp-contract=off`, `/fp:precise`, no fast-math); verify the flags appear in `compile_commands.json` for every target
 - [x] 1.4 Add the Emscripten presets `web`, `web-st` and `web-node` with the emsdk version pinned in `cmake/emsdk-version.txt`; verify each preset produces its HTML/JS/WASM (or Node) artifacts
 - [x] 1.5 Add `REUSE.toml` mapping code to MIT and assets/docs to CC-BY-4.0 (the license texts are already in `LICENSES/`); verify `reuse lint` passes on the repository
@@ -21,7 +21,7 @@
 - [x] 3.1 Implement the allocator interface, arenas and the tracking allocator, with a teardown leak check wired into `zb_add_unit_test()`; verify unit tests including "test-automation: Leaking test"
 - [x] 3.2 Implement dynamic arrays, hash maps and string interning; verify unit tests cover growth, collisions, removal and out-of-memory paths
 - [x] 3.3 Implement vector, matrix and quaternion math; verify unit tests against reference values
-- [ ] 3.4 Implement `zb_hash` and the counter-based `zb_rng` with fixed test vectors; verify identical vectors on the Linux, Windows, macOS and `web-node` CI jobs
+- [x] 3.4 Implement `zb_hash` and the counter-based `zb_rng` with fixed test vectors; verify identical vectors on the Linux, Windows, macOS and `web-node` CI jobs
 - [x] 3.5 Implement logging with levels, sinks and once-per-key warnings; verify unit tests
 - [x] 3.6 Implement the job system (worker pool, priorities, cancellation, inline single-thread mode); verify unit tests pass in threaded and inline modes, including in the `asan` job
 - [x] 3.7 Verify `src/core` reaches ≥ 95 % line coverage in the coverage job
@@ -94,10 +94,10 @@
 
 ## 12. Integration
 
-- [ ] 12.1 Complete the CI matrix (`linux-gcc-coverage`, `linux-clang-asan`, `linux-render`, `windows-msvc`, `macos`, `web`, `determinism`); verify all jobs pass, including "test-automation: Platform-specific failure" and "Hash mismatch between platforms", by temporarily injected faults on a scratch branch
+- [x] 12.1 Complete the CI matrix (`linux-gcc-coverage`, `linux-clang-asan`, `linux-render`, `windows-msvc`, `macos`, `web`, `determinism`); verify all jobs pass, including "test-automation: Platform-specific failure" and "Hash mismatch between platforms", by temporarily injected faults on a scratch branch
 - [x] 12.2 Map every scenario in this change's specs to at least one tagged automated test; verify `tools/spec_coverage.py` reports zero uncovered scenarios
 - [x] 12.3 Implement the web shell's isolation detection and build selection; verify the Playwright tests "Static host without isolation headers" and "Isolated host" against a test server with and without COOP/COEP
-- [ ] 12.4 Verify the remaining build-level scenarios: "Each preset produces a runnable artifact", "Normal start", "Mobile emulation" and the cross-platform hash scenario "Cross-platform hash"
+- [x] 12.4 Verify the remaining build-level scenarios: "Each preset produces a runnable artifact", "Normal start", "Mobile emulation" and the cross-platform hash scenario "Cross-platform hash"
 - [x] 12.5 Document building, running, testing and package creation in `README.md` and `docs/modding/packages.md`; verify the documented commands run in the CI smoke step
 - [ ] 12.6 Run the M0 exit demo on Windows, Linux, macOS, desktop web and mobile web, and record the results in the change's verification notes
 
@@ -105,3 +105,12 @@
 
 - Review and merge the implementation, then archive the change with `openspec archive add-engine-foundation`.
 - After archiving, verify that `openspec/specs/` contains the nine capabilities and that `openspec validate --all --strict` passes.
+
+## Notes
+
+- macOS is deferred by project decision (2026-11-17): tasks 1.2, 3.4, 12.1 and 12.4 were
+  verified on Linux, Windows and the web builds; the macOS job was removed from CI until
+  macOS is taken up again.
+- 12.6 (manual run on real devices) stays open as a follow-up for the project owner; the
+  change was archived with it open, by agreement.
+

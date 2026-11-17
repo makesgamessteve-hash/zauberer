@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Every push and pull request: lint, Linux coverage (with rendered tests),
-# Linux sanitizers, Windows, macOS and web, then a cross-platform
-# determinism check. Any failing job fails the run.
+# Linux sanitizers, Windows and web, then a cross-platform determinism check.
+# Any failing job fails the run. macOS is deferred for now (project decision).
 name: CI
 
 on:
@@ -187,32 +187,21 @@ jobs:
         env:
           ZB_HASH_REPORT: ${{ github.workspace }}/hash-windows.txt
         run: ctest --preset release
+      - name: Windowed smoke run (Mesa llvmpipe)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          gh release download --repo pal1000/mesa-dist-win --pattern '*release-msvc.7z' --dir "$RUNNER_TEMP"
+          7z x -y -o"$RUNNER_TEMP/mesa" "$RUNNER_TEMP"/*release-msvc.7z > /dev/null
+          cp "$RUNNER_TEMP"/mesa/x64/*.dll build/release/bin/
+          build/release/bin/zauberer.exe --ticks 120 --user-dir "$RUNNER_TEMP/user" | tee smoke.log
+          grep -q "first frame presented" smoke.log
       - uses: actions/upload-artifact@v4
         with:
           name: hash-windows
           path: hash-windows.txt
-
-  macos:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install Ninja
-        run: brew install ninja
-      - name: Configure
-        run: cmake --preset release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
-      - name: Build
-        run: cmake --build --preset release
-      - name: Test
-        env:
-          ZB_HASH_REPORT: ${{ github.workspace }}/hash-macos.txt
-        run: ctest --preset release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hash-macos
-          path: hash-macos.txt
 
   web:
     runs-on: ubuntu-24.04
@@ -268,7 +257,7 @@ jobs:
           path: hash-web.txt
 
   determinism:
-    needs: [linux-gcc-coverage, windows-msvc, macos, web]
+    needs: [linux-gcc-coverage, windows-msvc, web]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -280,4 +269,4 @@ jobs:
         run: |
           python3 tools/compare_hashes.py \
             linux=hashes/hash-linux/hash-linux.txt windows=hashes/hash-windows/hash-windows.txt \
-            macos=hashes/hash-macos/hash-macos.txt web=hashes/hash-web/hash-web.txt
+            web=hashes/hash-web/hash-web.txt

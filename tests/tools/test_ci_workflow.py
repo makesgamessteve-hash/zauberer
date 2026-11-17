@@ -14,7 +14,7 @@ try:
 except ImportError:  # pragma: no cover - PyYAML is part of the CI images
     yaml = None
 
-PLATFORM_JOBS = {"lint", "linux-gcc-coverage", "linux-clang-asan", "linux-render", "windows-msvc", "macos", "web"}
+PLATFORM_JOBS = {"lint", "linux-gcc-coverage", "linux-clang-asan", "linux-render", "windows-msvc", "web"}
 
 
 @unittest.skipIf(yaml is None, "PyYAML is not installed")
@@ -36,7 +36,6 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertTrue(PLATFORM_JOBS <= set(self.jobs), sorted(PLATFORM_JOBS - set(self.jobs)))
         runners = {name: job["runs-on"] for name, job in self.jobs.items()}
         self.assertTrue(runners["windows-msvc"].startswith("windows"))
-        self.assertTrue(runners["macos"].startswith("macos"))
         for name, job in self.jobs.items():
             self.assertFalse(job.get("continue-on-error", False), f"{name} must not be allowed to fail")
             for step in job["steps"]:
@@ -45,9 +44,9 @@ class CiWorkflowTest(unittest.TestCase):
 
     def test_determinism_compares_every_platform(self):
         det = self.jobs["determinism"]
-        self.assertEqual(set(det["needs"]), {"linux-gcc-coverage", "windows-msvc", "macos", "web"})
+        self.assertEqual(set(det["needs"]), {"linux-gcc-coverage", "windows-msvc", "web"})
         script = det["steps"][-1]["run"]
-        for platform in ("linux", "windows", "macos", "web"):
+        for platform in ("linux", "windows", "web"):
             self.assertIn(f"{platform}=", script)
         for job in det["needs"]:
             uploads = [s for s in self.jobs[job]["steps"] if s.get("uses", "").startswith("actions/upload-artifact")]
