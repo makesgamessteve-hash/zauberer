@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "app/engine.h"
 
+#include "core/hash.h"
 #include "core/log.h"
 #include "core/luon.h"
 #include "core/version.h"
@@ -65,6 +66,10 @@ static zb_result write_config(zb_engine *e) {
 }
 
 static zb_result host_save_bindings(void *ctx) { return write_config(ctx); }
+
+static void host_window_size(void *ctx, int w, int h) {
+  zb_platform_set_window_size(((zb_engine *)ctx)->platform, w, h);
+}
 
 /* ---- Setup helpers ------------------------------------------------------------- */
 
@@ -131,8 +136,88 @@ static zb_gl_fn gl_loader(void *ctx, const char *name) {
   return (zb_gl_fn)zb_platform_gl_proc(ctx, name);
 }
 
+/* Reads "<tick> <16 hex digits>" lines of <replay>.hashes, if present. */
+static void load_expected_hashes(zb_engine *e) {
+  char path[1100];
+  snprintf(path, sizeof path, "%s.hashes", e->opt.replay_path);
+  const zb_fs_api *fs = zb_platform_fs(e->platform);
+  char *text = NULL;
+  size_t len = 0;
+  if (fs->read(fs->ctx, path, e->a, &text, &len) != ZB_OK) {
+    return;
+  }
+  const char *p = text;
+  while (*p) {
+    char *end;
+    unsigned long long tick = strtoull(p, &end, 10);
+    if (end == p) {
+      break;
+    }
+    p = end;
+    unsigned long long hash = strtoull(p, &end, 16);
+    if (end == p) {
+      break;
+    }
+    p = end;
+    zb_tick_hash th = {tick, hash};
+    zb_array_push(&e->expected_hashes, &th);
+    while (*p == '\n' || *p == '\r' || *p == ' ') {
+      p++;
+    }
+  }
+  zb_free(e->a, text);
+  zb_info("replay: checking %zu state hash(es) from %s", e->expected_hashes.len, path);
+}
+
+static void write_recorded_hashes(zb_engine *e) {
+  char path[1100];
+  snprintf(path, sizeof path, "%s.hashes", e->opt.record_path);
+  size_t cap = e->recorded_hashes.len * 40 + 1;
+  char *text = zb_alloc(e->a, cap);
+  if (!text) {
+    return;
+  }
+  size_t n = 0;
+  for (size_t i = 0; i < e->recorded_hashes.len; ++i) {
+    const zb_tick_hash *th = zb_array_at(&e->recorded_hashes, i);
+    char hex[17];
+    zb_hash_hex(th->hash, hex);
+    n += (size_t)snprintf(text + n, cap - n, "%llu %s\n", (unsigned long long)th->tick, hex);
+  }
+  const zb_fs_api *fs = zb_platform_fs(e->platform);
+  if (fs->write(fs->ctx, path, text, n) != ZB_OK) {
+    zb_error("could not write the state hashes to %s", path);
+  }
+  zb_free(e->a, text);
+}
+
+/* After every tick: record or check the state hash. */
+static void check_state_hash(zb_engine *e) {
+  if (e->recorder && e->ticks % ZB_HASH_INTERVAL == 0) {
+    zb_tick_hash th = {e->ticks, zb_script_state_hash(e->script)};
+    zb_array_push(&e->recorded_hashes, &th);
+  }
+  if (e->next_expected < e->expected_hashes.len) {
+    const zb_tick_hash *want = zb_array_at(&e->expected_hashes, e->next_expected);
+    if (want->tick == e->ticks) {
+      e->next_expected++;
+      uint64_t got = zb_script_state_hash(e->script);
+      if (got != want->hash) {
+        char a[17], b[17];
+        zb_hash_hex(want->hash, a);
+        zb_hash_hex(got, b);
+        zb_error("replay diverged at tick %llu: expected state hash %s, got %s", (unsigned long long)e->ticks, a,
+                 b);
+        e->replay_diverged = true;
+        e->quit = true;
+      }
+    }
+  }
+}
+
 static bool setup_replay(zb_engine *e) {
   if (e->opt.replay_path) {
+    load_expected_hashes(e);
     const zb_fs_api *fs = zb_platform_fs(e->platform);
     size_t len = 0;
     if (fs->read(fs->ctx, e->opt.replay_path, e->a, &e->replay_data, &len) != ZB_OK) {
@@ -180,6 +265,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   }
   *out = e;
   e->a = a;
+  zb_array_init(&e->expected_hashes, a, sizeof(zb_tick_hash));
+  zb_array_init(&e->recorded_hashes, a, sizeof(zb_tick_hash));
   e->opt = opt;
   e->mode = opt.test_path ? ZB_MODE_TEST : (opt.scenario_path ? ZB_MODE_SCENARIO : ZB_MODE_GAME);
   e->headless = opt.headless || e->mode == ZB_MODE_TEST;
@@ -310,6 +397,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.host.set_time_scale = host_time_scale;
   sc.host.set_fullscreen = host_fullscreen;
   sc.host.save_bindings = host_save_bindings;
+  sc.host.set_window_size = host_window_size;
   sc.seed = e->seed;
   sc.test_api = e->mode != ZB_MODE_GAME;
 #if defined(ZB_DEV)
@@ -374,6 +462,20 @@ static void tick(zb_engine *e) {
   zb_audio_tick(e->audio, zb_loop_tick_seconds());
   e->ticks++;
   zb_script_tick(e->script, zb_loop_tick_seconds());
+  check_state_hash(e);
+}
+
+static void frame(zb_engine *e, double alpha);
+
+/* One step of the headless and scenario modes: a tick unless paused, then a frame. */
+static void step(zb_engine *e) {
+  e->steps++;
+  if (!e->loop.paused) {
+    tick(e);
+  } else {
+    zb_vfs_poll(e->vfs);
+  }
+  frame(e, 0.0);
 }
 
 static void frame(zb_engine *e, double alpha) {
@@ -392,6 +494,14 @@ static void frame(zb_engine *e, double alpha) {
 }
 
 static zb_host_status finish(zb_engine *e) {
+  if (e->script) {
+    char hex[17];
+    zb_hash_hex(zb_script_state_hash(e->script), hex);
+    zb_info("state hash at tick %llu: %s", (unsigned long long)e->ticks, hex);
+  }
+  if (e->replay_diverged) {
+    return ZB_HOST_FAILURE;
+  }
   if (e->mode == ZB_MODE_SCENARIO) {
     int failures = zb_script_scenario_failures(e->script);
     if (failures) {
@@ -405,7 +515,8 @@ static zb_host_status finish(zb_engine *e) {
 }
 
 static void run_scenario(zb_engine *e) {
-  unsigned budget = HEADLESS_BATCH;
+  /* Windowed scenarios run one step per iteration so window events arrive in between. */
+  unsigned budget = e->headless ? HEADLESS_BATCH : 1u;
   while (budget-- > 0 && !e->quit) {
     if (e->scenario_pending == 0) {
       uint64_t ticks = 0;
@@ -420,8 +531,7 @@ static void run_scenario(zb_engine *e) {
         continue;
       }
     }
-    tick(e);
-    frame(e, 0.0);
+    step(e);
     e->scenario_pending--;
   }
 }
@@ -436,12 +546,11 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
     run_scenario(e);
   } else if (e->headless) {
     for (unsigned i = 0; i < HEADLESS_BATCH && !e->quit; ++i) {
-      if (e->opt.ticks >= 0 && e->ticks >= (uint64_t)e->opt.ticks) {
+      if (e->opt.ticks >= 0 && e->steps >= (uint64_t)e->opt.ticks) {
         e->quit = true;
         break;
       }
-      tick(e);
-      frame(e, 0.0);
+      step(e);
     }
   } else {
     unsigned n = zb_loop_advance(&e->loop, now);
@@ -457,6 +566,10 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
   }
   if (!e->headless) {
     zb_platform_swap(e->platform);
+    if (!e->first_frame_shown) {
+      e->first_frame_shown = true;
+      zb_info("first frame presented (%dx%d)", e->drawable_w, e->drawable_h);
+    }
   }
   return e->quit ? finish(e) : ZB_HOST_CONTINUE;
 }
@@ -500,6 +613,11 @@ void zb_engine_destroy(zb_engine *e) {
     zb_script_shutdown(e->script);
   }
   if (e->recorder && e->platform) {
+    if (e->script && e->ticks % ZB_HASH_INTERVAL != 0) {
+      zb_tick_hash th = {e->ticks, zb_script_state_hash(e->script)};
+      zb_array_push(&e->recorded_hashes, &th);
+    }
+    write_recorded_hashes(e);
     size_t len = 0;
     const unsigned char *bytes = zb_input_recorder_bytes(e->recorder, &len);
     const zb_fs_api *fs = zb_platform_fs(e->platform);
@@ -511,6 +629,8 @@ void zb_engine_destroy(zb_engine *e) {
   zb_input_recorder_destroy(e->recorder);
   zb_input_replay_close(e->replay);
   zb_free(e->a, e->replay_data);
+  zb_array_free(&e->expected_hashes);
+  zb_array_free(&e->recorded_hashes);
   if (e->platform) {
     zb_platform_audio_close(e->platform);
   }

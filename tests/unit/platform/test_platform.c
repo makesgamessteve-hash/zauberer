@@ -158,6 +158,7 @@ static void test_video_failure(void) {
   TEST_ASSERT_EQUAL_INT(0, w);
   zb_platform_swap(g_p);
   zb_platform_set_fullscreen(g_p, true);
+  zb_platform_set_window_size(g_p, 100, 100);
   TEST_ASSERT_FALSE(zb_platform_is_fullscreen(g_p));
   SDL_ResetHint(SDL_HINT_VIDEO_DRIVER);
 }
@@ -178,6 +179,18 @@ static void test_window(void) {
   zb_platform_swap(g_p);
   zb_platform_set_fullscreen(g_p, true);
   zb_platform_set_fullscreen(g_p, false);
+  zb_platform_set_window_size(g_p, 800, 600);
+  bool resized = false;
+  SDL_Event rev;
+  while (SDL_PollEvent(&rev)) {
+    zb_event out;
+    if (zb_platform_translate_event(g_p, &rev, &out) && out.type == ZB_EV_RESIZE && out.u.resize.width == 800) {
+      resized = true;
+    }
+  }
+  TEST_ASSERT_TRUE(resized);
+  zb_platform_drawable_size(g_p, &w, &h);
+  TEST_ASSERT_EQUAL_INT(600, h);
   TEST_ASSERT_FALSE(zb_platform_is_fullscreen(g_p));
   zb_platform_request_quit(g_p);
   SDL_Event ev;

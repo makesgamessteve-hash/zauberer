@@ -7,6 +7,7 @@ return {
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },
   spin = { type = "button", bind = { "key:space", "mouse:left", "gamepad:a", "touch:button:spin" } },
   chime = { type = "button", bind = { "key:c", "gamepad:x", "touch:button:chime" } },
+  credits = { type = "button", bind = { "key:f1", "key:tab", "gamepad:back", "touch:button:credits" } },
   fullscreen = { type = "button", bind = { "key:f11" } },
   quit = { type = "button", bind = { "key:escape", "gamepad:start" } },
 }

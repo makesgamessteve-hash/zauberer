@@ -18,7 +18,7 @@ end
 M.clamp = clamp
 
 function M.new()
-  return { yaw = 30, pitch = 15, distance = 4, spin = 0, time = 0, spins = 0, chimes = 0 }
+  return { yaw = 30, pitch = 15, distance = 4, spin = 0, time = 0, spins = 0, chimes = 0, credits = false }
 end
 
 local function axis(a, field)
@@ -26,7 +26,7 @@ local function axis(a, field)
 end
 
 -- Advances the state by dt seconds; returns a list of events
--- ("chime", "quit", "fullscreen", "spin").
+-- ("chime", "quit", "fullscreen", "spin", "credits").
 function M.update(s, inp, dt)
   local events = {}
   s.time = s.time + dt
@@ -44,6 +44,10 @@ function M.update(s, inp, dt)
   if inp.chime and inp.chime.pressed then
     s.chimes = s.chimes + 1
     events[#events + 1] = "chime"
+  end
+  if inp.credits and inp.credits.pressed then
+    s.credits = not s.credits
+    events[#events + 1] = "credits"
   end
   if inp.fullscreen and inp.fullscreen.pressed then
     events[#events + 1] = "fullscreen"

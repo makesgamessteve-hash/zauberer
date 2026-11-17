@@ -7,6 +7,7 @@ M.LAYOUT = {
   buttons = {
     { name = "spin", x = 0.74, y = 0.66, w = 0.2, h = 0.22 },
     { name = "chime", x = 0.74, y = 0.40, w = 0.2, h = 0.18 },
+    { name = "credits", x = 0.84, y = 0.04, w = 0.14, h = 0.12 },
   },
 }
 

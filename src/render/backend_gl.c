@@ -143,7 +143,8 @@ typedef ptrdiff_t GLintptr;
   X(void, glFramebufferRenderbuffer, (GLenum target, GLenum att, GLenum rt, GLuint r)) \
   X(void, glBlitFramebuffer, (GLint sx0, GLint sy0, GLint sx1, GLint sy1, GLint dx0, GLint dy0, GLint dx1, \
                               GLint dy1, GLbitfield mask, GLenum filter)) \
-  X(void, glReadPixels, (GLint x, GLint y, GLsizei w, GLsizei h, GLenum fmt, GLenum type, void *data))
+  X(void, glReadPixels, (GLint x, GLint y, GLsizei w, GLsizei h, GLenum fmt, GLenum type, void *data)) \
+  X(void, glFinish, (void))
 
 #define DECLARE(ret, name, args) ret(ZB_GLAPI *name) args;
 typedef struct gl_funcs {
@@ -548,6 +549,7 @@ static zb_result gl_capture(void *ctx, bool internal, const zb_allocator *a, zb_
   if (!out->rgba) {
     return ZB_ERR_NOMEM;
   }
+  c->gl.glFinish();
   c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, internal ? c->fbo : 0);
   c->gl.glPixelStorei(GL_PACK_ALIGNMENT, 1);
   c->gl.glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, out->rgba);

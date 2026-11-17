@@ -10,7 +10,7 @@
 #define BUDGET_STEP 1000
 #define RELOAD_INTERVAL_NS 250000000ull
 
-static const char *const k_events[] = {"init", "tick", "frame", "event", "shutdown", "reload"};
+static const char *const k_events[] = {"init", "tick", "frame", "event", "shutdown", "reload", "hash"};
 
 zb_script *zb_script_from(lua_State *L) { return *(zb_script **)lua_getextraspace(L); }
 
@@ -358,7 +358,7 @@ static int l_on(lua_State *L) {
   for (size_t i = 0; i < ZB_ARRAY_LEN(k_events); ++i) {
     known = known || strcmp(event, k_events[i]) == 0;
   }
-  luaL_argcheck(L, known, 1, "unknown event (init, tick, frame, event, shutdown, reload)");
+  luaL_argcheck(L, known, 1, "unknown event (init, tick, frame, event, shutdown, reload, hash)");
   luaL_checktype(L, 2, LUA_TFUNCTION);
   lua_getfield(L, LUA_REGISTRYINDEX, ZB_SCRIPT_REGISTRY_HOOKS);
   lua_rawgeti(L, -1, pkg + 1);
@@ -526,6 +526,46 @@ static int push_event(lua_State *L, const void *ud) {
 void zb_script_event(zb_script *s, const char *name, int a, int b, const char *text) {
   event_args e = {name, a, b, text};
   dispatch(s, "event", push_event, &e, false);
+}
+
+/* ---- State hash --------------------------------------------------------------------- */
+
+void zb_script_hash_base(zb_script *s, zb_hasher *h) {
+  zb_hasher_init(h, 0x7374617465);
+  zb_hasher_u64(h, s->cfg.host.tick_count ? s->cfg.host.tick_count(s->cfg.host.ctx) : 0);
+  if (s->cfg.input) {
+    for (size_t i = 0; i < zb_input_action_count(s->cfg.input); ++i) {
+      const zb_action_state *st = zb_input_state(s->cfg.input, (int)i);
+      zb_hasher_u64(h, (uint64_t)(st->held | (st->pressed << 1) | (st->released << 2)));
+      zb_hasher_f64(h, st->x);
+      zb_hasher_f64(h, st->y);
+    }
+  }
+  zb_hasher_u64(h, s->rng.counter);
+}
+
+uint64_t zb_script_state_hash(zb_script *s) {
+  lua_State *L = s->L;
+  zb_hasher h;
+  zb_script_hash_base(s, &h);
+  lua_getfield(L, LUA_REGISTRYINDEX, ZB_SCRIPT_REGISTRY_HOOKS);
+  int hooks = lua_gettop(L);
+  for (size_t pkg = 0; pkg < s->pkg_count; ++pkg) {
+    if (lua_rawgeti(L, hooks, (lua_Integer)pkg + 1) == LUA_TTABLE && lua_getfield(L, -1, "hash") == LUA_TFUNCTION) {
+      /* Keyed by package id and skipped for nil, so packages without state
+       * (or with none yet) leave the hash unchanged. */
+      if (zb_script_pcall(s, 0, 1, pkg_id(s, pkg), true) && !lua_isnil(L, -1)) {
+        const char *id = pkg_id(s, pkg);
+        zb_hasher_bytes(&h, id, strlen(id) + 1);
+        zb_script_hash_value(L, -1, &h, 0);
+      }
+    } else {
+      lua_pop(L, 1);
+    }
+    lua_settop(L, hooks);
+  }
+  lua_pop(L, 1);
+  return zb_hasher_final(&h);
 }
 
 /* ---- Hot reload ------------------------------------------------------------------ */

@@ -1,14 +1,14 @@
 -- SPDX-License-Identifier: MIT
 -- Entry script of the base package: the M0 demo (a flying carpet, mana
--- motes, text, sound and input from every device).
+-- motes, text, sound, input from every device and the credits list).
 local state = require("demo.state")
 local hud = require("demo.hud")
 local touch = require("demo.touch")
 
-local game = { state = state.new(), fullscreen = false }
+local game = { state = state.new(), fullscreen = false, hud = true }
 local assets = {}
 
-local ACTIONS = { "turn", "look", "zoom", "spin", "chime", "fullscreen", "quit" }
+local ACTIONS = { "turn", "look", "zoom", "spin", "chime", "credits", "fullscreen", "quit" }
 
 engine.on("init", function()
   assets.carpet = render.model("models/carpet.glb")
@@ -17,6 +17,7 @@ engine.on("init", function()
   render.clear_color(0.08, 0.06, 0.14)
   render.light({ direction = { -0.4, -1, -0.3 }, color = { 1, 0.92, 0.8 }, ambient = { 0.35, 0.3, 0.4 } })
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
+  game.credits = engine.credits()
   if input.mode() == "touch" then
     touch.setup()
   end
@@ -51,17 +52,29 @@ engine.on("frame", function()
   for _, p in ipairs(state.motes(s)) do
     render.draw_sprite(assets.mote, p, 1)
   end
-  local info = engine.info()
-  for i, line in ipairs(hud.lines(s, input.mode(), info)) do
-    render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
+  if game.hud then
+    local info = engine.info()
+    for i, line in ipairs(hud.lines(s, input.mode(), info, game.credits)) do
+      render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
+    end
   end
 end)
 
+-- The simulation state that replays and the determinism checks hash.
+engine.on("hash", function()
+  return game.state
+end)
+
 engine.on("event", function(name, args)
-  if name == "input_mode" and args.value == "touch" then
-    touch.setup()
+  if name == "input_mode" then
+    game.input_mode_event = args.value
+    if args.value == "touch" then
+      touch.setup()
+    end
+  elseif name == "resize" then
+    game.drawable = { args.width, args.height }
   end
 end)
 
 -- Exposed for scenario tests.
-demo = { game = game, assets = assets, state = state }
+_G.demo = { game = game, assets = assets, state = state, touch = touch }

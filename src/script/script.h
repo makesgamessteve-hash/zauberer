@@ -33,6 +33,8 @@ typedef struct zb_script_host {
   void (*set_fullscreen)(void *ctx, bool on);
   /* Persists the user's input bindings. */
   zb_result (*save_bindings)(void *ctx);
+  /* Test API: resizes the window (no-op without one). */
+  void (*set_window_size)(void *ctx, int w, int h);
 } zb_script_host;
 
 typedef struct zb_script_config {
@@ -66,6 +68,9 @@ void zb_script_init_hooks(zb_script *s);
 void zb_script_tick(zb_script *s, double dt);
 void zb_script_frame(zb_script *s, double alpha);
 void zb_script_shutdown(zb_script *s);
+/* Canonical simulation state hash: tick, input snapshot, random-number
+ * counter and the values returned by the packages' "hash" hooks. */
+uint64_t zb_script_state_hash(zb_script *s);
 /* Named events: "resize" (w, h), "input_mode" (mode), "audio_unlocked". */
 void zb_script_event(zb_script *s, const char *name, int a, int b, const char *text);
 

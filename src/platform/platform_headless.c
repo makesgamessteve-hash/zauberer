@@ -2,6 +2,9 @@
 /* Platform layer without SDL, for headless-only builds (the WebAssembly test
  * build running under Node.js). POSIX file access, no window, no audio, no
  * threads (the job system runs inline). */
+#if !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "platform/platform.h"
 
 #include <dirent.h>
@@ -31,9 +34,13 @@ const char *zb_platform_name(void) {
 
 static zb_result px_read(void *ctx, const char *path, const zb_allocator *a, char **data, size_t *len) {
   (void)ctx;
-  FILE *f = fopen(path, "rb");
-  if (!f) {
+  struct stat st;
+  if (stat(path, &st) != 0) {
     return errno == ENOENT ? ZB_ERR_NOT_FOUND : ZB_ERR_IO;
+  }
+  FILE *f = S_ISDIR(st.st_mode) ? NULL : fopen(path, "rb");
+  if (!f) {
+    return ZB_ERR_IO;
   }
   fseek(f, 0, SEEK_END);
   long n = ftell(f);
@@ -199,6 +206,7 @@ void zb_platform_drawable_size(zb_platform *p, int *w, int *h) { (void)p; *w = 0
 void zb_platform_swap(zb_platform *p) { (void)p; }
 void zb_platform_set_fullscreen(zb_platform *p, bool on) { (void)p; (void)on; }
 bool zb_platform_is_fullscreen(zb_platform *p) { (void)p; return false; }
+void zb_platform_set_window_size(zb_platform *p, int w, int h) { (void)p; (void)w; (void)h; }
 zb_gl_proc zb_platform_gl_proc(zb_platform *p, const char *name) { (void)p; (void)name; return NULL; }
 bool zb_platform_is_gles(zb_platform *p) { (void)p; return false; }
 

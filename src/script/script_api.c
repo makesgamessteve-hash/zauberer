@@ -226,27 +226,33 @@ static int e_log(lua_State *L) {
   return 0;
 }
 
+/* engine.hash_state([value]): the base state hash, extended by value; with
+ * no argument, the full engine state hash including the "hash" hooks. */
 static int e_hash_state(lua_State *L) {
   zb_script *s = S(L);
-  zb_hasher h;
-  zb_hasher_init(&h, 0x7374617465);
-  zb_hasher_u64(&h, s->cfg.host.tick_count ? s->cfg.host.tick_count(s->cfg.host.ctx) : 0);
-  if (s->cfg.input) {
-    for (size_t i = 0; i < zb_input_action_count(s->cfg.input); ++i) {
-      const zb_action_state *st = zb_input_state(s->cfg.input, (int)i);
-      zb_hasher_u64(&h, (uint64_t)(st->held | (st->pressed << 1) | (st->released << 2)));
-      zb_hasher_f64(&h, st->x);
-      zb_hasher_f64(&h, st->y);
-    }
-  }
-  zb_hasher_u64(&h, s->rng.counter);
-  if (!lua_isnoneornil(L, 1)) {
+  uint64_t value;
+  if (lua_isnoneornil(L, 1)) {
+    value = zb_script_state_hash(s);
+  } else {
+    zb_hasher h;
+    zb_script_hash_base(s, &h);
     zb_script_hash_value(L, 1, &h, 0);
+    value = zb_hasher_final(&h);
   }
   char hex[17];
-  zb_hash_hex(zb_hasher_final(&h), hex);
+  zb_hash_hex(value, hex);
   lua_pushstring(L, hex);
   return 1;
+}
+
+static int e_resize_window(lua_State *L) {
+  zb_script *s = S(L);
+  int w = (int)luaL_checkinteger(L, 1), h = (int)luaL_checkinteger(L, 2);
+  luaL_argcheck(L, w > 0 && h > 0, 1, "size must be positive");
+  if (s->cfg.host.set_window_size) {
+    s->cfg.host.set_window_size(s->cfg.host.ctx, w, h);
+  }
+  return 0;
 }
 
 static void set_str(lua_State *L, const char *k, const char *v) {
@@ -991,6 +997,10 @@ void zb_script_open_api(zb_script *s) {
     {"set_user_binding", i_set_user_binding}, {NULL, NULL}};
   reg(L, "input", input_fns);
   if (s->cfg.test_api) {
+    lua_getglobal(L, "engine");
+    lua_pushcfunction(L, e_resize_window);
+    lua_setfield(L, -2, "resize_window");
+    lua_pop(L, 1);
     lua_getglobal(L, "input");
     lua_pushcfunction(L, i_inject);
     lua_setfield(L, -2, "inject");

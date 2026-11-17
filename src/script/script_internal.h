@@ -69,6 +69,8 @@ void zb_script_open_api(zb_script *s);
 void zb_script_open_test_api(zb_script *s);
 /* Canonical hash of a Lua value (sorted keys, IEEE bit patterns). */
 void zb_script_hash_value(lua_State *L, int idx, zb_hasher *h, int depth);
+/* Starts a state hash with the tick, input snapshot and random-number counter. */
+void zb_script_hash_base(zb_script *s, zb_hasher *h);
 /* Makes a sandboxed environment table (index -> globals) on the stack. */
 void zb_script_new_env(zb_script *s, int pkg);
 

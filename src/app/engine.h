@@ -5,6 +5,7 @@
 #define ZB_APP_ENGINE_H
 
 #include "audio/audio.h"
+#include "core/array.h"
 #include "core/cli.h"
 #include "core/jobs.h"
 #include "core/loop.h"
@@ -47,7 +48,22 @@ typedef struct zb_engine {
   char *replay_data;
   uint32_t overlay_font;
   bool scripts_ready;
+  bool first_frame_shown;
+  uint64_t steps;            /* ticks plus paused steps (headless and scenario modes) */
+  /* Replay state hashes: expected (from <replay>.hashes) and recorded. */
+  zb_array expected_hashes;  /* zb_tick_hash */
+  size_t next_expected;
+  bool replay_diverged;
+  zb_array recorded_hashes;  /* zb_tick_hash */
 } zb_engine;
+
+typedef struct zb_tick_hash {
+  uint64_t tick;
+  uint64_t hash;
+} zb_tick_hash;
+
+/* Interval of the state hashes written next to an input recording. */
+#define ZB_HASH_INTERVAL 60u
 
 /* Creates the engine from command-line arguments. On failure the returned
  * status is ZB_HOST_FAILURE (errors already reported); --help and --version

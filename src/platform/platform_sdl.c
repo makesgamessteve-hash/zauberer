@@ -256,6 +256,28 @@ zb_result zb_platform_user_dir(zb_platform *p, char *out, size_t len) {
 
 /* ---- Window and GL --------------------------------------------------------- */
 
+/* After the required context failed: what does the driver offer by default? */
+static void detect_gl_version(SDL_Window *window, char *out, size_t len) {
+  char reason[160];
+  snprintf(reason, sizeof reason, "%s", SDL_GetError());
+  SDL_GL_ResetAttributes();
+  SDL_GLContext ctx = SDL_GL_CreateContext(window);
+  const char *version = NULL;
+  if (ctx) {
+    typedef const unsigned char *(*get_string_fn)(unsigned int);
+    get_string_fn get_string = (get_string_fn)SDL_GL_GetProcAddress("glGetString");
+    version = get_string ? (const char *)get_string(0x1F02 /* GL_VERSION */) : NULL;
+  }
+  if (version) {
+    snprintf(out, len, "OpenGL %s", version);
+  } else {
+    snprintf(out, len, "no usable OpenGL context (%s)", reason);
+  }
+  if (ctx) {
+    SDL_GL_DestroyContext(ctx);
+  }
+}
+
 zb_result zb_platform_open_window(zb_platform *p, const zb_window_desc *desc, char *err, size_t err_len) {
   if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
     snprintf(err, err_len, "cannot initialise video: %s", SDL_GetError());
@@ -292,8 +314,9 @@ zb_result zb_platform_open_window(zb_platform *p, const zb_window_desc *desc, ch
   }
   p->gl = SDL_GL_CreateContext(p->window);
   if (!p->gl) {
-    snprintf(err, err_len, "%s is required, but the driver could not create it (detected: %s)", required,
-             SDL_GetError());
+    char detected[256];
+    detect_gl_version(p->window, detected, sizeof detected);
+    snprintf(err, err_len, "%s is required, but the graphics driver only provides %s", required, detected);
     SDL_DestroyWindow(p->window);
     p->window = NULL;
     return ZB_ERR_UNSUPPORTED;
@@ -328,6 +351,12 @@ void zb_platform_set_fullscreen(zb_platform *p, bool on) {
 }
 
 bool zb_platform_is_fullscreen(zb_platform *p) { return p->fullscreen; }
+
+void zb_platform_set_window_size(zb_platform *p, int w, int h) {
+  if (p->window && SDL_SetWindowSize(p->window, w, h)) {
+    SDL_SyncWindow(p->window);
+  }
+}
 
 zb_gl_proc zb_platform_gl_proc(zb_platform *p, const char *name) {
   (void)p;

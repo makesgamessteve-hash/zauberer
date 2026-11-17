@@ -39,6 +39,10 @@ if(ZB_HEADLESS_ONLY)
 else()
   zb_module(zb_platform SOURCES platform/platform_sdl.c DEPS zb_core SDL3::SDL3)
   set(ZB_ENTRY platform/sdl_main.c)
+  if(UNIX AND ZB_TESTS)
+    # Built alongside the SDL platform so its unit test runs in every POSIX build.
+    zb_module(zb_platform_headless SOURCES platform/platform_headless.c DEPS zb_core)
+  endif()
 endif()
 
 zb_module(zb_app SOURCES app/engine.c app/host.c

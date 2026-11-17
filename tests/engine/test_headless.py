@@ -1,0 +1,245 @@
+# SPDX-License-Identifier: MIT
+"""Engine-level tests that run the binary headless (every platform, including web-node)."""
+from __future__ import annotations
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+import unittest
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from engine_support import ASSETS, SOURCE_DIR, EngineTestCase  # noqa: E402
+
+REPLAY = SOURCE_DIR / "tests" / "replays" / "demo.zbrec"
+
+
+class StartupTests(EngineTestCase):
+    # spec: game-loop: Run a fixed number of ticks
+    def test_fixed_number_of_ticks(self):
+        result = self.run_engine("--headless", "--ticks", "600")
+        self.assert_ok(result)
+        self.assertIn("state hash at tick 600:", result.stdout)
+        self.assertNotIn("renderer:", result.stdout, "no graphics context in headless mode")
+
+    # spec: platform-targets: Missing content folder
+    def test_missing_content_folder(self):
+        missing = self.tmp / "nowhere" / "assets"
+        result = self.run_engine("--headless", "--ticks", "1", assets=missing)
+        self.assert_fails(result)
+        self.assertIn("The game content was not found", result.stdout)
+        self.assertIn(str(missing), result.stdout)
+
+    def test_missing_content_beside_binary(self):
+        staged = self.tmp / "bin"
+        staged.mkdir()
+        binary = staged / self.bin.name
+        shutil.copy2(self.bin, binary)
+        result = self.run_engine("--headless", "--ticks", "1", assets=None, binary=binary)
+        self.assert_fails(result)
+        self.assertIn("Expected the 'assets' folder at", result.stdout)
+
+    # spec: platform-targets: Content path override
+    def test_content_path_override(self):
+        copy = self.tmp / "content"
+        shutil.copytree(ASSETS, copy)
+        result = self.run_engine("--headless", "--ticks", "10", assets=copy)
+        self.assert_ok(result)
+        self.assertIn(f"loaded from {copy / 'base'}", result.stdout)
+
+    def test_no_usable_package(self):
+        empty = self.tmp / "empty-assets"
+        empty.mkdir()
+        result = self.run_engine("--headless", "--ticks", "1", assets=empty)
+        self.assert_fails(result)
+        self.assertIn("No usable content package", result.stdout)
+
+    def test_help_version_and_bad_arguments(self):
+        self.assertIn("usage: zauberer", self.run_engine("--help", assets=None).stdout)
+        version = self.run_engine("--version", assets=None)
+        self.assert_ok(version)
+        self.assertRegex(version.stdout, r"zauberer \d+\.\d+\.\d+")
+        bad = self.run_engine("--ticks", "many", assets=None)
+        self.assert_fails(bad)
+        self.assertIn("invalid tick count", bad.stdout)
+
+    # spec: platform-targets: Script requests quit
+    def test_script_requests_quit(self):
+        self.install_mods("order_a", "order_b")
+        result = self.scenario("quit")
+        self.assert_ok(result)
+        lines = result.stdout.splitlines()
+        b = next(i for i, l in enumerate(lines) if "shutdown order_b" in l)
+        a = next(i for i, l in enumerate(lines) if "shutdown order_a" in l)
+        self.assertLess(b, a, "shutdown hooks run in reverse load order")
+
+    # spec: platform-targets: Data persists across runs
+    # spec: platform-targets: Override for tests
+    def test_data_persists_in_user_dir(self):
+        self.assert_ok(self.scenario("save_write"))
+        self.assertTrue((self.user_dir / "save.lua").is_file(), "save data lives below --user-dir")
+        self.assert_ok(self.scenario("save_read"))
+        other = self.tmp / "other-user"
+        other.mkdir()
+        self.assert_fails(self.scenario("save_read", user_dir=other))
+
+    def test_user_config_is_applied(self):
+        (self.user_dir / "config.lua").write_text(
+            "return { bindings = { chime = { 'key:j' }, ghost = { 'key:k' } },"
+            " volume = { master = 0.5, music = 0.25, effects = 1 } }\n", encoding="utf-8")
+        script = self.tmp / "config.lua"
+        script.write_text(
+            "scenario { name = 'config' }\n"
+            "expect_eq(input.bindings('chime')[1], 'key:j')\n"
+            "expect_eq(audio.group_volume('music'), 0.25)\n", encoding="utf-8")
+        result = self.run_engine("--headless", "--scenario", str(script))
+        self.assert_ok(result)
+        self.assertIn("ghost", result.stdout, "a stale entry is reported")
+        (self.user_dir / "config.lua").write_text("return {", encoding="utf-8")
+        result = self.run_engine("--headless", "--ticks", "1")
+        self.assert_ok(result)
+        self.assertIn("configuration ignored", result.stdout)
+
+    def test_broken_input_data(self):
+        self.install_mods("override")
+        (self.user_dir / "mods" / "override" / "data" / "input.lua").write_text("return { chime = {", encoding="utf-8")
+        result = self.run_engine("--headless", "--ticks", "1")
+        self.assert_ok(result)
+        self.assertIn("data/input.lua", result.stdout)
+        (self.user_dir / "mods" / "override" / "data" / "input.lua").write_text(
+            "return { chime = { type = 'button', bind = { 'key:nope' } } }", encoding="utf-8")
+        result = self.run_engine("--headless", "--ticks", "1")
+        self.assertIn("invalid binding 'key:nope'", result.stdout)
+
+
+class ScenarioTests(EngineTestCase):
+    # spec: test-automation: Passing scenario
+    def test_passing_scenario(self):
+        result = self.scenario("demo_runs")
+        self.assert_ok(result)
+        self.assertIn("scenario 'demo runs for ten seconds': passed after 600 ticks", result.stdout)
+
+    # spec: test-automation: Failing scenario
+    def test_failing_scenario(self):
+        result = self.run_engine("--headless", "--scenario", "tests/fixtures/scenarios/failing.lua")
+        self.assert_fails(result)
+        self.assertRegex(result.stdout, r"scenario 'deliberate failure' FAILED at tick 42: .*failing.lua:5: tick count")
+
+    def test_missing_and_broken_scenarios(self):
+        self.assert_fails(self.run_engine("--headless", "--scenario", "tests/scenarios/none.lua"))
+        broken = self.tmp / "broken.lua"
+        broken.write_text("scenario {", encoding="utf-8")
+        self.assert_fails(self.run_engine("--headless", "--scenario", str(broken)))
+
+    def test_input_scenario(self):
+        self.assert_ok(self.scenario("input"))
+
+    # spec: game-loop: Paused game keeps rendering
+    def test_pause_scenario(self):
+        self.assert_ok(self.scenario("pause"))
+
+    # spec: asset-packages: Invalid manifest
+    # spec: asset-packages: Dependency cycle
+    # spec: asset-packages: Package targets a future API
+    # spec: lua-scripting: Failing tick hook
+    # spec: content-licensing: Mod assets appear in credits
+    def test_fixture_packages(self):
+        self.install_mods("override", "broken", "cycle_a", "cycle_b", "future", "failing_hook")
+        result = self.scenario("packages")
+        self.assert_ok(result)
+        self.assertIn("failing_hook fixture: deliberate error at tick 5", result.stdout)
+        self.assertIn("'tick' hook disabled", result.stdout)
+
+    # spec: input-actions: Phone starts in touch mode
+    def test_touch_first_device(self):
+        self.assert_ok(self.scenario("touch_mode", env={"ZB_TOUCH_PRIMARY": "1"}))
+
+    def test_recording_from_a_scenario(self):
+        record = self.tmp / "rec.zbrec"
+        result = self.scenario("record_demo", "--record", str(record), "--seed", "7")
+        self.assert_ok(result)
+        self.assertTrue(record.is_file())
+        hashes = Path(str(record) + ".hashes").read_text(encoding="utf-8").split()
+        self.assertEqual(hashes[0], "60")
+        self.assertEqual(len(hashes), 20, "a hash every 60 ticks for 600 ticks")
+
+
+class LuaTests(EngineTestCase):
+    # spec: test-automation: Run Lua tests
+    def test_run_lua_tests(self):
+        junit = self.tmp / "lua.xml"
+        result = self.run_engine("--headless", "--test", "tests/lua", "--junit", str(junit))
+        self.assert_ok(result)
+        suite = ET.parse(junit).getroot()
+        self.assertEqual(suite.tag, "testsuite")
+        self.assertGreaterEqual(int(suite.get("tests")), 10)
+        self.assertEqual(suite.findall(".//failure"), [])
+        files = {case.get("classname") for case in suite.iter("testcase")}
+        self.assertIn("tests/lua/test_demo_state.lua", files)
+
+    def test_failing_lua_test(self):
+        tests = self.tmp / "lua"
+        tests.mkdir()
+        (tests / "test_fail.lua").write_text("test.case('fails', function() test.expect_eq(1, 2) end)\n",
+                                             encoding="utf-8")
+        result = self.run_engine("--headless", "--test", str(tests))
+        self.assert_fails(result)
+        self.assertIn("FAIL", result.stdout)
+
+
+class ReplayTests(EngineTestCase):
+    # spec: input-actions: Replay reproduces actions
+    # spec: game-loop: Same inputs, same hash
+    # spec: game-loop: Cross-platform hash
+    def test_replay_matches_recorded_hashes(self):
+        first = self.run_engine("--headless", "--replay", str(REPLAY))
+        self.assert_ok(first)
+        self.assertIn("checking 10 state hash(es)", first.stdout)
+        second = self.run_engine("--headless", "--replay", str(REPLAY))
+        self.assert_ok(second)
+        self.assertEqual(self.final_hash(first.stdout), self.final_hash(second.stdout))
+        expected = Path(str(REPLAY) + ".hashes").read_text(encoding="utf-8").split()[-1]
+        self.assertEqual(self.final_hash(first.stdout), expected)
+        out = os.environ.get("ZB_HASH_REPORT")
+        if out:  # collected by the CI determinism job
+            Path(out).write_text(f"{self.final_hash(first.stdout)}\n", encoding="utf-8")
+
+    # spec: test-automation: Divergence detected
+    def test_divergence_detected(self):
+        self.install_mods("drift")
+        result = self.run_engine("--headless", "--replay", str(REPLAY))
+        self.assert_fails(result)
+        self.assertRegex(result.stdout, r"replay diverged at tick 300: expected state hash [0-9a-f]{16}, got [0-9a-f]{16}")
+
+    def test_bad_replay_files(self):
+        self.assert_fails(self.run_engine("--headless", "--replay", str(self.tmp / "missing.zbrec")))
+        junk = self.tmp / "junk.zbrec"
+        junk.write_bytes(b"not a recording")
+        result = self.run_engine("--headless", "--replay", str(junk))
+        self.assert_fails(result)
+        self.assertIn("not an input recording", result.stdout)
+
+    def test_replay_without_hashes(self):
+        copy = self.tmp / "copy.zbrec"
+        shutil.copy2(REPLAY, copy)
+        result = self.run_engine("--headless", "--replay", str(copy), "--seed", "7")
+        self.assert_ok(result)
+        self.assertNotIn("checking", result.stdout)
+
+
+class FailingUnitTestFixture(unittest.TestCase):
+    # spec: test-automation: Failing unit test
+    def test_failing_unit_test_reports_location(self):
+        fixture = os.environ.get("ZB_FAILING_UNIT_FIXTURE")
+        if not fixture:
+            self.skipTest("ZB_FAILING_UNIT_FIXTURE is not set")
+        result = subprocess.run([fixture], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertRegex(result.stdout, r"test_failing\.c:\d+:test_deliberate_failure:FAIL")
+
+
+if __name__ == "__main__":
+    unittest.main()

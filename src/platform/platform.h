@@ -45,6 +45,9 @@ bool zb_platform_has_window(zb_platform *p);
 void zb_platform_drawable_size(zb_platform *p, int *w, int *h);
 void zb_platform_swap(zb_platform *p);
 void zb_platform_set_fullscreen(zb_platform *p, bool on);
+/* Resizes the window (in window coordinates); the drawable-size change
+ * arrives as a resize event. */
+void zb_platform_set_window_size(zb_platform *p, int w, int h);
 bool zb_platform_is_fullscreen(zb_platform *p);
 zb_gl_proc zb_platform_gl_proc(zb_platform *p, const char *name);
 bool zb_platform_is_gles(zb_platform *p);
