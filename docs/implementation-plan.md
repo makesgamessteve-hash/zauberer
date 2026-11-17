@@ -238,7 +238,7 @@ with the MIT-licensed code. `THIRD_PARTY_NOTICES.md` lists them with exact versi
 ## 3. Repository layout
 
 ```
-CMakeLists.txt  CMakePresets.json        build entry; presets: dev, release, coverage, asan, web, web-st
+CMakeLists.txt  CMakePresets.json        build entry; presets: dev, release, coverage, asan, web, web-st, web-node
 cmake/                                    toolchains, warnings, coverage, sanitizer, dependency pins
 src/
   core/ platform/ vfs/ script/ input/ render/ audio/ world/ sim/ game/
