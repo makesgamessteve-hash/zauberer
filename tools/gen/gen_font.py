@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+# REUSE-IgnoreStart
 """Generates the project's 5x7 pixel font (fonts/pixel.png + fonts/pixel.lua).
 
 The glyph shapes are original work of the Zauberer project (CC BY 4.0)."""
@@ -146,3 +147,4 @@ def main(out_dir):
 
 if __name__ == "__main__":
     main(sys.argv[1] if len(sys.argv) > 1 else "assets/base/fonts")
+# REUSE-IgnoreEnd

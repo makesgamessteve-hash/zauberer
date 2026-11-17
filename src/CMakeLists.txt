@@ -53,17 +53,45 @@ zb_target_defaults(zauberer)
 target_link_libraries(zauberer PRIVATE zb_app)
 set_target_properties(zauberer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 
+# Stage the content folder beside the executable (and, on the web, the page,
+# loader and asset index), so every build directory is runnable as installed.
+find_package(Python3 COMPONENTS Interpreter)
+set(ZB_STAGE_DIR "${PROJECT_BINARY_DIR}/bin")
+set(ZB_STAGE_COMMANDS
+  COMMAND "${CMAKE_COMMAND}" -E rm -rf "${ZB_STAGE_DIR}/assets"
+  COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/assets" "${ZB_STAGE_DIR}/assets")
+if(EMSCRIPTEN AND NOT ZB_HEADLESS_ONLY)
+  if(NOT Python3_FOUND)
+    message(FATAL_ERROR "The web build needs Python 3 to write the asset index")
+  endif()
+  list(APPEND ZB_STAGE_COMMANDS
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/make_asset_index.py"
+      --assets "${ZB_STAGE_DIR}/assets" --out "${ZB_STAGE_DIR}/assets/index.tsv"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${PROJECT_SOURCE_DIR}/web/index.html"
+      "${PROJECT_SOURCE_DIR}/web/zauberer-loader.js" "${ZB_STAGE_DIR}")
+endif()
+file(GLOB_RECURSE ZB_ASSET_FILES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/assets/*")
+file(GLOB ZB_WEB_FILES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/web/*")
+add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/stage.stamp"
+  ${ZB_STAGE_COMMANDS}
+  COMMAND "${CMAKE_COMMAND}" -E touch "${PROJECT_BINARY_DIR}/stage.stamp"
+  DEPENDS ${ZB_ASSET_FILES} ${ZB_WEB_FILES} "${PROJECT_SOURCE_DIR}/tools/make_asset_index.py"
+  COMMENT "Staging assets beside the executable")
+add_custom_target(zb_stage ALL DEPENDS "${PROJECT_BINARY_DIR}/stage.stamp")
+add_dependencies(zauberer zb_stage)
+
 if(EMSCRIPTEN)
   set(ZB_WEB_LINK -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=1048576 -sFORCE_FILESYSTEM=1)
   if(ZB_HEADLESS_ONLY)
-    list(APPEND ZB_WEB_LINK -sENVIRONMENT=node -sNODERAWFS=1 -sEXIT_RUNTIME=1)
+    # Node.js flags are set for every executable in cmake/ZbCompiler.cmake.
   else()
     list(APPEND ZB_WEB_LINK -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sGL_ENABLE_GET_PROC_ADDRESS=1
       -lidbfs.js "-sEXPORTED_RUNTIME_METHODS=['FS','IDBFS','UTF8ToString','ccall']"
       "-sEXPORTED_FUNCTIONS=['_main','_zb_web_fetch_done','_zb_web_audio_unlocked','_zb_web_state']"
       --js-library "${PROJECT_SOURCE_DIR}/web/lib_zauberer.js" -sMODULARIZE=0)
     if(ZB_WEB_THREADS)
-      list(APPEND ZB_WEB_LINK -sPTHREAD_POOL_SIZE=4)
+      # Memory growth with threads costs some JS-side speed; accepted (design §web).
+      list(APPEND ZB_WEB_LINK -sPTHREAD_POOL_SIZE=4 -Wno-pthreads-mem-growth)
       set_target_properties(zauberer PROPERTIES OUTPUT_NAME zauberer)
     else()
       set_target_properties(zauberer PROPERTIES OUTPUT_NAME zauberer-st)

@@ -406,6 +406,53 @@ static void test_gl_version_parsing(void) {
   TEST_ASSERT_FALSE(zb_gl_parse_version("no digits", &es, &major, &minor));
 }
 
+/* A fake GL: glGetString reports a chosen version, every other entry point
+ * exists but is never called before the version check. */
+static const char *g_fake_version;
+static const char *g_missing_fn;
+
+static const unsigned char *fake_get_string(unsigned int name) {
+  (void)name;
+  return (const unsigned char *)g_fake_version;
+}
+
+static void fake_noop(void) {}
+
+static zb_gl_fn fake_loader(void *ctx, const char *name) {
+  (void)ctx;
+  if (g_missing_fn && strcmp(name, g_missing_fn) == 0) {
+    return NULL;
+  }
+  if (strcmp(name, "glGetString") == 0) {
+    return (zb_gl_fn)fake_get_string;
+  }
+  return fake_noop;
+}
+
+/* spec: platform-targets: Unsupported graphics context */
+static void test_gl_backend_rejects_old_versions(void) {
+  char err[256];
+  g_missing_fn = NULL;
+  g_fake_version = "2.1 Mesa 25.2";
+  TEST_ASSERT_NULL(zb_render_gl_backend(zb_test_alloc(), fake_loader, NULL, false, NULL, err, sizeof err));
+  TEST_ASSERT_NOT_NULL(strstr(err, "OpenGL 3.3 core profile is required"));
+  TEST_ASSERT_NOT_NULL(strstr(err, "2.1 Mesa 25.2"));
+  g_fake_version = "OpenGL ES 2.0 (WebGL 1.0)";
+  TEST_ASSERT_NULL(zb_render_gl_backend(zb_test_alloc(), fake_loader, NULL, true, NULL, err, sizeof err));
+  TEST_ASSERT_NOT_NULL(strstr(err, "OpenGL ES 3.0 / WebGL 2"));
+  g_fake_version = NULL;
+  TEST_ASSERT_NULL(zb_render_gl_backend(zb_test_alloc(), fake_loader, NULL, false, NULL, err, sizeof err));
+  TEST_ASSERT_NOT_NULL(strstr(err, "unknown"));
+  g_missing_fn = "glBlitFramebuffer";
+  TEST_ASSERT_NULL(zb_render_gl_backend(zb_test_alloc(), fake_loader, NULL, false, NULL, err, sizeof err));
+  TEST_ASSERT_EQUAL_STRING("OpenGL function glBlitFramebuffer is missing", err);
+  g_missing_fn = NULL;
+  zb_failing_allocator fa;
+  TEST_ASSERT_NULL(
+      zb_render_gl_backend(zb_failing_init(&fa, zb_test_alloc(), 0), fake_loader, NULL, false, NULL, err, sizeof err));
+  TEST_ASSERT_EQUAL_STRING("out of memory", err);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_layout);
@@ -420,5 +467,6 @@ int main(void) {
   RUN_TEST(test_gltf_variants);
   RUN_TEST(test_create_failure);
   RUN_TEST(test_gl_version_parsing);
+  RUN_TEST(test_gl_backend_rejects_old_versions);
   return UNITY_END();
 }

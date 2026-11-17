@@ -178,6 +178,12 @@ static uint64_t h_ticks(void *ctx) { return ((fake_host *)ctx)->ticks; }
 static void h_pause(void *ctx, bool paused) { ((fake_host *)ctx)->paused = paused; }
 static void h_scale(void *ctx, double s) { ((fake_host *)ctx)->time_scale = s; }
 static void h_fullscreen(void *ctx, bool on) { ((fake_host *)ctx)->fullscreen = on; }
+static int g_user_data_changes;
+static void h_user_data(void *ctx) {
+  (void)ctx;
+  g_user_data_changes++;
+}
+
 static zb_result h_save(void *ctx) {
   fake_host *h = ctx;
   h->saves++;
@@ -200,6 +206,7 @@ static void configure(void) {
   F.cfg.host.set_time_scale = h_scale;
   F.cfg.host.set_fullscreen = h_fullscreen;
   F.cfg.host.save_bindings = h_save;
+  F.cfg.host.user_data_changed = h_user_data;
 }
 
 /* Mounts the packages and creates the script host (configure() first). */
@@ -819,6 +826,7 @@ static void test_save_api(void) {
        "save.set('deep', deep); save.set('odd', { [true] = 1, f = print })\n"
        "ok = save.flush()\n");
   TEST_ASSERT_TRUE(gbool("ok"));
+  TEST_ASSERT_TRUE(g_user_data_changes > 0);
   TEST_ASSERT_NOT_NULL(strstr(gstr("bad"), "nil, boolean, number, string or table expected"));
   stop();
   start();

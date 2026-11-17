@@ -75,6 +75,9 @@ static void test_inline_release_then_run(void) {
 }
 
 static void test_threaded_many_jobs(void) {
+  if (!zb_test_thread_api()) {
+    TEST_IGNORE_MESSAGE("no threads in this build");
+  }
   zb_jobs *js = zb_jobs_create(zb_test_alloc(), zb_test_thread_api(), 3);
   TEST_ASSERT_NOT_NULL(js);
   TEST_ASSERT_FALSE(zb_jobs_is_inline(js));
@@ -97,6 +100,9 @@ static void test_threaded_many_jobs(void) {
 }
 
 static void test_threaded_release_before_done(void) {
+  if (!zb_test_thread_api()) {
+    TEST_IGNORE_MESSAGE("no threads in this build");
+  }
   zb_jobs *js = zb_jobs_create(zb_test_alloc(), zb_test_thread_api(), 2);
   work w[16];
   for (int i = 0; i < 16; ++i) {
@@ -109,6 +115,9 @@ static void test_threaded_release_before_done(void) {
 }
 
 static void test_threaded_cancel_pending(void) {
+  if (!zb_test_thread_api()) {
+    TEST_IGNORE_MESSAGE("no threads in this build");
+  }
   zb_jobs *js = zb_jobs_create(zb_test_alloc(), zb_test_thread_api(), 1);
   work w = {0, NULL, NULL};
   zb_job *jj = zb_job_submit(js, add_one, &w, ZB_JOB_NORMAL);
@@ -123,7 +132,9 @@ static void test_threaded_cancel_pending(void) {
 static void test_create_failures(void) {
   zb_failing_allocator f;
   TEST_ASSERT_NULL(zb_jobs_create(zb_failing_init(&f, zb_test_alloc(), 0), NULL, 0));
-  TEST_ASSERT_NULL(zb_jobs_create(zb_failing_init(&f, zb_test_alloc(), 1), zb_test_thread_api(), 2));
+  if (zb_test_thread_api()) {
+    TEST_ASSERT_NULL(zb_jobs_create(zb_failing_init(&f, zb_test_alloc(), 1), zb_test_thread_api(), 2));
+  }
   zb_jobs *js = zb_jobs_create(zb_failing_init(&f, zb_test_alloc(), 1), NULL, 0);
   work w = {0, NULL, NULL};
   TEST_ASSERT_NULL(zb_job_submit(js, add_one, &w, ZB_JOB_NORMAL));

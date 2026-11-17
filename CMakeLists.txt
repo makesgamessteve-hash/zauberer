@@ -4,7 +4,12 @@ project(zauberer VERSION 0.1.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
+# EM_ASM/EM_JS (in SDL and the web platform layer) need the GNU dialect.
+if(EMSCRIPTEN)
+  set(CMAKE_C_EXTENSIONS ON)
+else()
+  set(CMAKE_C_EXTENSIONS OFF)
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(ZB_DEV "Development features: hot reload, on-screen errors, instruction budget" OFF)

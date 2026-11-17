@@ -1,0 +1,13 @@
+{
+  "name": "zauberer-web-tests",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests of the Zauberer web build",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 web.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

@@ -31,6 +31,10 @@ static void test_assert_handler(void) {
   ZB_ASSERT(1 + 1 == 2);
   TEST_ASSERT_EQUAL_INT(0, g_fired);
   ZB_ASSERT(1 + 1 == 3);
+#ifdef NDEBUG
+  TEST_ASSERT_EQUAL_INT(0, g_fired); /* assertions compile out in release builds */
+  zb_assert_fail("1 + 1 == 3", __FILE__, __LINE__);
+#endif
   TEST_ASSERT_EQUAL_INT(1, g_fired);
   TEST_ASSERT_EQUAL_STRING("1 + 1 == 3", g_expr);
   zb_set_assert_handler(NULL);

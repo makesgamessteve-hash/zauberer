@@ -7,6 +7,7 @@ Environment:
   ZB_SOURCE_DIR   repository root (default: two levels above this file)
   ZB_LUA_COVERAGE when set, every run adds --lua-coverage <file>
   ZB_RENDER_TESTS "1" enables the rendered (windowed) tests
+  ZB_RUNNER       program that runs the executables (node for web-node builds)
 """
 from __future__ import annotations
 
@@ -20,6 +21,12 @@ from pathlib import Path
 SOURCE_DIR = Path(os.environ.get("ZB_SOURCE_DIR", Path(__file__).resolve().parents[2]))
 ASSETS = SOURCE_DIR / "assets"
 FIXTURE_MODS = SOURCE_DIR / "tests" / "fixtures" / "mods"
+
+
+def runner_prefix() -> list[str]:
+    """The emulator command for cross builds (web-node runs under Node.js)."""
+    runner = os.environ.get("ZB_RUNNER", "")
+    return [runner] if runner and not runner.endswith("-NOTFOUND") else []
 
 
 def engine_binary() -> Path:
@@ -51,7 +58,7 @@ class EngineTestCase(unittest.TestCase):
     def run_engine(self, *args: str, assets: Path | None = ASSETS, user_dir: Path | None = None,
                    env: dict[str, str] | None = None, binary: Path | None = None,
                    cwd: Path | None = None, timeout: float = 300) -> subprocess.CompletedProcess:
-        cmd = [str(binary or self.bin)]
+        cmd = runner_prefix() + [str(binary or self.bin)]
         if assets is not None:
             cmd += ["--assets", str(assets)]
         cmd += ["--user-dir", str(user_dir or self.user_dir)]

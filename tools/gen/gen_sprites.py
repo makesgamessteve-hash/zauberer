@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+# REUSE-IgnoreStart
 """Generates the mana-mote sprite sheet (sprites/mote.png + sprites/mote.lua)."""
 import math
 import os
@@ -38,3 +39,4 @@ def main(out_dir):
 
 if __name__ == "__main__":
     main(sys.argv[1] if len(sys.argv) > 1 else "assets/base/sprites")
+# REUSE-IgnoreEnd

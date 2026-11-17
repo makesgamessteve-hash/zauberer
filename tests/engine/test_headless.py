@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from engine_support import ASSETS, SOURCE_DIR, EngineTestCase  # noqa: E402
+from engine_support import ASSETS, SOURCE_DIR, EngineTestCase, runner_prefix  # noqa: E402
 
 REPLAY = SOURCE_DIR / "tests" / "replays" / "demo.zbrec"
 
@@ -33,10 +33,13 @@ class StartupTests(EngineTestCase):
         self.assertIn("The game content was not found", result.stdout)
         self.assertIn(str(missing), result.stdout)
 
+    @unittest.skipIf(runner_prefix(), "web-node looks for content relative to the working directory")
     def test_missing_content_beside_binary(self):
         staged = self.tmp / "bin"
         staged.mkdir()
         binary = staged / self.bin.name
+        for part in self.bin.parent.glob(self.bin.stem + ".*"):  # zauberer.js needs zauberer.wasm
+            shutil.copy2(part, staged / part.name)
         shutil.copy2(self.bin, binary)
         result = self.run_engine("--headless", "--ticks", "1", assets=None, binary=binary)
         self.assert_fails(result)
@@ -236,7 +239,7 @@ class FailingUnitTestFixture(unittest.TestCase):
         fixture = os.environ.get("ZB_FAILING_UNIT_FIXTURE")
         if not fixture:
             self.skipTest("ZB_FAILING_UNIT_FIXTURE is not set")
-        result = subprocess.run([fixture], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+        result = subprocess.run(runner_prefix() + [fixture], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertRegex(result.stdout, r"test_failing\.c:\d+:test_deliberate_failure:FAIL")
 

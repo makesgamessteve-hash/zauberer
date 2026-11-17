@@ -65,6 +65,10 @@ if(NOT ZB_HEADLESS_ONLY)
     set(SDL_VULKAN OFF CACHE BOOL "" FORCE)
     set(SDL_DIALOG OFF CACHE BOOL "" FORCE)
     set(SDL_TRAY OFF CACHE BOOL "" FORCE)
+    if(EMSCRIPTEN AND ZB_WEB_THREADS)
+      # SDL defaults to no threads on the web; the threaded build needs them.
+      set(SDL_PTHREADS ON CACHE BOOL "" FORCE)
+    endif()
     if(ZB_SANITIZE OR ZB_COVERAGE)
       # SDL itself is third-party: keep it uninstrumented.
       set(SDL_ASAN OFF CACHE BOOL "" FORCE)

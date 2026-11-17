@@ -33,7 +33,7 @@ for _, c in ipairs(engine.credits()) do
   end
 end
 expect(credited["textures/rune.png"] and credited["textures/rune.png"].author == "Fixture Author")
-expect(credited["sounds/rune.wav"] and credited["sounds/rune.wav"].license == "CC0-1.0")
+expect(credited["sounds/rune.wav"] and credited["sounds/rune.wav"].license == "CC-BY-4.0")
 expect(credited["sounds/rune.wav"].source == "tests/fixtures")
 step(10)
 expect_eq(failing_hook_ticks, 5, "the failing hook is disabled after its error")

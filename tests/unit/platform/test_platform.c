@@ -326,6 +326,41 @@ static void test_virtual_gamepad(void) {
   SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
 }
 
+static void no_fetch(void *user, zb_result r) {
+  (void)user;
+  (void)r;
+  TEST_FAIL_MESSAGE("never called on the desktop");
+}
+
+static void no_state(void *user, char *out, size_t len) {
+  (void)user;
+  (void)out;
+  (void)len;
+}
+
+static void test_web_bridge_on_desktop(void) {
+  TEST_ASSERT_FALSE(zb_platform_has_fetch(g_p));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_UNSUPPORTED, zb_platform_fetch(g_p, "assets/base/x.png", no_fetch, NULL));
+  zb_platform_set_state_provider(g_p, no_state, NULL);
+  TEST_ASSERT_TRUE(SDL_InitSubSystem(SDL_INIT_EVENTS));
+  zb_platform_push_audio_unlock();
+  SDL_Event e;
+  bool unlocked = false;
+  while (SDL_PollEvent(&e)) {
+    zb_event out;
+    if (zb_platform_translate_event(g_p, &e, &out) && out.type == ZB_EV_AUDIO_UNLOCKED) {
+      unlocked = true;
+    }
+  }
+  TEST_ASSERT_TRUE(unlocked);
+  SDL_zero(e);
+  e.type = SDL_EVENT_USER;
+  e.user.code = 1;
+  zb_event out;
+  TEST_ASSERT_FALSE(zb_platform_translate_event(g_p, &e, &out));
+  SDL_QuitSubSystem(SDL_INIT_EVENTS);
+}
+
 static void test_messages_and_touch(void) {
   zb_platform_show_error(g_p, "Test", "this is shown on stderr only (ZB_NO_DIALOGS)");
   zb_test_setenv("ZB_TOUCH_PRIMARY", NULL);
@@ -372,6 +407,7 @@ int main(void) {
   RUN_TEST(test_window);
   RUN_TEST(test_event_translation);
   RUN_TEST(test_virtual_gamepad);
+  RUN_TEST(test_web_bridge_on_desktop);
   RUN_TEST(test_messages_and_touch);
   RUN_TEST(test_audio_device);
   int failures = UNITY_END();

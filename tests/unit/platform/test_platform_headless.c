@@ -28,12 +28,22 @@ static bool collect(const char *name, bool is_dir, void *user) {
 }
 
 static void test_basics(void) {
+#ifdef __EMSCRIPTEN__
+  TEST_ASSERT_EQUAL_STRING("web-node", zb_platform_name());
+#else
   TEST_ASSERT_EQUAL_STRING("headless", zb_platform_name());
+#endif
   TEST_ASSERT_NULL(zb_platform_threads(g_p));
   TEST_ASSERT_EQUAL_UINT(1, zb_platform_cpu_count(g_p));
   uint64_t t = zb_platform_now_ns(g_p);
   TEST_ASSERT_TRUE(zb_platform_now_ns(g_p) >= t);
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
+  const char *base = zb_platform_base_path(g_p);
+  TEST_ASSERT_NOT_NULL(strstr(base, "/"));
+  TEST_ASSERT_EQUAL_CHAR('/', base[strlen(base) - 1]);
+#else
   TEST_ASSERT_EQUAL_STRING("./", zb_platform_base_path(g_p));
+#endif
   zb_window_desc desc = {"x", 10, 10, false};
   char err[128];
   TEST_ASSERT_EQUAL_INT(ZB_ERR_UNSUPPORTED, zb_platform_open_window(g_p, &desc, err, sizeof err));
@@ -52,12 +62,20 @@ static void test_basics(void) {
   TEST_ASSERT_FALSE(zb_platform_translate_event(g_p, NULL, &ev));
   zb_platform_request_quit(g_p);
   zb_platform_show_error(g_p, "Test", "headless error output");
+  zb_test_setenv("ZB_TOUCH_PRIMARY", NULL);
   TEST_ASSERT_FALSE(zb_platform_touch_primary(g_p));
+  zb_test_setenv("ZB_TOUCH_PRIMARY", "1");
+  TEST_ASSERT_TRUE(zb_platform_touch_primary(g_p));
+  zb_test_setenv("ZB_TOUCH_PRIMARY", NULL);
   int rate;
   TEST_ASSERT_EQUAL_INT(ZB_ERR_UNSUPPORTED, zb_platform_audio_open(g_p, NULL, NULL, &rate));
   zb_platform_audio_close(g_p);
   TEST_ASSERT_FALSE(zb_platform_audio_is_open(g_p));
   zb_platform_user_data_sync(g_p);
+  TEST_ASSERT_FALSE(zb_platform_has_fetch(g_p));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_UNSUPPORTED, zb_platform_fetch(g_p, "x", NULL, NULL));
+  zb_platform_set_state_provider(g_p, NULL, NULL);
+  zb_platform_push_audio_unlock();
   zb_platform_destroy(NULL);
   zb_failing_allocator fa;
   TEST_ASSERT_NULL(zb_platform_create(zb_failing_init(&fa, zb_test_alloc(), 0)));

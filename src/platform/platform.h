@@ -70,4 +70,18 @@ bool zb_platform_audio_is_open(zb_platform *p);
 /* Web: persist the user data directory (IndexedDB). No-op elsewhere. */
 void zb_platform_user_data_sync(zb_platform *p);
 
+/* Web: makes a file of the asset index available in the local file system,
+ * fetching it over HTTP through Cache Storage when needed. done is called on
+ * the main thread in a later frame. Unsupported where files are local. */
+typedef void (*zb_fetch_done_fn)(void *user, zb_result result);
+bool zb_platform_has_fetch(zb_platform *p);
+zb_result zb_platform_fetch(zb_platform *p, const char *path, zb_fetch_done_fn done, void *user);
+
+/* Web: a one-line JSON summary of the engine state for test drivers
+ * (exported as zb_web_state). */
+typedef void (*zb_state_fn)(void *user, char *out, size_t len);
+/* Queues the audio-unlock event (web: the first user gesture; also tests). */
+void zb_platform_push_audio_unlock(void);
+void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user);
+
 #endif

@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+# REUSE-IgnoreStart
 """Tests for tools/check_licenses.py."""
 import shutil
 import subprocess
@@ -197,3 +198,4 @@ class CheckLicensesTest(TempDirTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+# REUSE-IgnoreEnd

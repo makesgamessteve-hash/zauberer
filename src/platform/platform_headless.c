@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -179,7 +180,24 @@ uint64_t zb_platform_now_ns(zb_platform *p) {
 #endif
 }
 
-const char *zb_platform_base_path(zb_platform *p) { (void)p; return "./"; }
+/* The executable's directory (Linux), else the working directory. The
+ * web-node build looks for content relative to the working directory. */
+const char *zb_platform_base_path(zb_platform *p) {
+  (void)p;
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
+  static char base[1024];
+  ssize_t n = readlink("/proc/self/exe", base, sizeof base - 1);
+  if (n > 0) {
+    base[n] = '\0';
+    char *slash = strrchr(base, '/');
+    if (slash) {
+      slash[1] = '\0';
+      return base;
+    }
+  }
+#endif
+  return "./";
+}
 
 zb_result zb_platform_user_dir(zb_platform *p, char *out, size_t len) {
   const char *xdg = getenv("XDG_DATA_HOME");
@@ -224,7 +242,10 @@ void zb_platform_show_error(zb_platform *p, const char *title, const char *messa
   fprintf(stderr, "%s: %s\n", title, message);
 }
 
-bool zb_platform_touch_primary(zb_platform *p) { (void)p; return false; }
+bool zb_platform_touch_primary(zb_platform *p) {
+  (void)p;
+  return getenv("ZB_TOUCH_PRIMARY") != NULL;
+}
 
 zb_result zb_platform_audio_open(zb_platform *p, zb_audio_fill_fn fill, void *user, int *sample_rate) {
   (void)p;
@@ -237,3 +258,21 @@ zb_result zb_platform_audio_open(zb_platform *p, zb_audio_fill_fn fill, void *us
 void zb_platform_audio_close(zb_platform *p) { (void)p; }
 bool zb_platform_audio_is_open(zb_platform *p) { (void)p; return false; }
 void zb_platform_user_data_sync(zb_platform *p) { (void)p; }
+
+bool zb_platform_has_fetch(zb_platform *p) { (void)p; return false; }
+
+zb_result zb_platform_fetch(zb_platform *p, const char *path, zb_fetch_done_fn done, void *user) {
+  (void)p;
+  (void)path;
+  (void)done;
+  (void)user;
+  return ZB_ERR_UNSUPPORTED;
+}
+
+void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user) {
+  (void)p;
+  (void)fn;
+  (void)user;
+}
+
+void zb_platform_push_audio_unlock(void) {}

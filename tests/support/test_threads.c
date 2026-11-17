@@ -108,7 +108,14 @@ static void c_broadcast(void *c) { pthread_cond_broadcast(c); }
 static const zb_thread_api k_api = {t_create, t_join, m_create, m_destroy, m_lock, m_unlock,
                                     c_create, c_destroy, c_wait, c_broadcast};
 
-const zb_thread_api *zb_test_thread_api(void) { return &k_api; }
+const zb_thread_api *zb_test_thread_api(void) {
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+  (void)k_api;
+  return NULL; /* web-node builds have no threads */
+#else
+  return &k_api;
+#endif
+}
 
 void zb_test_sleep_ms(unsigned ms) {
 #ifdef _WIN32

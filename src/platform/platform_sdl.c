@@ -30,7 +30,12 @@ struct zb_platform {
   void *audio_user;
   float audio_buf[ZB_AUDIO_CHUNK * 2];
   SDL_Gamepad *pads[ZB_MAX_PADS];
+  zb_state_fn state_fn;
+  void *state_user;
 };
+
+/* SDL user event that carries the browser's audio unlock (first gesture). */
+static Uint32 g_audio_unlock_event;
 
 /* ---- Names ------------------------------------------------------------------ */
 
@@ -142,6 +147,7 @@ static zb_result sdl_fs_remove(void *ctx, const char *path) {
 
 /* ---- Threads --------------------------------------------------------------- */
 
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
 static void *th_create(int (*fn)(void *), void *arg, const char *name) {
   return SDL_CreateThread(fn, name, arg);
 }
@@ -157,8 +163,13 @@ static void cv_broadcast(void *c) { SDL_BroadcastCondition(c); }
 
 static const zb_thread_api k_threads = {th_create, th_join, mx_create, mx_destroy, mx_lock, mx_unlock,
                                         cv_create, cv_destroy, cv_wait, cv_broadcast};
+#endif
 
 /* ---- Lifecycle ------------------------------------------------------------- */
+
+#ifdef __EMSCRIPTEN__
+static zb_platform *g_web_platform; /* the web build has exactly one platform */
+#endif
 
 zb_platform *zb_platform_create(const zb_allocator *a) {
   zb_platform *p = zb_calloc(a, sizeof(*p));
@@ -176,6 +187,9 @@ zb_platform *zb_platform_create(const zb_allocator *a) {
   /* Touches must not turn into mouse events and vice versa (input-actions). */
   SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
   SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
+#ifdef __EMSCRIPTEN__
+  g_web_platform = p;
+#endif
   return p;
 }
 
@@ -198,6 +212,11 @@ void zb_platform_destroy(zb_platform *p) {
   if (p->video_init) {
     SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD);
   }
+#ifdef __EMSCRIPTEN__
+  if (g_web_platform == p) {
+    g_web_platform = NULL;
+  }
+#endif
   zb_free(p->a, p);
 }
 
@@ -511,6 +530,12 @@ bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *o
       out->u.gamepad_axis.axis = e->gaxis.axis;
       out->u.gamepad_axis.value = axis_value(e->gaxis.value);
       return true;
+    case SDL_EVENT_USER:
+      if (g_audio_unlock_event == 0 || e->user.code != (Sint32)g_audio_unlock_event) {
+        return false;
+      }
+      out->type = ZB_EV_AUDIO_UNLOCKED;
+      return true;
     case SDL_EVENT_FINGER_DOWN:
     case SDL_EVENT_FINGER_UP:
     case SDL_EVENT_FINGER_MOTION:
@@ -536,27 +561,17 @@ void zb_platform_request_quit(zb_platform *p) {
 /* ---- Messages --------------------------------------------------------------- */
 
 #ifdef __EMSCRIPTEN__
-EM_JS(void, zb_web_show_error, (const char *title, const char *message), {
-  if (typeof Module !== 'undefined' && Module.zbShowError) {
-    Module.zbShowError(UTF8ToString(title), UTF8ToString(message));
-  }
-});
-
-EM_JS(int, zb_web_touch_primary, (void), {
-  if (typeof Module !== 'undefined' && typeof Module.zbTouchPrimary === 'boolean') {
-    return Module.zbTouchPrimary ? 1 : 0;
-  }
-  var coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  var touch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
-  return coarse && touch ? 1 : 0;
-});
+/* Implemented in web/lib_zauberer.js. */
+extern void zb_js_show_error(const char *title, const char *message);
+extern int zb_js_touch_primary(void);
+extern void zb_js_sync_user_data(void);
 #endif
 
 void zb_platform_show_error(zb_platform *p, const char *title, const char *message) {
   (void)p;
   fprintf(stderr, "%s: %s\n", title, message);
 #ifdef __EMSCRIPTEN__
-  zb_web_show_error(title, message);
+  zb_js_show_error(title, message);
 #else
   if (!getenv("ZB_NO_DIALOGS")) {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, message, NULL);
@@ -567,7 +582,7 @@ void zb_platform_show_error(zb_platform *p, const char *title, const char *messa
 bool zb_platform_touch_primary(zb_platform *p) {
   (void)p;
 #ifdef __EMSCRIPTEN__
-  return zb_web_touch_primary() != 0;
+  return zb_js_touch_primary() != 0;
 #else
   return getenv("ZB_TOUCH_PRIMARY") != NULL;
 #endif
@@ -620,10 +635,86 @@ bool zb_platform_audio_is_open(zb_platform *p) { return p->audio != NULL; }
 void zb_platform_user_data_sync(zb_platform *p) {
   (void)p;
 #ifdef __EMSCRIPTEN__
-  EM_ASM({
-    if (typeof FS !== 'undefined' && FS.syncfs) {
-      FS.syncfs(false, function(err) { if (err) console.error('user data sync failed', err); });
-    }
-  });
+  zb_js_sync_user_data();
 #endif
 }
+
+/* ---- Web bridge ------------------------------------------------------------- */
+
+/* Queues the audio-unlock event (called from JavaScript on the first gesture,
+ * and by tests). */
+void zb_platform_push_audio_unlock(void) {
+  g_audio_unlock_event = 0x7a62; /* "zb": SDL_EVENT_USER code */
+  SDL_Event e;
+  SDL_zero(e);
+  e.type = SDL_EVENT_USER;
+  e.user.code = (Sint32)g_audio_unlock_event;
+  SDL_PushEvent(&e);
+}
+
+void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user) {
+  p->state_fn = fn;
+  p->state_user = user;
+}
+
+typedef struct fetch_box {
+  zb_fetch_done_fn done;
+  void *user;
+} fetch_box;
+
+#ifdef __EMSCRIPTEN__
+/* Implemented in web/lib_zauberer.js. */
+extern void zb_js_fetch(const char *path, void *box);
+
+EMSCRIPTEN_KEEPALIVE void zb_web_fetch_done(void *box, int status);
+EMSCRIPTEN_KEEPALIVE void zb_web_fetch_done(void *box, int status) {
+  fetch_box *b = box;
+  zb_fetch_done_fn done = b->done;
+  void *user = b->user;
+  SDL_free(b);
+  done(user, status == 0 ? ZB_OK : (status == 404 ? ZB_ERR_NOT_FOUND : ZB_ERR_IO));
+}
+
+EMSCRIPTEN_KEEPALIVE void zb_web_audio_unlocked(void);
+EMSCRIPTEN_KEEPALIVE void zb_web_audio_unlocked(void) { zb_platform_push_audio_unlock(); }
+
+EMSCRIPTEN_KEEPALIVE const char *zb_web_state(void);
+EMSCRIPTEN_KEEPALIVE const char *zb_web_state(void) {
+  static char buf[1024];
+  snprintf(buf, sizeof buf, "{}");
+  if (g_web_platform && g_web_platform->state_fn) {
+    g_web_platform->state_fn(g_web_platform->state_user, buf, sizeof buf);
+  }
+  return buf;
+}
+
+bool zb_platform_has_fetch(zb_platform *p) {
+  (void)p;
+  return true;
+}
+
+zb_result zb_platform_fetch(zb_platform *p, const char *path, zb_fetch_done_fn done, void *user) {
+  (void)p;
+  fetch_box *b = SDL_malloc(sizeof *b);
+  if (!b) {
+    return ZB_ERR_NOMEM;
+  }
+  b->done = done;
+  b->user = user;
+  zb_js_fetch(path, b);
+  return ZB_OK;
+}
+#else
+bool zb_platform_has_fetch(zb_platform *p) {
+  (void)p;
+  return false;
+}
+
+zb_result zb_platform_fetch(zb_platform *p, const char *path, zb_fetch_done_fn done, void *user) {
+  (void)p;
+  (void)path;
+  (void)done;
+  (void)user;
+  return ZB_ERR_UNSUPPORTED;
+}
+#endif

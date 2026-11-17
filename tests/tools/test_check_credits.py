@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+# REUSE-IgnoreStart
 """Tests for tools/check_credits.py."""
 import sys
 import unittest
@@ -151,3 +152,4 @@ class CheckCreditsTest(TempDirTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+# REUSE-IgnoreEnd

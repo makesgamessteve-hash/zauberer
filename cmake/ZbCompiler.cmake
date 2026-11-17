@@ -26,6 +26,13 @@ if(ZB_SANITIZE)
   add_link_options(-fsanitize=address,undefined)
 endif()
 
+if(EMSCRIPTEN AND ZB_HEADLESS_ONLY)
+  # web-node: every executable (engine and tests) runs under Node.js with the
+  # real file system and environment.
+  add_link_options(-sENVIRONMENT=node -sNODERAWFS=1 -sEXIT_RUNTIME=1 -sALLOW_MEMORY_GROWTH=1
+    -sSTACK_SIZE=1048576 "SHELL:--pre-js ${PROJECT_SOURCE_DIR}/cmake/node-env.js")
+endif()
+
 if(EMSCRIPTEN AND ZB_WEB_THREADS AND NOT ZB_HEADLESS_ONLY)
   add_compile_options(-pthread)
   add_link_options(-pthread)
@@ -51,6 +58,11 @@ function(zb_target_defaults target)
   endif()
   if(ZB_COVERAGE)
     target_compile_definitions(${target} PRIVATE ZB_COVERAGE=1)
+  endif()
+  if(EMSCRIPTEN)
+    # Relink when the JavaScript linked into the executables changes.
+    set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS
+      "${PROJECT_SOURCE_DIR}/cmake/node-env.js" "${PROJECT_SOURCE_DIR}/web/lib_zauberer.js")
   endif()
 endfunction()
 

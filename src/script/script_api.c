@@ -961,6 +961,8 @@ static int s_flush(lua_State *L) {
   zb_result r = s->cfg.fs ? s->cfg.fs->write(s->cfg.fs->ctx, path, text, len) : ZB_ERR_UNSUPPORTED;
   if (r != ZB_OK) {
     zb_warn("could not write save data to %s (%s)", path, zb_result_str(r));
+  } else if (s->cfg.host.user_data_changed) {
+    s->cfg.host.user_data_changed(s->cfg.host.ctx);
   }
   lua_pushboolean(L, r == ZB_OK);
   return 1;

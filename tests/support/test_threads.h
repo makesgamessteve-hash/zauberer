@@ -6,6 +6,7 @@
 
 #include "core/thread.h"
 
+/* NULL in builds without threads (web-node): threaded tests are skipped. */
 const zb_thread_api *zb_test_thread_api(void);
 /* Sleeps the calling thread. */
 void zb_test_sleep_ms(unsigned ms);

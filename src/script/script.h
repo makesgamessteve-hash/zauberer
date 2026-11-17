@@ -33,6 +33,8 @@ typedef struct zb_script_host {
   void (*set_fullscreen)(void *ctx, bool on);
   /* Persists the user's input bindings. */
   zb_result (*save_bindings)(void *ctx);
+  /* Save data was written (the web build persists it to IndexedDB). */
+  void (*user_data_changed)(void *ctx);
   /* Test API: resizes the window (no-op without one). */
   void (*set_window_size)(void *ctx, int w, int h);
 } zb_script_host;

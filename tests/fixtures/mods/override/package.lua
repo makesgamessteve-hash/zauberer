@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: CC-BY-4.0
+-- SPDX-License-Identifier: MIT
 -- Test fixture: overrides a default binding and credits two assets.
 return {
   id = "override",

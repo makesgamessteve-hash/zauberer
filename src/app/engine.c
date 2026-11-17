@@ -67,6 +67,8 @@ static zb_result write_config(zb_engine *e) {
 
 static zb_result host_save_bindings(void *ctx) { return write_config(ctx); }
 
+static void host_user_data_changed(void *ctx) { zb_platform_user_data_sync(((zb_engine *)ctx)->platform); }
+
 static void host_window_size(void *ctx, int w, int h) {
   zb_platform_set_window_size(((zb_engine *)ctx)->platform, w, h);
 }
@@ -240,6 +242,59 @@ static bool setup_replay(zb_engine *e) {
   return true;
 }
 
+#ifdef __EMSCRIPTEN__
+/* ---- Web: asset fetching and state for test drivers ----------------------------- */
+
+typedef struct web_fetch {
+  zb_engine *e;
+  zb_vfs_req *req;
+  char path[ZB_VFS_MAX_PATH * 2];
+} web_fetch;
+
+static void web_fetch_done(void *user, zb_result result) {
+  web_fetch *wf = user;
+  char *data = NULL;
+  size_t len = 0;
+  if (result == ZB_OK) {
+    const zb_fs_api *fs = zb_platform_fs(wf->e->platform);
+    result = fs->read(fs->ctx, wf->path, zb_vfs_allocator(wf->e->vfs), &data, &len);
+  }
+  zb_vfs_req_complete(wf->req, result, data, len);
+  zb_free(wf->e->a, wf);
+}
+
+static void web_fetch_start(void *ctx, zb_vfs_req *req, const char *real) {
+  zb_engine *e = ctx;
+  web_fetch *wf = zb_alloc(e->a, sizeof(*wf));
+  if (!wf) {
+    zb_vfs_req_complete(req, ZB_ERR_NOMEM, NULL, 0);
+    return;
+  }
+  wf->e = e;
+  wf->req = req;
+  snprintf(wf->path, sizeof wf->path, "%s", real);
+  zb_result r = zb_platform_fetch(e->platform, real, web_fetch_done, wf);
+  if (r != ZB_OK) {
+    zb_free(e->a, wf);
+    zb_vfs_req_complete(req, r, NULL, 0);
+  }
+}
+
+static void web_state(void *user, char *out, size_t len) {
+  zb_engine *e = user;
+  bool ready = e->script != NULL && e->scripts_ready;
+  snprintf(out, len,
+           "{\"ticks\":%llu,\"frames\":%llu,\"input_mode\":\"%s\",\"audio_locked\":%s,"
+           "\"audio_device\":%s,\"voices\":%zu,\"script_errors\":%zu,\"drawable\":[%d,%d],\"quit\":%s}",
+           (unsigned long long)e->ticks, (unsigned long long)(e->render ? zb_render_get_stats(e->render)->frames : 0),
+           e->input && zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop",
+           e->audio && zb_audio_is_locked(e->audio) ? "true" : "false",
+           e->audio && zb_audio_has_device(e->audio) ? "true" : "false",
+           e->audio ? zb_audio_active_voices(e->audio) : (size_t)0, ready ? zb_script_error_count(e->script) : (size_t)0,
+           e->drawable_w, e->drawable_h, e->quit ? "true" : "false");
+}
+#endif
+
 static void fail(zb_engine *e, const char *message) {
   zb_platform_show_error(e->platform, "Zauberer", message);
 }
@@ -305,11 +360,26 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
 
   /* Jobs, packages. */
   unsigned cpus = zb_platform_cpu_count(e->platform);
-  e->jobs = zb_jobs_create(a, zb_platform_threads(e->platform), cpus > 1 ? cpus - 1 : 1);
+  unsigned workers = cpus > 1 ? cpus - 1 : 1;
+#ifdef __EMSCRIPTEN__
+  workers = workers > 3 ? 3 : workers; /* the page's pthread pool holds 4 workers */
+#endif
+  e->jobs = zb_jobs_create(a, zb_platform_threads(e->platform), workers);
+  if (!e->jobs) {
+    zb_warn("worker threads could not be started; loading runs on the main thread");
+    e->jobs = zb_jobs_create(a, NULL, 0);
+  }
   e->vfs = zb_vfs_create(a, fs, e->jobs);
   if (!e->jobs || !e->vfs) {
     return ZB_HOST_FAILURE;
   }
+#ifdef __EMSCRIPTEN__
+  if (zb_platform_has_fetch(e->platform)) {
+    zb_vfs_fetcher fetcher = {e, web_fetch_start};
+    zb_vfs_set_fetcher(e->vfs, &fetcher);
+  }
+  zb_platform_set_state_provider(e->platform, web_state, e);
+#endif
   char root[1100];
   zb_vfs_add_root(e->vfs, e->assets_dir);
   snprintf(root, sizeof root, "%smods", zb_platform_base_path(e->platform));
@@ -398,6 +468,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.host.set_fullscreen = host_fullscreen;
   sc.host.save_bindings = host_save_bindings;
   sc.host.set_window_size = host_window_size;
+  sc.host.user_data_changed = host_user_data_changed;
   sc.seed = e->seed;
   sc.test_api = e->mode != ZB_MODE_GAME;
 #if defined(ZB_DEV)

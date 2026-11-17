@@ -14,7 +14,13 @@ target_link_libraries(fixture_failing_unit PRIVATE zb_test_support zb_unity)
 # Engine-level tests drive the zauberer binary from Python.
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
+  # Cross builds (web-node) run executables through the emulator (Node.js).
+  set(ZB_RUNNER "")
+  if(CMAKE_CROSSCOMPILING_EMULATOR)
+    list(GET CMAKE_CROSSCOMPILING_EMULATOR 0 ZB_RUNNER)
+  endif()
   set(ZB_ENGINE_TEST_ENV
+    "ZB_RUNNER=${ZB_RUNNER}"
     "ZB_BIN=$<TARGET_FILE:zauberer>"
     "ZB_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
     "ZB_FAILING_UNIT_FIXTURE=$<TARGET_FILE:fixture_failing_unit>"

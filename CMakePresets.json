@@ -1,0 +1,84 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": { "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" }
+    },
+    {
+      "name": "dev",
+      "displayName": "Development (debug, hot reload, tests)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ZB_DEV": "ON", "ZB_TESTS": "ON" }
+    },
+    {
+      "name": "release",
+      "displayName": "Release (optimised, tests)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ZB_DEV": "OFF", "ZB_TESTS": "ON" }
+    },
+    {
+      "name": "coverage",
+      "displayName": "Coverage (GCC/Clang, gcovr)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ZB_COVERAGE": "ON", "ZB_TESTS": "ON" }
+    },
+    {
+      "name": "asan",
+      "displayName": "AddressSanitizer + UndefinedBehaviorSanitizer",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "ZB_SANITIZE": "ON", "ZB_TESTS": "ON" }
+    },
+    {
+      "name": "emscripten",
+      "hidden": true,
+      "inherits": "base",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "ZB_TESTS": "OFF" }
+    },
+    {
+      "name": "web",
+      "displayName": "Web with threads (needs cross-origin isolation)",
+      "inherits": "emscripten",
+      "cacheVariables": { "ZB_WEB_THREADS": "ON" }
+    },
+    {
+      "name": "web-st",
+      "displayName": "Web single-threaded",
+      "inherits": "emscripten",
+      "cacheVariables": { "ZB_WEB_THREADS": "OFF" }
+    },
+    {
+      "name": "web-node",
+      "displayName": "WebAssembly headless engine and unit tests under Node.js",
+      "inherits": "emscripten",
+      "cacheVariables": { "ZB_HEADLESS_ONLY": "ON", "ZB_WEB_THREADS": "OFF", "ZB_TESTS": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "coverage", "configurePreset": "coverage" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "web", "configurePreset": "web" },
+    { "name": "web-st", "configurePreset": "web-st" },
+    { "name": "web-node", "configurePreset": "web-node" }
+  ],
+  "testPresets": [
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "jobs": 4 }
+    },
+    { "name": "dev", "inherits": "test-base", "configurePreset": "dev" },
+    { "name": "release", "inherits": "test-base", "configurePreset": "release" },
+    { "name": "coverage", "inherits": "test-base", "configurePreset": "coverage" },
+    { "name": "asan", "inherits": "test-base", "configurePreset": "asan" },
+    { "name": "web-node", "inherits": "test-base", "configurePreset": "web-node" }
+  ]
+}
