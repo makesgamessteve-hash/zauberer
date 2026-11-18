@@ -55,6 +55,9 @@ zb_result zb_rivers_gather(const zb_world_bundle *b, zb_dvec3 dir, double radius
 /* Keeps only the pieces whose banks (plus margin metres) come within radius
  * metres of dir: the ones that can carve or flood around there. */
 void zb_rivers_keep_near(zb_river_set *s, double planet_radius, zb_dvec3 dir, double radius, double margin);
+/* Copies to out (room for s->count pieces) the pieces whose centre line comes
+ * within radius metres of dir; returns how many. */
+size_t zb_rivers_select(const zb_river_set *s, double planet_radius, zb_dvec3 dir, double radius, zb_river_piece *out);
 /* The nearest centre line within max_distance metres; false when there is none. */
 bool zb_rivers_nearest(const zb_river_set *s, double planet_radius, zb_dvec3 dir, double max_distance,
                        zb_river_hit *out);

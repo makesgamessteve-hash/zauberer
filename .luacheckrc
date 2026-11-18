@@ -21,3 +21,5 @@ files["tests/fixtures/mods/xr_events/**"] = { globals = { "xr_events" } }
 -- Data tables (credits, bindings, notices) keep one entry per line.
 files["assets/*/credits.lua"] = { max_line_length = false }
 files["assets/*/data/**"] = { max_line_length = false }
+-- Saves kept exactly as the game wrote them.
+files["tests/fixtures/saves/**"] = { max_line_length = false }

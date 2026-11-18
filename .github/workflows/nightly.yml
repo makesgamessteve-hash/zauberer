@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: MIT
+# Every night: a corpus of worlds created at the game's default (normal)
+# quality must meet the Earth-likeness targets (M2 exit criterion). A fixed set
+# of seeds catches regressions; a set that moves on every night widens the net.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LINUX_DEPS: >-
+    ninja-build libgl1-mesa-dri libegl1 libegl-mesa0 libgles2 libegl-dev libgl-dev libgles-dev
+    libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxfixes-dev libxss-dev libxtst-dev
+    libxkbcommon-dev libwayland-dev libwayland-bin wayland-protocols libdecor-0-dev
+    libasound2-dev libpulse-dev libdbus-1-dev libudev-dev
+
+jobs:
+  world-corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_DEPS
+      - name: Build the corpus tool (release)
+        run: |
+          cmake --preset release
+          cmake --build --preset release --target world_corpus
+      - name: Fixed seeds 1-24
+        run: build/release/tests/world_corpus 1 24 normal
+      - name: Seeds of tonight
+        run: build/release/tests/world_corpus $((100000 + 12 * ${{ github.run_number }})) 12 normal

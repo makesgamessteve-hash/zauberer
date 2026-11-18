@@ -39,6 +39,14 @@ bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus);
 void zb_world_update(zb_world *w);
 /* The render origin. zb_world_update moves it to the chunk of focus 1 when
  * that focus is more than ZB_ORIGIN_REBASE_DISTANCE away from it. */
+/* The players' edits of the generated world (saved, applied to chunks as they
+ * arrive). */
+struct zb_deltas *zb_world_deltas(zb_world *w);
+/* Removes the plants within radius metres of pos from loaded chunks (stage 3);
+ * returns how many. */
+int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius);
+/* Sets the surface material of the 1 m cell at pos (zb_material). */
+zb_result zb_world_set_material(zb_world *w, const zb_planet_pos *pos, int material);
 /* World time (game seconds since the world began) and its calendar; the axial
  * tilt comes from a created world. */
 const zb_calendar_config *zb_world_calendar(const zb_world *w);

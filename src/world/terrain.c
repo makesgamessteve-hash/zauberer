@@ -394,6 +394,45 @@ static zb_dvec3 sample_dir(const face_frame *f, double a, double b) {
   return d;
 }
 
+/* River pieces per tile of RIVER_TILE x RIVER_TILE samples, for one band of
+ * rows at a time, so that a sample checks only the pieces that can reach its
+ * tile. A piece within max_distance of a sample lies within max_distance plus
+ * the tile's radius of the tile's centre (the triangle inequality; a tile's
+ * samples lie in the spherical cap through its corners), so the nearest piece
+ * within max_distance is the same as over the whole set. */
+#define RIVER_TILE 16
+#define RIVER_TILES_MAX (ZB_HEIGHT_RES / RIVER_TILE + 1)
+
+typedef struct river_tiles {
+  zb_river_set tile[RIVER_TILES_MAX];
+} river_tiles;
+
+/* Room for the pieces of every tile of a band, in bytes. */
+static size_t river_tiles_size(const zb_river_set *rs) { return sizeof(zb_river_piece) * RIVER_TILES_MAX * rs->count; }
+
+/* Fills the tiles of the band of rows y0.. for samples at tangents ua x ub
+ * (n per edge); buf has river_tiles_size bytes. */
+static void river_tiles_band(river_tiles *rt, const zb_terrain *t, const face_frame *f, const zb_river_set *rs,
+                             zb_river_piece *buf, const double *ua, const double *ub, int n, int y0,
+                             double max_distance) {
+  int y1 = y0 + RIVER_TILE < n ? y0 + RIVER_TILE : n;
+  for (int i = 0, x0 = 0; x0 < n; ++i, x0 += RIVER_TILE) {
+    int x1 = x0 + RIVER_TILE < n ? x0 + RIVER_TILE : n;
+    zb_dvec3 c = sample_dir(f, 0.5 * (ua[x0] + ua[x1 - 1]), 0.5 * (ub[y0] + ub[y1 - 1]));
+    double reach = 0.0;
+    const double ca[2] = {ua[x0], ua[x1 - 1]}, cb[2] = {ub[y0], ub[y1 - 1]};
+    for (int k = 0; k < 4; ++k) {
+      double d = zb_dv_len(zb_dv_sub(sample_dir(f, ca[k & 1], cb[k >> 1]), c)) * t->planet.radius;
+      reach = d > reach ? d : reach;
+    }
+    zb_river_set *tile = &rt->tile[i];
+    *tile = *rs;
+    tile->piece = buf + (size_t)i * rs->count;
+    tile->cap = rs->count;
+    tile->count = zb_rivers_select(rs, t->planet.radius, c, max_distance + reach + 1.0, tile->piece);
+  }
+}
+
 /* Material-border jitter: value noise on a lattice every JITTER_CELL metres of
  * the face grid (continuous across chunk borders within a face), so borders
  * wander smoothly instead of speckling. */
@@ -669,7 +708,7 @@ static zb_result generate_terrain(const zb_terrain *t, const zb_allocator *a, zb
     return ZB_ERR_NOMEM;
   }
   chunk_rivers_near(t, ct->chunk, &rs, 1.0);
-  double *ua = rs.count ? zb_alloc(a, sizeof(double) * 2 * ZB_HEIGHT_RES) : NULL;
+  double *ua = rs.count ? zb_alloc(a, sizeof(double) * 2 * ZB_HEIGHT_RES + river_tiles_size(&rs)) : NULL;
   if (rs.count && !ua) {
     zb_river_set_free(&rs);
     zb_free(a, height);
@@ -677,12 +716,19 @@ static zb_result generate_terrain(const zb_terrain *t, const zb_allocator *a, zb
   }
   if (ua) {
     double reach = max_reach(&rs), *ub = ua + ZB_HEIGHT_RES;
+    river_tiles rt;
     axis_tangents(t, ct->chunk.x, 0.0, 1.0, R, ua);
     axis_tangents(t, ct->chunk.y, 0.0, 1.0, R, ub);
     for (int y = 0; y < R; ++y) {
+      if (y % RIVER_TILE == 0) {
+        river_tiles_band(&rt, t, &f, &rs, (zb_river_piece *)(ub + ZB_HEIGHT_RES), ua, ub, R, y, reach);
+      }
       for (int x = 0; x < R; ++x) {
-        float *hp = &height[y * R + x];
-        *hp = (float)carve(t, &rs, reach, sample_dir(&f, ua[x], ub[y]), (double)*hp);
+        const zb_river_set *tile = &rt.tile[x / RIVER_TILE];
+        if (tile->count) {
+          float *hp = &height[y * R + x];
+          *hp = (float)carve(t, tile, reach, sample_dir(&f, ua[x], ub[y]), (double)*hp);
+        }
       }
     }
     zb_free(a, ua);
@@ -749,7 +795,7 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
       lakes[y * ZB_COARSE_RES + x] = (float)level;
     }
   }
-  double *fa = rs.count ? zb_alloc(a, sizeof(double) * 2 * ZB_SURFACE_RES) : NULL;
+  double *fa = rs.count ? zb_alloc(a, sizeof(double) * 2 * ZB_SURFACE_RES + river_tiles_size(&rs)) : NULL;
   double *fb = fa ? fa + ZB_SURFACE_RES : NULL;
   if (rs.count && !fa) {
     zb_river_set_free(&rs);
@@ -765,8 +811,12 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
   double cw = w / ZB_SURFACE_RES, ch = h / ZB_SURFACE_RES;
   double sin_lat = zb_planet_chunk_dir(&t->planet, ct->chunk).z;
   const float *hf = ct->height;
+  river_tiles rt;
   for (int y = 0; y < ZB_SURFACE_RES; ++y) {
     const float *r0 = &hf[y * ZB_HEIGHT_RES], *r1 = r0 + ZB_HEIGHT_RES;
+    if (fa && y % RIVER_TILE == 0) {
+      river_tiles_band(&rt, t, &f, &rs, (zb_river_piece *)(fb + ZB_SURFACE_RES), fa, fb, ZB_SURFACE_RES, y, reach);
+    }
     for (int x = 0; x < ZB_SURFACE_RES; ++x) {
       double gx = ((double)r0[x + 1] + r1[x + 1] - r0[x] - r1[x]) / (2.0 * cw);
       double gy = ((double)r1[x] + r1[x + 1] - r0[x] - r0[x + 1]) / (2.0 * ch);
@@ -778,7 +828,8 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
         bx = bx < 0 ? 0 : (bx >= ZB_COARSE_RES ? ZB_COARSE_RES - 1 : bx);
         by = by < 0 ? 0 : (by >= ZB_COARSE_RES ? ZB_COARSE_RES - 1 : by);
         zb_dvec3 d = fa ? sample_dir(&f, fa[x], fb[y]) : f.n;
-        zb_material m = water_material(t, &rs, reach, d, avg, (double)lakes[by * ZB_COARSE_RES + bx]);
+        zb_material m = water_material(t, fa ? &rt.tile[x / RIVER_TILE] : &rs, reach, d, avg,
+                                       (double)lakes[by * ZB_COARSE_RES + bx]);
         mat[y * ZB_SURFACE_RES + x] =
             (uint8_t)(m != ZB_MAT_NONE ? m
                                        : zb_terrain_biome_material(biomes[by * ZB_COARSE_RES + bx], avg, slope, jit));

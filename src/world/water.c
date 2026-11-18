@@ -199,6 +199,17 @@ void zb_rivers_keep_near(zb_river_set *s, double planet_radius, zb_dvec3 dir, do
   s->count = n;
 }
 
+size_t zb_rivers_select(const zb_river_set *s, double planet_radius, zb_dvec3 dir, double radius, zb_river_piece *out) {
+  size_t n = 0;
+  for (size_t i = 0; i < s->count; ++i) {
+    double t;
+    if (piece_distance(&s->piece[i], planet_radius, dir, &t) <= radius) {
+      out[n++] = s->piece[i];
+    }
+  }
+  return n;
+}
+
 bool zb_rivers_nearest(const zb_river_set *s, double planet_radius, zb_dvec3 dir, double max_distance,
                        zb_river_hit *out) {
   const zb_river_piece *best = NULL;

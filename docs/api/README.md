@@ -338,6 +338,10 @@ The position at render coordinates.
 
 Ground height in metres above sea level from the loaded heightfield (the analytic terrain where the chunk is not loaded at stage 1 or more).
 
+### `world.ground_surface(pos: PlanetPos): string?`
+
+The surface material of the 1 m cell at a position from its loaded chunk (stage 2 or more, with the players' edits), or nil when it is not loaded.
+
 ### `world.height(pos: PlanetPos): number`
 
 Terrain height above sea level in metres at the position (the analytic terrain, within 0.5 m of the generated heightfield).
@@ -348,7 +352,11 @@ The world being played.
 
 ### `world.load(name: string): boolean, string?`
 
-Loads worlds/<name>.zbw from the user folder and plays in it.
+Plays in the created world <name> from the user folder (saves/<name>/, or worlds/<name>.zbw from before saves).
+
+### `world.load_game(name: string): table|boolean|nil, string?`
+
+Plays the saved world <name> again: its world, time and the players' edits. Returns the player table it was saved with (true if there was none), or nil and a message. Created worlds from before saves (worlds/<name>.zbw) are moved into saves/<name>/.
 
 ### `world.minerals(pos: PlanetPos): string[]?`
 
@@ -378,9 +386,25 @@ Makes a position; the offsets default to 0. Errors when the chunk is not on the 
 
 The biogeographic province under a position (1-based) and its isolation (0 well connected .. 1 remote), nil at sea or in the noise world.
 
+### `world.remove_plants(pos: PlanetPos, radius: number): integer`
+
+Removes the plants within radius metres (up to 256) of a position from the loaded chunks; the edit is kept with the world (and saved). Returns how many.
+
+### `world.save_game(name: string, player?: table): boolean, string?`
+
+Saves the world being played under saves/<name>/: its time, the players' edits and a player table (literal values only) for the scripts.
+
+### `world.saves(): string[]`
+
+The names of the saved games in the user folder, sorted.
+
 ### `world.set_focus(index: integer, pos: PlanetPos, velocity?: number[], view?: number[])`
 
 Streams terrain around a focus point (1..4, one per player camera). velocity (m/s) and view are {x, y, z} in the local frame at pos (x east, y up, z south).
+
+### `world.set_surface(pos: PlanetPos, material: string)`
+
+Sets the surface material ("soil", "sand", "rock", "gravel", "snow", "ice", "mud") of the 1 m cell at a position; the edit is kept with the world.
 
 ### `world.set_time(seconds: number)`
 

@@ -37,8 +37,10 @@ typedef struct zb_plant {
   uint8_t species; /* index in the flora */
   uint8_t size;    /* 0 .. 255: the species' smallest .. largest grown plant */
   uint8_t variant; /* a random byte per plant (mirroring, shade) */
-  uint8_t layer;   /* zb_plant_layer */
+  uint8_t layer;   /* zb_plant_layer, or ZB_PLANT_REMOVED */
 } zb_plant;
+
+#define ZB_PLANT_REMOVED 0xFF /* the layer of a plant the players removed (a delta) */
 
 typedef struct zb_terrain_params {
   double land_fraction;   /* share of the surface above sea level (0.35) */

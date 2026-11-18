@@ -403,7 +403,7 @@ static int w_plants(lua_State *L) {
     for (uint32_t i = 0; ct && i < ct->plant_count && found < 4096; ++i) {
       const zb_plant *pl = &ct->plants[i];
       zb_planet_pos at = {chunks[c], (float)pl->x / 256.0f, (float)pl->y / 256.0f, 0.0f};
-      if (zb_planet_distance(P(L), &pos, &at) > radius) {
+      if (pl->layer == ZB_PLANT_REMOVED || zb_planet_distance(P(L), &pos, &at) > radius) {
         continue;
       }
       const zb_species *sp = &f->species[pl->species];
@@ -420,6 +420,24 @@ static int w_plants(lua_State *L) {
       lua_rawseti(L, -2, ++found);
     }
   }
+  return 1;
+}
+
+/* @lua world.ground_surface(pos: PlanetPos): string?
+ * The surface material of the 1 m cell at a position from its loaded chunk
+ * (stage 2 or more, with the players' edits), or nil when it is not loaded.
+ */
+static int w_ground_surface(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(W(L)), pos.chunk);
+  if (!ct || !ct->material) {
+    lua_pushnil(L);
+    return 1;
+  }
+  int x = (int)pos.lx, y = (int)pos.ly;
+  x = x < 0 ? 0 : (x >= ZB_SURFACE_RES ? ZB_SURFACE_RES - 1 : x);
+  y = y < 0 ? 0 : (y >= ZB_SURFACE_RES ? ZB_SURFACE_RES - 1 : y);
+  lua_pushstring(L, zb_material_name((zb_material)ct->material[y * ZB_SURFACE_RES + x]));
   return 1;
 }
 
@@ -600,6 +618,7 @@ void zb_script_open_world(zb_script *s) {
                                        {"set_focus", w_set_focus},
                                        {"clear_focus", w_clear_focus},
                                        {"ground_height", w_ground_height},
+                                       {"ground_surface", w_ground_surface},
                                        {"water", w_water},
                                        {"flora", w_flora},
                                        {"time", w_time},

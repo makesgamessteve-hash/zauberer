@@ -7,6 +7,10 @@ target_link_libraries(zb_test_support PUBLIC zb_core zb_unity)
 add_subdirectory(unit)
 if(CMAKE_BUILD_TYPE STREQUAL "Release" AND UNIX AND NOT EMSCRIPTEN)
   include(perf/CMakeLists.txt)
+  # The nightly corpus of worlds (.github/workflows/nightly.yml), not a CTest test.
+  add_executable(world_corpus corpus/world_corpus.c)
+  zb_target_defaults(world_corpus)
+  target_link_libraries(world_corpus PRIVATE zb_world)
 endif()
 
 # A deliberately failing unit test, run by tests/engine to check failure reports.

@@ -481,7 +481,7 @@ zb_result zb_foliage_build(const zb_allocator *a, const zb_terrain *t, const zb_
   if (plants) {
     for (uint32_t i = 0; i < ct->plant_count; ++i) {
       const zb_plant *pl = &ct->plants[i];
-      if (band == 1 && pl->layer == ZB_PLANT_GROUND) {
+      if (pl->layer == ZB_PLANT_REMOVED || (band == 1 && pl->layer == ZB_PLANT_GROUND)) {
         continue;
       }
       const zb_species *sp = &f->species[pl->species];

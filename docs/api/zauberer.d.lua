@@ -622,6 +622,11 @@ function world.from_local(x, y, z) end
 ---@return number
 function world.ground_height(pos) end
 
+---The surface material of the 1 m cell at a position from its loaded chunk (stage 2 or more, with the players' edits), or nil when it is not loaded.
+---@param pos PlanetPos
+---@return string?
+function world.ground_surface(pos) end
+
 ---Terrain height above sea level in metres at the position (the analytic terrain, within 0.5 m of the generated heightfield).
 ---@param pos PlanetPos
 ---@return number
@@ -631,11 +636,17 @@ function world.height(pos) end
 ---@return WorldInfo
 function world.info() end
 
----Loads worlds/<name>.zbw from the user folder and plays in it.
+---Plays in the created world <name> from the user folder (saves/<name>/, or worlds/<name>.zbw from before saves).
 ---@param name string
 ---@return boolean
 ---@return string?
 function world.load(name) end
+
+---Plays the saved world <name> again: its world, time and the players' edits. Returns the player table it was saved with (true if there was none), or nil and a message. Created worlds from before saves (worlds/<name>.zbw) are moved into saves/<name>/.
+---@param name string
+---@return table|boolean|nil
+---@return string?
+function world.load_game(name) end
 
 ---The mineral deposits under a position, nil in the noise world.
 ---@param pos PlanetPos
@@ -683,12 +694,34 @@ function world.position(face, x, y, lx, ly, alt) end
 ---@return number?
 function world.province(pos) end
 
+---Removes the plants within radius metres (up to 256) of a position from the loaded chunks; the edit is kept with the world (and saved). Returns how many.
+---@param pos PlanetPos
+---@param radius number
+---@return integer
+function world.remove_plants(pos, radius) end
+
+---Saves the world being played under saves/<name>/: its time, the players' edits and a player table (literal values only) for the scripts.
+---@param name string
+---@param player? table
+---@return boolean
+---@return string?
+function world.save_game(name, player) end
+
+---The names of the saved games in the user folder, sorted.
+---@return string[]
+function world.saves() end
+
 ---Streams terrain around a focus point (1..4, one per player camera). velocity (m/s) and view are {x, y, z} in the local frame at pos (x east, y up, z south).
 ---@param index integer
 ---@param pos PlanetPos
 ---@param velocity? number[]
 ---@param view? number[]
 function world.set_focus(index, pos, velocity, view) end
+
+---Sets the surface material ("soil", "sand", "rock", "gravel", "snow", "ice", "mud") of the 1 m cell at a position; the edit is kept with the world.
+---@param pos PlanetPos
+---@param material string
+function world.set_surface(pos, material) end
 
 ---Sets the world's time (game seconds since the world began), e.g. after sleeping.
 ---@param seconds number

@@ -5,6 +5,7 @@
 
 #include "core/array.h"
 #include "core/hash.h"
+#include "core/luon.h"
 #include "script/script.h"
 #include "world/world.h"
 
@@ -84,12 +85,23 @@ void zb_script_open_api(zb_script *s);
 void zb_script_open_world(zb_script *s);
 /* Registers world creation, saved worlds and the globe (after the world module). */
 void zb_script_open_create(zb_script *s);
+void zb_script_open_save(zb_script *s);
+/* World names: letters, digits, - and _ (at most 64). */
+bool zb_script_valid_name(const char *name);
+/* Plays in a bundle (owned from then on), NULL for the noise world. */
+bool zb_script_adopt_bundle(zb_script *s, struct zb_world_bundle *b, char *err, size_t err_len);
+/* Plays in the created world <name> (saves/<name>/bundle.zbw, else the legacy
+ * worlds/<name>.zbw, reported in legacy). */
+bool zb_script_load_world(zb_script *s, const char *name, bool *legacy, char *err, size_t err_len);
 /* Releases the creation and the globe (before the world goes). */
 void zb_script_close_create(zb_script *s);
 /* Frees a bundle scripts adopted without a host (after the world goes). */
 void zb_script_free_bundle(zb_script *s);
 /* A PlanetPos argument (errors name its first bad field). */
 zb_planet_pos zb_script_check_pos(lua_State *L, int idx);
+/* LUON values to Lua and back (literal tables, numbers, strings, booleans). */
+void zb_script_push_luon(lua_State *L, const zb_value *v);
+void zb_script_write_luon(lua_State *L, int idx, luaL_Buffer *b, int depth);
 void zb_script_push_pos(lua_State *L, const zb_planet_pos *p);
 /* Registers net (co-op sessions). */
 void zb_script_open_net(zb_script *s);

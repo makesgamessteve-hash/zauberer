@@ -32,6 +32,10 @@ typedef struct zb_stream_config {
   size_t memory_cap;      /* bytes of chunk data */
   int max_jobs;           /* generation jobs in flight */
   float inline_budget_ms; /* main-thread generation time per update (inline jobs) */
+  /* Called on the main thread when a chunk's generated data arrives (e.g. to
+   * apply the players' edits); returns true if it changed the data. */
+  bool (*arrived)(void *ctx, zb_chunk_terrain *ct);
+  void *arrived_ctx;
 } zb_stream_config;
 
 /* A focus point; velocity and view are in the local frame at pos
@@ -69,6 +73,9 @@ void zb_stream_get_radii(const zb_stream *s, float *near_radius, float *far_radi
  * the rings when a focus moved, evicts, and starts new jobs. */
 void zb_stream_update(zb_stream *s, const zb_stream_focus *focus, int count);
 /* A loaded chunk (never one half-written by a job), or NULL. */
+/* A loaded chunk's data to change on the main thread (NULL if not loaded or
+ * while a job works on it); its version advances so views rebuild it. */
+zb_chunk_terrain *zb_stream_edit(zb_stream *s, zb_chunk c);
 const zb_chunk_terrain *zb_stream_find(const zb_stream *s, zb_chunk c);
 /* Stage the rings currently ask for (ZB_STAGE_NONE outside them). */
 int zb_stream_target(const zb_stream *s, zb_chunk c);

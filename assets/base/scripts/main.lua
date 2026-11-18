@@ -16,7 +16,8 @@ local spawn = require("flight.spawn")
 local coop = require("flight.coop")
 local creation = require("create.screen")
 
-local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true }
+local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
+local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
 local assets = {}
 
 local SHOWCASE_ACTIONS = { "turn", "look", "zoom", "spin", "chime", "credits", "fullscreen", "quit" }
@@ -34,12 +35,17 @@ end
 
 local function setup_flight()
   local p = world.planet()
-  local pos = spawn.find(world.height, p.chunks_per_edge)
+  local pos, heading = spawn.find(world.height, p.chunks_per_edge), 0
   pos.alt = math.max(world.height(pos), 0) + 60
+  local back = game.restore -- the player of a loaded save
+  if back and type(back.pos) == "table" then
+    pos, heading = back.pos, back.heading or 0
+  end
+  game.restore = nil
   if world.time().time == WORLD_START then
     world.set_time(morning_at(pos))
   end
-  game.carpet = carpet.new(pos, 0)
+  game.carpet = carpet.new(pos, heading)
   game.chase = camera.new()
   game.coop = coop.new()
   game.last_frame_time = nil
@@ -87,15 +93,30 @@ function game.set_mode(mode)
   end
 end
 
+-- Saves the world being played (its time, the players' edits, the carpet)
+-- and remembers it for the next start.
+function game.save()
+  local c = game.carpet
+  local player = c and { pos = c.pos, heading = c.heading } or nil
+  local ok, err = world.save_game(game.save_name, player)
+  if ok then
+    save.set("world", game.save_name)
+    save.flush()
+  else
+    print("could not save the game " .. game.save_name .. ": " .. tostring(err))
+  end
+  return ok, err
+end
+
 -- Plays in the finished world and remembers it for the next start.
 function game.fly_in_new_world()
   local name = "world-" .. tostring(game.creation.progress and engine.info().seed or 0)
   local ok, err = creation.finish(game.creation, name)
   if ok then
-    save.set("world", name)
-    save.flush()
+    game.save_name = name
     game.creation = nil
     game.set_mode("flight")
+    game.save()
   end
   return ok, err
 end
@@ -115,10 +136,13 @@ engine.on("init", function()
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
   game.credits = engine.credits()
   local saved = save.get("world")
-  if saved then -- continue in the world made last time
-    local ok, err = world.load(saved)
-    if not ok then
-      print("could not load the world " .. saved .. ": " .. tostring(err))
+  if saved then -- continue the game saved last time
+    local player, err = world.load_game(saved)
+    if player then
+      game.save_name = saved
+      game.restore = type(player) == "table" and player or nil
+    else
+      print("could not load the game " .. saved .. ": " .. tostring(err))
     end
   end
   game.set_mode(game.mode)
@@ -134,6 +158,9 @@ local function handle(ev)
     game.fullscreen = not game.fullscreen
     engine.set_fullscreen(game.fullscreen)
   elseif ev == "quit" then
+    if game.mode == "flight" then
+      game.save()
+    end
     engine.quit()
   end
 end
@@ -149,6 +176,10 @@ local function showcase_tick(dt)
 end
 
 local function flight_tick(dt)
+  game.flight_ticks = (game.flight_ticks or 0) + 1
+  if game.flight_ticks % AUTOSAVE_TICKS == 0 then
+    game.save()
+  end
   local st = controls.read()
   local co = game.coop
   local c = coop.tick(co, game.carpet, controls.flight_input(st), dt, WORLD, net)

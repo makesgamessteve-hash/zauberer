@@ -242,7 +242,7 @@ static int w_create_cancel(lua_State *L) {
   return 0;
 }
 
-static bool bundle_path(zb_script *s, const char *name, char *out, size_t len) {
+bool zb_script_valid_name(const char *name) {
   for (const char *c = name; *c; ++c) {
     bool ok =
         (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || (*c >= '0' && *c <= '9') || *c == '-' || *c == '_';
@@ -250,18 +250,27 @@ static bool bundle_path(zb_script *s, const char *name, char *out, size_t len) {
       return false;
     }
   }
-  int n = snprintf(out, len, "%sworlds/%s.zbw", s->cfg.user_dir ? s->cfg.user_dir : "", name);
-  return name[0] != '\0' && n > 0 && (size_t)n < len;
+  return name[0] != '\0' && strlen(name) <= 64;
 }
 
-/* Makes the bundle the world everyone plays in (the host's, or the script's own). */
-static bool adopt_bundle(zb_script *s, zb_world_bundle *b, char *err, size_t err_len) {
+/* saves/<name>/bundle.zbw; legacy: worlds/<name>.zbw (world creation before saves). */
+static bool bundle_path(zb_script *s, const char *name, bool legacy, char *out, size_t len) {
+  int n = legacy ? snprintf(out, len, "%sworlds/%s.zbw", s->cfg.user_dir ? s->cfg.user_dir : "", name)
+                 : snprintf(out, len, "%ssaves/%s/bundle.zbw", s->cfg.user_dir ? s->cfg.user_dir : "", name);
+  return zb_script_valid_name(name) && n > 0 && (size_t)n < len;
+}
+
+/* Makes the bundle the world everyone plays in (the host's, or the script's
+ * own); NULL returns to the noise world. */
+bool zb_script_adopt_bundle(zb_script *s, zb_world_bundle *b, char *err, size_t err_len) {
   if (s->cfg.host.use_bundle) {
     return s->cfg.host.use_bundle(s->cfg.host.ctx, b, err, err_len);
   }
   zb_world_desc d;
   memset(&d, 0, sizeof d);
   d.a = s->cfg.a;
+  d.seed = s->cfg.seed;
+  d.radius = s->cfg.planet_radius;
   d.bundle = b;
   zb_world *w = zb_world_create(&d, err, err_len);
   if (!w) {
@@ -294,7 +303,7 @@ static int w_create_finish(lua_State *L) {
   zb_script *s = S(L);
   const char *name = luaL_checkstring(L, 1);
   char path[512], err[160];
-  if (!bundle_path(s, name, path, sizeof path)) {
+  if (!bundle_path(s, name, false, path, sizeof path)) {
     return fail2(L, "world names use letters, digits, - and _");
   }
   zb_creation_progress p;
@@ -313,7 +322,7 @@ static int w_create_finish(lua_State *L) {
     r = s->cfg.fs->write(s->cfg.fs->ctx, path, file.data, file.len);
   }
   zb_array_free(&file);
-  if (r != ZB_OK || !adopt_bundle(s, b, err, sizeof err)) {
+  if (r != ZB_OK || !zb_script_adopt_bundle(s, b, err, sizeof err)) {
     if (b) {
       zb_world_bundle_free(b);
       zb_free(s->cfg.a, b);
@@ -332,36 +341,56 @@ static int w_create_finish(lua_State *L) {
   return 1;
 }
 
-/* @lua world.load(name: string): boolean, string?
- * Loads worlds/<name>.zbw from the user folder and plays in it.
- */
-static int w_load(lua_State *L) {
-  zb_script *s = S(L);
-  const char *name = luaL_checkstring(L, 1);
-  char path[512], err[160];
-  if (!bundle_path(s, name, path, sizeof path)) {
-    return fail2(L, "world names use letters, digits, - and _");
+bool zb_script_load_world(zb_script *s, const char *name, bool *legacy, char *err, size_t err_len) {
+  char path[512];
+  if (!zb_script_valid_name(name)) {
+    snprintf(err, err_len, "world names use letters, digits, - and _");
+    return false;
   }
   if (!s->cfg.fs) {
-    return fail2(L, "no file system");
+    snprintf(err, err_len, "no file system");
+    return false;
   }
   char *data = NULL;
   size_t len = 0;
+  *legacy = false;
+  bundle_path(s, name, false, path, sizeof path);
   if (s->cfg.fs->read(s->cfg.fs->ctx, path, s->cfg.a, &data, &len) != ZB_OK) {
-    return fail2(L, "no such world");
+    bundle_path(s, name, true, path, sizeof path);
+    if (s->cfg.fs->read(s->cfg.fs->ctx, path, s->cfg.a, &data, &len) != ZB_OK) {
+      snprintf(err, err_len, "no such world");
+      return false;
+    }
+    *legacy = true;
   }
   zb_world_bundle *b = zb_calloc(s->cfg.a, sizeof *b);
-  zb_result r = b ? zb_world_bundle_read(s->cfg.a, data, len, b, err, sizeof err) : ZB_ERR_NOMEM;
+  zb_result r = b ? zb_world_bundle_read(s->cfg.a, data, len, b, err, err_len) : ZB_ERR_NOMEM;
   zb_free(s->cfg.a, data);
-  if (r != ZB_OK || !adopt_bundle(s, b, err, sizeof err)) {
+  if (r != ZB_OK || !zb_script_adopt_bundle(s, b, err, err_len)) {
     if (b) {
       zb_world_bundle_free(b);
       zb_free(s->cfg.a, b);
     }
-    return fail2(L, r == ZB_ERR_NOMEM ? "out of memory" : err);
+    if (r == ZB_ERR_NOMEM) {
+      snprintf(err, err_len, "out of memory");
+    }
+    return false;
   }
   if (s->cfg.render && s->globe_source) {
     release_globe(s);
+  }
+  return true;
+}
+
+/* @lua world.load(name: string): boolean, string?
+ * Plays in the created world <name> from the user folder (saves/<name>/,
+ * or worlds/<name>.zbw from before saves).
+ */
+static int w_load(lua_State *L) {
+  char err[160];
+  bool legacy;
+  if (!zb_script_load_world(S(L), luaL_checkstring(L, 1), &legacy, err, sizeof err)) {
+    return fail2(L, err);
   }
   lua_pushboolean(L, true);
   return 1;

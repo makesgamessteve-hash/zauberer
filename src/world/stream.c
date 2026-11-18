@@ -218,6 +218,9 @@ static void collect(zb_stream *s) {
     s->bytes -= e->data.stage >= 0 ? zb_chunk_terrain_bytes(&e->data) : 0;
     bool changed = e->work.stage != e->data.stage;
     e->data = e->work;
+    if (changed && s->cfg.arrived) {
+      s->cfg.arrived(s->cfg.arrived_ctx, &e->data); /* contents only: the size stays */
+    }
     s->bytes += e->data.stage >= 0 ? zb_chunk_terrain_bytes(&e->data) : 0;
     if (changed) {
       e->version++;
@@ -614,6 +617,17 @@ void zb_stream_update(zb_stream *s, const zb_stream_focus *focus, int count) {
 const zb_chunk_terrain *zb_stream_find(const zb_stream *s, zb_chunk c) {
   const entry *e = lookup(s, c);
   return e && e->data.stage >= 0 ? &e->data : NULL;
+}
+
+zb_chunk_terrain *zb_stream_edit(zb_stream *s, zb_chunk c) {
+  entry *e = lookup(s, c);
+  /* While a job works on the chunk it shares its arrays: the edit waits for
+   * the job's data to arrive (the arrived hook). */
+  if (!e || e->data.stage < 0 || e->job) {
+    return NULL;
+  }
+  e->version++;
+  return &e->data;
 }
 
 int zb_stream_target(const zb_stream *s, zb_chunk c) {

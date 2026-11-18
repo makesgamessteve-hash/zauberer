@@ -164,11 +164,22 @@ class ScenarioTests(EngineTestCase):
         self.assertEqual(host.returncode, 0, host_out)
         self.assertIn("scenario 'co-op host': passed", host_out)
 
+    # spec: world-persistence: Worlds from before saves move into a save
     def test_create_world(self):
         self.assert_ok(self.scenario("create_world"))
-        self.assertTrue(any((self.user_dir / "worlds").glob("*.zbw")), "the world is stored below --user-dir")
+        self.assertTrue(any((self.user_dir / "saves").glob("*/bundle.zbw")), "the world is saved below --user-dir")
         # The next start continues in it.
         self.assert_ok(self.scenario("create_resume"))
+        # A world kept the old way (worlds/<name>.zbw) is moved into a save.
+        save_dir = next((self.user_dir / "saves").glob("*/bundle.zbw")).parent
+        (self.user_dir / "worlds").mkdir()
+        shutil.move(save_dir / "bundle.zbw", self.user_dir / "worlds" / f"{save_dir.name}.zbw")
+        shutil.rmtree(save_dir)
+        result = self.scenario("create_resume")
+        self.assert_ok(result)
+        self.assertIn(f"moved the world {save_dir.name}", result.stdout)
+        self.assertTrue((save_dir / "world.lua").is_file())
+        self.assertTrue((save_dir / "bundle.zbw").is_file())
         # A saved world that has gone is reported, and the noise world is played.
         script = self.tmp / "gone.lua"
         script.write_text("scenario { name = 'gone' }\nsave.set('world', 'gone')\nexpect(save.flush())\n",
@@ -177,7 +188,7 @@ class ScenarioTests(EngineTestCase):
         script.write_text("scenario { name = 'noise' }\nexpect(not world.info().created)\n", encoding="utf-8")
         result = self.run_engine("--headless", "--scenario", str(script))
         self.assert_ok(result)
-        self.assertIn("could not load the world gone: no such world", result.stdout)
+        self.assertIn("could not load the game gone: no such save", result.stdout)
 
     def test_water_bodies(self):
         self.assert_ok(self.scenario("water"))
@@ -187,6 +198,24 @@ class ScenarioTests(EngineTestCase):
 
     def test_day_and_night(self):
         self.assert_ok(self.scenario("day_and_night"))
+
+    # spec: world-persistence: Save and continue
+    def test_save_and_continue(self):
+        self.assert_ok(self.scenario("persistence_save"))
+        world = (self.user_dir / "saves" / "default" / "world.lua").read_text(encoding="utf-8")
+        self.assertIn("format = 1", world)
+        self.assertTrue(any((self.user_dir / "saves" / "default" / "regions").glob("*.bin")))
+        result = self.scenario("persistence_load")
+        self.assert_ok(result)
+        self.assertIn("loaded the game default (1 region(s) of edits)", result.stdout)
+
+    # spec: world-persistence: Saves of an earlier version still load
+    def test_load_saved_fixture(self):
+        # A save written by format 1 of the game, kept in the repository.
+        shutil.copytree(SOURCE_DIR / "tests" / "fixtures" / "saves" / "v1", self.user_dir, dirs_exist_ok=True)
+        result = self.scenario("persistence_load")
+        self.assert_ok(result)
+        self.assertIn("loaded the game default (1 region(s) of edits)", result.stdout)
 
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))

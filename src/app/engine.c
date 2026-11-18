@@ -89,7 +89,8 @@ static zb_world *make_world(zb_engine *e, const zb_world_bundle *bundle, char *e
   return zb_world_create(&wd, err, err_len);
 }
 
-/* Plays in a created world: a new world and terrain view on its bundle. */
+/* Plays in a created world: a new world and terrain view on its bundle (NULL:
+ * the noise world of the engine's seed). */
 static bool host_use_bundle(void *ctx, zb_world_bundle *bundle, char *err, size_t err_len) {
   zb_engine *e = ctx;
   zb_world *w = make_world(e, bundle, err, err_len);
@@ -111,8 +112,12 @@ static bool host_use_bundle(void *ctx, zb_world_bundle *bundle, char *err, size_
   e->terrain_view = tv;
   e->bundle = bundle;
   zb_script_set_world(e->script, w);
-  zb_info("playing a created world (seed %llu, %s quality)", (unsigned long long)bundle->options.seed,
-          zb_world_quality_name(bundle->options.quality));
+  if (bundle) {
+    zb_info("playing a created world (seed %llu, %s quality)", (unsigned long long)bundle->options.seed,
+            zb_world_quality_name(bundle->options.quality));
+  } else {
+    zb_info("playing the noise world (seed %llu)", (unsigned long long)e->seed);
+  }
   return true;
 }
 

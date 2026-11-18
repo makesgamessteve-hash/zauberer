@@ -439,7 +439,7 @@ static int e_packages(lua_State *L) {
   return 1;
 }
 
-static void push_luon(lua_State *L, const zb_value *v) {
+void zb_script_push_luon(lua_State *L, const zb_value *v) {
   switch (v ? v->type : ZB_VAL_NIL) {
     case ZB_VAL_BOOL: lua_pushboolean(L, v->as.b); break;
     case ZB_VAL_NUMBER:
@@ -454,8 +454,8 @@ static void push_luon(lua_State *L, const zb_value *v) {
       lua_newtable(L);
       for (size_t i = 0; i < zb_table_count(v); ++i) {
         const zb_table_entry *e = zb_table_entry_at(v, i);
-        push_luon(L, &e->key);
-        push_luon(L, &e->value);
+        zb_script_push_luon(L, &e->key);
+        zb_script_push_luon(L, &e->value);
         lua_settable(L, -3);
       }
       break;
@@ -481,7 +481,7 @@ static int e_credits(lua_State *L) {
     zb_luon_error err;
     if (zb_luon_parse(&doc, s->cfg.a, text, len, &err) == ZB_OK) {
       for (size_t k = 1; k <= zb_table_len(&doc.root); ++k) {
-        push_luon(L, zb_table_index(&doc.root, k));
+        zb_script_push_luon(L, zb_table_index(&doc.root, k));
         if (!lua_istable(L, -1)) {
           lua_pop(L, 1);
           continue;
@@ -503,7 +503,7 @@ static int e_credits(lua_State *L) {
     zb_luon_error err;
     if (zb_luon_parse(&doc, s->cfg.a, text, len, &err) == ZB_OK) {
       for (size_t k = 1; k <= zb_table_len(&doc.root); ++k) {
-        push_luon(L, zb_table_index(&doc.root, k));
+        zb_script_push_luon(L, zb_table_index(&doc.root, k));
         if (lua_istable(L, -1)) {
           set_str(L, "package", "engine");
           set_str(L, "kind", "code");
@@ -1203,7 +1203,7 @@ static void push_save_table(lua_State *L) {
     zb_luon_error err;
     if (zb_luon_parse(&doc, s->cfg.a, text, len, &err) == ZB_OK && zb_value_is(&doc.root, ZB_VAL_TABLE)) {
       lua_pop(L, 1);
-      push_luon(L, &doc.root);
+      zb_script_push_luon(L, &doc.root);
       zb_luon_free(&doc);
     } else {
       zb_warn("save data %s is corrupt (%d: %s); starting empty", path, err.line, err.message);
@@ -1238,7 +1238,7 @@ static int s_set(lua_State *L) {
   return 0;
 }
 
-static void write_value(lua_State *L, int idx, luaL_Buffer *b, int depth) {
+void zb_script_write_luon(lua_State *L, int idx, luaL_Buffer *b, int depth) {
   idx = lua_absindex(L, idx);
   switch (lua_type(L, idx)) {
     case LUA_TBOOLEAN: luaL_addstring(b, lua_toboolean(L, idx) ? "true" : "false"); break;
@@ -1274,9 +1274,9 @@ static void write_value(lua_State *L, int idx, luaL_Buffer *b, int depth) {
         if ((kt == LUA_TSTRING || kt == LUA_TNUMBER) &&
             (vt == LUA_TBOOLEAN || vt == LUA_TNUMBER || vt == LUA_TSTRING || vt == LUA_TTABLE)) {
           luaL_addstring(b, "[");
-          write_value(L, -2, b, depth + 1);
+          zb_script_write_luon(L, -2, b, depth + 1);
           luaL_addstring(b, "]=");
-          write_value(L, -1, b, depth + 1);
+          zb_script_write_luon(L, -1, b, depth + 1);
           luaL_addstring(b, ",");
         }
         lua_pop(L, 1);
@@ -1297,7 +1297,7 @@ static int s_flush(lua_State *L) {
   luaL_Buffer b;
   luaL_buffinit(L, &b);
   luaL_addstring(&b, "return ");
-  write_value(L, t, &b, 0);
+  zb_script_write_luon(L, t, &b, 0);
   luaL_addstring(&b, "\n");
   luaL_pushresult(&b);
   size_t len;
@@ -1403,6 +1403,7 @@ void zb_script_open_api(zb_script *s) {
   reg(L, "save", save_fns);
   zb_script_open_world(s);
   zb_script_open_create(s);
+  zb_script_open_save(s);
   zb_script_open_net(s);
   zb_script_open_xr(s);
 }
