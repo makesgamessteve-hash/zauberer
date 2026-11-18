@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: MIT
-# Every night: a corpus of worlds created at the game's default (normal)
-# quality must meet the Earth-likeness targets (M2 exit criterion). A fixed set
-# of seeds catches regressions; a set that moves on every night widens the net.
+# A corpus of worlds created at the game's default (normal) quality must meet
+# the Earth-likeness targets (M2 exit criterion). A fixed set of seeds catches
+# regressions; a set that moves with the run number widens the net.
+#
+# Started by hand for now (Actions > Nightly > Run workflow) to save build
+# minutes. To run every night again, add under `on:`:
+#   schedule:
+#     - cron: "17 2 * * *"
 name: Nightly
 
 on:
-  schedule:
-    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:

@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: MIT
-# Every push and pull request: lint, Linux coverage (with rendered tests),
-# Linux sanitizers, Windows and web, then a cross-platform determinism check.
-# Any failing job fails the run. macOS is deferred for now (project decision).
+# Lint, Linux coverage (with rendered tests), Linux sanitizers, Windows and
+# web, then a cross-platform determinism check. Any failing job fails the run.
+# macOS is deferred for now (project decision).
+#
+# Started by hand for now (Actions > CI > Run workflow) to save build minutes;
+# the full gates run locally once per milestone. To run on every push and pull
+# request again, add `push:` and `pull_request:` under `on:`.
 name: CI
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:

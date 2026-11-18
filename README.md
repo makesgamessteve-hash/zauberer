@@ -87,8 +87,9 @@ cd tests/web && npm install && node --test web.test.mjs              # browser t
   (`coverage_gate.py`), every spec scenario tagged by a test (`spec_coverage.py`), module
   layering (`check_includes.py`), REUSE/license split (`check_licenses.py`, `reuse lint`),
   asset credits (`check_credits.py`) and the generated Lua API reference
-  (`gen_api_docs.py --check`). CI runs all of them on every push
-  ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+  (`gen_api_docs.py --check`). CI runs all of them
+  ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)); for now it is started by
+  hand to save build minutes, and the full gates run locally once per milestone.
 
 ## Working with OpenSpec
 
