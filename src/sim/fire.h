@@ -69,6 +69,8 @@ void zb_fire_update(zb_fire *f, const zb_planet_pos *focus, int focus_count, dou
 /* Sets fire to the fuel within radius metres (lightning, a spell, a torch);
  * returns the cells that caught. */
 int zb_fire_ignite(zb_fire *f, const zb_planet_pos *pos, double radius);
+/* The ground of a chunk changed (dug, raised): its cells take the new heights. */
+void zb_fire_ground_changed(zb_fire *f, const zb_chunk_terrain *ct);
 /* Standing water on a place: a fire there goes out and its fuel is soaked. */
 void zb_fire_soak(zb_fire *f, const zb_planet_pos *pos);
 /* Adds heat (J) spread over radius metres. */

@@ -578,6 +578,13 @@ function world.create_finish(name) end
 ---@return CreationProgress?
 function world.create_step(pieces) end
 
+---Digs (amount < 0) or raises the ground within radius metres (0.5 .. 64) of a place by up to amount metres (-30 .. 30) at the centre, in a smooth bowl or mound: a crater, an Earth spell. Plants inside are dug up, the change is kept with the game, and the active tier's water and fire follow the new ground. Returns the chunks changed (0 where the ground is not loaded).
+---@param pos PlanetPos
+---@param radius number
+---@param amount number
+---@return integer
+function world.deform(pos, radius, amount) end
+
 ---Great-circle distance at sea level in metres.
 ---@param a PlanetPos
 ---@param b PlanetPos

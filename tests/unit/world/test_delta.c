@@ -4,6 +4,7 @@
 #include "world/delta.h"
 #include "world/flora.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -225,11 +226,56 @@ static void test_burnt(void) {
   zb_deltas_destroy(d);
 }
 
+/* spec: terrain-deformation: Heights are kept as edits */
+static void test_heights(void) {
+  zb_deltas *d = zb_deltas_create(zb_test_alloc());
+  zb_chunk_terrain ct;
+  zb_chunk_terrain_init(&ct, (zb_chunk){2, 5, 6});
+  static float height[ZB_HEIGHT_RES * ZB_HEIGHT_RES];
+  for (int i = 0; i < ZB_HEIGHT_RES * ZB_HEIGHT_RES; ++i) {
+    height[i] = 10.0f;
+  }
+  ct.min_height = ct.max_height = 10.0f;
+  float low = 4.5f, nan = NAN, huge = 30000.0f;
+  zb_edit e = {ZB_EDIT_HEIGHT, 0, 256, 256, 0};
+  memcpy(&e.index, &low, sizeof low);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_add(d, ct.chunk, &e));
+  zb_edit bad = e;
+  bad.x = ZB_HEIGHT_RES;
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &bad));
+  bad = e;
+  memcpy(&bad.index, &nan, sizeof nan);
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &bad));
+  memcpy(&bad.index, &huge, sizeof huge);
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &bad));
+  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct, 0.0)); /* no heights yet */
+  ct.height = height;
+  TEST_ASSERT_TRUE(zb_deltas_apply(d, &ct, 0.0));
+  TEST_ASSERT_EQUAL_FLOAT(4.5f, height[256 * ZB_HEIGHT_RES + 256]);
+  TEST_ASSERT_EQUAL_FLOAT(4.5f, ct.min_height);
+  TEST_ASSERT_EQUAL_FLOAT(10.0f, ct.max_height);
+  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct, 0.0)); /* the same heights again: nothing changes */
+  zb_array file;
+  zb_array_init(&file, zb_test_alloc(), 1);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_write_region(d, 2, 0, 0, &file));
+  zb_deltas *back = zb_deltas_create(zb_test_alloc());
+  char err[160];
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_read_region(back, file.data, file.len, err, sizeof err));
+  size_t n;
+  const zb_edit *got = zb_deltas_get(back, ct.chunk, &n);
+  TEST_ASSERT_EQUAL_size_t(1, n);
+  TEST_ASSERT_TRUE(got[0].kind == ZB_EDIT_HEIGHT && got[0].index == e.index);
+  zb_array_free(&file);
+  zb_deltas_destroy(back);
+  zb_deltas_destroy(d);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_store);
   RUN_TEST(test_apply);
   RUN_TEST(test_regions);
   RUN_TEST(test_burnt);
+  RUN_TEST(test_heights);
   return UNITY_END();
 }

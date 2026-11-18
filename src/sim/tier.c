@@ -5,6 +5,7 @@
 
 #include "core/hash.h"
 #include "core/log.h"
+#include "world/stream.h"
 
 #define TICK_HZ 60
 #define SOAK_DEPTH 0.02 /* metres of standing water that put a fire out */
@@ -181,3 +182,16 @@ void zb_tier_update(zb_tier *t, double seconds) {
 }
 
 void zb_tier_get_stats(const zb_tier *t, zb_tier_stats *out) { *out = t->stats; }
+
+void zb_tier_ground_changed(zb_tier *t, const zb_chunk *chunks, int count) {
+  for (int k = 0; k < count; ++k) {
+    const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(t->cfg.world), chunks[k]);
+    if (!ct) {
+      continue;
+    }
+    zb_surface_water_ground_changed(t->water, ct);
+    if (t->fire) {
+      zb_fire_ground_changed(t->fire, ct);
+    }
+  }
+}

@@ -49,6 +49,12 @@ struct zb_deltas *zb_world_deltas(zb_world *w);
 int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius);
 /* Sets the surface material of the 1 m cell at pos (zb_material). */
 zb_result zb_world_set_material(zb_world *w, const zb_planet_pos *pos, int material);
+/* Raises (amount > 0) or lowers the ground within radius metres of pos by
+ * up to amount metres at the centre, in a smooth bowl or mound, on every
+ * loaded chunk it touches (their shared edges stay together); plants inside
+ * are dug up. The heights are kept as edits. Writes the chunks it changed to
+ * changed (at most max) and returns how many. */
+int zb_world_deform(zb_world *w, const zb_planet_pos *pos, double radius, double amount, zb_chunk *changed, int max);
 /* Records burnt 2 m cells of a chunk (index y * ZB_BURN_RES + x), burnt at
  * game time `when`, and applies them if the chunk is loaded. */
 zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count, double when);

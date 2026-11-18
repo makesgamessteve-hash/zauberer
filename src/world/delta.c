@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "world/delta.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,6 +84,11 @@ static bool valid(const zb_edit *e) {
     case ZB_EDIT_MATERIAL:
       return e->x < ZB_SURFACE_RES && e->y < ZB_SURFACE_RES && e->value > ZB_MAT_NONE && e->value < ZB_MAT_COUNT;
     case ZB_EDIT_BURNT: return e->x < ZB_BURN_RES && e->y < ZB_BURN_RES;
+    case ZB_EDIT_HEIGHT: {
+      float h;
+      memcpy(&h, &e->index, sizeof h);
+      return e->x < ZB_HEIGHT_RES && e->y < ZB_HEIGHT_RES && isfinite(h) && h > -20000.0f && h < 20000.0f;
+    }
     default: return false;
   }
 }
@@ -189,8 +195,16 @@ static bool apply_burnt(const zb_deltas *d, zb_chunk_terrain *ct, double now) {
 bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct, double now) {
   size_t n;
   const zb_edit *e = zb_deltas_get(d, ct->chunk, &n);
-  bool changed = apply_burnt(d, ct, now);
+  bool changed = apply_burnt(d, ct, now), reshaped = false;
   for (size_t i = 0; i < n; ++i) {
+    if (e[i].kind == ZB_EDIT_HEIGHT && ct->height) {
+      float h;
+      memcpy(&h, &e[i].index, sizeof h);
+      float *at = &ct->height[e[i].y * ZB_HEIGHT_RES + e[i].x];
+      reshaped |= *at != h;
+      *at = h;
+      continue;
+    }
     if (e[i].kind == ZB_EDIT_PLANT_REMOVED && ct->plants && e[i].index < ct->plant_count &&
         ct->plants[e[i].index].layer != ZB_PLANT_REMOVED) {
       ct->plants[e[i].index].layer = ZB_PLANT_REMOVED;
@@ -201,7 +215,14 @@ bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct, double now) {
       *m = e[i].value;
     }
   }
-  return changed;
+  if (reshaped) { /* the chunk's height range follows the ground */
+    ct->min_height = ct->max_height = ct->height[0];
+    for (int k = 1; k < ZB_HEIGHT_RES * ZB_HEIGHT_RES; ++k) {
+      ct->min_height = ct->height[k] < ct->min_height ? ct->height[k] : ct->min_height;
+      ct->max_height = ct->height[k] > ct->max_height ? ct->height[k] : ct->max_height;
+    }
+  }
+  return changed || reshaped;
 }
 
 static void call_region(uint64_t key, zb_region_fn fn, void *ctx) {

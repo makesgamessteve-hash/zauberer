@@ -1,8 +1,10 @@
 /* SPDX-License-Identifier: MIT */
 #include "world/world.h"
 
+#include "core/dmath.h"
 #include "world/bundle.h"
 #include "world/delta.h"
+#include "world/dvec.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -137,6 +139,61 @@ zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int coun
     zb_deltas_apply(w->deltas, ct, w->time);
   }
   return ZB_OK;
+}
+
+static int clamp_sample(double v) { return v < 0.0 ? 0 : (v > ZB_HEIGHT_RES - 1 ? ZB_HEIGHT_RES - 1 : (int)v); }
+
+int zb_world_deform(zb_world *w, const zb_planet_pos *pos, double radius, double amount, zb_chunk *changed, int max) {
+  zb_chunk chunks[9];
+  chunks[0] = pos->chunk;
+  int candidates = 1 + zb_planet_neighbors(&w->planet, pos->chunk, &chunks[1]), n = 0;
+  zb_dvec3 at = zb_planet_to_cart(&w->planet, &(zb_planet_pos){pos->chunk, pos->lx, pos->ly, 0.0f});
+  for (int k = 0; k < candidates && n < max; ++k) {
+    const zb_chunk_terrain *ct = zb_stream_find(w->stream, chunks[k]);
+    if (!ct || ct->stage < ZB_STAGE_TERRAIN) {
+      continue;
+    }
+    /* Sample positions across a chunk are a plane to within millimetres. */
+    zb_planet_pos p00 = {chunks[k], 0.0f, 0.0f, 0.0f}, p10 = {chunks[k], 256.0f, 0.0f, 0.0f},
+                  p01 = {chunks[k], 0.0f, 256.0f, 0.0f};
+    zb_dvec3 o = zb_planet_to_cart(&w->planet, &p00);
+    zb_dvec3 ux = zb_dv_scale(zb_dv_sub(zb_planet_to_cart(&w->planet, &p10), o), 1.0 / 256.0);
+    zb_dvec3 uy = zb_dv_scale(zb_dv_sub(zb_planet_to_cart(&w->planet, &p01), o), 1.0 / 256.0);
+    /* Only the samples around the place's projection onto this chunk. */
+    zb_dvec3 rel = zb_dv_sub(at, o);
+    double xx = zb_dv_dot(ux, ux), xy = zb_dv_dot(ux, uy), yy = zb_dv_dot(uy, uy), rx = zb_dv_dot(rel, ux),
+           ry = zb_dv_dot(rel, uy), det = xx * yy - xy * xy; /* the chunk's axes need not be square */
+    double cx = (rx * yy - ry * xy) / det, cy = (ry * xx - rx * xy) / det;
+    int x0 = clamp_sample(cx - radius - 2.0), x1 = clamp_sample(cx + radius + 2.0);
+    int y0 = clamp_sample(cy - radius - 2.0), y1 = clamp_sample(cy + radius + 2.0);
+    int edits = 0;
+    for (int y = y0; y <= y1; ++y) {
+      for (int x = x0; x <= x1; ++x) {
+        zb_dvec3 s = zb_dv_add(o, zb_dv_add(zb_dv_scale(ux, x), zb_dv_scale(uy, y)));
+        double d = zb_dv_len(zb_dv_sub(s, at));
+        if (d >= radius) {
+          continue;
+        }
+        double c = zb_dcos(0.5 * ZB_DPI * d / radius);
+        float h = (float)(ct->height[y * ZB_HEIGHT_RES + x] + amount * c * c);
+        uint32_t bits;
+        memcpy(&bits, &h, sizeof bits);
+        zb_edit e = {ZB_EDIT_HEIGHT, 0, (uint16_t)x, (uint16_t)y, bits};
+        if (zb_deltas_add(w->deltas, chunks[k], &e) == ZB_OK) {
+          edits++;
+        }
+      }
+    }
+    zb_chunk_terrain *edit = edits ? zb_stream_edit(w->stream, chunks[k]) : NULL;
+    if (edit) {
+      zb_deltas_apply(w->deltas, edit, w->time);
+      changed[n++] = chunks[k];
+    }
+  }
+  if (n > 0 && fabs(amount) > 0.5) {
+    zb_world_remove_plants(w, pos, 0.8 * radius); /* dug up or buried */
+  }
+  return n;
 }
 
 zb_result zb_world_set_material(zb_world *w, const zb_planet_pos *pos, int material) {

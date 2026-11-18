@@ -870,3 +870,17 @@ void zb_fire_soak(zb_fire *f, const zb_planet_pos *pos) {
     c->t[i] = 0.0f;
   }
 }
+
+void zb_fire_ground_changed(zb_fire *f, const zb_chunk_terrain *ct) {
+  int s = zb_active_slot(&f->grid, ct->chunk);
+  if (s < 0 || !ct->height) {
+    return;
+  }
+  fire_chunk *c = FC(f, s);
+  for (int y = 0; y < N; ++y) {
+    for (int x = 0; x < N; ++x) {
+      const float *h0 = &ct->height[(2 * y) * ZB_HEIGHT_RES + 2 * x], *h1 = h0 + ZB_HEIGHT_RES;
+      c->height[y * N + x] = 0.25f * (h0[0] + h0[1] + h1[0] + h1[1]);
+    }
+  }
+}

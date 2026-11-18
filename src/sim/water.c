@@ -459,3 +459,18 @@ void zb_surface_water_chunk(const zb_surface_water *w, int index, zb_water_chunk
   out->depth = c->depth;
   out->version = c->version;
 }
+
+void zb_surface_water_ground_changed(zb_surface_water *w, const zb_chunk_terrain *ct) {
+  int s = zb_active_slot(&w->grid, ct->chunk);
+  if (s < 0 || !ct->height) {
+    return;
+  }
+  water_chunk *c = WC(w, s);
+  for (int y = 0; y < N; ++y) {
+    for (int x = 0; x < N; ++x) {
+      const float *h0 = &ct->height[(2 * y) * ZB_HEIGHT_RES + 2 * x], *h1 = h0 + ZB_HEIGHT_RES;
+      c->ground[y * N + x] = 0.25f * (h0[0] + h0[1] + h1[0] + h1[1]);
+    }
+  }
+  wake(c);
+}

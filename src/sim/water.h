@@ -43,6 +43,9 @@ zb_surface_water *zb_surface_water_create(const zb_allocator *a, zb_world *world
 void zb_surface_water_destroy(zb_surface_water *w);
 void zb_surface_water_set_world(zb_surface_water *w, zb_world *world);
 void zb_surface_water_set_rain(zb_surface_water *w, double mm_per_hour);
+/* The ground of a chunk changed (dug, raised): its cells take the new heights
+ * and the water on them moves again. */
+void zb_surface_water_ground_changed(zb_surface_water *w, const zb_chunk_terrain *ct);
 /* Takes in chunks near the focus points and advances by whole steps (real seconds). */
 void zb_surface_water_update(zb_surface_water *w, const zb_planet_pos *focus, int focus_count, double seconds);
 /* Pours cubic metres of water over the cells within radius metres (a spell,

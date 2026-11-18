@@ -243,6 +243,9 @@ class ScenarioTests(EngineTestCase):
     def test_surface_water(self):
         self.assert_ok(self.scenario("surface_water"))
 
+    def test_deform(self):
+        self.assert_ok(self.scenario("deform"))
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 

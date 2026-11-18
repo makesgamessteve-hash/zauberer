@@ -16,6 +16,7 @@
  */
 #include "script/script_internal.h"
 
+#include "sim/tier.h"
 #include "world/weather.h"
 
 #include <math.h>
@@ -640,6 +641,27 @@ static int w_weather(lua_State *L) {
   return 1;
 }
 
+/* @lua world.deform(pos: PlanetPos, radius: number, amount: number): integer
+ * Digs (amount < 0) or raises the ground within radius metres (0.5 .. 64) of
+ * a place by up to amount metres (-30 .. 30) at the centre, in a smooth bowl
+ * or mound: a crater, an Earth spell. Plants inside are dug up, the change is
+ * kept with the game, and the active tier's water and fire follow the new
+ * ground. Returns the chunks changed (0 where the ground is not loaded).
+ */
+static int w_deform(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2), amount = luaL_checknumber(L, 3);
+  luaL_argcheck(L, radius >= 0.5 && radius <= 64.0, 2, "radius must be 0.5..64 metres");
+  luaL_argcheck(L, amount >= -30.0 && amount <= 30.0, 3, "amount must be -30..30 metres");
+  zb_chunk changed[9];
+  int n = zb_world_deform(W(L), &pos, radius, amount, changed, 9);
+  if (zb_script_from(L)->cfg.tier) {
+    zb_tier_ground_changed(zb_script_from(L)->cfg.tier, changed, n);
+  }
+  lua_pushinteger(L, n);
+  return 1;
+}
+
 void zb_script_open_world(zb_script *s) {
   static const luaL_Reg world_fns[] = {{"planet", w_planet},
                                        {"position", w_position},
@@ -660,6 +682,7 @@ void zb_script_open_world(zb_script *s) {
                                        {"set_time", w_set_time},
                                        {"sky", w_sky},
                                        {"weather", w_weather},
+                                       {"deform", w_deform},
                                        {"plants", w_plants},
                                        {"stream_stats", w_stream_stats},
                                        {"chunk_stage", w_chunk_stage},

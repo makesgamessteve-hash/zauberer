@@ -7,7 +7,6 @@
 #include "world/stream.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 ZB_TEST_LEAK_CHECKED
@@ -24,7 +23,7 @@ typedef struct scene {
 } scene;
 
 /* Ground shapes, in nominal metres of the chunk (x east-ish, 0..256). */
-typedef enum ground { SLOPE, BASIN, SEA_EDGE, FLAT_SOIL, FLAT_ROCK } ground;
+typedef enum ground { SLOPE, BASIN, SEA_EDGE, FLAT_SOIL, FLAT_ROCK, DAM } ground;
 
 static float height_of(ground g, int x, int y) {
   double dx = x - 128.0, dy = y - 128.0;
@@ -32,6 +31,7 @@ static float height_of(ground g, int x, int y) {
     case SLOPE: return (float)(50.0 + 0.1 * x);
     case BASIN: return (float)(50.0 + 0.002 * (dx * dx + dy * dy));
     case SEA_EDGE: return x < 60 ? -5.0f : (float)(1.0 + 0.05 * (x - 60)); /* the sea west of x = 60 */
+    case DAM: return x >= 124 && x <= 140 ? 60.0f : 50.0f;                 /* a ridge across the chunk */
     default: return 50.0f;
   }
 }
@@ -227,12 +227,41 @@ static void test_deterministic(void) {
   TEST_ASSERT_EQUAL_UINT64(h[0], h[1]);
 }
 
+/* spec: terrain-deformation: A breached dam floods the valley */
+static void test_dam_breach(void) {
+  scene s;
+  scene_open(&s, DAM);
+  /* A lake behind the ridge, filled to a few metres below its crest. */
+  for (int round = 0; round < 8; ++round) {
+    for (int k = 0; k < 16; ++k) { /* poured gently, and clear of the ridge */
+      zb_planet_pos lake = at(&s, 20.0f + 26.0f * (float)(k % 4), 32.0f + 64.0f * (float)(k / 4));
+      zb_surface_water_add(s.water, &lake, 24.0, 1250.0);
+    }
+    run(&s, 15.0);
+  }
+  run(&s, 60.0);
+  double lake_level = cell(&s, 100.0f, 128.0f).level;
+  TEST_ASSERT_TRUE(lake_level > 55.0 && lake_level < 59.0);
+  TEST_ASSERT_EQUAL_DOUBLE(0.0, cell(&s, 200.0f, 128.0f).depth); /* the dam holds */
+  zb_planet_pos notch = at(&s, 132.0f, 128.0f);
+  zb_chunk changed[9];
+  int n = zb_world_deform(s.world, &notch, 20.0, -8.0, changed, 9); /* a notch through the crest */
+  TEST_ASSERT_TRUE(n >= 1);
+  zb_surface_water_ground_changed(s.water, zb_stream_find(zb_world_stream(s.world), s.centre.chunk));
+  TEST_ASSERT_TRUE(cell(&s, 124.0f, 128.0f).ground < lake_level - 1.0);
+  run(&s, 60.0);
+  TEST_ASSERT_TRUE_MESSAGE(cell(&s, 200.0f, 128.0f).depth > 0.01, "the valley floods");
+  assert_balanced(&s);
+  scene_close(&s);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_downhill);
   RUN_TEST(test_basin);
   RUN_TEST(test_drains);
   RUN_TEST(test_rain);
+  RUN_TEST(test_dam_breach);
   RUN_TEST(test_deterministic);
   return UNITY_END();
 }
