@@ -24,14 +24,15 @@ ecology.PREDATOR_FLOOR = 0.1   -- share of their capacity predators keep without
 
 ecology.CLASSES = { "forest", "open", "wetland", "dry", "cold" }
 
--- Biomes of created worlds as shares of the habitat classes.
+-- Biomes of created worlds as shares of the habitat classes, by the biome's
+-- name with underscores for spaces (water biomes have none).
 local BIOMES = {
   deciduous_forest = { forest = 0.8, open = 0.2 }, mixed_forest = { forest = 0.8, open = 0.2 },
   temperate_rainforest = { forest = 0.9, wetland = 0.1 }, taiga = { forest = 0.7, cold = 0.3 },
   montane_forest = { forest = 0.7, cold = 0.3 },
   rainforest = { forest = 1 }, seasonal_forest = { forest = 0.8, open = 0.2 },
   cloud_forest = { forest = 0.9, cold = 0.1 }, swamp_forest = { forest = 0.5, wetland = 0.5 },
-  mangrove = { wetland = 0.8, forest = 0.2 }, mediterranean = { forest = 0.4, open = 0.4, dry = 0.2 },
+  mangroves = { wetland = 0.8, forest = 0.2 }, mediterranean_scrub = { forest = 0.4, open = 0.4, dry = 0.2 },
   steppe = { open = 0.8, dry = 0.2 }, savanna = { open = 0.8, dry = 0.2 }, alpine_meadow = { open = 0.6, cold = 0.4 },
   floodplain = { open = 0.5, wetland = 0.5 },
   marsh = { wetland = 0.9, open = 0.1 }, peat_bog = { wetland = 0.8, cold = 0.2 },
@@ -40,18 +41,24 @@ local BIOMES = {
   salt_flat = { dry = 1 }, xeric_shrubland = { dry = 0.7, open = 0.3 },
   dunes = { dry = 1 }, beach = { open = 0.5, dry = 0.5 }, cliffs = { open = 0.5, cold = 0.2 },
   tundra = { open = 0.5, cold = 0.5 }, polar_desert = { cold = 1 }, ice_sheet = { cold = 1 }, glacier = { cold = 1 },
-  scree = { cold = 0.6, open = 0.4 }, volcanic_slopes = { dry = 0.6, open = 0.4 },
+  scree_and_cliffs = { cold = 0.6, open = 0.4 }, volcanic_slopes = { dry = 0.6, open = 0.4 },
   ashlands = { dry = 1 }, stormspires = { open = 0.6, cold = 0.4 }, glasswood = { forest = 1 },
   wildheart = { forest = 1 }, drowned_vale = { wetland = 1 }, deepstone = { cold = 0.5, open = 0.5 },
-  hollows = { open = 1 }, mirefen = { wetland = 1 },
+  the_hollows = { open = 1 }, mirefen = { wetland = 1 },
 }
+
+-- The shares of the habitat classes of a biome by the name world.biome gives
+-- ("mixed forest"), or nil for a water biome or an unknown name.
+function ecology.biome_habitat(name)
+  return BIOMES[(name or ""):gsub(" ", "_")]
+end
 
 -- The habitat of a chunk (its centre pos): shares of the classes, from its
 -- biome in a created world, else from its plants and ground.
 function ecology.habitat(pos)
   local biome = world.biome(pos)
   if biome then
-    local shares = BIOMES[biome] or {}
+    local shares = ecology.biome_habitat(biome) or {}
     local out = {}
     for _, c in ipairs(ecology.CLASSES) do out[c] = shares[c] or 0 end
     return out

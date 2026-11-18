@@ -70,3 +70,24 @@ test.case("species flow from crowded chunks to thin ones", function()
   ecology.migrate(SPECIES, { full, desert }, ecology.YEAR)
   test.expect_eq(desert.n.deer, 0, "never into land that holds none")
 end)
+
+-- The biomes of created worlds by the names world.biome gives.
+test.case("every land biome has its habitat, and wetlands make swamp water", function()
+  local smalllife = require("life.smalllife")
+  local land = { "beach", "dunes", "cliffs", "mangroves", "salt marsh", "estuary", "rainforest", "seasonal forest",
+    "cloud forest", "savanna", "sand desert", "rocky desert", "salt flat", "xeric shrubland", "mediterranean scrub",
+    "steppe", "deciduous forest", "mixed forest", "temperate rainforest", "taiga", "tundra", "polar desert",
+    "ice sheet", "montane forest", "alpine meadow", "scree and cliffs", "glacier", "volcanic slopes", "marsh",
+    "swamp forest", "peat bog", "floodplain", "ashlands", "stormspires", "glasswood", "wildheart", "drowned vale",
+    "deepstone", "the hollows", "mirefen" }
+  for _, name in ipairs(land) do
+    local shares = ecology.biome_habitat(name)
+    local sum = 0
+    for _, v in pairs(shares or {}) do sum = sum + v end
+    test.expect(shares and sum > 0 and sum <= 1 + 1e-9, name)
+  end
+  test.expect(ecology.biome_habitat("deep ocean") == nil and ecology.biome_habitat(nil) == nil)
+  test.expect(ecology.biome_habitat("swamp forest").wetland > 0 and ecology.biome_habitat("mixed forest").forest > 0)
+  test.expect(smalllife.wet_biome("swamp forest") and smalllife.wet_biome("mangroves") and smalllife.wet_biome("marsh"))
+  test.expect(not smalllife.wet_biome("mixed forest") and not smalllife.wet_biome(nil))
+end)

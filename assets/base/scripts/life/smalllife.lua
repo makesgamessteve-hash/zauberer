@@ -138,8 +138,14 @@ end
 smalllife.SPOILT = 0.5 -- load past which food makes one sick
 smalllife.ROTTEN = 0.9 -- past which it is not food any more
 
-local WET = { marsh = true, swamp_forest = true, peat_bog = true, mangrove = true, salt_marsh = true,
+local WET = { marsh = true, swamp_forest = true, peat_bog = true, mangroves = true, salt_marsh = true,
   floodplain = true, mirefen = true, drowned_vale = true, estuary = true }
+
+-- Whether a biome (by the name world.biome gives, "swamp forest") is a
+-- wetland, where all water is swamp water.
+function smalllife.wet_biome(name)
+  return WET[(name or ""):gsub(" ", "_")] or false
+end
 
 -- The water at a place: kind ("sea", "lake", "river", "pool", "swamp" or
 -- nil), how dirty (0 .. 1) and whether it is salty.
@@ -156,7 +162,7 @@ function smalllife.water(pos)
   else
     return nil
   end
-  if WET[world.biome(pos) or ""] then
+  if smalllife.wet_biome(world.biome(pos)) then
     out.kind, out.dirty = out.kind == "sea" and "sea" or "swamp", math.max(out.dirty, 0.8)
   end
   -- Carrion fouls the water near it.
@@ -185,7 +191,7 @@ local function swarm_kinds(pos)
     if p.layer == "ground" then open = open + 1 end
   end
   local water = sim.water_at(pos)
-  local wet = reeds > 3 or WET[world.biome(pos) or ""] or (water.loaded and water.depth > 0.05)
+  local wet = reeds > 3 or smalllife.wet_biome(world.biome(pos)) or (water.loaded and water.depth > 0.05)
   local growing = season >= 0.2 and season < 2.4
   local summer = season >= 0.8 and season < 1.8
   local out = {}
