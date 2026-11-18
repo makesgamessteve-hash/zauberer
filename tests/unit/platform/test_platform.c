@@ -357,8 +357,9 @@ static void no_state(void *user, char *out, size_t len) {
 
 static bool no_xr_frame(void *user, const zb_xr_frame *frame) {
   (void)user;
-  (void)frame;
-  TEST_FAIL_MESSAGE("no XR frames on the desktop");
+  if (frame) { /* a conditional failure keeps the return reachable for MSVC */
+    TEST_FAIL_MESSAGE("no XR frames on the desktop");
+  }
   return false;
 }
 
