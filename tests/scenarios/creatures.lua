@@ -31,16 +31,18 @@ end
 expect(by_species.deer == 5 and by_species.wolf == 3 and by_species.storm_bird == 1)
 expect_eq(fauna.species().wolf.name, "Grey wolf")
 -- A species of a script's own.
-local index = sim.define_species({ id = "boar", length = 1.2, mass = 80, walk = 1.2, run = 8, diet = "omnivore",
+local index = sim.define_species({ id = "lynx", length = 1.2, mass = 80, walk = 1.2, run = 8, diet = "omnivore",
   sight = 50, hearing = 100, smell = 250, health = 80, resist = { impact = 0.3 }, color = { 0.3, 0.25, 0.2 } })
-expect_eq(index, 3)
+expect_eq(index, 7) -- after the seven base species
 local spot = world.move(here, game.carpet.heading, 60, 0)
-local boar = sim.spawn_creature("boar", spot)
+local lynx = sim.spawn_creature("lynx", spot)
 step(2)
-expect_eq(sim.creature(boar).species, "boar")
-expect(sim.creature(boar).hunger >= 0 and sim.creature(boar).energy == 1)
-local near = sim.creatures_near(sim.creature(boar).pos, 5) -- within 5 m, heights counted
-expect(#near == 1 and near[1] == boar)
+expect_eq(sim.creature(lynx).species, "lynx")
+expect(sim.creature(lynx).hunger >= 0 and sim.creature(lynx).energy == 1)
+local near = sim.creatures_near(sim.creature(lynx).pos, 5) -- within 5 m, heights counted
+local found_lynx = false
+for _, id in ipairs(near) do found_lynx = found_lynx or id == lynx end
+expect(found_lynx, "found near where it stands")
 -- Deer next to a fire flee from it.
 local herd = {}
 for k = 1, 3 do
@@ -74,23 +76,27 @@ for _, line in ipairs(fauna.hud_lines(f)) do told = told or line:find("storm bir
 expect(told, "the death is news")
 expect(not sim.creature(bird).alive)
 -- Healing never goes past full health.
-expect(sim.hurt(boar, "magic", -500))
-expect_eq(sim.creature(boar).health, 80)
-expect(sim.hurt(boar, "impact", 10))
-expect_eq(sim.creature(boar).health, 73) -- resists 30 % of blows
+expect(sim.hurt(lynx, "magic", -500))
+expect_eq(sim.creature(lynx).health, 80)
+expect(sim.hurt(lynx, "impact", 10))
+expect_eq(sim.creature(lynx).health, 73) -- resists 30 % of blows
 -- Stimuli and the player.
 sim.stimulus("threat", spot, 1, 2)
 sim.set_player(here, true)
 sim.set_player(nil)
 step(15)
-expect(sim.creature(boar).fear > 0.5, "the threat frightens")
+expect(sim.creature(lynx).fear > 0.5, "the threat frightens")
 local stats = sim.creature_stats()
 local total = stats.alive + stats.dead + stats.frozen
-expect_eq(total, 9 + 1 + 3)
+local wild = 0 -- the animals the ecology brought around the carpet
+for _, chunk in pairs(game.ecology.live) do
+  for _, ids in pairs(chunk) do wild = wild + #ids end
+end
+expect_eq(total, 9 + 1 + 3 + wild)
 expect(stats.dead >= 1 and stats.actions.flee >= 1)
 expect(sim.tier_stats().creatures_ms >= 0)
-expect(sim.remove_creature(boar) and not sim.remove_creature(boar))
-expect(sim.creature(boar) == nil)
+expect(sim.remove_creature(lynx) and not sim.remove_creature(lynx))
+expect(sim.creature(lynx) == nil)
 -- Bad arguments.
 expect(not pcall(sim.spawn_creature, "unicorn", spot), "no such species")
 expect(not pcall(sim.hurt, bird, "tickle", 1), "no such harm")

@@ -17,6 +17,8 @@ local coop = require("flight.coop")
 local creation = require("create.screen")
 local magic = require("magic.play")
 local fauna = require("life.fauna")
+local ecology = require("life.ecology")
+local plants = require("life.plants")
 local motes = require("magic.motes")
 local effects = require("magic.effects")
 local health = require("player.health")
@@ -62,6 +64,18 @@ local function setup_flight()
     fauna.clear(game.fauna)
   end
   game.fauna = fauna.new(pos, heading)
+  -- The land's populations and what was taken from its plants: from the save,
+  -- kept when flying on in the same world, new in a new one.
+  local world_id = tostring((world.info() or {}).seed or ("noise " .. engine.info().seed))
+  if game.ecology then
+    ecology.fold_all(game.ecology)
+  end
+  if back or game.life_world ~= world_id then
+    local life = back and back.life or {}
+    game.ecology = ecology.new(life.ecology)
+    game.plants = plants.new(life.plants)
+  end
+  game.life_world = world_id
   game.motes = motes.new(engine.info().seed)
   game.channeling = false
   game.chase = camera.new()
@@ -116,8 +130,9 @@ end
 function game.save()
   local c = game.carpet
   local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
-    health = game.health and health.snapshot(game.health), on_foot = game.walker and walker.snapshot(game.walker) }
-    or nil
+    health = game.health and health.snapshot(game.health), on_foot = game.walker and walker.snapshot(game.walker),
+    life = game.ecology and { ecology = ecology.snapshot(game.ecology),
+      plants = plants.snapshot(game.plants, world.time().time) } } or nil
   local ok, err = world.save_game(game.save_name, player)
   if ok then
     save.set("world", game.save_name)
@@ -241,6 +256,7 @@ local function flight_tick(dt)
     here.loaded and here.stored or nil)
   game.last_cast = cast_now or game.last_cast
   -- Creatures, and the motes of the magical ones that die.
+  ecology.tick(game.ecology, dt, me, world.time().time)
   local creature_events = fauna.tick(game.fauna, dt, me, w ~= nil)
   for _, ev in ipairs(creature_events) do
     if ev.kind == "died" and ev.magical and ev.mana and (ev.motes or 0) > 0 then
@@ -436,5 +452,5 @@ end)
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
-  walker = walker,
+  walker = walker, ecology = ecology, plants = plants,
 }

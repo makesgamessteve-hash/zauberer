@@ -14,6 +14,7 @@ for _ = 1, 900 do
   sleep(5)
 end
 for _, id in ipairs(game.fauna.ids) do sim.remove_creature(id) end -- only the ones placed here
+demo.ecology.pause(game.ecology, true)
 local spot = world.move(here, game.carpet.heading, 40, 0)
 local function above(p, h)
   local q = world.move(p, 0, 0, 0)
