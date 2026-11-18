@@ -1194,6 +1194,8 @@ double zb_climate_progress(const zb_climate *c) {
 
 const zb_cubegrid *zb_climate_grid(const zb_climate *c) { return &c->grid; }
 
+const float *zb_climate_monthly(const zb_climate *c, bool precipitation) { return precipitation ? c->precip : c->temp; }
+
 void zb_climate_month(const zb_climate *c, zb_dvec3 dir, int month, double height, double *temperature,
                       double *precipitation) {
   size_t off = (size_t)(month % ZB_MONTHS) * c->grid.cells;

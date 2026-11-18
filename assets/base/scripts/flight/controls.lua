@@ -4,7 +4,7 @@
 local M = {}
 
 M.EXPO = 1.6 -- stick response: small deflections give fine control
-M.ACTIONS = { "steer", "climb", "climb_touch", "boost", "look", "chime", "credits", "fullscreen", "quit" }
+M.ACTIONS = { "steer", "climb", "climb_touch", "boost", "look", "chime", "credits", "fullscreen", "quit", "new_world" }
 
 -- On-screen controls in touch mode (normalised screen coordinates).
 M.TOUCH = {

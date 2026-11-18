@@ -14,6 +14,9 @@ typedef struct zb_world_desc {
   zb_stream_profile profile;
   uint64_t (*clock_ns)(void *ctx); /* inline time budget */
   void *clock_ctx;
+  /* A created world (terrain v2); it must outlive the world, and its radius
+   * and seed replace radius and seed. NULL: the noise world. */
+  const struct zb_world_bundle *bundle;
 } zb_world_desc;
 
 typedef struct zb_world zb_world;
@@ -23,6 +26,8 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len);
 void zb_world_destroy(zb_world *w);
 const zb_planet *zb_world_planet(const zb_world *w);
 const zb_terrain *zb_world_terrain(const zb_world *w);
+/* The created world's bundle, or NULL for the noise world. */
+const struct zb_world_bundle *zb_world_get_bundle(const zb_world *w);
 zb_stream *zb_world_stream(zb_world *w);
 /* Sets (focus != NULL) or clears a focus point; index 0..ZB_STREAM_MAX_FOCUS-1. */
 bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus);

@@ -262,6 +262,10 @@ Stores a value (nested tables of plain values) in the save data.
 
 ## world: planet coordinates and terrain
 
+### `world.biome(pos: PlanetPos): string?`
+
+The biome under a position, nil in the noise world.
+
 ### `world.chunk_hash(pos: PlanetPos, stage?: integer): string`
 
 Generates the position's chunk to a stage (default 1) and returns the hash of its data as 16 hex digits: peers compare it to check that they generate the same world.
@@ -278,9 +282,33 @@ Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or
 
 Removes a focus point; its chunks are released as memory requires.
 
+### `world.climate(pos: PlanetPos, month?: integer): number?, number?`
+
+Mean temperature (C, at the position's altitude) and precipitation (mm) for a month (1-12), or the year when month is omitted; nil in the noise world.
+
+### `world.create(options?: WorldOptions): boolean, string?`
+
+Starts creating a new world (one at a time); world.create_step does the work.
+
+### `world.create_cancel()`
+
+Abandons the world being created.
+
+### `world.create_finish(name: string): boolean, string?`
+
+Saves the finished world as worlds/<name>.zbw in the user folder and makes it the world being played. Names use letters, digits, - and _.
+
+### `world.create_step(pieces?: integer): CreationProgress?`
+
+Does some pieces of work (default 1: a deep-time step, an erosion pass, a month of climate); nil when no world is being created.
+
 ### `world.distance(a: PlanetPos, b: PlanetPos): number`
 
 Great-circle distance at sea level in metres.
+
+### `world.draw_globe(frame: integer?, position: number[], radius: number, spin?: number): boolean`
+
+Draws the planet as a globe: a time-lapse frame of the world being created (1-based; nil for the newest), or the played world by biome when none is being created. Returns false when there is nothing to show yet.
 
 ### `world.from_cartesian(x: number, y: number, z: number): PlanetPos`
 
@@ -298,6 +326,18 @@ Ground height in metres above sea level from the loaded heightfield (the analyti
 
 Terrain height above sea level in metres at the position (the analytic terrain, within 0.5 m of the generated heightfield).
 
+### `world.info(): WorldInfo`
+
+The world being played.
+
+### `world.load(name: string): boolean, string?`
+
+Loads worlds/<name>.zbw from the user folder and plays in it.
+
+### `world.minerals(pos: PlanetPos): string[]?`
+
+The mineral deposits under a position, nil in the noise world.
+
 ### `world.move(pos: PlanetPos, heading: number, forward: number, right?: number, up?: number): PlanetPos, number`
 
 Moves a position forward metres along heading (radians clockwise from north), right metres to the side and up metres up; returns the new position and the heading carried along the path (straight flight follows a great circle, also across the poles).
@@ -314,9 +354,17 @@ Describes the planet.
 
 Makes a position; the offsets default to 0. Errors when the chunk is not on the planet.
 
+### `world.province(pos: PlanetPos): integer?, number?`
+
+The biogeographic province under a position (1-based) and its isolation (0 well connected .. 1 remote), nil at sea or in the noise world.
+
 ### `world.set_focus(index: integer, pos: PlanetPos, velocity?: number[], view?: number[])`
 
 Streams terrain around a focus point (1..4, one per player camera). velocity (m/s) and view are {x, y, z} in the local frame at pos (x east, y up, z south).
+
+### `world.strata(pos: PlanetPos): Stratum[]?`
+
+The rock record under a position, youngest first, nil in the noise world.
 
 ### `world.stream_stats(): StreamStats`
 
@@ -478,6 +526,18 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `near` | `number?` | Near plane (default 0.1) |
 | `far` | `number?` | Far plane (default 500) |
 
+### CreationProgress
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `stage` | `string` | "deep time", "relief", "climate" or "done" |
+| `label` | `string` | What is happening, for the player |
+| `fraction` | `number` | 0..1 |
+| `myr_ago` | `number` | Million years before present (deep time) |
+| `frames` | `integer` | Time-lapse frames recorded so far |
+| `attempt` | `integer` | Re-runs of the final phase for Earth-likeness |
+| `done` | `boolean` |  |
+
 ### Credit
 
 | Field | Type | Description |
@@ -610,6 +670,16 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `frames` | `integer` | Frames rendered so far |
 | `backend` | `string` | "gl" or "null" |
 
+### Stratum
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `rock` | `string` |  |
+| `environment` | `string` |  |
+| `thickness` | `number` | Metres |
+| `age` | `number` | Million years before present |
+| `fossil` | `string?` | What it holds, if anything |
+
 ### StreamStats
 
 | Field | Type | Description |
@@ -633,6 +703,32 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `position` | `number[]?` | Translation {x, y, z} |
 | `rotation` | `number[]?` | Euler angles in degrees (applied Y, X, Z) |
 | `scale` | `number[] or number?` | Scale per axis or uniform |
+
+### WorldInfo
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `created` | `boolean` | A created world (false: the noise world) |
+| `seed` | `integer` |  |
+| `radius` | `number` |  |
+| `target` | `string?` |  |
+| `quality` | `string?` |  |
+| `generator` | `integer?` | Generator version |
+| `continents` | `integer?` |  |
+| `land` | `number?` |  |
+| `provinces` | `integer?` |  |
+
+### WorldOptions
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `seed` | `integer?` | World seed (default: the engine's) |
+| `radius` | `number?` | Planet radius in metres (default 2,000 km) |
+| `target` | `string?` | "earth", "pangaea", "archipelago", "ice world" or "hothouse" |
+| `land` | `number?` | Share of land (0.35) |
+| `temperature` | `number?` | Global temperature offset, -10 .. 10 C |
+| `tilt` | `number?` | Axial tilt in degrees (23) |
+| `quality` | `string?` | "quick", "normal" or "high" |
 
 ### XrPose
 

@@ -36,11 +36,16 @@ typedef struct zb_terrain_params {
   double detail_height;   /* amplitude of 1 m detail (2.5) */
 } zb_terrain_params;
 
+struct zb_world_bundle;
+
 typedef struct zb_terrain {
   zb_planet planet;
   uint64_t seed;
   zb_terrain_params params;
   double continent_threshold; /* sea level in continent-field units */
+  /* A created world (terrain v2): heights from its macro grid, materials by
+   * biome. NULL: the noise world of terrain v1. */
+  const struct zb_world_bundle *bundle;
 } zb_terrain;
 
 typedef struct zb_chunk_terrain {
@@ -58,6 +63,12 @@ void zb_terrain_default_params(zb_terrain_params *out);
 /* params may be NULL for the defaults. */
 void zb_terrain_init(zb_terrain *t, const zb_planet *p, uint64_t seed, const zb_terrain_params *params);
 
+/* Switches to a created world's macro grid and biomes (the bundle must
+ * outlive the terrain); NULL returns to the noise world. */
+void zb_terrain_use_bundle(zb_terrain *t, const struct zb_world_bundle *bundle);
+/* The surface material for a biome (zb_biome), with the same height, slope
+ * and jitter inputs as zb_terrain_material_rule. */
+zb_material zb_terrain_biome_material(int biome, double height, double slope, double jitter);
 /* Height above sea level of the large-scale shape (no 1 m detail). */
 double zb_terrain_macro_height(const zb_terrain *t, zb_dvec3 dir);
 /* Full analytic height (macro + detail); the generated heightfield follows it

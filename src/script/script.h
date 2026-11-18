@@ -48,6 +48,10 @@ typedef struct zb_script_host {
   void (*xr_emulate)(void *ctx, const zb_xr_pose *head);
   /* Test API: a controller button event (zb_xr_hand, zb_xr_button). */
   void (*xr_button)(void *ctx, int hand, int button, bool down);
+  /* Plays in a created world from now on, taking ownership of the bundle;
+   * false with a message if the world cannot be made (the bundle stays the
+   * caller's). NULL: scripts keep a private world. */
+  bool (*use_bundle)(void *ctx, struct zb_world_bundle *bundle, char *err, size_t err_len);
 } zb_script_host;
 
 typedef struct zb_script_config {
@@ -66,6 +70,7 @@ typedef struct zb_script_config {
   const char *coverage_path;   /* LuaCov-compatible stats file, or NULL */
   zb_world *world;             /* NULL: a private world (inline generation) */
   zb_net *net;                 /* co-op session; NULL: networking unavailable */
+  zb_jobs *jobs;               /* world creation runs here; NULL: on the calling thread */
   double planet_radius;        /* private world only; 0 = ZB_PLANET_DEFAULT_RADIUS */
 } zb_script_config;
 
@@ -75,6 +80,8 @@ typedef struct zb_script_config {
 zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_len);
 /* Writes coverage (if enabled) and closes the Lua state. */
 void zb_script_destroy(zb_script *s);
+/* The engine's world was replaced (a created world): scripts use the new one. */
+void zb_script_set_world(zb_script *s, zb_world *world);
 
 /* Runs scripts/main.lua of every enabled package in load order. Errors are
  * isolated per package; returns the number of packages whose script failed. */

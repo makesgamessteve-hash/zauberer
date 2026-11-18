@@ -685,7 +685,7 @@ zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_l
   zb_world *world = cfg->world;
   if (!world) {
     /* Unit tests and tools: a private world that generates inline. */
-    zb_world_desc wd = {cfg->a, NULL, cfg->planet_radius, cfg->seed, ZB_STREAM_DESKTOP, NULL, NULL};
+    zb_world_desc wd = {cfg->a, NULL, cfg->planet_radius, cfg->seed, ZB_STREAM_DESKTOP, NULL, NULL, NULL};
     world = zb_world_create(&wd, err, err_len);
     if (!world) {
       return NULL;
@@ -830,6 +830,7 @@ void zb_script_destroy(zb_script *s) {
     zb_script_write_coverage(s);
     lua_close(s->L);
   }
+  zb_script_close_create(s);
   for (size_t i = 0; i < s->watched.len; ++i) {
     zb_free(s->cfg.a, ((watched_file *)zb_array_at(&s->watched, i))->real);
   }
@@ -846,7 +847,16 @@ void zb_script_destroy(zb_script *s) {
   if (s->own_world) {
     zb_world_destroy(s->world);
   }
+  zb_script_free_bundle(s); /* after the world that used it */
   zb_free(s->cfg.a, s);
+}
+
+void zb_script_set_world(zb_script *s, zb_world *world) {
+  if (s->own_world) {
+    zb_world_destroy(s->world);
+    s->own_world = false;
+  }
+  s->world = world;
 }
 
 size_t zb_script_error_count(const zb_script *s) { return s->error_count; }

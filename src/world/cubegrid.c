@@ -144,3 +144,32 @@ double zb_cubegrid_sample(const zb_cubegrid *g, const float *field, zb_dvec3 dir
   double b = (double)h[y1 * res + x0] * (1.0 - tx) + (double)h[y1 * res + x1] * tx;
   return a * (1.0 - ty) + b * ty;
 }
+
+/* A cell by face coordinates one step outside the face: the neighbour across the edge. */
+static int32_t cell_or_across(const zb_cubegrid *g, int face, int x, int y) {
+  int res = g->res;
+  int cx = x < 0 ? 0 : (x >= res ? res - 1 : x), cy = y < 0 ? 0 : (y >= res ? res - 1 : y);
+  int32_t c = (int32_t)((face * res + cy) * res + cx);
+  bool out_x = x != cx, out_y = y != cy;
+  if (out_x == out_y) {
+    return c; /* inside, or past a cube corner */
+  }
+  int32_t across = zb_cubegrid_nbr(g, c, out_x ? (x < 0 ? 1 : 0) : (y < 0 ? 3 : 2));
+  return across >= 0 ? across : c;
+}
+
+double zb_cubegrid_sample_smooth(const zb_cubegrid *g, const float *field, zb_dvec3 dir) {
+  int res = g->res;
+  int face = zb_planet_dir_face(dir);
+  double u, v;
+  zb_planet_dir_uv(face, dir, &u, &v);
+  double fx = (u + 1.0) * 0.5 * (double)res - 0.5, fy = (v + 1.0) * 0.5 * (double)res - 0.5;
+  double x0 = floor(fx), y0 = floor(fy);
+  double tx = fx - x0, ty = fy - y0;
+  int ix = (int)x0, iy = (int)y0;
+  double a = (double)field[cell_or_across(g, face, ix, iy)] * (1.0 - tx) +
+             (double)field[cell_or_across(g, face, ix + 1, iy)] * tx;
+  double b = (double)field[cell_or_across(g, face, ix, iy + 1)] * (1.0 - tx) +
+             (double)field[cell_or_across(g, face, ix + 1, iy + 1)] * tx;
+  return a * (1.0 - ty) + b * ty;
+}

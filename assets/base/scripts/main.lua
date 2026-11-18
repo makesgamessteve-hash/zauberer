@@ -1,6 +1,8 @@
 -- SPDX-License-Identifier: MIT
--- Entry script of the base package. Two modes:
+-- Entry script of the base package. Three modes:
 --  * "flight" (default, M1 First Flight): a carpet over the streamed planet,
+--  * "create" (M2 A Planet): a new world made while its continents drift on a
+--    turning globe, then flown in,
 --  * "showcase" (the M0 demo): the carpet seen from an orbiting camera, with
 --    mana motes, text, sound and input from every device.
 local state = require("demo.state")
@@ -12,6 +14,7 @@ local controls = require("flight.controls")
 local flight_hud = require("flight.hud")
 local spawn = require("flight.spawn")
 local coop = require("flight.coop")
+local creation = require("create.screen")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true }
 local assets = {}
@@ -35,6 +38,17 @@ local function setup_flight()
   world.set_focus(1, game.carpet.pos, { 0, 0, 0 }, carpet.forward(game.carpet))
 end
 
+local function setup_create()
+  world.clear_focus(1)
+  render.atmosphere(false)
+  render.palette({})
+  render.clear_color(0.02, 0.02, 0.06)
+  render.light({ direction = { -0.5, -0.3, -0.8 }, color = { 1, 0.95, 0.85 }, ambient = { 0.25, 0.25, 0.32 } })
+  local options = game.world_options or {}
+  options.seed = options.seed or engine.info().seed
+  game.creation = creation.new(options)
+end
+
 local function setup_showcase()
   world.clear_focus(1)
   render.atmosphere(false)
@@ -43,14 +57,32 @@ local function setup_showcase()
   render.light({ direction = { -0.4, -1, -0.3 }, color = { 1, 0.92, 0.8 }, ambient = { 0.35, 0.3, 0.4 } })
 end
 
--- Switches between "flight" and "showcase" (scenarios use it too).
+-- Switches between "flight", "create" and "showcase" (scenarios use it too).
 function game.set_mode(mode)
+  if game.mode == "create" and mode ~= "create" and game.creation then
+    creation.cancel(game.creation)
+  end
   game.mode = mode
   if mode == "flight" then
     setup_flight()
+  elseif mode == "create" then
+    setup_create()
   else
     setup_showcase()
   end
+end
+
+-- Plays in the finished world and remembers it for the next start.
+function game.fly_in_new_world()
+  local name = "world-" .. tostring(game.creation.progress and engine.info().seed or 0)
+  local ok, err = creation.finish(game.creation, name)
+  if ok then
+    save.set("world", name)
+    save.flush()
+    game.creation = nil
+    game.set_mode("flight")
+  end
+  return ok, err
 end
 
 local function setup_touch()
@@ -67,6 +99,13 @@ engine.on("init", function()
   assets.font = render.font("fonts/pixel.lua")
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
   game.credits = engine.credits()
+  local saved = save.get("world")
+  if saved then -- continue in the world made last time
+    local ok, err = world.load(saved)
+    if not ok then
+      print("could not load the world " .. saved .. ": " .. tostring(err))
+    end
+  end
   game.set_mode(game.mode)
   if input.mode() == "touch" then
     setup_touch()
@@ -119,11 +158,25 @@ local function flight_tick(dt)
   if st.credits and st.credits.pressed then
     game.state.credits = not game.state.credits
   end
+  if st.new_world and st.new_world.pressed then
+    game.set_mode("create")
+  end
+end
+
+local function create_tick(dt)
+  creation.tick(game.creation, dt)
+  if creation.ready(game.creation) and input.state("confirm").pressed then
+    game.fly_in_new_world()
+  elseif input.state("quit").pressed then
+    game.set_mode("flight")
+  end
 end
 
 engine.on("tick", function(dt)
   if game.mode == "flight" then
     flight_tick(dt)
+  elseif game.mode == "create" then
+    create_tick(dt)
   else
     showcase_tick(dt)
   end
@@ -164,6 +217,15 @@ local function flight_frame()
   draw_hud(flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info()))
 end
 
+local function create_frame()
+  render.camera({ eye = { 0, 0.4, 3.2 }, target = { 0, 0, 0 }, fov = 45, near = 0.1, far = 10 })
+  world.draw_globe(nil, { 0, 0, 0 }, 1, game.creation.spin)
+  local lines = creation.lines(game.creation)
+  for i, line in ipairs(lines) do
+    render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
+  end
+end
+
 local function showcase_frame()
   local s = game.state
   if game.camera then -- set by scenarios that look at the world instead
@@ -187,6 +249,8 @@ end
 engine.on("frame", function()
   if game.mode == "flight" then
     flight_frame()
+  elseif game.mode == "create" then
+    create_frame()
   else
     showcase_frame()
   end
@@ -211,4 +275,5 @@ end)
 -- Exposed for scenario tests.
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
+  creation = creation,
 }

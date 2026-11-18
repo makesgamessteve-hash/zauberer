@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 #include "app/engine.h"
 
+#include "world/bundle.h"
+
 #include "core/hash.h"
 #include "core/log.h"
 #include "core/luon.h"
@@ -66,6 +68,52 @@ static zb_result host_save_bindings(void *ctx) { return write_config(ctx); }
 
 static void host_user_data_changed(void *ctx) { zb_platform_user_data_sync(((zb_engine *)ctx)->platform); }
 
+static uint64_t world_clock(void *ctx) { return zb_platform_now_ns(ctx); }
+
+static zb_world *make_world(zb_engine *e, const zb_world_bundle *bundle, char *err, size_t err_len) {
+  zb_world_desc wd;
+  memset(&wd, 0, sizeof wd);
+  wd.a = e->a;
+  wd.jobs = e->jobs;
+  wd.seed = e->seed;
+  wd.bundle = bundle;
+#ifdef __EMSCRIPTEN__
+  wd.profile = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? ZB_STREAM_MOBILE : ZB_STREAM_WEB;
+#else
+  wd.profile = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? ZB_STREAM_MOBILE : ZB_STREAM_DESKTOP;
+#endif
+  wd.clock_ns = world_clock;
+  wd.clock_ctx = e->platform;
+  return zb_world_create(&wd, err, err_len);
+}
+
+/* Plays in a created world: a new world and terrain view on its bundle. */
+static bool host_use_bundle(void *ctx, zb_world_bundle *bundle, char *err, size_t err_len) {
+  zb_engine *e = ctx;
+  zb_world *w = make_world(e, bundle, err, err_len);
+  zb_terrain_view *tv = w ? zb_terrain_view_create(e->a, e->render, e->vfs, "textures/terrain/atlas.lua", NULL) : NULL;
+  if (!tv) {
+    zb_world_destroy(w);
+    if (w) {
+      snprintf(err, err_len, "out of memory");
+    }
+    return false;
+  }
+  zb_terrain_view_destroy(e->terrain_view);
+  zb_world_destroy(e->world);
+  if (e->bundle) {
+    zb_world_bundle_free(e->bundle);
+    zb_free(e->a, e->bundle);
+  }
+  e->world = w;
+  e->terrain_view = tv;
+  e->bundle = bundle;
+  zb_script_set_world(e->script, w);
+  zb_info("playing a created world (seed %llu, %s quality)", (unsigned long long)bundle->options.seed,
+          zb_world_quality_name(bundle->options.quality));
+  return true;
+}
+
 static void host_window_size(void *ctx, int w, int h) {
   zb_platform_set_window_size(((zb_engine *)ctx)->platform, w, h);
 }
@@ -130,8 +178,6 @@ static void load_user_config(zb_engine *e) {
 }
 
 static void audio_fill(void *user, float *out, int frames) { zb_audio_mix(user, out, frames); }
-
-static uint64_t world_clock(void *ctx) { return zb_platform_now_ns(ctx); }
 
 static void host_sleep(void *ctx, unsigned ms) {
   zb_engine *e = ctx;
@@ -450,19 +496,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   }
 
   /* World: planet, terrain and chunk streaming around the scripts' focus points. */
-  zb_world_desc wd;
-  memset(&wd, 0, sizeof wd);
-  wd.a = a;
-  wd.jobs = e->jobs;
-  wd.seed = e->seed;
-#ifdef __EMSCRIPTEN__
-  wd.profile = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? ZB_STREAM_MOBILE : ZB_STREAM_WEB;
-#else
-  wd.profile = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? ZB_STREAM_MOBILE : ZB_STREAM_DESKTOP;
-#endif
-  wd.clock_ns = world_clock;
-  wd.clock_ctx = e->platform;
-  e->world = zb_world_create(&wd, err, sizeof err);
+  e->world = make_world(e, NULL, err, sizeof err);
   if (!e->world) {
     fail(e, err);
     return ZB_HOST_FAILURE;
@@ -523,10 +557,12 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.host.set_window_size = host_window_size;
   sc.host.sleep_ms = host_sleep;
   sc.host.user_data_changed = host_user_data_changed;
+  sc.host.use_bundle = host_use_bundle;
   zb_engine_xr_attach(e, &sc.host);
   sc.seed = e->seed;
   sc.world = e->world;
   sc.net = e->net;
+  sc.jobs = e->jobs;
   sc.test_api = e->mode != ZB_MODE_GAME;
 #if defined(ZB_DEV)
   sc.dev = true;
@@ -781,6 +817,10 @@ void zb_engine_destroy(zb_engine *e) {
   zb_terrain_view_destroy(e->terrain_view);
   zb_net_destroy(e->net);
   zb_world_destroy(e->world);
+  if (e->bundle) {
+    zb_world_bundle_free(e->bundle);
+    zb_free(e->a, e->bundle);
+  }
   zb_input_recorder_destroy(e->recorder);
   zb_input_replay_close(e->replay);
   zb_free(e->a, e->replay_data);

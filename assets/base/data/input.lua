@@ -16,5 +16,7 @@ return {
   chime = { type = "button", bind = { "key:c", "gamepad:x", "touch:button:chime" } },
   credits = { type = "button", bind = { "key:f1", "key:tab", "gamepad:back", "touch:button:credits" } },
   fullscreen = { type = "button", bind = { "key:f11" } },
+  new_world = { type = "button", bind = { "key:n", "gamepad:y" } },
+  confirm = { type = "button", bind = { "key:return", "key:space", "gamepad:a", "touch:button:confirm" } },
   quit = { type = "button", bind = { "key:escape", "gamepad:start" } },
 }

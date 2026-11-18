@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 #include "world/world.h"
 
+#include "world/bundle.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,11 +27,17 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) 
   memset(w, 0, sizeof *w);
   w->a = desc->a;
   double radius = desc->radius > 0.0 ? desc->radius : ZB_PLANET_DEFAULT_RADIUS;
+  uint64_t seed = desc->seed;
+  if (desc->bundle) {
+    radius = desc->bundle->options.radius;
+    seed = desc->bundle->options.seed;
+  }
   if (!zb_planet_init(&w->planet, radius, err, err_len)) {
     zb_free(desc->a, w);
     return NULL;
   }
-  zb_terrain_init(&w->terrain, &w->planet, desc->seed, NULL);
+  zb_terrain_init(&w->terrain, &w->planet, seed, NULL);
+  zb_terrain_use_bundle(&w->terrain, desc->bundle);
   zb_chunk start = {ZB_FACE_PX, w->planet.n / 2, w->planet.n / 2};
   zb_origin_init(&w->origin, &w->planet, start);
   zb_stream_config cfg;
@@ -56,6 +64,7 @@ void zb_world_destroy(zb_world *w) {
 
 const zb_planet *zb_world_planet(const zb_world *w) { return &w->planet; }
 const zb_terrain *zb_world_terrain(const zb_world *w) { return &w->terrain; }
+const zb_world_bundle *zb_world_get_bundle(const zb_world *w) { return w->terrain.bundle; }
 zb_stream *zb_world_stream(zb_world *w) { return w->stream; }
 
 bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus) {

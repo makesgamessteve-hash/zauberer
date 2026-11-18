@@ -28,6 +28,9 @@ class RenderTests(EngineTestCase):
     def test_terrain_view(self):
         self.assert_ok(self.windowed("terrain_view"))
 
+    def test_creation_globe(self):
+        self.assert_ok(self.windowed("create_globe"))
+
     # spec: rendering-core: Missing glyph
     def test_missing_glyph(self):
         self.install_mods("glyphs")

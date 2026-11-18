@@ -36,6 +36,18 @@ struct zb_script {
   zb_rng rng;
   zb_world *world; /* the engine's, or a private one (own_world) */
   bool own_world;
+  /* World creation (script_create.c). */
+  struct zb_world_creation *creation;
+  zb_job *creation_job; /* pieces of creation running on a worker */
+  int creation_pieces;
+  int creation_frames;                    /* frames complete when the last job finished */
+  double creation_fraction, creation_myr; /* progress then, shown while the next job works */
+  int creation_stage, creation_attempt;
+  struct zb_world_bundle *bundle; /* the private world's, when scripts made or loaded one without a host */
+  uint32_t globe_mesh, globe_index_count;
+  int globe_frame;
+  int32_t *globe_nearest;
+  const void *globe_source;
   size_t pkg_count;
   int *env_refs;
   bool *pkg_failed;
@@ -70,6 +82,14 @@ zb_script *zb_script_from(lua_State *L);
 void zb_script_open_api(zb_script *s);
 /* Registers world (planet coordinates). */
 void zb_script_open_world(zb_script *s);
+/* Registers world creation, saved worlds and the globe (after the world module). */
+void zb_script_open_create(zb_script *s);
+/* Releases the creation and the globe (before the world goes). */
+void zb_script_close_create(zb_script *s);
+/* Frees a bundle scripts adopted without a host (after the world goes). */
+void zb_script_free_bundle(zb_script *s);
+/* A PlanetPos argument (errors name its first bad field). */
+zb_planet_pos zb_script_check_pos(lua_State *L, int idx);
 /* Registers net (co-op sessions). */
 void zb_script_open_net(zb_script *s);
 /* The network codec: encodes the value at idx into out (NULL or an error

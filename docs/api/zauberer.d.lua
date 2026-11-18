@@ -25,6 +25,15 @@
 ---@field near number? Near plane (default 0.1)
 ---@field far number? Far plane (default 500)
 
+---@class CreationProgress
+---@field stage string "deep time", "relief", "climate" or "done"
+---@field label string What is happening, for the player
+---@field fraction number 0..1
+---@field myr_ago number Million years before present (deep time)
+---@field frames integer Time-lapse frames recorded so far
+---@field attempt integer Re-runs of the final phase for Earth-likeness
+---@field done boolean
+
 ---@class Credit
 ---@field package string Package id, or "engine" for third-party code
 ---@field kind string "asset" or "code"
@@ -121,6 +130,13 @@
 ---@field frames integer Frames rendered so far
 ---@field backend string "gl" or "null"
 
+---@class Stratum
+---@field rock string
+---@field environment string
+---@field thickness number Metres
+---@field age number Million years before present
+---@field fossil string? What it holds, if anything
+
 ---@class StreamStats
 ---@field stage0 integer Loaded chunks at stage 0 (coarse)
 ---@field stage1 integer Loaded chunks at stage 1 (heightfield)
@@ -138,6 +154,26 @@
 ---@field position number[]? Translation {x, y, z}
 ---@field rotation number[]? Euler angles in degrees (applied Y, X, Z)
 ---@field scale number[]|number? Scale per axis or uniform
+
+---@class WorldInfo
+---@field created boolean A created world (false: the noise world)
+---@field seed integer
+---@field radius number
+---@field target string?
+---@field quality string?
+---@field generator integer? Generator version
+---@field continents integer?
+---@field land number?
+---@field provinces integer?
+
+---@class WorldOptions
+---@field seed integer? World seed (default: the engine's)
+---@field radius number? Planet radius in metres (default 2,000 km)
+---@field target string? "earth", "pangaea", "archipelago", "ice world" or "hothouse"
+---@field land number? Share of land (0.35)
+---@field temperature number? Global temperature offset, -10 .. 10 C
+---@field tilt number? Axial tilt in degrees (23)
+---@field quality string? "quick", "normal" or "high"
 
 ---@class XrPose
 ---@field position number[] {x, y, z} in metres, relative to the session origin
@@ -478,6 +514,11 @@ function save.set(key, value) end
 
 world = {}
 
+---The biome under a position, nil in the noise world.
+---@param pos PlanetPos
+---@return string?
+function world.biome(pos) end
+
 ---Generates the position's chunk to a stage (default 1) and returns the hash of its data as 16 hex digits: peers compare it to check that they generate the same world.
 ---@param pos PlanetPos
 ---@param stage? integer
@@ -498,11 +539,46 @@ function world.chunk_stage(pos) end
 ---@param index integer
 function world.clear_focus(index) end
 
+---Mean temperature (C, at the position's altitude) and precipitation (mm) for a month (1-12), or the year when month is omitted; nil in the noise world.
+---@param pos PlanetPos
+---@param month? integer
+---@return number?
+---@return number?
+function world.climate(pos, month) end
+
+---Starts creating a new world (one at a time); world.create_step does the work.
+---@param options? WorldOptions
+---@return boolean
+---@return string?
+function world.create(options) end
+
+---Abandons the world being created.
+function world.create_cancel() end
+
+---Saves the finished world as worlds/<name>.zbw in the user folder and makes it the world being played. Names use letters, digits, - and _.
+---@param name string
+---@return boolean
+---@return string?
+function world.create_finish(name) end
+
+---Does some pieces of work (default 1: a deep-time step, an erosion pass, a month of climate); nil when no world is being created.
+---@param pieces? integer
+---@return CreationProgress?
+function world.create_step(pieces) end
+
 ---Great-circle distance at sea level in metres.
 ---@param a PlanetPos
 ---@param b PlanetPos
 ---@return number
 function world.distance(a, b) end
+
+---Draws the planet as a globe: a time-lapse frame of the world being created (1-based; nil for the newest), or the played world by biome when none is being created. Returns false when there is nothing to show yet.
+---@param frame integer?
+---@param position number[]
+---@param radius number
+---@param spin? number
+---@return boolean
+function world.draw_globe(frame, position, radius, spin) end
 
 ---The position of planet-centred coordinates in metres.
 ---@param x number
@@ -527,6 +603,21 @@ function world.ground_height(pos) end
 ---@param pos PlanetPos
 ---@return number
 function world.height(pos) end
+
+---The world being played.
+---@return WorldInfo
+function world.info() end
+
+---Loads worlds/<name>.zbw from the user folder and plays in it.
+---@param name string
+---@return boolean
+---@return string?
+function world.load(name) end
+
+---The mineral deposits under a position, nil in the noise world.
+---@param pos PlanetPos
+---@return string[]?
+function world.minerals(pos) end
 
 ---Moves a position forward metres along heading (radians clockwise from north), right metres to the side and up metres up; returns the new position and the heading carried along the path (straight flight follows a great circle, also across the poles).
 ---@param pos PlanetPos
@@ -557,12 +648,23 @@ function world.planet() end
 ---@return PlanetPos
 function world.position(face, x, y, lx, ly, alt) end
 
+---The biogeographic province under a position (1-based) and its isolation (0 well connected .. 1 remote), nil at sea or in the noise world.
+---@param pos PlanetPos
+---@return integer?
+---@return number?
+function world.province(pos) end
+
 ---Streams terrain around a focus point (1..4, one per player camera). velocity (m/s) and view are {x, y, z} in the local frame at pos (x east, y up, z south).
 ---@param index integer
 ---@param pos PlanetPos
 ---@param velocity? number[]
 ---@param view? number[]
 function world.set_focus(index, pos, velocity, view) end
+
+---The rock record under a position, youngest first, nil in the noise world.
+---@param pos PlanetPos
+---@return Stratum[]?
+function world.strata(pos) end
 
 ---Chunk streaming statistics.
 ---@return StreamStats

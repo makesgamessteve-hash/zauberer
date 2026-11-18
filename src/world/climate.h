@@ -186,6 +186,9 @@ const zb_cubegrid *zb_climate_grid(const zb_climate *c);
  * sea level or at a given height (lapse rate 6.5 C/km). */
 void zb_climate_month(const zb_climate *c, zb_dvec3 dir, int month, double height, double *temperature,
                       double *precipitation);
+/* The monthly planes on the climate grid: ZB_MONTHS * cells values of
+ * sea-level temperature, or of precipitation. */
+const float *zb_climate_monthly(const zb_climate *c, bool precipitation);
 /* Annual mean temperature and total precipitation. */
 void zb_climate_annual(const zb_climate *c, zb_dvec3 dir, double height, double *temperature, double *precipitation);
 

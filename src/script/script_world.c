@@ -68,7 +68,7 @@ static zb_planet_pos make_pos(lua_State *L, lua_Integer face, lua_Integer x, lua
   return pos;
 }
 
-static zb_planet_pos check_pos(lua_State *L, int idx) {
+zb_planet_pos zb_script_check_pos(lua_State *L, int idx) {
   luaL_checktype(L, idx, LUA_TTABLE);
   /* Sequenced reads: the first bad field is the one reported. */
   lua_Integer face = int_field(L, idx, "face");
@@ -112,7 +112,7 @@ static int w_position(lua_State *L) {
  * Planet-centred coordinates in metres (+Z is the north pole).
  */
 static int w_to_cartesian(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   zb_dvec3 c = zb_planet_to_cart(P(L), &pos);
   lua_pushnumber(L, c.x);
   lua_pushnumber(L, c.y);
@@ -134,7 +134,7 @@ static int w_from_cartesian(lua_State *L) {
  * Great-circle distance at sea level in metres.
  */
 static int w_distance(lua_State *L) {
-  zb_planet_pos a = check_pos(L, 1), b = check_pos(L, 2);
+  zb_planet_pos a = zb_script_check_pos(L, 1), b = zb_script_check_pos(L, 2);
   lua_pushnumber(L, zb_planet_distance(P(L), &a, &b));
   return 1;
 }
@@ -143,7 +143,7 @@ static int w_distance(lua_State *L) {
  * The chunk's stable 64-bit key.
  */
 static int w_chunk_key(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   lua_pushinteger(L, (lua_Integer)zb_chunk_key(pos.chunk));
   return 1;
 }
@@ -152,7 +152,7 @@ static int w_chunk_key(lua_State *L) {
  * Centres of the chunks sharing an edge or corner with the position's chunk (7 or 8).
  */
 static int w_neighbors(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   zb_chunk out[8];
   int n = zb_planet_neighbors(P(L), pos.chunk, out);
   lua_createtable(L, n, 0);
@@ -169,7 +169,7 @@ static int w_neighbors(lua_State *L) {
  * 0.5 m of the generated heightfield).
  */
 static int w_height(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   zb_dvec3 c = zb_planet_to_cart(P(L), &pos);
   double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
   zb_dvec3 d = {c.x / len, c.y / len, c.z / len};
@@ -192,7 +192,7 @@ static double height_offset(lua_State *L, zb_planet_pos pos, float dx, float dy)
  * Surface material at the position: "soil", "sand", "rock", "gravel", "snow", "ice" or "mud".
  */
 static int w_surface(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   double h = height_offset(L, pos, 0.0f, 0.0f);
   double w, hh;
   zb_planet_chunk_size(P(L), pos.chunk, &w, &hh);
@@ -232,7 +232,7 @@ static int focus_index(lua_State *L) {
 static int w_set_focus(lua_State *L) {
   int index = focus_index(L);
   zb_stream_focus f;
-  f.pos = check_pos(L, 2);
+  f.pos = zb_script_check_pos(L, 2);
   f.velocity = opt_vec3(L, 3);
   f.view = opt_vec3(L, 4);
   zb_world_set_focus(W(L), index, &f);
@@ -252,7 +252,7 @@ static int w_clear_focus(lua_State *L) {
  * where the chunk is not loaded at stage 1 or more).
  */
 static int w_ground_height(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   lua_pushnumber(L, zb_world_ground_height(W(L), &pos));
   return 1;
 }
@@ -272,7 +272,7 @@ static void push_vec(lua_State *L, zb_vec3 v) {
  * y up, z south at the origin).
  */
 static int w_to_local(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   push_vec(L, zb_origin_to_local(zb_world_origin(W(L)), P(L), &pos));
   return 1;
 }
@@ -292,7 +292,7 @@ static int w_from_local(lua_State *L) {
  * planet's curvature away from the origin).
  */
 static int w_up_at(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   const zb_origin *o = zb_world_origin(W(L));
   zb_dvec3 c = zb_planet_to_cart(P(L), &pos);
   double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
@@ -329,7 +329,7 @@ static int w_view_distance(lua_State *L) {
  * path (straight flight follows a great circle, also across the poles).
  */
 static int w_move(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   double heading = luaL_checknumber(L, 2);
   double forward = luaL_checknumber(L, 3);
   double right = luaL_optnumber(L, 4, 0.0);
@@ -346,7 +346,7 @@ static int w_move(lua_State *L) {
  * 16 hex digits: peers compare it to check that they generate the same world.
  */
 static int w_chunk_hash(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   lua_Integer stage = luaL_optinteger(L, 2, ZB_STAGE_TERRAIN);
   luaL_argcheck(L, stage >= ZB_STAGE_COARSE && stage <= ZB_STAGE_SURFACE, 2, "stage 0-2");
   zb_script *s = zb_script_from(L);
@@ -367,7 +367,7 @@ static int w_chunk_hash(lua_State *L) {
  * Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
  */
 static int w_chunk_stage(lua_State *L) {
-  zb_planet_pos pos = check_pos(L, 1);
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
   const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(W(L)), pos.chunk);
   lua_pushinteger(L, ct ? ct->stage : ZB_STAGE_NONE);
   return 1;

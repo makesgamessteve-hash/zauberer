@@ -164,6 +164,21 @@ class ScenarioTests(EngineTestCase):
         self.assertEqual(host.returncode, 0, host_out)
         self.assertIn("scenario 'co-op host': passed", host_out)
 
+    def test_create_world(self):
+        self.assert_ok(self.scenario("create_world"))
+        self.assertTrue(any((self.user_dir / "worlds").glob("*.zbw")), "the world is stored below --user-dir")
+        # The next start continues in it.
+        self.assert_ok(self.scenario("create_resume"))
+        # A saved world that has gone is reported, and the noise world is played.
+        script = self.tmp / "gone.lua"
+        script.write_text("scenario { name = 'gone' }\nsave.set('world', 'gone')\nexpect(save.flush())\n",
+                          encoding="utf-8")
+        self.assert_ok(self.run_engine("--headless", "--scenario", str(script)))
+        script.write_text("scenario { name = 'noise' }\nexpect(not world.info().created)\n", encoding="utf-8")
+        result = self.run_engine("--headless", "--scenario", str(script))
+        self.assert_ok(result)
+        self.assertIn("could not load the world gone: no such world", result.stdout)
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 

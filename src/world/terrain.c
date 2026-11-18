@@ -6,6 +6,7 @@
 
 #include "core/dmath.h"
 #include "core/hash.h"
+#include "world/bundle.h"
 #include "world/noise.h"
 
 #define MACRO_RES (ZB_COARSE_RES + 2)
@@ -14,7 +15,7 @@
 #define THRESHOLD_SAMPLES 2048
 
 /* Independent noise streams. */
-enum { SEED_CONTINENT = 1, SEED_HILLS, SEED_MOUNTAIN_MASK, SEED_RIDGES, SEED_DETAIL, SEED_JITTER };
+enum { SEED_CONTINENT = 1, SEED_HILLS, SEED_MOUNTAIN_MASK, SEED_RIDGES, SEED_DETAIL, SEED_JITTER, SEED_CRAGS };
 
 static uint64_t stream(const zb_terrain *t, int which) {
   return zb_mix64(t->seed ^ ((uint64_t)(uint32_t)which * 0x9e3779b97f4a7c15ull));
@@ -82,9 +83,31 @@ void zb_terrain_init(zb_terrain *t, const zb_planet *p, uint64_t seed, const zb_
   int k = (int)((1.0 - t->params.land_fraction) * (THRESHOLD_SAMPLES - 1) + 0.5);
   k = k < 0 ? 0 : (k >= THRESHOLD_SAMPLES ? THRESHOLD_SAMPLES - 1 : k);
   t->continent_threshold = samples[k];
+  t->bundle = NULL;
+}
+
+void zb_terrain_use_bundle(zb_terrain *t, const zb_world_bundle *bundle) { t->bundle = bundle; }
+
+/* Terrain v2: the created world's macro grid with hills and crags below its 6 km cells. */
+static double bundle_height(const zb_terrain *t, zb_dvec3 d) {
+  const zb_terrain_params *pr = &t->params;
+  double h = zb_world_bundle_height(t->bundle, d);
+  double px = d.x * t->planet.radius, py = d.y * t->planet.radius, pz = d.z * t->planet.radius;
+  double land = smoothstep(-20.0, 40.0, h);
+  h += (0.3 + 0.7 * land) * pr->hill_height *
+       zb_fbm3(stream(t, SEED_HILLS), px / 6000.0, py / 6000.0, pz / 6000.0, 6, 0.5);
+  double rugged = smoothstep(800.0, 2800.0, h);
+  if (rugged > 0.0) {
+    double r = zb_ridged3(stream(t, SEED_CRAGS), px / 4000.0, py / 4000.0, pz / 4000.0, 5);
+    h += rugged * 450.0 * (r - 0.4);
+  }
+  return h;
 }
 
 double zb_terrain_macro_height(const zb_terrain *t, zb_dvec3 d) {
+  if (t->bundle) {
+    return bundle_height(t, d);
+  }
   const zb_terrain_params *pr = &t->params;
   double e = continent_field(t, d) - t->continent_threshold;
   double px = d.x * t->planet.radius, py = d.y * t->planet.radius, pz = d.z * t->planet.radius;
@@ -143,6 +166,45 @@ zb_material zb_terrain_material_rule(double height, double slope, double sin_lat
     return ZB_MAT_GRAVEL;
   }
   return ZB_MAT_SOIL;
+}
+
+zb_material zb_terrain_biome_material(int biome, double height, double slope, double jitter) {
+  if (height < -25.0) {
+    return ZB_MAT_MUD;
+  }
+  if (height < 2.0 + jitter) {
+    return ZB_MAT_SAND;
+  }
+  if (slope > 0.78) {
+    return ZB_MAT_ROCK;
+  }
+  switch ((zb_biome)biome) {
+    case ZB_BIOME_SAND_DESERT:
+    case ZB_BIOME_DUNES:
+    case ZB_BIOME_BEACH:
+    case ZB_BIOME_SALT_FLAT: return ZB_MAT_SAND;
+    case ZB_BIOME_ROCKY_DESERT:
+    case ZB_BIOME_SCREE:
+    case ZB_BIOME_CLIFFS:
+    case ZB_BIOME_VOLCANIC_SLOPES:
+    case ZB_BIOME_ASHLANDS:
+    case ZB_BIOME_POLAR_DESERT: return slope > 0.4 + 0.1 * jitter ? ZB_MAT_ROCK : ZB_MAT_GRAVEL;
+    case ZB_BIOME_GLACIER:
+    case ZB_BIOME_ICE_SHEET:
+    case ZB_BIOME_SEA_ICE: return slope > 0.6 ? ZB_MAT_ROCK : ZB_MAT_ICE;
+    case ZB_BIOME_MARSH:
+    case ZB_BIOME_SWAMP_FOREST:
+    case ZB_BIOME_PEAT_BOG:
+    case ZB_BIOME_FLOODPLAIN:
+    case ZB_BIOME_MANGROVE:
+    case ZB_BIOME_SALT_MARSH:
+    case ZB_BIOME_ESTUARY:
+    case ZB_BIOME_MIREFEN: return ZB_MAT_MUD;
+    case ZB_BIOME_ALPINE_MEADOW:
+    case ZB_BIOME_TUNDRA:
+      return height > 3600.0 + 120.0 * jitter ? ZB_MAT_SNOW : (slope > 0.58 ? ZB_MAT_GRAVEL : ZB_MAT_SOIL);
+    default: return slope > 0.58 ? ZB_MAT_GRAVEL : ZB_MAT_SOIL;
+  }
 }
 
 const char *zb_material_name(zb_material m) {
@@ -276,6 +338,23 @@ static void update_range(zb_chunk_terrain *ct, const float *v, int n) {
   }
 }
 
+/* The created world's biome at every 16 m sample of a chunk (zeros for the noise world). */
+static void coarse_biomes(const zb_terrain *t, zb_chunk c, uint8_t out[ZB_COARSE_RES * ZB_COARSE_RES]) {
+  if (!t->bundle) {
+    memset(out, 0, ZB_COARSE_RES * ZB_COARSE_RES);
+    return;
+  }
+  face_frame f = frame_of(c.face);
+  double ta[ZB_COARSE_RES], tb[ZB_COARSE_RES];
+  axis_tangents(t, c.x, 0.0, COARSE_STEP, ZB_COARSE_RES, ta);
+  axis_tangents(t, c.y, 0.0, COARSE_STEP, ZB_COARSE_RES, tb);
+  for (int y = 0; y < ZB_COARSE_RES; ++y) {
+    for (int x = 0; x < ZB_COARSE_RES; ++x) {
+      out[y * ZB_COARSE_RES + x] = (uint8_t)zb_world_bundle_biome(t->bundle, sample_dir(&f, ta[x], tb[y]));
+    }
+  }
+}
+
 static void generate_coarse(const zb_terrain *t, zb_chunk_terrain *ct) {
   face_frame f = frame_of(ct->chunk.face);
   double ta[MACRO_RES], tb[MACRO_RES];
@@ -294,14 +373,21 @@ static void generate_coarse(const zb_terrain *t, zb_chunk_terrain *ct) {
   coarse_range(ct);
   double jitter[JITTER_RES * JITTER_RES];
   jitter_lattice(t, ct->chunk, jitter);
+  uint8_t biomes[ZB_COARSE_RES * ZB_COARSE_RES];
+  coarse_biomes(t, ct->chunk, biomes);
   for (int y = 0; y < ZB_COARSE_RES; ++y) {
     const float *row = &ct->macro[(y + 1) * MACRO_RES + 1];
     for (int x = 0; x < ZB_COARSE_RES; ++x) {
       double gx = (row[x + 1] - row[x - 1]) / sx;
       double gy = (row[x + MACRO_RES] - row[x - MACRO_RES]) / sy;
       double slope = sqrt(gx * gx + gy * gy);
-      ct->coarse_material[y * ZB_COARSE_RES + x] =
-          (uint8_t)zb_terrain_material_rule(row[x], slope, sin_lat, jitter_at(jitter, x * 16.0, y * 16.0));
+      double jit = jitter_at(jitter, x * 16.0, y * 16.0);
+      if (t->bundle) {
+        ct->coarse_material[y * ZB_COARSE_RES + x] =
+            (uint8_t)zb_terrain_biome_material(biomes[y * ZB_COARSE_RES + x], row[x], slope, jit);
+      } else {
+        ct->coarse_material[y * ZB_COARSE_RES + x] = (uint8_t)zb_terrain_material_rule(row[x], slope, sin_lat, jit);
+      }
     }
   }
   ct->stage = ZB_STAGE_COARSE;
@@ -396,6 +482,8 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
   }
   double jitter[JITTER_RES * JITTER_RES];
   jitter_lattice(t, ct->chunk, jitter);
+  uint8_t biomes[ZB_COARSE_RES * ZB_COARSE_RES];
+  coarse_biomes(t, ct->chunk, biomes);
   double w, h;
   zb_planet_chunk_size(&t->planet, ct->chunk, &w, &h);
   double cw = w / ZB_SURFACE_RES, ch = h / ZB_SURFACE_RES;
@@ -407,8 +495,17 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
       double gx = ((double)r0[x + 1] + r1[x + 1] - r0[x] - r1[x]) / (2.0 * cw);
       double gy = ((double)r1[x] + r1[x + 1] - r0[x] - r0[x + 1]) / (2.0 * ch);
       double avg = ((double)r0[x] + r0[x + 1] + r1[x] + r1[x + 1]) * 0.25;
-      mat[y * ZB_SURFACE_RES + x] =
-          (uint8_t)zb_terrain_material_rule(avg, sqrt(gx * gx + gy * gy), sin_lat, jitter_at(jitter, x + 0.5, y + 0.5));
+      double jit = jitter_at(jitter, x + 0.5, y + 0.5), slope = sqrt(gx * gx + gy * gy);
+      if (t->bundle) {
+        /* The nearest coarse sample's biome, its border dithered by the jitter. */
+        int bx = (int)((x + 8.0 + 6.0 * jit) / 16.0), by = (int)((y + 8.0 - 6.0 * jit) / 16.0);
+        bx = bx < 0 ? 0 : (bx >= ZB_COARSE_RES ? ZB_COARSE_RES - 1 : bx);
+        by = by < 0 ? 0 : (by >= ZB_COARSE_RES ? ZB_COARSE_RES - 1 : by);
+        mat[y * ZB_SURFACE_RES + x] =
+            (uint8_t)zb_terrain_biome_material(biomes[by * ZB_COARSE_RES + bx], avg, slope, jit);
+      } else {
+        mat[y * ZB_SURFACE_RES + x] = (uint8_t)zb_terrain_material_rule(avg, slope, sin_lat, jit);
+      }
     }
   }
   ct->material = mat;

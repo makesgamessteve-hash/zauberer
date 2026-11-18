@@ -30,5 +30,8 @@ static inline float zb_cubegrid_area(const zb_cubegrid *g, int32_t cell) {
 }
 /* Bilinear sample of a per-cell field at a direction (clamped at face edges). */
 double zb_cubegrid_sample(const zb_cubegrid *g, const float *field, zb_dvec3 dir);
+/* Bilinear sample that continues across cube edges into the neighbouring face,
+ * so the field has no seams (cube corners fall back to the nearest cell). */
+double zb_cubegrid_sample_smooth(const zb_cubegrid *g, const float *field, zb_dvec3 dir);
 
 #endif

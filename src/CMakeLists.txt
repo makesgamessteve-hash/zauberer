@@ -17,7 +17,8 @@ endfunction()
 
 zb_module(zb_core SOURCES
   core/alloc.c core/array.c core/base.c core/cli.c core/hash.c core/jobs.c core/keys.c
-  core/dmath.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c core/sha1.c core/xr.c)
+  core/deflate.c core/dmath.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c core/sha1.c core/xr.c
+  PRIVATE_DEPS zb_thirdparty_impl)
 if(UNIX)
   target_link_libraries(zb_core PUBLIC m)
 endif()
@@ -27,7 +28,7 @@ zb_module(zb_net SOURCES net/session.c net/socket.c net/transport.c net/ws.c DEP
 if(WIN32)
   target_link_libraries(zb_net PUBLIC ws2_32)
 endif()
-zb_module(zb_world SOURCES world/climate.c world/cubegrid.c world/geology.c world/geology_final.c world/geology_macro.c world/lattice.c
+zb_module(zb_world SOURCES world/bundle.c world/climate.c world/creation.c world/cubegrid.c world/geology.c world/geology_final.c world/geology_macro.c world/lattice.c
   world/noise.c world/planet.c world/stream.c world/terrain.c world/world.c
   DEPS zb_core)
 zb_module(zb_input SOURCES input/input.c DEPS zb_core)
@@ -38,7 +39,7 @@ target_include_directories(zb_render SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/third
 zb_module(zb_audio SOURCES audio/audio.c DEPS zb_core zb_vfs PRIVATE_DEPS zb_thirdparty_impl)
 target_include_directories(zb_audio SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/third_party/stb")
 zb_module(zb_script SOURCES script/script.c script/script_api.c script/script_test.c
-  script/script_world.c script/script_net.c script/script_xr.c
+  script/script_world.c script/script_create.c script/script_net.c script/script_xr.c
   DEPS zb_core zb_vfs zb_input zb_render zb_audio zb_world zb_net zb_lua)
 
 if(ZB_HEADLESS_ONLY)
