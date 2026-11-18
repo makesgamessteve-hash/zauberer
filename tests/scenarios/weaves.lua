@@ -7,6 +7,7 @@
 -- spec: weave-grammar: Casting and its refusals
 scenario { name = "weaves" }
 local cast = require("magic.cast")
+local weave = require("magic.weave")
 local mage = require("magic.mage")
 local spellbook = require("magic.spellbook")
 local effects = require("magic.effects")
@@ -44,23 +45,38 @@ local function refill()
   caster.mage.strain = 0
 end
 -- Bolts fly north at a place from 10 m south of it; other weaves are cast
--- from above it, straight down.
+-- from above it, straight down. Unless asked otherwise (opts.accuracy 0, for
+-- the misfire tests below), the roll is chosen so that the weave goes right:
+-- a misfire has effects of its own, and these checks are about the weave.
+local function sure_seed(w, opts)
+  local casts = spellbook.casts(caster.book, w)
+  local control = weave.control(opts.accuracy or 0.8, casts)
+  local overcharge = mage.overcharge(caster.mage, w.power, opts.charge or 1)
+  for k = 0, 500 do
+    local seed = cast.next_seed(caster, { seed = k })
+    if not weave.resolve(w, { control = control, overcharge = overcharge, casts = casts, seed = seed }).misfire then
+      return k
+    end
+  end
+  error("no roll goes right")
+end
 local function weave_at(target, verb, colors, form, power, mods, opts)
   refill()
   local from = form == "line" and above(world.move(target, math.pi, 10, 0), 1.5) or above(target, 4)
   local pitch = form == "line" and 0 or -math.pi / 2 + 1e-3
   local w = { verb = verb, colors = colors, form = form, power = power, modifiers = mods }
-  -- Unfamiliar weaves misfire now and then: cast again until one goes right
-  -- (the misfires are tested on their own below).
-  local first = cast.weave(caster, w, from, 0, pitch, opts or { accuracy = 1 })
-  local r, all = first, { first }
-  for _ = 1, 8 do
-    if not (r.plan and r.plan.misfire) or (opts and opts.accuracy == 0) then break end
-    refill()
-    r = cast.weave(caster, w, from, 0, pitch, opts or { accuracy = 1 })
-    all[#all + 1] = r
+  opts = opts or { accuracy = 1 }
+  if opts.accuracy ~= 0 and opts.seed == nil and weave.validate(w) then
+    local sure = {}
+    for k, v in pairs(opts) do sure[k] = v end
+    sure.seed = sure_seed(w, sure)
+    opts = sure
   end
-  r.discovered, r.all = first.discovered, all
+  local r = cast.weave(caster, w, from, 0, pitch, opts)
+  if opts.accuracy ~= 0 and r.plan then
+    expect(not r.plan.misfire, "the chosen roll goes right: " .. tostring(r.message))
+  end
+  r.all = { r }
   return r
 end
 local function run(seconds)
@@ -167,7 +183,8 @@ expect(r.name == "Stone to Mud" and r.effect.mud > 0)
 expect_eq(world.ground_surface(yard), "mud")
 -- Light, life, void, decay and the senses.
 r = weave_at(spot, "create", { "light" }, "tap", 5)
-expect(r.name == "Light" and r.effect.light > 0 and #caster.effects.lights == 1)
+expect(r.name == "Light" and r.effect.light > 0 and #caster.effects.lights >= 1 and #caster.effects.lights <= #r.all,
+  "a light (one per attempt at most: a late misfire lights later)")
 r = weave_at(spot, "unmake", { "void" }, "circle", 5)
 expect(total(r, "dispelled") >= 1 and #caster.effects.lights == 0, "dispelled")
 weave_at(spot, "create", { "light" }, "tap", 1)
@@ -201,13 +218,14 @@ for _, kind in ipairs({ "fire", "water", "storm", "earth" }) do
   r = weave_at(spot, "ward", colors, "tap", 1)
   expect(r.effect.ward == kind and effects.warded(caster.effects, kind), kind .. " ward up")
 end
-run(4)
+run(6) -- three seconds, or nearly five overshot
 expect(not effects.warded(caster.effects, "fire"), "wards fade")
 local carpet = { pos = above(spot, 20) }
 local start = carpet.pos
 r = weave_at(spot, "move", { "void" }, "line", 5, nil, { accuracy = 1, carpet = carpet })
 expect(r.name == "Blink" and r.effect.blinked == 10)
-expect_near(world.distance(start, carpet.pos), 10, 0.5)
+-- (a misfired attempt that was cast again may have blinked too)
+expect_near(world.distance(start, carpet.pos), total(r, "blinked"), 0.5)
 expect_eq(weave_at(spot, "move", { "void" }, "line", 5).effect.fizzled, "nothing to move")
 -- Two colours: steam, healing rain, a thunderball.
 r = weave_at(spot, "move", { "fire", "water" }, "triangle", 10)

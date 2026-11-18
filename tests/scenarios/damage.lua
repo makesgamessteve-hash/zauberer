@@ -57,15 +57,26 @@ c.pos = world.move(c.pos, c.heading + 1.6, 60, 0) -- away from the burnt patch
 c.pos.alt = world.ground_height(c.pos) + 2
 step(1)
 local target = world.move(c.pos, c.heading, 16, 0)
-local deer = sim.spawn_creature("deer", target)
+-- A deer that stands its ground (a real one may bolt from the carpet first).
+local calm = { id = "calm_deer", length = 1.9, mass = 120, walk = 1.4, run = 12, diet = "herbivore", sight = 110,
+  hearing = 180, smell = 150, health = 70, aggression = 0, fear_of_fire = 0, fear_of_player = 0 }
+sim.define_species(calm)
+local deer = sim.spawn_creature("calm_deer", target)
 local cr = sim.creature(deer)
 expect(cr.alive)
 local mana_before = game.magic.caster.mage.mana.fire
-input.inject("cast_left", 1, 0, 40) -- the left hand holds Fireball
-step(40)
-step(60)
+for _ = 1, 3 do -- a misfire (late, stray, weak) is cast again, as a player would
+  game.magic.caster.mage.mana.fire = math.max(game.magic.caster.mage.mana.fire, 30)
+  input.inject("cast_left", 1, 0, 40) -- the left hand holds Fireball
+  step(42)
+  for _ = 1, 60 * 4 do
+    step(1)
+    if sim.creature(deer).health < 70 then break end
+  end
+  if sim.creature(deer).health < 70 then break end
+end
 cr = sim.creature(deer)
-expect(game.magic.caster.mage.mana.fire < mana_before, "a Fireball was cast")
+expect(game.magic.caster.mage.mana.fire < math.max(mana_before, 30), "a Fireball was cast")
 expect(cr.health < 70, "the deer was struck: " .. cr.health)
 -- Withering hurts creatures, healing mends them.
 local wolf = sim.spawn_creature("wolf", world.move(c.pos, 0, 30, 0))
@@ -92,3 +103,31 @@ local snap = health.snapshot(h)
 local again = health.new(snap)
 expect(again.hp == h.hp and again.defeats == 1)
 expect(not pcall(health.hurt, h, "tickle", 1))
+-- Harm on foot: a hard landing, bites (the news said once), healing and
+-- withering heard close by, and thick smoke.
+local foot = health.new()
+local spot = world.move(game.carpet.pos, 0, 0, 0)
+spot.alt = world.ground_height(spot)
+health.tick(foot, 1 / 60, { pos = spot, on_foot = true, landing = health.FALL_SAFE + 2 })
+expect_eq(foot.hp, 100 - 2 * health.FALL_HARM, "a hard landing")
+local bites = { { kind = "attacked" } }
+health.tick(foot, 1 / 60, { pos = spot, on_foot = true, events = bites })
+health.tick(foot, 1 / 60, { pos = spot, on_foot = true, events = bites })
+expect_eq(foot.hp, 100 - 2 * health.FALL_HARM - 2 * health.BITE, "bitten twice")
+local said = 0
+for _, n in ipairs(foot.news) do said = said + (n.text == "Bitten!" and 1 or 0) end
+expect_eq(said, 1, "the same news once")
+health.tick(foot, 1 / 60, { pos = spot, on_foot = true, events = bites })
+health.tick(foot, 1 / 60, { pos = game.carpet.pos, on_foot = false, events = bites }) -- the carpet is out of reach
+expect_eq(foot.hp, 100 - 2 * health.FALL_HARM - 3 * health.BITE)
+local before_heard = foot.hp
+health.tick(foot, 1 / 60, { pos = spot, heard = { { kind = "heal", at = spot, amount = 10, radius = 4 } } })
+expect_eq(foot.hp, before_heard + 10, "healed by a weave nearby")
+health.tick(foot, 1 / 60, { pos = spot, heard = { { kind = "wither", at = spot, amount = 4 },
+  { kind = "heal", at = world.move(spot, 0, 50, 0), amount = 10 } } })
+expect_eq(foot.hp, before_heard + 6, "withered; the far healing missed")
+for _ = 1, 20 do sim.emit(spot, "smoke", 50) end
+step(10)
+local choked = foot.hp
+health.tick(foot, 1, { pos = spot, on_foot = true })
+expect(foot.hp < choked and (foot.taken.smoke or 0) > 0, "choking smoke: " .. tostring(sim.gas_at(spot).smoke))

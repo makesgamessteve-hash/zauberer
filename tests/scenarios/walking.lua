@@ -84,3 +84,18 @@ expect(game.walker == nil, "back on the carpet")
 input.inject("climb", 1, 0, 60)
 step(60)
 expect(game.carpet.pos.alt > world.ground_height(game.carpet.pos) + 3, "flying again")
+-- With a gamepad the right stick turns and tilts the view.
+local w2 = walker.new(game.carpet.pos, 0, { move = world.move, height = world.ground_height, water = world.water })
+walker.update(w2, { look = { x = 1, y = 1 }, mouse = false }, 0.5,
+  { move = world.move, height = world.ground_height, water = world.water })
+expect(w2.heading > 1 and w2.pitch < 0, "the stick turns and tilts")
+local snap = walker.snapshot(w2)
+expect(snap.pos and snap.heading == w2.heading)
+-- Walking off an edge: the mage falls and lands.
+local cliff = walker.new(game.carpet.pos, 0, { move = world.move, height = world.ground_height, water = world.water })
+local env = { move = world.move, height = function(p) return world.ground_height(p) end, water = world.water }
+cliff.pos.alt = cliff.pos.alt + 3 -- a ledge 3 m up
+walker.update(cliff, { throttle = 1 }, 1 / 60, env)
+expect(not cliff.grounded, "off the edge")
+for _ = 1, 120 do walker.update(cliff, {}, 1 / 60, env) end
+expect(cliff.grounded and cliff.landing == nil, "landed")
