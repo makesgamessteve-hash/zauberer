@@ -5,6 +5,7 @@
 #include "world/bundle.h"
 
 #include "app/body_view.h"
+#include "app/creature_view.h"
 #include "app/water_view.h"
 #include "core/hash.h"
 #include "core/log.h"
@@ -579,7 +580,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   e->tier = zb_tier_create(&tc);
   e->water_view = zb_water_view_create(a, e->render);
   e->body_view = e->materials ? zb_body_view_create(a, e->render, e->materials) : NULL;
-  if (!e->tier || !e->water_view || (e->materials && !e->body_view)) {
+  e->creature_view = zb_creature_view_create(a, e->render);
+  if (!e->tier || !e->water_view || (e->materials && !e->body_view) || !e->creature_view) {
     return ZB_HOST_FAILURE;
   }
   e->fire = zb_tier_fire(e->tier);
@@ -777,8 +779,9 @@ static void apply_daylight(zb_engine *e, zb_vec3 eye) {
   zb_terrain_view_set_season(e->terrain_view, (float)d.sky.season);
 }
 
-#define FLAME_RANGE 400.0f /* metres: flames and smoke drawn around the camera */
-#define BODY_RANGE 600.0f  /* metres: rigid bodies drawn around the camera */
+#define FLAME_RANGE 400.0f    /* metres: flames and smoke drawn around the camera */
+#define BODY_RANGE 600.0f     /* metres: rigid bodies drawn around the camera */
+#define CREATURE_RANGE 500.0f /* metres: creatures drawn around the camera */
 
 /* Smoke puffs over the smokiest cells near the camera. */
 #define PUFFS 256
@@ -905,6 +908,8 @@ static void draw_world(zb_engine *e) {
       draw_flames(e, eye);
     }
     zb_body_view_draw(e->body_view, zb_tier_bodies(e->tier), e->world, eye, BODY_RANGE);
+    zb_creature_view_draw(e->creature_view, zb_tier_creatures(e->tier), e->world, eye, CREATURE_RANGE,
+                          (double)e->ticks / (double)ZB_TICK_HZ);
     zb_water_view_draw(e->water_view, e->water, e->world, (double)e->ticks / (double)ZB_TICK_HZ);
     draw_smoke(e, eye);
     draw_precipitation(e, eye);
@@ -1081,6 +1086,7 @@ void zb_engine_destroy(zb_engine *e) {
   zb_net_destroy(e->net);
   zb_water_view_destroy(e->water_view);
   zb_body_view_destroy(e->body_view);
+  zb_creature_view_destroy(e->creature_view);
   zb_tier_destroy(e->tier);
   zb_world_destroy(e->world);
   if (e->materials) {

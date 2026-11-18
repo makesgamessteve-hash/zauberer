@@ -10,7 +10,8 @@
  * - standing water puts fire out and soaks its fuel;
  * - rigid bodies float in the water and wake when the ground under them
  *   changes;
- * - the mana field draws its richness from all of them and the weather.
+ * - the mana field draws its richness from all of them and the weather;
+ * - creatures sense fire, water, scent and bodies, and are hurt by them.
  *
  * It times every simulation against the budget for the whole tier. */
 #ifndef ZB_SIM_TIER_H
@@ -18,6 +19,7 @@
 
 #include "sim/air.h"
 #include "sim/bodies.h"
+#include "sim/creatures.h"
 #include "sim/fire.h"
 #include "sim/mana.h"
 #include "sim/water.h"
@@ -32,6 +34,7 @@ typedef enum zb_tier_system {
   ZB_TIER_WEATHER,
   ZB_TIER_BODIES,
   ZB_TIER_MANA,
+  ZB_TIER_CREATURES,
   ZB_TIER_SYSTEMS
 } zb_tier_system;
 
@@ -40,7 +43,7 @@ typedef struct zb_tier_config {
   zb_world *world;
   const zb_materials *materials;   /* NULL: no fire and no bodies */
   double radius;                   /* metres around each focus point */
-  uint64_t seed;                   /* lightning */
+  uint64_t seed;                   /* lightning and creatures */
   uint64_t (*clock_ns)(void *ctx); /* for timing; NULL: not timed */
   void *clock_ctx;
 } zb_tier_config;
@@ -62,6 +65,7 @@ zb_surface_water *zb_tier_water(const zb_tier *t);
 zb_air *zb_tier_air(const zb_tier *t);
 zb_bodies *zb_tier_bodies(const zb_tier *t); /* NULL without materials */
 zb_mana *zb_tier_mana(const zb_tier *t);
+zb_creatures *zb_tier_creatures(const zb_tier *t);
 zb_weather_control *zb_tier_weather(zb_tier *t);
 /* Advances everything by one tick of seconds around the world's focus points. */
 void zb_tier_update(zb_tier *t, double seconds);

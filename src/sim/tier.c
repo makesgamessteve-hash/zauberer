@@ -16,6 +16,7 @@ struct zb_tier {
   zb_surface_water *water;
   zb_bodies *bodies;
   zb_mana *mana;
+  zb_creatures *creatures;
   zb_air *air;
   zb_weather_control weather;
   uint64_t ticks;
@@ -37,7 +38,8 @@ zb_tier *zb_tier_create(const zb_tier_config *cfg) {
   t->air = zb_air_create(cfg->a, cfg->world, cfg->radius);
   t->bodies = cfg->materials && t->water ? zb_bodies_create(cfg->a, cfg->world, cfg->materials, t->water) : NULL;
   t->mana = zb_mana_create(cfg->a, cfg->world, cfg->radius);
-  if ((cfg->materials && (!t->fire || !t->bodies)) || !t->water || !t->air || !t->mana) {
+  t->creatures = zb_creatures_create(cfg->a, cfg->world, cfg->seed ^ 0x637265617475ull);
+  if ((cfg->materials && (!t->fire || !t->bodies)) || !t->water || !t->air || !t->mana || !t->creatures) {
     zb_tier_destroy(t);
     return NULL;
   }
@@ -47,6 +49,8 @@ zb_tier *zb_tier_create(const zb_tier_config *cfg) {
   {
     zb_mana_sources ms = {t->fire, t->water, t->air};
     zb_mana_set_sources(t->mana, &ms);
+    zb_creature_sources cs = {t->fire, t->water, t->air, t->bodies};
+    zb_creatures_set_sources(t->creatures, &cs);
   }
   t->stats.budget_ms = ZB_TIER_BUDGET_MS;
   return t;
@@ -61,6 +65,7 @@ void zb_tier_destroy(zb_tier *t) {
   zb_air_destroy(t->air);
   zb_bodies_destroy(t->bodies);
   zb_mana_destroy(t->mana);
+  zb_creatures_destroy(t->creatures);
   zb_free(t->cfg.a, t);
 }
 
@@ -75,12 +80,14 @@ void zb_tier_set_world(zb_tier *t, zb_world *world) {
     zb_bodies_set_world(t->bodies, world, t->water);
   }
   zb_mana_set_world(t->mana, world);
+  zb_creatures_set_world(t->creatures, world);
 }
 
 zb_fire *zb_tier_fire(const zb_tier *t) { return t->fire; }
 zb_surface_water *zb_tier_water(const zb_tier *t) { return t->water; }
 zb_bodies *zb_tier_bodies(const zb_tier *t) { return t->bodies; }
 zb_mana *zb_tier_mana(const zb_tier *t) { return t->mana; }
+zb_creatures *zb_tier_creatures(const zb_tier *t) { return t->creatures; }
 zb_air *zb_tier_air(const zb_tier *t) { return t->air; }
 zb_weather_control *zb_tier_weather(zb_tier *t) { return &t->weather; }
 
@@ -156,7 +163,7 @@ static void soak_fire(void *ctx, const zb_planet_pos *pos, double depth) {
 void zb_tier_update(zb_tier *t, double seconds) {
   zb_planet_pos focus[ZB_STREAM_MAX_FOCUS];
   int n = zb_world_focus(t->cfg.world, focus, ZB_STREAM_MAX_FOCUS);
-  double t0 = now_ms(t), t1, t2, t3, t4, t5, t6;
+  double t0 = now_ms(t), t1, t2, t3, t4, t5, t6, t7;
   if (t->fire) {
     zb_fire_update(t->fire, focus, n, seconds);
   }
@@ -183,12 +190,15 @@ void zb_tier_update(zb_tier *t, double seconds) {
   t5 = now_ms(t);
   zb_mana_update(t->mana, focus, n, seconds);
   t6 = now_ms(t);
+  zb_creatures_update(t->creatures, seconds);
+  t7 = now_ms(t);
   t->spent[ZB_TIER_FIRE] += t1 - t0;
   t->spent[ZB_TIER_WATER] += t2 - t1;
   t->spent[ZB_TIER_AIR] += t3 - t2;
   t->spent[ZB_TIER_WEATHER] += t4 - t3;
   t->spent[ZB_TIER_BODIES] += t5 - t4;
   t->spent[ZB_TIER_MANA] += t6 - t5;
+  t->spent[ZB_TIER_CREATURES] += t7 - t6;
   if (t->ticks % TICK_HZ == 0) {
     t->stats.total_ms = 0.0;
     for (int s = 0; s < ZB_TIER_SYSTEMS; ++s) {

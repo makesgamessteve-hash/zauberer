@@ -87,7 +87,8 @@ void zb_script_open_world(zb_script *s);
 void zb_script_open_create(zb_script *s);
 void zb_script_open_save(zb_script *s);
 void zb_script_open_sim(zb_script *s);
-void zb_script_open_bodies(zb_script *s); /* after zb_script_open_sim */
+void zb_script_open_bodies(zb_script *s);    /* after zb_script_open_sim */
+void zb_script_open_creatures(zb_script *s); /* after zb_script_open_sim */
 void zb_script_open_mana(zb_script *s);
 void zb_script_open_gesture(zb_script *s);
 /* The world's bodies as a list of tables sim.spawn takes (pushed), and back:

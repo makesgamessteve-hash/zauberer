@@ -16,6 +16,7 @@ local spawn = require("flight.spawn")
 local coop = require("flight.coop")
 local creation = require("create.screen")
 local magic = require("magic.play")
+local fauna = require("life.fauna")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -48,6 +49,10 @@ local function setup_flight()
   end
   game.carpet = carpet.new(pos, heading)
   game.magic = magic.new(back and back.magic)
+  if game.fauna then
+    fauna.clear(game.fauna)
+  end
+  game.fauna = fauna.new(pos, heading)
   game.chase = camera.new()
   game.coop = coop.new()
   game.last_frame_time = nil
@@ -194,6 +199,7 @@ local function flight_tick(dt)
   game.last_cast = magic.tick(game.magic, spell, dt, c, { heading = c.heading, pitch = -0.12 },
     here.loaded and here.stored or nil) or game.last_cast
   camera.update(game.chase, not spell.draw.held and st.look or nil, dt, input.mode() ~= "touch")
+  fauna.tick(game.fauna, dt, c.pos, false)
   world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
   -- The host streams around every heir (one focus each).
   for p = 1, 3 do
@@ -276,6 +282,7 @@ local function flight_frame()
   end
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   for _, line in ipairs(magic.hud_lines(game.magic)) do lines[#lines + 1] = line end
+  for _, line in ipairs(fauna.hud_lines(game.fauna)) do lines[#lines + 1] = line end
   draw_hud(lines)
   for _, t in ipairs(sights.trail) do -- the gesture being drawn
     render.draw_text(assets.font, "o", 80 + t[1], 160 + t[2], 1, { 1, 0.9, 0.5, 1 })
@@ -341,5 +348,5 @@ end)
 -- Exposed for scenario tests.
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
-  creation = creation, magic = magic,
+  creation = creation, magic = magic, fauna = fauna,
 }

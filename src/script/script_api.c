@@ -1442,6 +1442,7 @@ void zb_script_open_api(zb_script *s) {
   zb_script_open_save(s);
   zb_script_open_sim(s);
   zb_script_open_bodies(s);
+  zb_script_open_creatures(s);
   zb_script_open_mana(s);
   zb_script_open_gesture(s);
   zb_script_open_net(s);

@@ -1036,6 +1036,30 @@ function sim.body_stats() end
 ---@return integer
 function sim.cool(pos, radius, joules) end
 
+---A creature as it is now, or nil.
+---@param id integer
+---@return Creature?
+function sim.creature(id) end
+
+---What happened to creatures since last asked.
+---@return CreatureEvent[]
+function sim.creature_events() end
+
+---
+---@return CreatureStats
+function sim.creature_stats() end
+
+---Ids of the creatures within radius metres (up to 256), the dead included.
+---@param pos PlanetPos
+---@param radius number
+---@return integer[]
+function sim.creatures_near(pos, radius) end
+
+---Defines a creature species (a later definition of the same id replaces it); returns its index. Errors for values out of range or too many species.
+---@param species Species
+---@return integer
+function sim.define_species(species) end
+
 ---Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
 ---@param pos PlanetPos
 ---@param gas string
@@ -1062,6 +1086,13 @@ function sim.freeze(pos, radius, seconds) end
 ---@param pos PlanetPos
 ---@return Gases
 function sim.gas_at(pos) end
+
+---Hurts a creature (amount > 0, less its resistance to the harm) or heals it (amount < 0); returns whether it lives.
+---@param id integer
+---@param harm string
+---@param amount number
+---@return boolean
+function sim.hurt(id, harm, amount) end
 
 ---Sets fire to the fuel within radius metres (default 2, up to 64) of a place in the active tier: lightning, a spell, a torch. Returns the cells (about 2 m) that caught; wet or bare ground and water do not.
 ---@param pos PlanetPos
@@ -1112,12 +1143,22 @@ function sim.push(id, impulse) end
 ---@return boolean
 function sim.remove_body(id) end
 
+---Takes a creature (alive or dead) out of the world.
+---@param id integer
+---@return boolean
+function sim.remove_creature(id) end
+
 ---Takes up to cubic_metres (0 .. 1e7) of standing water from within radius metres (up to 64): drying magic. Returns how much it took.
 ---@param pos PlanetPos
 ---@param radius number
 ---@param cubic_metres number
 ---@return number
 function sim.remove_water(pos, radius, cubic_metres) end
+
+---Where the player is for the creatures (nil: nowhere), and whether on foot.
+---@param pos PlanetPos|nil
+---@param on_foot? boolean
+function sim.set_player(pos, on_foot) end
 
 ---Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 ---@param weather Weather
@@ -1127,6 +1168,19 @@ function sim.set_weather(weather) end
 ---@param body BodyDesc
 ---@return integer
 function sim.spawn(body) end
+
+---A creature of a species at a place (on the ground, or at its cruising height); returns its id. Errors for an unknown species.
+---@param species string
+---@param pos PlanetPos
+---@return integer
+function sim.spawn_creature(species, pos) end
+
+---Something creatures notice for a while: a "noise" (heard within strength x their hearing), a "light" (seen; in the dark wild animals take it for fire) or a "threat" (feared).
+---@param kind string
+---@param pos PlanetPos
+---@param strength number
+---@param seconds number
+function sim.stimulus(kind, pos, strength, seconds) end
 
 ---Sweeps a sphere of radius metres (default 0: a ray) from one place to another: the first body or ground it touches, or nil.
 ---@param from PlanetPos

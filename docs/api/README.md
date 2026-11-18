@@ -640,6 +640,26 @@ A body as it is now, or nil when there is no such body.
 
 Takes heat from within radius metres (up to 64): a heat sink, magic unmaking fire. Burning cells that lose more than 50 kJ/m^2 go out; returns how many did.
 
+### `sim.creature(id: integer): Creature?`
+
+A creature as it is now, or nil.
+
+### `sim.creature_events(): CreatureEvent[]`
+
+What happened to creatures since last asked.
+
+### `sim.creature_stats(): CreatureStats`
+
+
+
+### `sim.creatures_near(pos: PlanetPos, radius: number): integer[]`
+
+Ids of the creatures within radius metres (up to 256), the dead included.
+
+### `sim.define_species(species: Species): integer`
+
+Defines a creature species (a later definition of the same id replaces it); returns its index. Errors for values out of range or too many species.
+
 ### `sim.emit(pos: PlanetPos, gas: string, kg: number)`
 
 Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
@@ -659,6 +679,10 @@ Freezes the water within radius metres (up to 64), standing water and the sea, l
 ### `sim.gas_at(pos: PlanetPos): Gases`
 
 The gases in the air at a place, kg/m^3 of the lowest air layer.
+
+### `sim.hurt(id: integer, harm: string, amount: number): boolean`
+
+Hurts a creature (amount > 0, less its resistance to the harm) or heals it (amount < 0); returns whether it lives.
 
 ### `sim.ignite(pos: PlanetPos, radius?: number): integer`
 
@@ -696,9 +720,17 @@ Gives a body a push at its centre (N s { east, north, up }) and wakes it; false 
 
 Takes a body out of the world; false when there was no such body.
 
+### `sim.remove_creature(id: integer): boolean`
+
+Takes a creature (alive or dead) out of the world.
+
 ### `sim.remove_water(pos: PlanetPos, radius: number, cubic_metres: number): number`
 
 Takes up to cubic_metres (0 .. 1e7) of standing water from within radius metres (up to 64): drying magic. Returns how much it took.
+
+### `sim.set_player(pos: PlanetPos|nil, on_foot?: boolean)`
+
+Where the player is for the creatures (nil: nowhere), and whether on foot.
 
 ### `sim.set_weather(weather: Weather)`
 
@@ -707,6 +739,14 @@ Sets the weather the simulations see, instead of the world's own, until sim.natu
 ### `sim.spawn(body: BodyDesc): integer`
 
 Puts a rigid body into the world: a boulder, a log, a crate. It falls, rolls, collides, floats or sinks in the active tier, and waits where it is outside it. Returns its id; errors for a description that does not work (sizes 1 cm .. 50 m, a solid or powder material).
+
+### `sim.spawn_creature(species: string, pos: PlanetPos): integer`
+
+A creature of a species at a place (on the ground, or at its cruising height); returns its id. Errors for an unknown species.
+
+### `sim.stimulus(kind: string, pos: PlanetPos, strength: number, seconds: number)`
+
+Something creatures notice for a while: a "noise" (heard within strength x their hearing), a "light" (seen; in the dark wild animals take it for fire) or a "threat" (feared).
 
 ### `sim.sweep(from: PlanetPos, to: PlanetPos, radius?: number): Hit?`
 

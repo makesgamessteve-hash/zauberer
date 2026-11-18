@@ -41,10 +41,11 @@ typedef struct zb_engine {
   struct zb_surface_water *water; /* surface water in the active tier */
   struct zb_water_view *water_view;
   struct zb_body_view *body_view; /* NULL without materials */
-  struct zb_air *air;             /* wind and gases in the active tier */
-  struct zb_tier *tier;           /* the active tier: fire, water and air (the three above are its) */
-  int flash;                      /* frames of lightning flash left */
-  int strikes_seen;               /* lightning strikes already flashed */
+  struct zb_creature_view *creature_view;
+  struct zb_air *air;   /* wind and gases in the active tier */
+  struct zb_tier *tier; /* the active tier: fire, water and air (the three above are its) */
+  int flash;            /* frames of lightning flash left */
+  int strikes_seen;     /* lightning strikes already flashed */
   uint32_t rain_sprite, snow_sprite;
   uint32_t smoke_sprite;
   uint32_t flame_sprite;
