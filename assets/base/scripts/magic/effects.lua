@@ -9,6 +9,10 @@ local weave = require("magic.weave")
 local effects = {}
 
 local BOLT_SPEED = 40 -- m/s
+local BOLT_REACH = 1.5 -- metres: a bolt this close to a creature strikes it
+-- What a bolt does to a creature it strikes, per mana: fire burns, water and
+-- stone strike.
+local BOLT_HARM = { fire = { "heat", 6 }, water = { "impact", 2 }, earth = { "impact", 8 } }
 
 -- What one mana does in each domain (data/weaves.lua).
 local function rate(color, what)
@@ -65,6 +69,19 @@ local function push_bodies(p, from, impulse)
   return #ids
 end
 
+-- Life and death for the creatures within reach (the player hears the event).
+local function touch_creatures(at, radius, harm, amount)
+  local n = 0
+  for _, id in ipairs(sim.creatures_near(at, radius)) do
+    local c = sim.creature(id)
+    if c and c.alive then
+      sim.hurt(id, harm, amount)
+      n = n + 1
+    end
+  end
+  return n
+end
+
 -- Handlers by "verb:colour". p: at (target), radius, power (mana), extent,
 -- origin, heading, pitch, ctx (caster, carpet, state).
 local H = {}
@@ -93,8 +110,9 @@ H["sense:fire"] = function(p)
 end
 H["ward:fire"] = function(p, state) return ward(state, "fire", p) end
 
-H["create:storm"] = function(p) -- a spark
-  return { sparked = sim.ignite(p.at, 1) }
+H["create:storm"] = function(p) -- a spark: it jolts what it touches and lights dry fuel
+  return { sparked = sim.ignite(p.at, 1), creatures = touch_creatures(p.at, math.max(p.radius, 2), "magic",
+    p.power * 3) }
 end
 -- A gust along a line pushes what stands in its path the way it blows.
 local function push_along(p, impulse)
@@ -139,13 +157,16 @@ end
 
 H["create:life"] = function(p, state)
   local amount = p.power * HEALTH
-  state.heard[#state.heard + 1] = { kind = "heal", at = p.at, amount = amount }
-  return { healed = amount }
+  local radius = math.max(p.radius, 2)
+  state.heard[#state.heard + 1] = { kind = "heal", at = p.at, amount = amount, radius = radius }
+  return { healed = amount, creatures = touch_creatures(p.at, radius, "magic", -amount) }
 end
 H["unmake:life"] = function(p, state)
   local gone = world.remove_plants(p.at, math.min(p.radius, 64))
-  state.heard[#state.heard + 1] = { kind = "wither", at = p.at, amount = p.power * HEALTH }
-  return { withered = gone }
+  local radius = math.max(p.radius, 2)
+  local amount = p.power * HEALTH
+  state.heard[#state.heard + 1] = { kind = "wither", at = p.at, amount = amount, radius = radius }
+  return { withered = gone, creatures = touch_creatures(p.at, radius, "magic", amount) }
 end
 H["sense:life"] = function(p)
   return { sensed = "life", plants = #world.plants(p.at, math.min(p.radius * 2, 256)) }
@@ -322,6 +343,20 @@ local function land(state, proj, at)
   return run(state, landed)
 end
 
+-- A bolt in flight striking a living creature near it; returns its id.
+local function strike(proj, pos)
+  for _, id in ipairs(sim.creatures_near(pos, BOLT_REACH)) do
+    local c = sim.creature(id)
+    if c and c.alive then
+      local p = proj.plan
+      local how = BOLT_HARM[p.weave.colors[1]] or { "magic", 3 }
+      sim.hurt(id, how[1], p.power * how[2])
+      return id
+    end
+  end
+  return nil
+end
+
 -- Carries out a resolved plan. ctx: origin (where the weave leaves the hand),
 -- heading and pitch (the aim), target (the aimed place on the ground or a
 -- body), caster, carpet.
@@ -361,7 +396,13 @@ function effects.tick(state, dt)
   local flying = {}
   for _, f in ipairs(state.projectiles) do
     local s = sim.projectile(f.id)
-    if s and not s.flying then
+    local struck = s and s.flying and strike(f, s.pos)
+    if struck then -- it hit a creature on its way
+      sim.remove_body(f.id)
+      local r = land(state, f, s.pos)
+      r.struck_creature = struck
+      happened[#happened + 1] = r
+    elseif s and not s.flying then
       happened[#happened + 1] = land(state, f, s.hit and s.hit.pos or s.pos)
     elseif s then
       flying[#flying + 1] = f

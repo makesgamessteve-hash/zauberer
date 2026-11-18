@@ -18,6 +18,8 @@ local creation = require("create.screen")
 local magic = require("magic.play")
 local fauna = require("life.fauna")
 local motes = require("magic.motes")
+local effects = require("magic.effects")
+local health = require("player.health")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -40,6 +42,7 @@ local function setup_flight()
   local p = world.planet()
   local pos, heading = spawn.find(world.height, p.chunks_per_edge), 0
   pos.alt = math.max(world.height(pos), 0) + 60
+  game.home = { pos = world.move(pos, 0, 0, 0), heading = heading } -- where a defeated player gets up again
   local back = game.restore -- the player of a loaded save
   if back and type(back.pos) == "table" then
     pos, heading = back.pos, back.heading or 0
@@ -50,6 +53,7 @@ local function setup_flight()
   end
   game.carpet = carpet.new(pos, heading)
   game.magic = magic.new(back and back.magic)
+  game.health = health.new(back and back.health)
   if game.fauna then
     fauna.clear(game.fauna)
   end
@@ -107,7 +111,8 @@ end
 -- and remembers it for the next start.
 function game.save()
   local c = game.carpet
-  local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic) } or nil
+  local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
+    health = game.health and health.snapshot(game.health) } or nil
   local ok, err = world.save_game(game.save_name, player)
   if ok then
     save.set("world", game.save_name)
@@ -193,20 +198,36 @@ local function flight_tick(dt)
   end
   local st = controls.read()
   local co = game.coop
-  local c = coop.tick(co, game.carpet, controls.flight_input(st), dt, WORLD, net)
+  local down = game.health.down ~= nil -- a defeated player lies still
+  local still = { turn = 0, throttle = 0, climb = 0, boost = false }
+  local c = coop.tick(co, game.carpet, down and still or controls.flight_input(st), dt, WORLD, net)
   game.carpet = c
   -- Magic: while a gesture is drawn the mouse draws instead of turning the camera.
   local spell = {}
   for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
   local here = mana.at(c.pos)
-  game.last_cast = magic.tick(game.magic, spell, dt, c, { heading = c.heading, pitch = -0.12 },
-    here.loaded and here.stored or nil) or game.last_cast
+  if down then
+    for name in pairs(spell) do spell[name] = {} end
+  end
+  local cast_now = magic.tick(game.magic, spell, dt, c, { heading = c.heading, pitch = -0.12 },
+    here.loaded and here.stored or nil)
+  game.last_cast = cast_now or game.last_cast
   camera.update(game.chase, not spell.draw.held and st.look or nil, dt, input.mode() ~= "touch")
   -- Creatures, and the motes of the magical ones that die.
-  for _, ev in ipairs(fauna.tick(game.fauna, dt, c.pos, false)) do
+  local creature_events = fauna.tick(game.fauna, dt, c.pos, false)
+  for _, ev in ipairs(creature_events) do
     if ev.kind == "died" and ev.magical and ev.mana and (ev.motes or 0) > 0 then
       motes.release(game.motes, ev.pos, ev.mana, ev.motes, 8)
     end
+  end
+  -- Harm and healing; a defeated player gets up again where the carpet set out.
+  local fx = game.magic.caster.effects
+  local fate = health.tick(game.health, dt, { pos = c.pos, on_foot = false, events = creature_events,
+    heard = effects.take_events(fx), cast = cast_now, wards = function(kind) return effects.warded(fx, kind) end })
+  if fate == "revived" then
+    game.carpet = carpet.new(world.move(game.home.pos, 0, 0, 0), game.home.heading)
+    c = game.carpet
+    camera.reset(game.chase)
   end
   local m = game.magic.caster.mage
   motes.tick(game.motes, dt, { { pos = c.pos, mage = m } })
@@ -268,6 +289,19 @@ local function draw_hud(lines)
   end
 end
 
+-- The HUD in flight: the carpet, health, magic, creatures and motes.
+local function flight_lines()
+  local c = game.carpet
+  local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
+  local parts = { health.hud_lines(game.health), magic.hud_lines(game.magic), fauna.hud_lines(game.fauna),
+    motes.hud_lines(game.motes) }
+  for _, more in ipairs(parts) do
+    for _, line in ipairs(more) do lines[#lines + 1] = line end
+  end
+  if game.channeling then lines[#lines + 1] = "Channeling" end
+  return lines
+end
+
 local function flight_frame()
   local c = game.carpet
   local now = engine.time()
@@ -293,12 +327,7 @@ local function flight_frame()
       render.draw_model(assets.carpet, { position = world.to_local(other.pos), rotation = carpet.rotation(other) })
     end
   end
-  local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
-  for _, line in ipairs(magic.hud_lines(game.magic)) do lines[#lines + 1] = line end
-  for _, line in ipairs(fauna.hud_lines(game.fauna)) do lines[#lines + 1] = line end
-  for _, line in ipairs(motes.hud_lines(game.motes)) do lines[#lines + 1] = line end
-  if game.channeling then lines[#lines + 1] = "Channeling" end
-  draw_hud(lines)
+  draw_hud(flight_lines())
   for _, t in ipairs(sights.trail) do -- the gesture being drawn
     render.draw_text(assets.font, "o", 80 + t[1], 160 + t[2], 1, { 1, 0.9, 0.5, 1 })
   end
@@ -363,5 +392,5 @@ end)
 -- Exposed for scenario tests.
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
-  creation = creation, magic = magic, fauna = fauna, motes = motes,
+  creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
 }
