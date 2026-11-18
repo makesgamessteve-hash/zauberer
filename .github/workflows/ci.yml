@@ -216,16 +216,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GALLIUM_DRIVER: llvmpipe
         run: |
-          gh release download --repo pal1000/mesa-dist-win --pattern '*release-msvc.7z' --dir "$RUNNER_TEMP"
-          7z x -y -o"$RUNNER_TEMP/mesa" "$RUNNER_TEMP"/*release-msvc.7z > /dev/null
-          # The archive layout changes between releases: list it, then prefer a
-          # 64-bit opengl32.dll wherever it is.
-          find "$RUNNER_TEMP/mesa" -maxdepth 3 | head -n 80 || true
-          all="$(find "$RUNNER_TEMP/mesa" -iname opengl32.dll || true)"
-          echo "opengl32.dll candidates:"; echo "$all"
-          gl="$(echo "$all" | grep -i '64' | head -n 1 || true)"
-          if [ -z "$gl" ]; then gl="$(echo "$all" | grep -iv 'x86\|32bit\|win32' | head -n 1 || true)"; fi
-          test -n "$gl" || { echo "no 64-bit opengl32.dll in the Mesa archive"; exit 1; }
+          # Recent mesa-dist-win releases have dropped the OpenGL driver from some
+          # packages, and the layout changes between releases: take the newest
+          # release whose MSVC package has a 64-bit opengl32.dll.
+          gl=""
+          for tag in $(gh release list --repo pal1000/mesa-dist-win --limit 12 --json tagName --jq '.[].tagName'); do
+            rm -rf "$RUNNER_TEMP/mesa" "$RUNNER_TEMP/mesa-dl"
+            mkdir -p "$RUNNER_TEMP/mesa-dl"
+            gh release download "$tag" --repo pal1000/mesa-dist-win --pattern '*release-msvc.7z' \
+              --dir "$RUNNER_TEMP/mesa-dl" || continue
+            for archive in "$RUNNER_TEMP"/mesa-dl/*.7z; do 7z x -y -o"$RUNNER_TEMP/mesa" "$archive" > /dev/null; done
+            all="$(find "$RUNNER_TEMP/mesa" -iname opengl32.dll || true)"
+            gl="$(echo "$all" | grep -i '64' | head -n 1 || true)"
+            if [ -z "$gl" ]; then gl="$(echo "$all" | grep -iv 'x86\|32bit\|win32' | grep . | head -n 1 || true)"; fi
+            if [ -n "$gl" ]; then echo "Mesa release $tag"; break; fi
+            echo "Mesa release $tag has no 64-bit opengl32.dll"
+          done
+          test -n "$gl" || { echo "no 64-bit opengl32.dll in recent Mesa releases"; exit 1; }
           echo "Mesa OpenGL: $gl"
           ls "$(dirname "$gl")"
           cp "$(dirname "$gl")"/*.dll bin/
