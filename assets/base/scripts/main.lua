@@ -26,6 +26,7 @@ local health = require("player.health")
 local walker = require("player.walker")
 local survival = require("player.survival")
 local pack = require("player.pack")
+local bag = require("player.bag")
 local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
@@ -69,6 +70,7 @@ local function setup_flight()
   game.health = health.new(back and back.health)
   game.survival = survival.new(back and back.survival, save.get("difficulty"))
   game.pack = pack.new(back and back.pack)
+  game.bag = bag.new(back and back.bag)
   game.codex = codex.new(back and back.codex)
   game.survival_at = nil
   if game.fauna then
@@ -144,6 +146,7 @@ function game.save()
   local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
     health = game.health and health.snapshot(game.health),
     survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
+    bag = game.bag and bag.snapshot(game.bag),
     codex = game.codex and codex.snapshot(game.codex),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
@@ -317,6 +320,8 @@ local function flight_tick(dt)
   end
   pack.spoil(game.pack, game_dt / 3600, body.air, false)
   pack.tick(game.pack, dt)
+  bag.tick(game.bag, dt)
+  bag.spoil(game.bag, game_dt / 3600, body.air)
   survival.tick_news(game.survival, dt)
   -- Gathering, fire and food (on foot), eating and drinking.
   local function said(list)
@@ -346,6 +351,15 @@ local function flight_tick(dt)
     end
   end
   if input.state("codex").pressed then codex.browse(game.codex) end
+  -- The bag: the pack's goods into its folds, and the road's needs back out.
+  if input.state("stow").pressed then
+    local moved = bag.stow(game.bag, game.pack)
+    bag.say(game.bag, next(moved) and ("Stowed " .. said(moved)) or "Nothing to stow")
+  end
+  if input.state("unstow").pressed then
+    local moved = bag.unstow(game.bag, game.pack, game.magic.caster.mage)
+    bag.say(game.bag, next(moved) and ("Taken out " .. said(moved)) or "Nothing taken out")
+  end
   if w and input.state("sleep").pressed and not game.health.down then
     local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
     for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
@@ -422,6 +436,7 @@ local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
+    bag.hud_lines(game.bag),
     codex.hud_lines(game.codex),
     magic.hud_lines(game.magic), fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
@@ -533,5 +548,5 @@ _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
-  pack = pack, harvest = harvest, cooking = cooking, codex = codex,
+  pack = pack, bag = bag, harvest = harvest, cooking = cooking, codex = codex,
 }
