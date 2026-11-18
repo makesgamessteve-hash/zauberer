@@ -572,6 +572,14 @@ Adds heat spread over radius metres (up to 64): enough of it dries and then igni
 
 Pours water over the ground within radius metres (up to 64) of a place in the active tier: a spell, a spring, a broken dam. Returns the cells (about 2 m) that got some; the sea, lakes and rivers take none.
 
+### `sim.air_stats(): AirStats`
+
+The air of the active tier.
+
+### `sim.emit(pos: PlanetPos, gas: string, kg: number)`
+
+Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
+
 ### `sim.fire_at(pos: PlanetPos): FireCell`
 
 The 2 m cell of the heat and fire simulation at a place.
@@ -579,6 +587,10 @@ The 2 m cell of the heat and fire simulation at a place.
 ### `sim.fire_stats(): FireStats`
 
 The heat and fire simulation as a whole.
+
+### `sim.gas_at(pos: PlanetPos): Gases`
+
+The gases in the air at a place, kg/m^3 of the lowest air layer.
 
 ### `sim.ignite(pos: PlanetPos, radius?: number): integer`
 
@@ -607,6 +619,10 @@ Where the water of the active tier is, in m^3: on_ground + soaked + drained equa
 ### `sim.weather(): Weather`
 
 The wind and rain the fire sees.
+
+### `sim.wind_at(pos: PlanetPos): Wind`
+
+The local wind at a place: the weather's wind shaped by the ground (the weather's wind outside the active tier).
 
 ## Types
 

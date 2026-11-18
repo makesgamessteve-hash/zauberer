@@ -139,7 +139,7 @@ zb_surface_water *zb_surface_water_create(const zb_allocator *a, zb_world *world
   }
   w->a = a;
   zb_active_hooks hooks = {w, take_in, let_go};
-  zb_active_init(&w->grid, a, world, radius, ZB_STAGE_SURFACE, &hooks);
+  zb_active_init(&w->grid, a, world, radius, ZB_STAGE_SURFACE, ZB_ACTIVE_RES, &hooks);
   return w;
 }
 

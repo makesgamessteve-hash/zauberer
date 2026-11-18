@@ -76,6 +76,15 @@ void zb_fire_get_stats(const zb_fire *f, zb_fire_stats *out);
 /* A hash of the whole state, for determinism checks. */
 uint64_t zb_fire_hash(const zb_fire *f);
 
+/* Where fire takes its wind from, per chunk (the air's local wind); without a
+ * source it takes the weather's. Asked once a second. */
+typedef void (*zb_fire_wind_fn)(void *ctx, zb_chunk c, double *east, double *north);
+void zb_fire_set_wind_source(zb_fire *f, zb_fire_wind_fn fn, void *ctx);
+/* Calls fn for every burning cell with the smoke it gives off (kg/s, by the
+ * fuel's burn rate and its smoke share in the registry). */
+typedef void (*zb_fire_smoke_fn)(void *ctx, const zb_planet_pos *pos, double kg_per_s);
+void zb_fire_each_smoke(const zb_fire *f, zb_fire_smoke_fn fn, void *ctx);
+
 /* Calls fn for every burning cell: where it is (on the ground), its
  * intensity in W/m^2 and the fuel left in kg/m^2. */
 typedef void (*zb_fire_cell_fn)(void *ctx, const zb_planet_pos *pos, double intensity, double fuel);

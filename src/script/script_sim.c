@@ -3,8 +3,10 @@
  * know about them (sim). */
 #include "script/script_internal.h"
 
+#include <math.h>
 #include <string.h>
 
+#include "sim/air.h"
 #include "sim/fire.h"
 #include "sim/material.h"
 #include "sim/water.h"
@@ -293,6 +295,9 @@ static int s_set_weather(lua_State *L) {
     lua_pop(L, 1);
   }
   zb_fire_set_weather(F(L), &w);
+  if (zb_script_from(L)->cfg.air) {
+    zb_air_set_wind(zb_script_from(L)->cfg.air, w.wind_east, w.wind_north);
+  }
   if (zb_script_from(L)->cfg.water) {
     zb_surface_water_set_rain(zb_script_from(L)->cfg.water, w.rain);
   }
@@ -398,13 +403,116 @@ static int s_water_stats(lua_State *L) {
   return 1;
 }
 
+/* ------------------------------------------------------------------ air */
+
+static zb_air *AIR(lua_State *L) {
+  zb_air *air = zb_script_from(L)->cfg.air;
+  if (!air) {
+    luaL_error(L, "no air simulation");
+  }
+  return air;
+}
+
+static zb_gas check_gas(lua_State *L, int idx) {
+  const char *name = luaL_checkstring(L, idx);
+  for (int g = 0; g < ZB_GASES; ++g) {
+    if (strcmp(name, zb_gas_name((zb_gas)g)) == 0) {
+      return (zb_gas)g;
+    }
+  }
+  luaL_argerror(L, idx, "gas must be smoke, steam, scent or fumes");
+  return ZB_GAS_SMOKE;
+}
+
+/* @lua sim.wind_at(pos: PlanetPos): Wind
+ * The local wind at a place: the weather's wind shaped by the ground (the
+ * weather's wind outside the active tier).
+ * @field loaded boolean In the active tier
+ * @field east number m/s towards the east
+ * @field north number m/s towards the north
+ * @field speed number m/s
+ */
+static int s_wind_at(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  zb_air_sample a;
+  zb_air_sample_at(AIR(L), &pos, &a);
+  lua_createtable(L, 0, 4);
+  lua_pushboolean(L, a.loaded);
+  lua_setfield(L, -2, "loaded");
+  set_number(L, "east", a.east);
+  set_number(L, "north", a.north);
+  set_number(L, "speed", sqrt(a.east * a.east + a.north * a.north));
+  return 1;
+}
+
+/* @lua sim.gas_at(pos: PlanetPos): Gases
+ * The gases in the air at a place, kg/m^3 of the lowest air layer.
+ * @field smoke number
+ * @field steam number
+ * @field scent number
+ * @field fumes number
+ */
+static int s_gas_at(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  zb_air_sample a;
+  zb_air_sample_at(AIR(L), &pos, &a);
+  lua_createtable(L, 0, ZB_GASES);
+  for (int g = 0; g < ZB_GASES; ++g) {
+    set_number(L, zb_gas_name((zb_gas)g), a.gas[g]);
+  }
+  return 1;
+}
+
+/* @lua sim.emit(pos: PlanetPos, gas: string, kg: number)
+ * Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air
+ * above a place in the active tier: a creature's scent, a potion's fumes.
+ */
+static int s_emit(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  zb_gas gas = check_gas(L, 2);
+  double kg = luaL_checknumber(L, 3);
+  luaL_argcheck(L, kg >= 0.0 && kg <= 1e6, 3, "kg must be 0..1e6");
+  zb_air_emit(AIR(L), &pos, gas, kg);
+  return 0;
+}
+
+/* @lua sim.air_stats(): AirStats
+ * The air of the active tier.
+ * @field chunks integer Chunks in the active tier
+ * @field awake integer Of those, chunks with gas
+ * @field mass table kg of each gas in the air, by name
+ * @field emitted table kg of each gas released so far, by name
+ */
+static int s_air_stats(lua_State *L) {
+  zb_air_stats st;
+  zb_air_get_stats(AIR(L), &st);
+  lua_createtable(L, 0, 4);
+  lua_pushinteger(L, st.chunks);
+  lua_setfield(L, -2, "chunks");
+  lua_pushinteger(L, st.awake);
+  lua_setfield(L, -2, "awake");
+  const double *tables[2] = {st.mass, st.emitted};
+  const char *names[2] = {"mass", "emitted"};
+  for (int t = 0; t < 2; ++t) {
+    lua_createtable(L, 0, ZB_GASES);
+    for (int g = 0; g < ZB_GASES; ++g) {
+      set_number(L, zb_gas_name((zb_gas)g), tables[t][g]);
+    }
+    lua_setfield(L, -2, names[t]);
+  }
+  return 1;
+}
+
 void zb_script_open_sim(zb_script *s) {
   static const luaL_Reg registry_fns[] = {{"keys", r_keys}, {"get", r_get}, {NULL, NULL}};
-  static const luaL_Reg sim_fns[] = {
-      {"material", s_material},       {"material_at", s_material_at}, {"ignite", s_ignite},
-      {"add_heat", s_add_heat},       {"fire_at", s_fire_at},         {"fire_stats", s_fire_stats},
-      {"set_weather", s_set_weather}, {"weather", s_weather},         {"add_water", s_add_water},
-      {"water_at", s_water_at},       {"water_stats", s_water_stats}, {NULL, NULL}};
+  static const luaL_Reg sim_fns[] = {{"material", s_material},       {"material_at", s_material_at},
+                                     {"ignite", s_ignite},           {"add_heat", s_add_heat},
+                                     {"fire_at", s_fire_at},         {"fire_stats", s_fire_stats},
+                                     {"set_weather", s_set_weather}, {"weather", s_weather},
+                                     {"add_water", s_add_water},     {"water_at", s_water_at},
+                                     {"water_stats", s_water_stats}, {"wind_at", s_wind_at},
+                                     {"gas_at", s_gas_at},           {"emit", s_emit},
+                                     {"air_stats", s_air_stats},     {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, registry_fns, 0);
   lua_setglobal(s->L, "registry");

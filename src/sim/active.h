@@ -5,14 +5,14 @@
  * surface water) keep their own data per chunk; this keeps the set of chunks
  * and finds a cell's neighbours across chunk edges and cube-face seams.
  *
- * A cell is named by one integer: slot * ZB_ACTIVE_CELLS + y * ZB_ACTIVE_RES + x.
+ * A cell is named by one integer: slot * res^2 + y * res + x.
  * Slots move when chunks leave, so cell numbers last until the next survey. */
 #ifndef ZB_SIM_ACTIVE_H
 #define ZB_SIM_ACTIVE_H
 
 #include "world/world.h"
 
-#define ZB_ACTIVE_RES 128
+#define ZB_ACTIVE_RES 128 /* cells per chunk edge, at most (fire and water: 2 m) */
 #define ZB_ACTIVE_CELLS (ZB_ACTIVE_RES * ZB_ACTIVE_RES)
 #define ZB_ACTIVE_MAX 64
 
@@ -41,12 +41,14 @@ typedef struct zb_active {
   zb_world *world;
   double radius;
   int stage; /* the chunk data it needs (ZB_STAGE_SURFACE or ZB_STAGE_ECOLOGY) */
+  int res;   /* cells per chunk edge, up to ZB_ACTIVE_RES */
+  int cells; /* res * res */
   zb_active_hooks hooks;
   int count;
   zb_active_chunk *slot[ZB_ACTIVE_MAX];
 } zb_active;
 
-void zb_active_init(zb_active *g, const zb_allocator *a, zb_world *world, double radius, int stage,
+void zb_active_init(zb_active *g, const zb_allocator *a, zb_world *world, double radius, int stage, int res,
                     const zb_active_hooks *hooks);
 /* Lets every chunk go (and follows another world when world is not NULL). */
 void zb_active_clear(zb_active *g, zb_world *world);
@@ -55,9 +57,7 @@ void zb_active_clear(zb_active *g, zb_world *world);
 bool zb_active_survey(zb_active *g, const zb_planet_pos *focus, int focus_count);
 
 int zb_active_slot(const zb_active *g, zb_chunk c);
-static inline zb_active_chunk *zb_active_chunk_of(const zb_active *g, int32_t cell) {
-  return g->slot[cell / ZB_ACTIVE_CELLS];
-}
+static inline zb_active_chunk *zb_active_chunk_of(const zb_active *g, int32_t cell) { return g->slot[cell / g->cells]; }
 /* The cell (x, y) of a slot's chunk, x and y at most one beyond its edges;
  * -1 when that lies outside the active tier. */
 int32_t zb_active_locate(const zb_active *g, int slot, int x, int y);

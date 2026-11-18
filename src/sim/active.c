@@ -6,19 +6,21 @@
 
 #include "world/stream.h"
 
-#define N ZB_ACTIVE_RES
-#define CELLS ZB_ACTIVE_CELLS
+#define N (g->res)
+#define CELLS (g->cells)
 
 const int ZB_ACTIVE_DX[8] = {-1, 1, 0, 0, -1, 1, -1, 1};
 const int ZB_ACTIVE_DY[8] = {0, 0, -1, 1, -1, -1, 1, 1};
 
-void zb_active_init(zb_active *g, const zb_allocator *a, zb_world *world, double radius, int stage,
+void zb_active_init(zb_active *g, const zb_allocator *a, zb_world *world, double radius, int stage, int res,
                     const zb_active_hooks *hooks) {
   memset(g, 0, sizeof *g);
   g->a = a;
   g->world = world;
   g->radius = radius;
   g->stage = stage;
+  g->res = res > 0 && res <= ZB_ACTIVE_RES ? res : ZB_ACTIVE_RES;
+  g->cells = g->res * g->res;
   g->hooks = *hooks;
 }
 
@@ -56,7 +58,7 @@ int32_t zb_active_find(const zb_active *g, zb_chunk c, double x, double y) {
   if (s < 0) {
     return -1;
   }
-  int cx = (int)(q.lx * N / 256.0f), cy = (int)(q.ly * N / 256.0f);
+  int cx = (int)(q.lx * (float)N / 256.0f), cy = (int)(q.ly * (float)N / 256.0f);
   cx = cx < 0 ? 0 : (cx >= N ? N - 1 : cx);
   cy = cy < 0 ? 0 : (cy >= N ? N - 1 : cy);
   return s * CELLS + cy * N + cx;
@@ -183,7 +185,7 @@ int32_t zb_active_cell_at(const zb_active *g, const zb_planet_pos *pos) {
   if (s < 0) {
     return -1;
   }
-  int x = (int)(pos->lx * N / 256.0f), y = (int)(pos->ly * N / 256.0f);
+  int x = (int)(pos->lx * (float)N / 256.0f), y = (int)(pos->ly * (float)N / 256.0f);
   x = x < 0 ? 0 : (x >= N ? N - 1 : x);
   y = y < 0 ? 0 : (y >= N ? N - 1 : y);
   return s * CELLS + y * N + x;
@@ -203,7 +205,7 @@ int zb_active_around(const zb_active *g, const zb_planet_pos *pos, double radius
     return 0;
   }
   const zb_active_chunk *c = g->slot[s];
-  int cx = (int)(pos->lx * N / 256.0f), cy = (int)(pos->ly * N / 256.0f), hits = 0;
+  int cx = (int)(pos->lx * (float)N / 256.0f), cy = (int)(pos->ly * (float)N / 256.0f), hits = 0;
   int rx = (int)(radius / c->cw) + 1, ry = (int)(radius / c->ch) + 1;
   for (int dy = -ry; dy <= ry; ++dy) {
     for (int dx = -rx; dx <= rx; ++dx) {

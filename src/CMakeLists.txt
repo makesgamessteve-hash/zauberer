@@ -31,7 +31,7 @@ endif()
 zb_module(zb_world SOURCES world/bundle.c world/calendar.c world/climate.c world/creation.c world/cubegrid.c world/delta.c world/geology.c world/geology_final.c world/geology_macro.c world/lattice.c
   world/noise.c world/planet.c world/stream.c world/flora.c world/terrain.c world/water.c world/world.c
   DEPS zb_core)
-zb_module(zb_sim SOURCES sim/active.c sim/fire.c sim/material.c sim/water.c DEPS zb_core zb_world)
+zb_module(zb_sim SOURCES sim/active.c sim/air.c sim/fire.c sim/material.c sim/water.c DEPS zb_core zb_world)
 zb_module(zb_input SOURCES input/input.c DEPS zb_core)
 zb_module(zb_render SOURCES render/render.c render/image.c render/mesh.c render/retro.c render/backend_null.c
   render/backend_gl.c DEPS zb_core zb_vfs PRIVATE_DEPS zb_thirdparty_impl)

@@ -304,6 +304,36 @@ static void test_heat(void) {
   scene_close(&s);
 }
 
+static void calm(void *ctx, zb_chunk c, double *east, double *north) {
+  (void)c;
+  (*(int *)ctx)++;
+  *east = *north = 0.0;
+}
+
+static void add_smoke(void *ctx, const zb_planet_pos *pos, double kg_per_s) {
+  (void)pos;
+  *(double *)ctx += kg_per_s;
+}
+
+/* spec: thermal-and-fire: Fire smokes and follows the local wind */
+static void test_local_wind(void) {
+  scene s;
+  scene_open(&s, FLAT, 0.0, 0.0);
+  wind_along_x(&s, 8.0); /* the weather's wind ... */
+  int asked = 0;
+  zb_fire_set_wind_source(s.fire, calm, &asked); /* ... but the air here is still */
+  zb_fire_ignite(s.fire, &s.centre, 3.0);
+  run(&s, 30.0);
+  TEST_ASSERT_TRUE(asked > 0);
+  float east, west;
+  extent(&s, &east, &west);
+  TEST_ASSERT_TRUE_MESSAGE(east < 1.5f * west && west < 1.5f * east, "round in still air");
+  double smoke = 0.0;
+  zb_fire_each_smoke(s.fire, add_smoke, &smoke);
+  TEST_ASSERT_TRUE(smoke > 0.0);
+  scene_close(&s);
+}
+
 static void count_cell(void *ctx, const zb_planet_pos *pos, double intensity, double fuel) {
   (void)pos;
   TEST_ASSERT_TRUE(intensity > 0.0 && fuel >= 0.0);
@@ -334,6 +364,7 @@ int main(void) {
   RUN_TEST(test_water_and_rain);
   RUN_TEST(test_embers);
   RUN_TEST(test_heat);
+  RUN_TEST(test_local_wind);
   RUN_TEST(test_deterministic);
   int failures = UNITY_END();
   if (g_materials) {

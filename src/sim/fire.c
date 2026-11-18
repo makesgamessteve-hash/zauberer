@@ -46,6 +46,7 @@ enum { FUEL_NONE, FUEL_GRASS, FUEL_LEAVES, FUEL_WOOD, FUEL_KINDS };
 typedef struct fuel_kind {
   int material;
   double ignition, heat, rate, cp, flammability;
+  double smoke; /* kg of smoke per kg burnt */
 } fuel_kind;
 
 typedef struct fire_chunk {
@@ -73,6 +74,8 @@ struct zb_fire {
   zb_fire_weather weather;
   fuel_kind fuels[FUEL_KINDS];
   bool has_fuels;
+  zb_fire_wind_fn wind_fn;
+  void *wind_ctx;
   double pending; /* seconds not yet stepped */
   uint64_t steps;
   double since_survey; /* seconds since chunks were last taken in */
@@ -120,7 +123,11 @@ static void find_fuels(zb_fire *f) {
       break;
     }
     const zb_material_info *x = &f->materials->info[m];
-    f->fuels[k] = (fuel_kind){m, x->ignition, x->heat, x->burn_rate, x->specific_heat, x->flammability};
+    f->fuels[k] = (fuel_kind){m, x->ignition, x->heat, x->burn_rate, x->specific_heat, x->flammability, 0.0};
+    int smoke = zb_materials_find(f->materials, "smoke");
+    for (int p = 0; p < ZB_MATERIAL_PRODUCTS; ++p) {
+      f->fuels[k].smoke += smoke >= 0 && x->product[p] == smoke ? x->product_share[p] : 0.0;
+    }
   }
 }
 
@@ -134,7 +141,7 @@ zb_fire *zb_fire_create(const zb_allocator *a, zb_world *world, const zb_materia
   slope_table();
   find_fuels(f);
   zb_active_hooks hooks = {f, take_in, let_go};
-  zb_active_init(&f->grid, a, world, radius, ZB_STAGE_ECOLOGY, &hooks);
+  zb_active_init(&f->grid, a, world, radius, ZB_STAGE_ECOLOGY, ZB_ACTIVE_RES, &hooks);
   return f;
 }
 
@@ -169,7 +176,11 @@ static void lean_weights(const zb_fire *f, fire_chunk *c) {
   zb_dvec3 ax, ay, centre, east, north, up;
   chunk_axes(planet(f), c->chunk, &ax, &ay, &centre);
   zb_planet_frame(centre, &east, &north, &up);
-  zb_dvec3 wind = zb_dv_add(zb_dv_scale(east, f->weather.wind_east), zb_dv_scale(north, f->weather.wind_north));
+  double we = f->weather.wind_east, wn = f->weather.wind_north;
+  if (f->wind_fn) {
+    f->wind_fn(f->wind_ctx, c->chunk, &we, &wn);
+  }
+  zb_dvec3 wind = zb_dv_add(zb_dv_scale(east, we), zb_dv_scale(north, wn));
   c->wx = zb_dv_dot(wind, ax);
   c->wy = zb_dv_dot(wind, ay);
   for (int k = 0; k < 8; ++k) {
@@ -188,6 +199,11 @@ void zb_fire_set_weather(zb_fire *f, const zb_fire_weather *w) {
 }
 
 const zb_fire_weather *zb_fire_weather_get(const zb_fire *f) { return &f->weather; }
+
+void zb_fire_set_wind_source(zb_fire *f, zb_fire_wind_fn fn, void *ctx) {
+  f->wind_fn = fn;
+  f->wind_ctx = ctx;
+}
 
 /* The air's temperature over a chunk now: its climate, the season, the time
  * of day and its height. */
@@ -580,6 +596,9 @@ void zb_fire_update(zb_fire *f, const zb_planet_pos *focus, int focus_count, dou
     f->since_survey = 0.0;
     zb_active_survey(&f->grid, focus, focus_count);
     flush_scars(f);
+    for (int s = 0; f->wind_fn && s < f->grid.count; ++s) {
+      lean_weights(f, FC(f, s)); /* the local wind changes with the air */
+    }
     for (int s = 0; s < f->grid.count; ++s) {
       double h = 0.0;
       for (int i = 0; i < CELLS; i += 97) {
@@ -693,6 +712,21 @@ void zb_fire_each_burning(const zb_fire *f, zb_fire_cell_fn fn, void *ctx) {
         zb_planet_pos p = {c->chunk, (float)(((i % N) + 0.5) * 256.0 / N), (float)(((i / N) + 0.5) * 256.0 / N),
                            c->height[i]};
         fn(ctx, &p, intensity(f, c, i), c->fuel[i]);
+      }
+    }
+  }
+}
+
+void zb_fire_each_smoke(const zb_fire *f, zb_fire_smoke_fn fn, void *ctx) {
+  for (int s = 0; s < f->grid.count; ++s) {
+    const fire_chunk *c = FC(f, s);
+    for (int i = 0; c->awake && i < CELLS; ++i) {
+      if (c->state[i] & BURNING) {
+        const fuel_kind *k = &f->fuels[c->kind[i]];
+        double wet = 1.0 - c->moist[i] / EXTINCTION;
+        double kg = k->rate * (wet > 0.1 ? wet : 0.1) * k->smoke * c->cw * c->ch;
+        zb_planet_pos p = zb_active_cell_pos(&f->grid, s * CELLS + i, c->height[i]);
+        fn(ctx, &p, kg);
       }
     }
   }

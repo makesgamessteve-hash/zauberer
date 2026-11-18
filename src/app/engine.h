@@ -39,6 +39,8 @@ typedef struct zb_engine {
   struct zb_fire *fire;           /* heat and fire in the active tier (NULL without materials) */
   struct zb_surface_water *water; /* surface water in the active tier */
   struct zb_water_view *water_view;
+  struct zb_air *air; /* wind and gases in the active tier */
+  uint32_t smoke_sprite;
   uint32_t flame_sprite;
   zb_terrain_view *terrain_view;
   zb_net *net;

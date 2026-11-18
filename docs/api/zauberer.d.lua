@@ -934,6 +934,16 @@ function sim.add_heat(pos, radius, joules) end
 ---@return integer
 function sim.add_water(pos, radius, cubic_metres) end
 
+---The air of the active tier.
+---@return AirStats
+function sim.air_stats() end
+
+---Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
+---@param pos PlanetPos
+---@param gas string
+---@param kg number
+function sim.emit(pos, gas, kg) end
+
 ---The 2 m cell of the heat and fire simulation at a place.
 ---@param pos PlanetPos
 ---@return FireCell
@@ -942,6 +952,11 @@ function sim.fire_at(pos) end
 ---The heat and fire simulation as a whole.
 ---@return FireStats
 function sim.fire_stats() end
+
+---The gases in the air at a place, kg/m^3 of the lowest air layer.
+---@param pos PlanetPos
+---@return Gases
+function sim.gas_at(pos) end
 
 ---Sets fire to the fuel within radius metres (default 2, up to 64) of a place in the active tier: lightning, a spell, a torch. Returns the cells (about 2 m) that caught; wet or bare ground and water do not.
 ---@param pos PlanetPos
@@ -976,6 +991,11 @@ function sim.water_stats() end
 ---The wind and rain the fire sees.
 ---@return Weather
 function sim.weather() end
+
+---The local wind at a place: the weather's wind shaped by the ground (the weather's wind outside the active tier).
+---@param pos PlanetPos
+---@return Wind
+function sim.wind_at(pos) end
 
 ---Id of the package whose script is running (package environments only).
 ---@type string

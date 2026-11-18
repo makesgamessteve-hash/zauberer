@@ -1,6 +1,7 @@
 -- SPDX-License-Identifier: MIT
--- Rendered: a fire lit in front of the carpet is drawn as flames.
+-- Rendered: a fire lit in front of the carpet is drawn as flames and smoke.
 -- spec: thermal-and-fire: Fire from Lua
+-- spec: air-and-gases: Air from Lua
 scenario { name = "fire view" }
 local game = demo.game
 game.hud = false
@@ -30,5 +31,6 @@ local before = render.stats().sprite_draws
 expect(sim.ignite(spot, 6) > 0)
 step(60 * 5)
 expect(sim.fire_stats().burning > 0)
+expect(sim.air_stats().mass.smoke > 0, "smoke in the air")
 local stats = render.stats()
 expect(stats.sprite_draws > before + 10, "flames drawn: " .. stats.sprite_draws .. " (" .. before .. " before)")

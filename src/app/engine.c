@@ -9,6 +9,7 @@
 #include "core/log.h"
 #include "core/luon.h"
 #include "core/version.h"
+#include "sim/air.h"
 #include "sim/fire.h"
 
 #include <math.h>
@@ -73,6 +74,19 @@ static void host_user_data_changed(void *ctx) { zb_platform_user_data_sync(((zb_
 
 static uint64_t world_clock(void *ctx) { return zb_platform_now_ns(ctx); }
 
+/* Fire and air: the air's local wind for fire, and fire's smoke for the air. */
+static void air_wind(void *ctx, zb_chunk c, double *east, double *north) { zb_air_chunk_wind(ctx, c, east, north); }
+
+typedef struct smoke_out {
+  zb_air *air;
+  double seconds;
+} smoke_out;
+
+static void emit_smoke(void *ctx, const zb_planet_pos *pos, double kg_per_s) {
+  smoke_out *so = ctx;
+  zb_air_emit(so->air, pos, ZB_GAS_SMOKE, kg_per_s * so->seconds);
+}
+
 static zb_world *make_world(zb_engine *e, const zb_world_bundle *bundle, char *err, size_t err_len) {
   zb_world_desc wd;
   memset(&wd, 0, sizeof wd);
@@ -118,6 +132,7 @@ static bool host_use_bundle(void *ctx, zb_world_bundle *bundle, char *err, size_
     zb_fire_set_world(e->fire, w);
   }
   zb_surface_water_set_world(e->water, w);
+  zb_air_set_world(e->air, w);
   if (bundle) {
     zb_info("playing a created world (seed %llu, %s quality)", (unsigned long long)bundle->options.seed,
             zb_world_quality_name(bundle->options.quality));
@@ -580,9 +595,14 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   }
   e->water = zb_surface_water_create(a, e->world, active);
   e->water_view = zb_water_view_create(a, e->render);
-  if (!e->water || !e->water_view) {
+  e->air = zb_air_create(a, e->world, active);
+  if (!e->water || !e->water_view || !e->air) {
     return ZB_HOST_FAILURE;
   }
+  if (e->fire) {
+    zb_fire_set_wind_source(e->fire, air_wind, e->air); /* fire leans with the local wind */
+  }
+  e->smoke_sprite = zb_render_load_sprite(e->render, "sprites/smoke.lua");
   e->flame_sprite = zb_render_load_sprite(e->render, "sprites/flame.lua");
 
   /* Co-op session: the same world (seed) and package set on every peer. */
@@ -643,6 +663,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.materials = e->materials;
   sc.fire = e->fire;
   sc.water = e->water;
+  sc.air = e->air;
   sc.net = e->net;
   sc.jobs = e->jobs;
   sc.test_api = e->mode != ZB_MODE_GAME;
@@ -713,8 +734,13 @@ static void tick(zb_engine *e) {
     zb_fire_update(e->fire, focus, n, zb_loop_tick_seconds());
   }
   zb_planet_pos wfocus[ZB_STREAM_MAX_FOCUS];
-  zb_surface_water_update(e->water, wfocus, zb_world_focus(e->world, wfocus, ZB_STREAM_MAX_FOCUS),
-                          zb_loop_tick_seconds());
+  int wn = zb_world_focus(e->world, wfocus, ZB_STREAM_MAX_FOCUS);
+  zb_surface_water_update(e->water, wfocus, wn, zb_loop_tick_seconds());
+  if (e->fire) {
+    smoke_out smoke = {e->air, zb_loop_tick_seconds()};
+    zb_fire_each_smoke(e->fire, emit_smoke, &smoke);
+  }
+  zb_air_update(e->air, wfocus, wn, zb_loop_tick_seconds());
   zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
@@ -745,8 +771,68 @@ static void apply_daylight(zb_engine *e, zb_vec3 eye) {
   zb_terrain_view_set_season(e->terrain_view, (float)d.sky.season);
 }
 
+#define FLAME_RANGE 400.0f /* metres: flames and smoke drawn around the camera */
+
+/* Smoke puffs over the smokiest cells near the camera. */
+#define PUFFS 256
+#define PUFF_CANDIDATES 4096
+#define PUFF_MIN 2e-5 /* kg/m^3 */
+
+typedef struct puff {
+  zb_planet_pos pos;
+  float amount, dist;
+} puff;
+
+typedef struct puff_pick {
+  const zb_origin *origin;
+  const zb_planet *planet;
+  zb_vec3 eye;
+  puff *list;
+  int n;
+} puff_pick;
+
+static void pick_puff(void *ctx, const zb_planet_pos *pos, double kg_m3) {
+  puff_pick *pp = ctx;
+  zb_vec3 p = zb_origin_to_local(pp->origin, pp->planet, pos);
+  zb_vec3 d = zb_v3_sub(p, pp->eye);
+  d.y = 0.0f;
+  float dist = zb_v3_length(d);
+  if (dist <= FLAME_RANGE && pp->n < PUFF_CANDIDATES) {
+    pp->list[pp->n++] = (puff){*pos, (float)kg_m3, dist};
+  }
+}
+
+static int smokier(const void *a, const void *b) {
+  float x = ((const puff *)a)->amount, y = ((const puff *)b)->amount;
+  return x > y ? -1 : (x < y);
+}
+
+static void draw_smoke(zb_engine *e, zb_vec3 eye) {
+  zb_air_stats st;
+  zb_air_get_stats(e->air, &st);
+  if (st.awake == 0) {
+    return;
+  }
+  puff *list = zb_alloc(e->a, sizeof(puff) * PUFF_CANDIDATES);
+  if (!list) {
+    return;
+  }
+  puff_pick pp = {zb_world_origin(e->world), zb_world_planet(e->world), eye, list, 0};
+  zb_air_each(e->air, ZB_GAS_SMOKE, PUFF_MIN, pick_puff, &pp);
+  qsort(list, (size_t)pp.n, sizeof *list, smokier);
+  double t = (double)e->ticks / (double)ZB_TICK_HZ;
+  for (int i = 0; i < pp.n && i < PUFFS; ++i) {
+    float k = list[i].amount / 1e-3f;
+    k = k > 1.0f ? 1.0f : k;
+    zb_planet_pos p = list[i].pos;
+    p.alt = (float)zb_world_ground_height(e->world, &p) + 6.0f + 18.0f * k; /* thick smoke towers */
+    zb_vec3 at = zb_origin_to_local(pp.origin, pp.planet, &p);
+    zb_render_draw_sprite(e->render, e->smoke_sprite, at, 0.6f + 1.4f * k, t + (double)(i % 7) * 0.31);
+  }
+  zb_free(e->a, list);
+}
+
 /* Flames on the burning cells nearest the camera. */
-#define FLAME_RANGE 400.0f
 #define FLAMES 512
 #define FLAME_CANDIDATES 8192
 
@@ -812,6 +898,7 @@ static void draw_world(zb_engine *e) {
       draw_flames(e, eye);
     }
     zb_water_view_draw(e->water_view, e->water, e->world, (double)e->ticks / (double)ZB_TICK_HZ);
+    draw_smoke(e, eye);
   }
   const zb_atmosphere *cur = zb_render_atmosphere(e->render);
   if (!cur->enabled) {
@@ -986,6 +1073,7 @@ void zb_engine_destroy(zb_engine *e) {
   zb_fire_destroy(e->fire);
   zb_water_view_destroy(e->water_view);
   zb_surface_water_destroy(e->water);
+  zb_air_destroy(e->air);
   zb_world_destroy(e->world);
   if (e->materials) {
     zb_materials_free(e->materials);
