@@ -50,6 +50,7 @@ static const char *const DIETS[ZB_DIETS] = {"herbivore", "carnivore", "omnivore"
  * @field aggression number? 0 .. 1
  * @field fear_of_fire number? 0 .. 1
  * @field fear_of_player number? 0 .. 1
+ * @field flight number? Metres within which the player frightens it (0 .. 500, default 25)
  * @field resist table? Share of each harm ignored { heat = .., impact = .., cold = .., poison = .., smoke = .., magic = .. }
  * @field magical boolean?
  * @field mana string? The colour of a magical one's mana
@@ -88,6 +89,8 @@ static int s_define_species(lua_State *L) {
   a.aggression = num(L, 1, "aggression", 0.0);
   a.fear_of_fire = num(L, 1, "fear_of_fire", 0.8);
   a.fear_of_player = num(L, 1, "fear_of_player", 0.5);
+  a.flight = num(L, 1, "flight", 25.0);
+  luaL_argcheck(L, a.flight >= 0.0 && a.flight <= 500.0, 1, "flight must be 0..500 metres");
   lua_getfield(L, 1, "resist");
   for (int h = 0; h < ZB_HARMS && lua_istable(L, -1); ++h) {
     a.resist[h] = num(L, lua_gettop(L), zb_harm_name((zb_harm)h), 0.0);
@@ -311,10 +314,21 @@ static int s_stimulus(lua_State *L) {
   return 0;
 }
 
-/* @lua sim.set_player(pos: PlanetPos|nil, on_foot?: boolean)
- * Where the player is for the creatures (nil: nowhere), and whether on foot.
+/* @lua sim.set_player(pos: PlanetPos|nil, on_foot?: boolean, seen?: PlayerSeen)
+ * Where the player is for the creatures (nil: nowhere), whether on foot, and
+ * how they perceive the player (fields left out are 1).
+ * @field visibility number? 0 .. 2: scales the distance they see the player at (camouflage, light, movement)
+ * @field presence number? 0 .. 3: scales how much the player frightens them (a vivid cloak awes)
  */
 static int s_set_player(lua_State *L) {
+  double visibility = 1.0, presence = 1.0;
+  if (lua_istable(L, 3)) {
+    visibility = num(L, 3, "visibility", 1.0);
+    presence = num(L, 3, "presence", 1.0);
+    luaL_argcheck(L, visibility >= 0.0 && visibility <= 2.0, 3, "visibility must be 0..2");
+    luaL_argcheck(L, presence >= 0.0 && presence <= 3.0, 3, "presence must be 0..3");
+  }
+  zb_creatures_set_player_presence(CR(L), visibility, presence);
   if (lua_isnoneornil(L, 1)) {
     zb_creatures_set_player(CR(L), NULL, false);
     return 0;

@@ -79,6 +79,7 @@ typedef struct zb_animal {
   double aggression;       /* 0 .. 1: how readily it hunts the player */
   double fear_of_fire;     /* 0 .. 1 */
   double fear_of_player;   /* 0 .. 1 */
+  double flight;           /* metres: within it the player frightens it (0: 25) */
   double resist[ZB_HARMS]; /* 0 .. 1 share of each harm ignored */
   bool magical;
   int mana_color; /* zb_mana_color of a magical one, -1 */
@@ -146,6 +147,10 @@ bool zb_creatures_remove(zb_creatures *c, uint32_t id);
 /* Where the player is, and whether on foot (a carpet high up is less of a
  * threat and harder to reach). */
 void zb_creatures_set_player(zb_creatures *c, const zb_planet_pos *pos, bool on_foot);
+/* How the creatures perceive the player: visibility scales the distance they
+ * see the player at (0 .. 2: camouflage, light, movement; 1 plain), presence
+ * how much the player frightens them (0 .. 3: a vivid cloak awes; 1 plain). */
+void zb_creatures_set_player_presence(zb_creatures *c, double visibility, double presence);
 /* A stimulus: a noise (heard within strength x hearing), a light (seen), or a
  * threat (feared) at pos for seconds. */
 typedef enum zb_stimulus_kind { ZB_STIMULUS_NOISE, ZB_STIMULUS_LIGHT, ZB_STIMULUS_THREAT } zb_stimulus_kind;

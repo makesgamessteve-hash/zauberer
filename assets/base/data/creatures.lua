@@ -3,7 +3,8 @@
 -- of each species. Mods add or replace species by id.
 --   length m, mass kg, walk and run m/s, flies with a cruising height (m),
 --   diet, pack, senses in metres (sight by day; hearing; smell on the wind),
---   health, aggression and fears 0..1, resistances per harm 0..1, and for
+--   health, aggression and fears 0..1, flight: metres within which a mage
+--   seen frightens it (default 25), resistances per harm 0..1, and for
 --   magical creatures their mana's colour and the motes they leave.
 -- Ecology (concept 5.13):
 --   density  individuals per km^2 where the habitat suits it best
@@ -30,7 +31,7 @@ return {
   {
     id = "deer", products = { raw_meat = 16, hide = 1 }, stamina = 25, activity = "twilight", name = "Red deer", length = 1.9, mass = 120, walk = 1.4, run = 12,
     diet = "herbivore", pack = true, sight = 110, hearing = 180, smell = 150,
-    health = 70, aggression = 0, fear_of_fire = 1.0, fear_of_player = 0.9,
+    health = 70, aggression = 0, fear_of_fire = 1.0, fear_of_player = 0.9, flight = 60,
     color = { 0.55, 0.36, 0.22 },
     density = 15, habitat = { forest = 1, open = 0.7, wetland = 0.3 }, growth = 0.6, group = { 3, 6 },
   },

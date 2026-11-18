@@ -44,6 +44,9 @@ return {
   unstow = { type = "button", bind = { "key:o", "touch:button:unstow" } },
   -- The carpet: patch it on the ground (thread and life or void mana).
   patch = { type = "button", bind = { "key:m", "touch:button:patch" } },
+  -- The carpet as a cloak: wrap it on or spread it out (from the air: glide down), shift its colour.
+  cloak = { type = "button", bind = { "key:h", "touch:button:cloak" } },
+  cloak_colour = { type = "button", bind = { "key:period", "touch:button:cloak_colour" } },
   -- Showcase (the carpet seen from an orbiting camera)
   turn = { type = "axis2", bind = { "keys:w,s,a,d", "keys:up,down,left,right", "gamepad:left_stick", "touch:stick:move" } },
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },

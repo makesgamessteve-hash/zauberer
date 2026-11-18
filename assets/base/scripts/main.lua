@@ -28,6 +28,7 @@ local survival = require("player.survival")
 local pack = require("player.pack")
 local bag = require("player.bag")
 local condition = require("flight.condition")
+local cloak = require("flight.cloak")
 local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
@@ -73,6 +74,7 @@ local function setup_flight()
   game.pack = pack.new(back and back.pack)
   game.bag = bag.new(back and back.bag)
   game.condition = condition.new(back and back.condition)
+  game.cloak = cloak.new(back and back.cloak)
   game.codex = codex.new(back and back.codex)
   game.survival_at = nil
   if game.fauna then
@@ -149,6 +151,7 @@ function game.save()
     health = game.health and health.snapshot(game.health),
     survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
     bag = game.bag and bag.snapshot(game.bag), condition = game.condition and condition.snapshot(game.condition),
+    cloak = game.cloak and cloak.snapshot(game.cloak),
     codex = game.codex and codex.snapshot(game.codex),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
@@ -246,7 +249,34 @@ local function flight_tick(dt)
   local still = { turn = 0, throttle = 0, climb = 0, boost = false }
   -- Stepping off a carpet resting low and slow, and back on.
   local w = game.walker
-  if not down and input.state("mount").pressed then
+  -- The cloak: wrapped from the carpet beside the mage, or from the air (they
+  -- glide down in it); spread out again on the ground beside them.
+  local k = game.cloak
+  if k.worn and not w then k.worn = false end -- (a save from the air)
+  if not down and input.state("cloak").pressed then
+    if k.worn then
+      k.worn = false
+      local spot = world.move(w.pos, w.heading, 1.5, 0)
+      spot.alt = world.ground_height(spot) + carpet.CLEARANCE
+      game.carpet.pos, game.carpet.speed, game.carpet.heading = spot, 0, w.heading
+    elseif w and walker.near_carpet(w, game.carpet) then
+      k.worn = true
+    elseif not w then
+      k.worn = true
+      local c0 = game.carpet
+      game.walker = walker.new(world.move(c0.pos, 0, 0, 0), c0.heading, FOOT)
+      w = game.walker
+      w.pos = world.move(c0.pos, 0, 0, 0) -- (in the air where the carpet was)
+      w.grounded, w.speed = w.pos.alt <= walker.floor(w.pos, FOOT) + 0.05, math.min(c0.speed, walker.RUN)
+      c0.speed = 0
+    end
+  end
+  if input.state("cloak_colour").pressed and k.worn then cloak.next_colour(k) end
+  if w then w.glide = k.worn end
+  if k.worn then -- (the carpet goes where the mage goes)
+    game.carpet.pos, game.carpet.speed = world.move(w.pos, 0, 0, 0), 0
+  end
+  if not down and not k.worn and input.state("mount").pressed then
     if w and walker.near_carpet(w, game.carpet) then
       game.walker, w = nil, nil
     elseif not w and walker.can_step_off(game.carpet, FOOT) then
@@ -283,7 +313,9 @@ local function flight_tick(dt)
   -- Creatures, and the motes of the magical ones that die.
   local now = world.time().time
   ecology.tick(game.ecology, dt, me, now)
-  local creature_events = fauna.tick(game.fauna, dt, me, w ~= nil)
+  local visibility, presence = cloak.seen(k, { flying = w == nil and c.pos.alt - world.ground_height(c.pos) > 3,
+    speed = w and math.abs(w.speed) or c.speed, silent = condition.has(game.condition, "silent") })
+  local creature_events = fauna.tick(game.fauna, dt, me, w ~= nil, { visibility = visibility, presence = presence })
   for _, ev in ipairs(creature_events) do
     if ev.kind == "died" and ev.magical and ev.mana and (ev.motes or 0) > 0 then
       motes.release(game.motes, ev.pos, ev.mana, ev.motes, 8)
@@ -318,6 +350,7 @@ local function flight_tick(dt)
   local game_dt = math.min(math.max(now - (game.survival_at or now), 0), 300)
   game.survival_at = now
   local body = survival.sense(me, w, smalllife.bites(game.smalllife, me))
+  body.cloak = cloak.warmth(k, game.condition.wetness)
   for _, h in ipairs(survival.tick(game.survival, game_dt, body)) do
     health.hurt(game.health, h[1], h[2], function(kind) return effects.warded(fx, kind) end)
   end
@@ -330,7 +363,8 @@ local function flight_tick(dt)
     local ground = world.ground_height(c.pos)
     local cell = sim.fire_at(c.pos)
     local water = sim.water_at(c.pos)
-    condition.tick(game.condition, dt, game_dt / 3600, { exposed = true, height = c.pos.alt - ground, speed = c.speed,
+    condition.tick(game.condition, dt, game_dt / 3600, { exposed = not k.worn, height = c.pos.alt - ground,
+      speed = c.speed,
       grounded = c.grounded and c.pos.alt - ground < 3, burning = cell.loaded and cell.burning,
       on_water = w ~= nil and water.loaded and water.depth > 0.1 and c.pos.alt - ground < 3,
       rain = sim.weather().rain, air = body.air, fire = cooking.fire_near(c.pos) })
@@ -454,7 +488,7 @@ local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
-    bag.hud_lines(game.bag), condition.hud_lines(game.condition),
+    bag.hud_lines(game.bag), condition.hud_lines(game.condition), cloak.hud_lines(game.cloak),
     codex.hud_lines(game.codex),
     magic.hud_lines(game.magic), fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
@@ -486,7 +520,7 @@ local function flight_frame()
     local eye, target = camera.view(game.chase, p, c.heading, up, dt)
     render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
   end
-  render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
+  if not game.cloak.worn then render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) }) end
   local sights = magic.sights(game.magic)
   for _, l in ipairs(sights.lights) do render.draw_sprite(assets.mote, world.to_local(l), 2) end
   for _, mote in ipairs(game.motes.list) do render.draw_sprite(assets.mote, world.to_local(mote.pos), 0.7) end
@@ -566,5 +600,5 @@ _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
-  pack = pack, bag = bag, condition = condition, harvest = harvest, cooking = cooking, codex = codex,
+  pack = pack, bag = bag, condition = condition, cloak = cloak, harvest = harvest, cooking = cooking, codex = codex,
 }

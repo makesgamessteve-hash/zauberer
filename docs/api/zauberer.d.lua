@@ -1173,10 +1173,11 @@ function sim.remove_water(pos, radius, cubic_metres) end
 ---@return boolean
 function sim.set_needs(id, needs) end
 
----Where the player is for the creatures (nil: nowhere), and whether on foot.
+---Where the player is for the creatures (nil: nowhere), whether on foot, and how they perceive the player (fields left out are 1).
 ---@param pos PlanetPos|nil
 ---@param on_foot? boolean
-function sim.set_player(pos, on_foot) end
+---@param seen? PlayerSeen
+function sim.set_player(pos, on_foot, seen) end
 
 ---Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 ---@param weather Weather

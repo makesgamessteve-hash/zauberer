@@ -327,6 +327,51 @@ static void test_fear_and_hunting(void) {
   scene_close(&s);
 }
 
+/* spec: carpet-cloak: Seen or not */
+static void test_seen_or_not(void) {
+  scene s;
+  scene_open(&s, MEADOW);
+  /* A wary kind of deer keeps 60 m from the mage: seen plainly at 40 m it
+   * flees; camouflaged at the same distance it is not seen and stays. */
+  zb_animal wary = *zb_creatures_species(s.cr, s.deer);
+  snprintf(wary.id, sizeof wary.id, "%s", "wary_deer");
+  wary.flight = 60.0;
+  wary.sight = 200.0;
+  int kind = zb_creatures_define(s.cr, &wary);
+  TEST_ASSERT_TRUE(kind >= 0);
+  zb_planet_pos mage = at(&s, 128.0f, 128.0f), grazing = at(&s, 128.0f, 168.0f);
+  zb_creatures_set_player(s.cr, &mage, true);
+  zb_creatures_set_player_presence(s.cr, 0.05, 1.0);
+  uint32_t deer = zb_creatures_spawn(s.cr, kind, &grazing);
+  run(&s, 1.0);
+  TEST_ASSERT_TRUE_MESSAGE(state(&s, deer).sees_player < 0.0, "camouflaged: not seen");
+  TEST_ASSERT_TRUE(strcmp(zb_action_name(state(&s, deer).action), "flee") != 0);
+  zb_creatures_set_player_presence(s.cr, 1.0, 1.0);
+  run(&s, 1.0);
+  TEST_ASSERT_TRUE_MESSAGE(state(&s, deer).sees_player > 0.0, "plain: seen");
+  TEST_ASSERT_EQUAL_STRING("flee", zb_action_name(state(&s, deer).action));
+  /* The plain deer, at 40 m, is outside its 25 m and stays calm. */
+  zb_planet_pos field = at(&s, 40.0f, 40.0f), near = at(&s, 40.0f, 80.0f);
+  zb_creatures_set_player(s.cr, &field, true);
+  uint32_t calm = zb_creatures_spawn(s.cr, s.deer, &near);
+  run(&s, 1.0);
+  TEST_ASSERT_TRUE(state(&s, calm).fear < 0.1);
+  /* Presence: a vivid mage frightens more at the same distance; limits hold. */
+  zb_planet_pos close = at(&s, 40.0f, 55.0f);
+  uint32_t shy = zb_creatures_spawn(s.cr, s.deer, &close);
+  run(&s, 0.2);
+  double plain = state(&s, shy).fear;
+  zb_creatures_remove(s.cr, shy);
+  shy = zb_creatures_spawn(s.cr, s.deer, &close);
+  zb_creatures_set_player_presence(s.cr, 5.0, 9.0); /* clamped to 2 and 3 */
+  run(&s, 0.2);
+  TEST_ASSERT_TRUE(state(&s, shy).fear > plain);
+  zb_creatures_set_player_presence(s.cr, -1.0, -1.0); /* clamped to 0 */
+  run(&s, 0.5);
+  TEST_ASSERT_TRUE(state(&s, shy).sees_player < 0.0 || state(&s, shy).sees_player <= 120.0 * 0.25);
+  scene_close(&s);
+}
+
 /* spec: creatures: Scent on the wind */
 static void test_scent(void) {
   scene s;
@@ -628,6 +673,7 @@ int main(void) {
   RUN_TEST(test_thirst_and_day);
   RUN_TEST(test_herd);
   RUN_TEST(test_scent_trail);
+  RUN_TEST(test_seen_or_not);
   int failures = UNITY_END();
   if (g_materials) {
     zb_materials_free(g_materials);

@@ -83,6 +83,7 @@ struct zb_creatures {
   uint64_t rng;
   zb_planet_pos player;
   bool has_player, on_foot;
+  double visibility, presence; /* of the player: 1 plain */
   stimulus stimuli[STIMULI_MAX];
   int stimulus_count;
   zb_creature_event events[EVENTS_MAX];
@@ -141,6 +142,7 @@ zb_creatures *zb_creatures_create(const zb_allocator *a, zb_world *world, uint64
   c->world = world;
   c->rng = seed * 0x9E3779B97F4A7C15ull | 1;
   c->next_id = 1;
+  c->visibility = c->presence = 1.0;
   zb_array_init(&c->list, a, sizeof(creature));
   zb_array_init(&c->cart, a, sizeof(zb_dvec3));
   return c;
@@ -159,6 +161,7 @@ void zb_creatures_set_world(zb_creatures *c, zb_world *world) {
   zb_array_clear(&c->list);
   c->stimulus_count = c->event_count = 0;
   c->has_player = false;
+  c->visibility = c->presence = 1.0;
 }
 
 void zb_creatures_set_sources(zb_creatures *c, const zb_creature_sources *s) { c->src = *s; }
@@ -280,6 +283,11 @@ void zb_creatures_set_player(zb_creatures *c, const zb_planet_pos *pos, bool on_
   c->on_foot = on_foot;
 }
 
+void zb_creatures_set_player_presence(zb_creatures *c, double visibility, double presence) {
+  c->visibility = visibility < 0.0 ? 0.0 : (visibility > 2.0 ? 2.0 : visibility);
+  c->presence = presence < 0.0 ? 0.0 : (presence > 3.0 ? 3.0 : presence);
+}
+
 void zb_creatures_stimulus(zb_creatures *c, zb_stimulus_kind kind, const zb_planet_pos *pos, double strength,
                            double seconds) {
   if (c->stimulus_count >= STIMULI_MAX) { /* the oldest makes room */
@@ -376,7 +384,7 @@ static void sense(zb_creatures *c, const creature *cr, senses *out) {
   double sight = s->sight * (0.3 + 0.7 * out->light);
   if (c->has_player) {
     double d = dist(c, &cr->pos, &c->player);
-    if (d <= sight || d <= s->hearing * 0.25) {
+    if (d <= sight * c->visibility || d <= s->hearing * 0.25) {
       out->player = d;
     }
   }
@@ -587,8 +595,10 @@ static void decide(zb_creatures *c, creature *cr) {
       cr->has_threat = true;
     }
   }
-  if (se.player >= 0.0 && se.player < 25.0) {
-    double f = s->fear_of_player * (1.0 - se.player / 25.0);
+  double flight = s->flight > 0.0 ? s->flight : 25.0;
+  if (se.player >= 0.0 && se.player < flight) {
+    double f = s->fear_of_player * c->presence * (1.0 - se.player / flight);
+    f = f > 1.0 ? 1.0 : f;
     if (f > fear) {
       fear = f;
       cr->threat = c->player;
