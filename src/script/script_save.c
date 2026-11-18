@@ -355,6 +355,20 @@ static int w_remove_plants(lua_State *L) {
   return 1;
 }
 
+/* @lua world.cut_plant(id: integer): boolean
+ * Cuts a plant (its id from world.plants): felled, dug up or picked whole, it
+ * is gone until it has grown back (ground cover in weeks, shrubs in months,
+ * trees in years); the edit is kept with the world. False when the plant is
+ * not loaded or already gone.
+ */
+static int w_cut_plant(lua_State *L) {
+  lua_Integer id = luaL_checkinteger(L, 1);
+  luaL_argcheck(L, id >= 0, 1, "not a plant id");
+  zb_chunk c = zb_chunk_from_key((uint64_t)(id / ZB_PLANTS_MAX));
+  lua_pushboolean(L, zb_world_cut_plant(S(L)->world, c, (uint32_t)(id % ZB_PLANTS_MAX)) == ZB_OK);
+  return 1;
+}
+
 /* @lua world.set_surface(pos: PlanetPos, material: string)
  * Sets the surface material ("soil", "sand", "rock", "gravel", "snow", "ice",
  * "mud") of the 1 m cell at a position; the edit is kept with the world.
@@ -371,7 +385,8 @@ static int w_set_surface(lua_State *L) {
 
 void zb_script_open_save(zb_script *s) {
   static const luaL_Reg fns[] = {{"save_game", w_save_game},         {"load_game", w_load_game},     {"saves", w_saves},
-                                 {"remove_plants", w_remove_plants}, {"set_surface", w_set_surface}, {NULL, NULL}};
+                                 {"remove_plants", w_remove_plants}, {"cut_plant", w_cut_plant},
+                                 {"set_surface", w_set_surface},     {NULL, NULL}};
   lua_getglobal(s->L, "world");
   luaL_setfuncs(s->L, fns, 0);
   lua_pop(s->L, 1);

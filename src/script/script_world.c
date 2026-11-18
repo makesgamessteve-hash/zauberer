@@ -385,9 +385,12 @@ static int w_flora(lua_State *L) {
 /* @lua world.plants(pos: PlanetPos, radius: number): Plant[]
  * The plants within radius metres (up to 256) of a position, from the chunks
  * loaded with their plants (stage 3); at most 4096.
+ * @field id integer The plant's identity: its chunk's key times 8192 plus its index there
  * @field species string Species id
  * @field layer string "tree", "shrub" or "ground"
  * @field height number Metres
+ * @field size number 0 .. 1 from the species' smallest to largest grown plant
+ * @field variant integer 0 .. 255, a random byte per plant
  * @field pos PlanetPos Where it stands (on the ground)
  */
 static int w_plants(lua_State *L) {
@@ -411,7 +414,13 @@ static int w_plants(lua_State *L) {
       }
       const zb_species *sp = &f->species[pl->species];
       at.alt = zb_chunk_height_at(ct, at.lx, at.ly);
-      lua_createtable(L, 0, 4);
+      lua_createtable(L, 0, 7);
+      lua_pushinteger(L, (lua_Integer)(zb_chunk_key(chunks[c]) * ZB_PLANTS_MAX + i));
+      lua_setfield(L, -2, "id");
+      lua_pushnumber(L, pl->size / 255.0);
+      lua_setfield(L, -2, "size");
+      lua_pushinteger(L, pl->variant);
+      lua_setfield(L, -2, "variant");
       lua_pushstring(L, sp->id);
       lua_setfield(L, -2, "species");
       lua_pushstring(L, layers[sp->layer]);

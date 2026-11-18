@@ -280,6 +280,9 @@ class ScenarioTests(EngineTestCase):
     def test_slice_a(self):
         self.assert_ok(self.scenario("slice_a"))
 
+    def test_plant_life(self):
+        self.assert_ok(self.scenario("plant_life"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))

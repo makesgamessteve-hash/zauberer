@@ -74,13 +74,15 @@ void zb_deltas_destroy(zb_deltas *d) {
 /* What an edit changes: the same plant or cell of the same kind is the same
  * target, and a later edit of it replaces the earlier one. */
 static uint64_t target_key(const zb_edit *e) {
-  uint64_t where = e->kind == ZB_EDIT_PLANT_REMOVED ? e->index : ((uint64_t)e->y << 16 | e->x);
+  bool plant = e->kind == ZB_EDIT_PLANT_REMOVED || e->kind == ZB_EDIT_PLANT_CUT;
+  uint64_t where = plant ? e->index : ((uint64_t)e->y << 16 | e->x);
   return (uint64_t)e->kind << 56 | where;
 }
 
 static bool valid(const zb_edit *e) {
   switch (e->kind) {
     case ZB_EDIT_PLANT_REMOVED: return true;
+    case ZB_EDIT_PLANT_CUT: return e->value < ZB_PLANT_LAYERS;
     case ZB_EDIT_MATERIAL:
       return e->x < ZB_SURFACE_RES && e->y < ZB_SURFACE_RES && e->value > ZB_MAT_NONE && e->value < ZB_MAT_COUNT;
     case ZB_EDIT_BURNT: return e->x < ZB_BURN_RES && e->y < ZB_BURN_RES;
@@ -159,7 +161,15 @@ void zb_deltas_each_chunk(const zb_deltas *d, void (*fn)(void *ctx, zb_chunk c),
   }
 }
 
-bool zb_deltas_burn_due(const zb_deltas *d, zb_chunk c, double from, double to) {
+zb_edit zb_edit_cut(uint32_t plant, int layer, double when) {
+  uint32_t minutes = (uint32_t)((when > 0.0 ? when : 0.0) / 60.0);
+  zb_edit e = {ZB_EDIT_PLANT_CUT, (uint8_t)layer, (uint16_t)(minutes & 0xFFFFu), (uint16_t)(minutes >> 16), plant};
+  return e;
+}
+
+double zb_edit_cut_time(const zb_edit *e) { return ((double)e->x + (double)e->y * 65536.0) * 60.0; }
+
+bool zb_deltas_regrowth_due(const zb_deltas *d, zb_chunk c, double from, double to) {
   size_t n;
   const zb_edit *e = zb_deltas_get(d, c, &n);
   double turns[1 + ZB_PLANT_LAYERS];
@@ -170,6 +180,12 @@ bool zb_deltas_burn_due(const zb_deltas *d, zb_chunk c, double from, double to) 
   for (size_t i = 0; i < n; ++i) {
     for (int k = 0; e[i].kind == ZB_EDIT_BURNT && k < 1 + ZB_PLANT_LAYERS; ++k) {
       double at = e[i].index * 60.0 + turns[k];
+      if (at > from && at <= to) {
+        return true;
+      }
+    }
+    if (e[i].kind == ZB_EDIT_PLANT_CUT) {
+      double at = zb_edit_cut_time(&e[i]) + zb_regrowth_seconds(e[i].value);
       if (at > from && at <= to) {
         return true;
       }
@@ -231,7 +247,8 @@ bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct, double now) {
       *at = h;
       continue;
     }
-    if (e[i].kind == ZB_EDIT_PLANT_REMOVED && ct->plants && e[i].index < ct->plant_count &&
+    bool cut = e[i].kind == ZB_EDIT_PLANT_CUT && now - zb_edit_cut_time(&e[i]) < zb_regrowth_seconds(e[i].value);
+    if ((e[i].kind == ZB_EDIT_PLANT_REMOVED || cut) && ct->plants && e[i].index < ct->plant_count &&
         ct->plants[e[i].index].layer != ZB_PLANT_REMOVED) {
       ct->plants[e[i].index].layer = ZB_PLANT_REMOVED;
       changed = true;

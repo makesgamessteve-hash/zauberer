@@ -91,6 +91,44 @@ static void test_apply(void) {
   zb_deltas_destroy(d);
 }
 
+/* spec: world-persistence: Cut plants grow back */
+static void test_cut(void) {
+  zb_deltas *d = zb_deltas_create(zb_test_alloc());
+  zb_chunk_terrain ct;
+  zb_chunk_terrain_init(&ct, (zb_chunk){1, 2, 3});
+  zb_plant plants[3];
+  memset(plants, 0, sizeof plants);
+  plants[0].layer = ZB_PLANT_TREE;
+  plants[1].layer = ZB_PLANT_GROUND;
+  ct.plants = plants;
+  ct.plant_count = 3;
+  double day = 86400.0, when = 100.0 * day;
+  zb_edit tree = zb_edit_cut(0, ZB_PLANT_TREE, when), herb = zb_edit_cut(1, ZB_PLANT_GROUND, when);
+  TEST_ASSERT_DOUBLE_WITHIN(60.0, when, zb_edit_cut_time(&tree));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_add(d, ct.chunk, &tree));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_add(d, ct.chunk, &herb));
+  zb_edit bad = zb_edit_cut(2, ZB_PLANT_LAYERS, when);
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &bad));
+  /* Just after the cut both are gone. */
+  TEST_ASSERT_TRUE(zb_deltas_apply(d, &ct, when + day));
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_REMOVED, plants[0].layer);
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_REMOVED, plants[1].layer);
+  /* The herb's regrowth is a turning point, and once past it, it is back
+   * (the chunk generated again); the tree takes years. */
+  double herb_back = when + zb_regrowth_seconds(ZB_PLANT_GROUND);
+  TEST_ASSERT_TRUE(zb_deltas_regrowth_due(d, ct.chunk, herb_back - day, herb_back + day));
+  TEST_ASSERT_FALSE(zb_deltas_regrowth_due(d, ct.chunk, when, when + day));
+  plants[0].layer = ZB_PLANT_TREE;
+  plants[1].layer = ZB_PLANT_GROUND;
+  zb_deltas_apply(d, &ct, herb_back + day);
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_REMOVED, plants[0].layer);
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_GROUND, plants[1].layer);
+  /* Times past 2^16 game minutes keep their high bits. */
+  zb_edit late = zb_edit_cut(2, ZB_PLANT_SHRUB, 400.0 * day);
+  TEST_ASSERT_DOUBLE_WITHIN(60.0, 400.0 * day, zb_edit_cut_time(&late));
+  zb_deltas_destroy(d);
+}
+
 /* spec: world-persistence: Region files */
 static void test_regions(void) {
   zb_deltas *d = zb_deltas_create(zb_test_alloc());
@@ -281,6 +319,7 @@ int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_store);
   RUN_TEST(test_apply);
+  RUN_TEST(test_cut);
   RUN_TEST(test_regions);
   RUN_TEST(test_burnt);
   RUN_TEST(test_heights);

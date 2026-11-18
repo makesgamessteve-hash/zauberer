@@ -129,6 +129,15 @@ int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius)
   return removed;
 }
 
+zb_result zb_world_cut_plant(zb_world *w, zb_chunk c, uint32_t index) {
+  const zb_chunk_terrain *ct = zb_stream_find(w->stream, c);
+  if (!ct || !ct->plants || index >= ct->plant_count || ct->plants[index].layer == ZB_PLANT_REMOVED) {
+    return ZB_ERR_INVALID;
+  }
+  zb_edit e = zb_edit_cut(index, ct->plants[index].layer, w->time);
+  return edit(w, c, &e);
+}
+
 zb_result zb_world_blight(zb_world *w, zb_chunk c, int x, int y, double when) {
   zb_edit e = {ZB_EDIT_BLIGHT, 0, (uint16_t)x, (uint16_t)y, (uint32_t)((when > 0.0 ? when : 0.0) / 60.0)};
   return x >= 0 && y >= 0 ? zb_deltas_add(w->deltas, c, &e) : ZB_ERR_INVALID;
@@ -261,7 +270,7 @@ typedef struct heal_span {
  * generated again from its surface up, with the edits applied anew. */
 static void heal_chunk(void *ctx, zb_chunk c) {
   heal_span *h = ctx;
-  if (zb_deltas_burn_due(h->w->deltas, c, h->from, h->to)) {
+  if (zb_deltas_regrowth_due(h->w->deltas, c, h->from, h->to)) {
     zb_stream_regenerate(h->w->stream, c, ZB_STAGE_SURFACE);
   }
 }

@@ -49,6 +49,10 @@ struct zb_deltas *zb_world_deltas(zb_world *w);
 /* Removes the plants within radius metres of pos from loaded chunks (stage 3);
  * returns how many. */
 int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius);
+/* Cuts plant index of chunk c now (felled, dug up, picked whole): it is gone
+ * until it has grown back, kept with the world. ZB_ERR_INVALID for a plant
+ * that is not there (not loaded, out of range, already gone). */
+zb_result zb_world_cut_plant(zb_world *w, zb_chunk c, uint32_t index);
 /* Sets the surface material of the 1 m cell at pos (zb_material). */
 zb_result zb_world_set_material(zb_world *w, const zb_planet_pos *pos, int material);
 /* Raises (amount > 0) or lowers the ground within radius metres of pos by

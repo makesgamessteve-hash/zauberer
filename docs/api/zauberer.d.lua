@@ -590,6 +590,11 @@ function world.create_finish(name) end
 ---@return CreationProgress?
 function world.create_step(pieces) end
 
+---Cuts a plant (its id from world.plants): felled, dug up or picked whole, it is gone until it has grown back (ground cover in weeks, shrubs in months, trees in years); the edit is kept with the world. False when the plant is not loaded or already gone.
+---@param id integer
+---@return boolean
+function world.cut_plant(id) end
+
 ---Digs (amount < 0) or raises the ground within radius metres (0.5 .. 64) of a place by up to amount metres (-30 .. 30) at the centre, in a smooth bowl or mound: a crater, an Earth spell. Plants inside are dug up, the change is kept with the game, and the active tier's water and fire follow the new ground. Returns the chunks changed (0 where the ground is not loaded).
 ---@param pos PlanetPos
 ---@param radius number

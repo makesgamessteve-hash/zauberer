@@ -2,8 +2,8 @@
 /* Deltas: everything the players changed in the generated world, per chunk, so
  * that a chunk generated again comes back as they left it. Saves store only
  * these (in region files of 16 x 16 chunks), and co-op sends the same edits.
- * Removed plants, painted surface materials, burnt cells, changed heights
- * and blighted mana cells. */
+ * Removed and cut plants, painted surface materials, burnt cells, changed
+ * heights and blighted mana cells. */
 #ifndef ZB_WORLD_DELTA_H
 #define ZB_WORLD_DELTA_H
 
@@ -18,7 +18,8 @@ typedef enum zb_edit_kind {
   ZB_EDIT_MATERIAL = 2,      /* x, y: the 1 m cell; value: the zb_material (stage 2) */
   ZB_EDIT_BURNT = 3,         /* x, y: the 2 m cell (0..127); index: when, in game minutes */
   ZB_EDIT_HEIGHT = 4,        /* x, y: the 1 m height sample (0..256); index: its height in metres (float bits) */
-  ZB_EDIT_BLIGHT = 5         /* x, y: the 32 m mana cell (0..7); index: when, in game minutes */
+  ZB_EDIT_BLIGHT = 5,        /* x, y: the 32 m mana cell (0..7); index: when, in game minutes */
+  ZB_EDIT_PLANT_CUT = 6      /* index: the plant; value: its layer; x | y << 16: when, in game minutes */
 } zb_edit_kind;
 
 #define ZB_BLIGHT_RES 8                    /* blighted cells per chunk edge */
@@ -49,9 +50,13 @@ const zb_edit *zb_deltas_get(const zb_deltas *d, zb_chunk c, size_t *count);
 size_t zb_deltas_chunks(const zb_deltas *d);
 /* Calls fn for every chunk with edits. */
 void zb_deltas_each_chunk(const zb_deltas *d, void (*fn)(void *ctx, zb_chunk c), void *ctx);
-/* Whether a burn in chunk c reaches a turning point in (from, to]: its ash
- * goes, or a layer of its plants has grown back. */
-bool zb_deltas_burn_due(const zb_deltas *d, zb_chunk c, double from, double to);
+/* A cut plant: gone until it has grown back (zb_regrowth_seconds of its
+ * layer after the cut). */
+zb_edit zb_edit_cut(uint32_t plant, int layer, double when);
+double zb_edit_cut_time(const zb_edit *e);
+/* Whether chunk c reaches a turning point in (from, to]: the ash of a burn
+ * goes, or a layer of its burnt or cut plants has grown back. */
+bool zb_deltas_regrowth_due(const zb_deltas *d, zb_chunk c, double from, double to);
 /* Applies a chunk's edits to whatever stages it has at the game time now
  * (burnt ground heals); true if anything changed. */
 bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct, double now);
