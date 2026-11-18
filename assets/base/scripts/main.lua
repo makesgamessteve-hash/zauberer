@@ -24,6 +24,7 @@ local motes = require("magic.motes")
 local effects = require("magic.effects")
 local health = require("player.health")
 local walker = require("player.walker")
+local survival = require("player.survival")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -61,6 +62,8 @@ local function setup_flight()
     and walker.new(back.on_foot.pos, back.on_foot.heading, FOOT) or nil
   game.magic = magic.new(back and back.magic)
   game.health = health.new(back and back.health)
+  game.survival = survival.new(back and back.survival, save.get("difficulty"))
+  game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
   end
@@ -132,7 +135,9 @@ end
 function game.save()
   local c = game.carpet
   local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
-    health = game.health and health.snapshot(game.health), on_foot = game.walker and walker.snapshot(game.walker),
+    health = game.health and health.snapshot(game.health),
+    survival = game.survival and survival.snapshot(game.survival),
+    on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
       plants = plants.snapshot(game.plants, world.time().time),
       smalllife = smalllife.snapshot(game.smalllife, world.time().time) } } or nil
@@ -284,6 +289,21 @@ local function flight_tick(dt)
     me = c.pos
     camera.reset(game.chase)
   end
+  -- Food, water, rest and warmth run in game time (a time skip is not counted
+  -- here: sleep counts its own).
+  local game_dt = math.min(math.max(now - (game.survival_at or now), 0), 300)
+  game.survival_at = now
+  local body = survival.sense(me, w, smalllife.bites(game.smalllife, me))
+  for _, h in ipairs(survival.tick(game.survival, game_dt, body)) do
+    health.hurt(game.health, h[1], h[2], function(kind) return effects.warded(fx, kind) end)
+  end
+  if w and input.state("sleep").pressed and not game.health.down then
+    local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
+    for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
+    world.set_time(now + hours * 3600)
+    game.survival_at = now + hours * 3600
+    game.slept = hours
+  end
   local m = game.magic.caster.mage
   motes.tick(game.motes, dt, { { pos = me, mage = m } })
   motes.bloom(game.motes, me, dt)
@@ -352,8 +372,8 @@ end
 local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
-  local parts = { health.hud_lines(game.health), magic.hud_lines(game.magic), fauna.hud_lines(game.fauna),
-    motes.hud_lines(game.motes) }
+  local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), magic.hud_lines(game.magic),
+    fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
@@ -462,5 +482,5 @@ end)
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
-  walker = walker, ecology = ecology, plants = plants, smalllife = smalllife,
+  walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
 }

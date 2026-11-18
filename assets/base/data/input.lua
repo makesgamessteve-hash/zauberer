@@ -29,6 +29,8 @@ return {
   -- On foot: step off a carpet resting low and slow (and back on), and jump.
   mount = { type = "button", bind = { "key:e", "gamepad:right_stick", "touch:button:mount" } },
   jump = { type = "button", bind = { "key:space", "gamepad:a", "touch:button:jump" } },
+  -- Survival: lie down to sleep (on foot).
+  sleep = { type = "button", bind = { "key:l", "touch:button:sleep" } },
   -- Showcase (the carpet seen from an orbiting camera)
   turn = { type = "axis2", bind = { "keys:w,s,a,d", "keys:up,down,left,right", "gamepad:left_stick", "touch:stick:move" } },
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },

@@ -292,6 +292,9 @@ class ScenarioTests(EngineTestCase):
     def test_smalllife(self):
         self.assert_ok(self.scenario("smalllife"))
 
+    def test_survival(self):
+        self.assert_ok(self.scenario("survival"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))
