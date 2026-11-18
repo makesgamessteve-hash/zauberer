@@ -14,7 +14,8 @@ try:
 except ImportError:  # pragma: no cover - PyYAML is part of the CI images
     yaml = None
 
-PLATFORM_JOBS = {"lint", "linux-gcc-coverage", "linux-clang-asan", "linux-render", "windows-msvc", "web"}
+PLATFORM_JOBS = {"lint", "linux-gcc-coverage", "linux-clang-asan", "linux-render", "windows-msvc",
+                 "windows-gl-smoke", "web"}
 
 
 @unittest.skipIf(yaml is None, "PyYAML is not installed")

@@ -189,6 +189,27 @@ jobs:
         env:
           ZB_HASH_REPORT: ${{ github.workspace }}/hash-windows.txt
         run: ctest --preset release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hash-windows
+          path: hash-windows.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bin
+          path: build/release/bin
+
+  # The windowed run on Mesa's software OpenGL (GitHub's Windows runners have
+  # no OpenGL 3.3 driver). Separate from windows-msvc so that the determinism
+  # comparison does not wait for it.
+  windows-gl-smoke:
+    needs: windows-msvc
+    runs-on: windows-2022
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-bin
+          path: bin
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Windowed smoke run (Mesa llvmpipe)
         shell: bash
         env:
@@ -197,15 +218,15 @@ jobs:
         run: |
           gh release download --repo pal1000/mesa-dist-win --pattern '*release-msvc.7z' --dir "$RUNNER_TEMP"
           7z x -y -o"$RUNNER_TEMP/mesa" "$RUNNER_TEMP"/*release-msvc.7z > /dev/null
-          cp "$RUNNER_TEMP"/mesa/x64/*.dll build/release/bin/
+          ls "$RUNNER_TEMP"/mesa "$RUNNER_TEMP"/mesa/x64
+          cp "$RUNNER_TEMP"/mesa/x64/*.dll bin/
+          for dll in opengl32 libgallium_wgl libglapi; do
+            if [ -f "bin/$dll.dll" ]; then dumpbin //dependents "bin/$dll.dll" | grep -i '\.dll'; fi
+          done
           # Make SDL load Mesa's opengl32.dll rather than the system's GDI OpenGL 1.1.
-          export SDL_OPENGL_LIBRARY="$(cygpath -w "$PWD/build/release/bin/opengl32.dll")"
-          build/release/bin/zauberer.exe --ticks 120 --user-dir "$RUNNER_TEMP/user" 2>&1 | tee smoke.log
+          export SDL_OPENGL_LIBRARY="$(cygpath -w "$PWD/bin/opengl32.dll")"
+          bin/zauberer.exe --ticks 120 --user-dir "$RUNNER_TEMP/user" 2>&1 | tee smoke.log
           grep -q "first frame presented" smoke.log
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hash-windows
-          path: hash-windows.txt
 
   web:
     runs-on: ubuntu-24.04
