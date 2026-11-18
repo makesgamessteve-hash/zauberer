@@ -26,6 +26,9 @@ return {
   wheel8 = { type = "button", bind = { "key:8" } },
   -- Channel mana from the field while holding still.
   channel = { type = "button", bind = { "key:v", "gamepad:dpad_down", "touch:button:channel" } },
+  -- On foot: step off a carpet resting low and slow (and back on), and jump.
+  mount = { type = "button", bind = { "key:e", "gamepad:right_stick", "touch:button:mount" } },
+  jump = { type = "button", bind = { "key:space", "gamepad:a", "touch:button:jump" } },
   -- Showcase (the carpet seen from an orbiting camera)
   turn = { type = "axis2", bind = { "keys:w,s,a,d", "keys:up,down,left,right", "gamepad:left_stick", "touch:stick:move" } },
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },
