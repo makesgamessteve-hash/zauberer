@@ -7,6 +7,7 @@
 
 #include "core/deflate.h"
 #include "core/hash.h"
+#include "world/flora.h"
 
 #define MAGIC "ZBRD"
 #define HEADER 33 /* magic 4, version 4, face 1, rx 4, ry 4, raw size 4, checksum 8, compressed size 4 */
@@ -16,6 +17,7 @@
 typedef struct chunk_edits {
   zb_chunk chunk;
   zb_array edits; /* zb_edit */
+  zb_map at;      /* target (see target_key) -> position in edits */
 } chunk_edits;
 
 struct zb_deltas {
@@ -58,7 +60,9 @@ void zb_deltas_destroy(zb_deltas *d) {
     return;
   }
   for (size_t i = 0; i < d->lists.len; ++i) {
-    zb_array_free(&((chunk_edits *)zb_array_at(&d->lists, i))->edits);
+    chunk_edits *l = zb_array_at(&d->lists, i);
+    zb_array_free(&l->edits);
+    zb_map_free(&l->at);
   }
   zb_array_free(&d->lists);
   zb_map_free(&d->index);
@@ -66,11 +70,26 @@ void zb_deltas_destroy(zb_deltas *d) {
   zb_free(d->a, d);
 }
 
-static bool same_target(const zb_edit *a, const zb_edit *b) {
-  if (a->kind != b->kind) {
-    return false;
+/* What an edit changes: the same plant or cell of the same kind is the same
+ * target, and a later edit of it replaces the earlier one. */
+static uint64_t target_key(const zb_edit *e) {
+  uint64_t where = e->kind == ZB_EDIT_PLANT_REMOVED ? e->index : ((uint64_t)e->y << 16 | e->x);
+  return (uint64_t)e->kind << 56 | where;
+}
+
+static bool valid(const zb_edit *e) {
+  switch (e->kind) {
+    case ZB_EDIT_PLANT_REMOVED: return true;
+    case ZB_EDIT_MATERIAL:
+      return e->x < ZB_SURFACE_RES && e->y < ZB_SURFACE_RES && e->value > ZB_MAT_NONE && e->value < ZB_MAT_COUNT;
+    case ZB_EDIT_BURNT: return e->x < ZB_BURN_RES && e->y < ZB_BURN_RES;
+    default: return false;
   }
-  return a->kind == ZB_EDIT_PLANT_REMOVED ? a->index == b->index : (a->x == b->x && a->y == b->y);
+}
+
+double zb_regrowth_seconds(int layer) {
+  static const double days[ZB_PLANT_LAYERS] = {240.0, 48.0, 15.0}; /* trees: five years; shrubs: one */
+  return layer >= 0 && layer < ZB_PLANT_LAYERS ? days[layer] * 86400.0 : 0.0;
 }
 
 static zb_result add(zb_deltas *d, zb_chunk c, const zb_edit *e, bool dirty) {
@@ -82,6 +101,7 @@ static zb_result add(zb_deltas *d, zb_chunk c, const zb_edit *e, bool dirty) {
     chunk_edits fresh;
     fresh.chunk = c;
     zb_array_init(&fresh.edits, d->a, sizeof(zb_edit));
+    zb_map_init(&fresh.at, d->a);
     list = zb_array_push(&d->lists, &fresh);
     if (!list) {
       return ZB_ERR_NOMEM;
@@ -91,16 +111,17 @@ static zb_result add(zb_deltas *d, zb_chunk c, const zb_edit *e, bool dirty) {
       return ZB_ERR_NOMEM;
     }
   }
-  bool replaced = false;
-  for (size_t i = 0; i < list->edits.len && !replaced; ++i) {
-    zb_edit *old = zb_array_at(&list->edits, i);
-    if (same_target(old, e)) {
-      *old = *e;
-      replaced = true;
+  uint64_t pos;
+  if (zb_map_get(&list->at, target_key(e), &pos)) {
+    *(zb_edit *)zb_array_at(&list->edits, (size_t)pos) = *e;
+  } else {
+    if (!zb_array_push(&list->edits, e)) {
+      return ZB_ERR_NOMEM;
     }
-  }
-  if (!replaced && !zb_array_push(&list->edits, e)) {
-    return ZB_ERR_NOMEM;
+    if (zb_map_put(&list->at, target_key(e), list->edits.len - 1) != ZB_OK) {
+      zb_array_pop(&list->edits);
+      return ZB_ERR_NOMEM;
+    }
   }
   if (dirty) {
     return zb_map_put(&d->dirty, region_key(c.face, region_of(c.x), region_of(c.y)), 1);
@@ -109,12 +130,7 @@ static zb_result add(zb_deltas *d, zb_chunk c, const zb_edit *e, bool dirty) {
 }
 
 zb_result zb_deltas_add(zb_deltas *d, zb_chunk c, const zb_edit *e) {
-  if ((e->kind != ZB_EDIT_PLANT_REMOVED && e->kind != ZB_EDIT_MATERIAL) ||
-      (e->kind == ZB_EDIT_MATERIAL &&
-       (e->x >= ZB_SURFACE_RES || e->y >= ZB_SURFACE_RES || e->value == ZB_MAT_NONE || e->value >= ZB_MAT_COUNT))) {
-    return ZB_ERR_INVALID;
-  }
-  return add(d, c, e, true);
+  return valid(e) ? add(d, c, e, true) : ZB_ERR_INVALID;
 }
 
 const zb_edit *zb_deltas_get(const zb_deltas *d, zb_chunk c, size_t *count) {
@@ -130,10 +146,50 @@ const zb_edit *zb_deltas_get(const zb_deltas *d, zb_chunk c, size_t *count) {
 
 size_t zb_deltas_chunks(const zb_deltas *d) { return d->lists.len; }
 
-bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct) {
+/* Burnt cells: ash on the ground for a while, and plants that have not grown
+ * back yet removed (looked up per plant in the chunk's targets). */
+static bool apply_burnt(const zb_deltas *d, zb_chunk_terrain *ct, double now) {
+  uint64_t at;
+  if (!zb_map_get(&d->index, zb_chunk_key(ct->chunk), &at)) {
+    return false;
+  }
+  const chunk_edits *list = zb_array_at(&d->lists, (size_t)at);
+  const zb_edit *e = (const zb_edit *)list->edits.data;
+  bool changed = false, any = false;
+  for (size_t i = 0; i < list->edits.len; ++i) {
+    if (e[i].kind != ZB_EDIT_BURNT) {
+      continue;
+    }
+    any = true;
+    if (ct->material && now - e[i].index * 60.0 < ZB_ASH_SECONDS) {
+      int scale = ZB_SURFACE_RES / ZB_BURN_RES;
+      for (int y = 0; y < scale; ++y) {
+        for (int x = 0; x < scale; ++x) {
+          uint8_t *m = &ct->material[(e[i].y * scale + y) * ZB_SURFACE_RES + e[i].x * scale + x];
+          changed |= *m != ZB_MAT_ASH;
+          *m = ZB_MAT_ASH;
+        }
+      }
+    }
+  }
+  for (uint32_t k = 0; any && ct->plants && k < ct->plant_count; ++k) {
+    zb_plant *p = &ct->plants[k];
+    zb_edit probe = {ZB_EDIT_BURNT, 0, (uint16_t)(p->x * ZB_BURN_RES / 65536u), (uint16_t)(p->y * ZB_BURN_RES / 65536u),
+                     0};
+    uint64_t pos;
+    if (p->layer < ZB_PLANT_LAYERS && zb_map_get(&list->at, target_key(&probe), &pos) &&
+        now - e[pos].index * 60.0 < zb_regrowth_seconds(p->layer)) {
+      p->layer = ZB_PLANT_REMOVED;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct, double now) {
   size_t n;
   const zb_edit *e = zb_deltas_get(d, ct->chunk, &n);
-  bool changed = false;
+  bool changed = apply_burnt(d, ct, now);
   for (size_t i = 0; i < n; ++i) {
     if (e[i].kind == ZB_EDIT_PLANT_REMOVED && ct->plants && e[i].index < ct->plant_count &&
         ct->plants[e[i].index].layer != ZB_PLANT_REMOVED) {
@@ -308,10 +364,7 @@ zb_result zb_deltas_read_region(zb_deltas *d, const void *data, size_t len, char
     for (uint32_t k = 0; k < n && r == ZB_OK; ++k, at += EDIT_BYTES) {
       const uint8_t *eb = raw + at;
       zb_edit e = {eb[0], eb[1], (uint16_t)(eb[2] | eb[3] << 8), (uint16_t)(eb[4] | eb[5] << 8), get_u32(eb + 6)};
-      bool ok =
-          e.kind == ZB_EDIT_PLANT_REMOVED || (e.kind == ZB_EDIT_MATERIAL && e.x < ZB_SURFACE_RES &&
-                                              e.y < ZB_SURFACE_RES && e.value > ZB_MAT_NONE && e.value < ZB_MAT_COUNT);
-      r = ok ? add(d, c, &e, false) : refuse(err, err_len, "the region file holds an unknown edit");
+      r = valid(&e) ? add(d, c, &e, false) : refuse(err, err_len, "the region file holds an unknown edit");
     }
   }
   zb_free(d->a, raw);

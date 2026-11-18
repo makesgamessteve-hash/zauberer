@@ -11,7 +11,7 @@ static const char *const PHASES[ZB_PHASE_COUNT] = {"solid", "powder", "liquid", 
 static const char *const COLORS[ZB_MANA_COLORS] = {"fire", "storm", "light", "life", "water", "earth", "void", "decay"};
 static const char *const TRANSITIONS[ZB_TRANSITIONS] = {"melts", "boils", "freezes", "condenses"};
 /* The terrain's surface materials by zb_material (index 0, none, has no entry). */
-static const char *const SURFACES[ZB_MAT_COUNT] = {NULL, "soil", "sand", "rock", "gravel", "snow", "ice", "mud"};
+static const char *const SURFACES[ZB_MAT_COUNT] = {NULL, "soil", "sand", "rock", "gravel", "snow", "ice", "mud", "ash"};
 
 const char *zb_phase_name(zb_phase p) { return p >= 0 && p < ZB_PHASE_COUNT ? PHASES[p] : "?"; }
 

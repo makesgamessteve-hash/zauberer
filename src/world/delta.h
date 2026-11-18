@@ -14,8 +14,15 @@
 
 typedef enum zb_edit_kind {
   ZB_EDIT_PLANT_REMOVED = 1, /* index: the plant (stage 3) */
-  ZB_EDIT_MATERIAL = 2       /* x, y: the 1 m cell; value: the zb_material (stage 2) */
+  ZB_EDIT_MATERIAL = 2,      /* x, y: the 1 m cell; value: the zb_material (stage 2) */
+  ZB_EDIT_BURNT = 3          /* x, y: the 2 m cell (0..127); index: when, in game minutes */
 } zb_edit_kind;
+
+#define ZB_BURN_RES 128 /* burnt cells per chunk edge */
+/* After a fire the ground is ash for a while, and plants grow back by layer
+ * (zb_plant_layer): ground cover first, trees last (game seconds). */
+#define ZB_ASH_SECONDS (20.0 * 86400.0)
+double zb_regrowth_seconds(int layer);
 
 typedef struct zb_edit {
   uint8_t kind;
@@ -34,8 +41,9 @@ zb_result zb_deltas_add(zb_deltas *d, zb_chunk c, const zb_edit *e);
 /* The edits of a chunk (NULL and 0 when it has none). */
 const zb_edit *zb_deltas_get(const zb_deltas *d, zb_chunk c, size_t *count);
 size_t zb_deltas_chunks(const zb_deltas *d);
-/* Applies a chunk's edits to whatever stages it has; true if anything changed. */
-bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct);
+/* Applies a chunk's edits to whatever stages it has at the game time now
+ * (burnt ground heals); true if anything changed. */
+bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct, double now);
 
 /* Regions with edits not yet saved, and all regions with edits. */
 typedef void (*zb_region_fn)(void *ctx, int face, int32_t rx, int32_t ry);

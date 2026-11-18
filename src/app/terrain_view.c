@@ -80,13 +80,15 @@ void zb_terrain_view_default_config(zb_terrain_view_config *c) {
 
 /* Fallback material colours (palette ramps: green, sand, stone, snow, brown). */
 static const zb_vec3 DEFAULT_COLORS[ZB_MAT_COUNT] = {
-    {0.0f, 0.0f, 0.0f},    {0.36f, 0.47f, 0.22f}, {0.77f, 0.68f, 0.48f}, {0.45f, 0.43f, 0.41f},
-    {0.58f, 0.56f, 0.52f}, {0.92f, 0.94f, 0.96f}, {0.75f, 0.86f, 0.93f}, {0.33f, 0.25f, 0.18f}};
+    {0.0f, 0.0f, 0.0f},    {0.36f, 0.47f, 0.22f}, {0.77f, 0.68f, 0.48f}, {0.45f, 0.43f, 0.41f}, {0.58f, 0.56f, 0.52f},
+    {0.92f, 0.94f, 0.96f}, {0.75f, 0.86f, 0.93f}, {0.33f, 0.25f, 0.18f}, {0.20f, 0.19f, 0.18f}};
 /* Water colours (rgb) and opacity by kind: sea, lake, river. */
 static const float WATER_TINT[4][4] = {
     {0.0f, 0.0f, 0.0f, 0.0f}, {0.10f, 0.27f, 0.45f, 0.86f}, {0.12f, 0.35f, 0.45f, 0.8f}, {0.20f, 0.42f, 0.48f, 0.72f}};
 /* Atlas layer standing in for each material until vegetation arrives (M2). */
-static const char *const MATERIAL_LAYER[ZB_MAT_COUNT] = {NULL, "grass", "sand", "rock", "gravel", "snow", "ice", "mud"};
+/* Ash has no layer: it is drawn in its flat colour. */
+static const char *const MATERIAL_LAYER[ZB_MAT_COUNT] = {NULL,   "grass", "sand", "rock", "gravel",
+                                                         "snow", "ice",   "mud",  NULL};
 
 /* Layer indices and average colours from the atlas description and image. */
 static void load_atlas(zb_terrain_view *tv, zb_vfs *vfs, const char *atlas) {
@@ -113,7 +115,8 @@ static void load_atlas(zb_terrain_view *tv, zb_vfs *vfs, const char *atlas) {
     int size = img.height / count;
     for (int m = 1; m < ZB_MAT_COUNT; ++m) {
       for (int l = 0; l < count; ++l) {
-        if (strcmp(zb_value_str(zb_table_index(names, (size_t)l + 1), ""), MATERIAL_LAYER[m]) != 0) {
+        if (!MATERIAL_LAYER[m] ||
+            strcmp(zb_value_str(zb_table_index(names, (size_t)l + 1), ""), MATERIAL_LAYER[m]) != 0) {
           continue;
         }
         double sum[3] = {0, 0, 0};

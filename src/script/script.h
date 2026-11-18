@@ -70,6 +70,7 @@ typedef struct zb_script_config {
   const char *coverage_path;            /* LuaCov-compatible stats file, or NULL */
   zb_world *world;                      /* NULL: a private world (inline generation) */
   const struct zb_materials *materials; /* the material registry; NULL: none */
+  struct zb_fire *fire;                 /* heat and fire; NULL: none */
   zb_net *net;                          /* co-op session; NULL: networking unavailable */
   zb_jobs *jobs;                        /* world creation runs here; NULL: on the calling thread */
   double planet_radius;                 /* private world only; 0 = ZB_PLANET_DEFAULT_RADIUS */

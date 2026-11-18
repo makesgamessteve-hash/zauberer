@@ -226,6 +226,9 @@ class ScenarioTests(EngineTestCase):
         self.assertIn("materials: alchemy:phlogiston left out: phase must be solid, powder, liquid or gas",
                       result.stdout)
 
+    def test_fire(self):
+        self.assert_ok(self.scenario("fire"))
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 

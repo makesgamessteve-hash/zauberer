@@ -241,9 +241,9 @@ static void test_invalid(void) {
 /* spec: materials: The engine's materials are required */
 static void test_required(void) {
   /* Removed, and the one reported: without ice, water (which freezes to ice) goes too. */
-  static const char *const needed[][2] = {{"air", "air"},   {"water", "water"}, {"soil", "soil"},
-                                          {"sand", "sand"}, {"rock", "rock"},   {"gravel", "gravel"},
-                                          {"snow", "snow"}, {"ice", "water"},   {"mud", "mud"}};
+  static const char *const needed[][2] = {{"air", "air"},   {"water", "water"},   {"soil", "soil"}, {"sand", "sand"},
+                                          {"rock", "rock"}, {"gravel", "gravel"}, {"snow", "snow"}, {"ice", "water"},
+                                          {"mud", "mud"},   {"ash", "ash"}};
   for (size_t n = 0; n < sizeof needed / sizeof needed[0]; ++n) {
     zb_registry r;
     zb_registry_init(&r, zb_test_alloc(), "materials");

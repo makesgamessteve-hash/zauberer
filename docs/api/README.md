@@ -564,6 +564,22 @@ The keys ("package:id") of a registry's entries in load order. Kinds: "materials
 
 ## sim
 
+### `sim.add_heat(pos: PlanetPos, radius: number, joules: number)`
+
+Adds heat spread over radius metres (up to 64): enough of it dries and then ignites the fuel there.
+
+### `sim.fire_at(pos: PlanetPos): FireCell`
+
+The 2 m cell of the heat and fire simulation at a place.
+
+### `sim.fire_stats(): FireStats`
+
+The heat and fire simulation as a whole.
+
+### `sim.ignite(pos: PlanetPos, radius?: number): integer`
+
+Sets fire to the fuel within radius metres (default 2, up to 64) of a place in the active tier: lightning, a spell, a torch. Returns the cells (about 2 m) that caught; wet or bare ground and water do not.
+
 ### `sim.material(ref: string): Material?`
 
 What the simulations use of a material (SI units, deg C); nil when there is no such material.
@@ -571,6 +587,14 @@ What the simulations use of a material (SI units, deg C); nil when there is no s
 ### `sim.material_at(ref: string, temperature: number): string`
 
 The material ref becomes at a temperature (deg C) through its phase changes: water at -5 is ice, ice at 150 is steam. Errors for an unknown material.
+
+### `sim.set_weather(weather: Weather)`
+
+The wind and rain the fire sees (until the weather simulation drives them).
+
+### `sim.weather(): Weather`
+
+The wind and rain the fire sees.
 
 ## Types
 

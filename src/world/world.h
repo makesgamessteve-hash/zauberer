@@ -35,6 +35,8 @@ const struct zb_world_bundle *zb_world_get_bundle(const zb_world *w);
 zb_stream *zb_world_stream(zb_world *w);
 /* Sets (focus != NULL) or clears a focus point; index 0..ZB_STREAM_MAX_FOCUS-1. */
 bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus);
+/* The positions of the active focus points (at most max); returns how many. */
+int zb_world_focus(const zb_world *w, zb_planet_pos *out, int max);
 /* Streams around the focus points (call once per frame). */
 void zb_world_update(zb_world *w);
 /* The render origin. zb_world_update moves it to the chunk of focus 1 when
@@ -47,6 +49,9 @@ struct zb_deltas *zb_world_deltas(zb_world *w);
 int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius);
 /* Sets the surface material of the 1 m cell at pos (zb_material). */
 zb_result zb_world_set_material(zb_world *w, const zb_planet_pos *pos, int material);
+/* Records burnt 2 m cells of a chunk (index y * ZB_BURN_RES + x) at the
+ * current game time, and applies them if the chunk is loaded. */
+zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count);
 /* World time (game seconds since the world began) and its calendar; the axial
  * tilt comes from a created world. */
 const zb_calendar_config *zb_world_calendar(const zb_world *w);

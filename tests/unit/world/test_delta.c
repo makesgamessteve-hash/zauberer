@@ -2,6 +2,7 @@
 #include "support/test_support.h"
 #include "unity.h"
 #include "world/delta.h"
+#include "world/flora.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -77,15 +78,15 @@ static void test_apply(void) {
   zb_deltas_add(d, ct.chunk, &plant);
   zb_deltas_add(d, ct.chunk, &far);
   zb_deltas_add(d, ct.chunk, &paint);
-  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct)); /* nothing generated yet */
+  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct, 0.0)); /* nothing generated yet */
   ct.material = material;
   ct.plants = plants;
   ct.plant_count = 3;
-  TEST_ASSERT_TRUE(zb_deltas_apply(d, &ct));
+  TEST_ASSERT_TRUE(zb_deltas_apply(d, &ct, 0.0));
   TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_REMOVED, plants[1].layer);
   TEST_ASSERT_EQUAL_UINT8(0, plants[0].layer);
   TEST_ASSERT_EQUAL_UINT8(ZB_MAT_ROCK, material[6 * ZB_SURFACE_RES + 5]);
-  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct)); /* already applied */
+  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct, 0.0)); /* already applied */
   zb_deltas_destroy(d);
 }
 
@@ -157,10 +158,78 @@ static void test_regions(void) {
   zb_deltas_destroy(d);
 }
 
+/* A chunk as generated: soil everywhere, a tree, a shrub and ground cover on
+ * the 2 m cell (10, 10), and a tree elsewhere. */
+static void fresh_chunk(zb_chunk_terrain *ct, uint8_t *material, zb_plant *plants) {
+  zb_chunk_terrain_init(ct, (zb_chunk){4, 7, 9});
+  memset(material, ZB_MAT_SOIL, ZB_SURFACE_RES * ZB_SURFACE_RES);
+  memset(plants, 0, sizeof(zb_plant) * 4);
+  for (int i = 0; i < 3; ++i) {
+    plants[i].x = plants[i].y = 21 * 256; /* 21 m: in the 2 m cell 10 */
+    plants[i].layer = (uint8_t)i;         /* tree, shrub, ground cover */
+  }
+  plants[3].x = plants[3].y = 100 * 256;
+  ct->material = material;
+  ct->plants = plants;
+  ct->plant_count = 4;
+}
+
+/* spec: world-persistence: Burnt ground heals */
+static void test_burnt(void) {
+  zb_deltas *d = zb_deltas_create(zb_test_alloc());
+  zb_chunk_terrain ct;
+  uint8_t material[ZB_SURFACE_RES * ZB_SURFACE_RES];
+  zb_plant plants[4];
+  fresh_chunk(&ct, material, plants);
+  double fire = 1000.0 * 60.0; /* game minute 1000 */
+  zb_edit burnt = {ZB_EDIT_BURNT, 0, 10, 10, 1000};
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_add(d, ct.chunk, &burnt));
+  burnt.x = ZB_BURN_RES;
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &burnt));
+  /* Right after the fire: ash, and nothing stands there. */
+  TEST_ASSERT_TRUE(zb_deltas_apply(d, &ct, fire + 3600.0));
+  TEST_ASSERT_EQUAL_UINT8(ZB_MAT_ASH, material[20 * ZB_SURFACE_RES + 20]);
+  TEST_ASSERT_EQUAL_UINT8(ZB_MAT_ASH, material[21 * ZB_SURFACE_RES + 21]);
+  TEST_ASSERT_EQUAL_UINT8(ZB_MAT_SOIL, material[22 * ZB_SURFACE_RES + 22]);
+  for (int i = 0; i < 3; ++i) {
+    TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_REMOVED, plants[i].layer);
+  }
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_TREE, plants[3].layer);
+  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct, fire + 3600.0)); /* already applied */
+  /* 30 days later: ground cover back, no ash; shrubs and trees still gone. */
+  fresh_chunk(&ct, material, plants);
+  zb_deltas_apply(d, &ct, fire + 30.0 * 86400.0);
+  TEST_ASSERT_EQUAL_UINT8(ZB_MAT_SOIL, material[20 * ZB_SURFACE_RES + 20]);
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_REMOVED, plants[0].layer);
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_REMOVED, plants[1].layer);
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_GROUND, plants[2].layer);
+  /* Five years on, the forest is back. */
+  fresh_chunk(&ct, material, plants);
+  TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct, fire + 241.0 * 86400.0));
+  TEST_ASSERT_EQUAL_UINT8(ZB_PLANT_TREE, plants[0].layer);
+  TEST_ASSERT_EQUAL_DOUBLE(0.0, zb_regrowth_seconds(-1));
+  TEST_ASSERT_EQUAL_DOUBLE(48.0 * 86400.0, zb_regrowth_seconds(ZB_PLANT_SHRUB));
+  /* Burnt cells travel in region files like every edit. */
+  zb_array file;
+  zb_array_init(&file, zb_test_alloc(), 1);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_write_region(d, 4, 0, 0, &file));
+  zb_deltas *back = zb_deltas_create(zb_test_alloc());
+  char err[160];
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_read_region(back, file.data, file.len, err, sizeof err));
+  size_t n;
+  const zb_edit *e = zb_deltas_get(back, ct.chunk, &n);
+  TEST_ASSERT_EQUAL_size_t(1, n);
+  TEST_ASSERT_TRUE(e[0].kind == ZB_EDIT_BURNT && e[0].x == 10 && e[0].y == 10 && e[0].index == 1000);
+  zb_array_free(&file);
+  zb_deltas_destroy(back);
+  zb_deltas_destroy(d);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_store);
   RUN_TEST(test_apply);
   RUN_TEST(test_regions);
+  RUN_TEST(test_burnt);
   return UNITY_END();
 }

@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "sim/fire.h"
 #include "sim/material.h"
 
 static const zb_materials *M(lua_State *L) { return zb_script_from(L)->cfg.materials; }
@@ -167,9 +168,151 @@ static int s_material_at(lua_State *L) {
   return 1;
 }
 
+/* ------------------------------------------------------------------ fire */
+
+static zb_fire *F(lua_State *L) {
+  zb_fire *f = zb_script_from(L)->cfg.fire;
+  if (!f) {
+    luaL_error(L, "no fire simulation (the material registry is missing)");
+  }
+  return f;
+}
+
+/* @lua sim.ignite(pos: PlanetPos, radius?: number): integer
+ * Sets fire to the fuel within radius metres (default 2, up to 64) of a place
+ * in the active tier: lightning, a spell, a torch. Returns the cells (about
+ * 2 m) that caught; wet or bare ground and water do not.
+ */
+static int s_ignite(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_optnumber(L, 2, 2.0);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 64.0, 2, "radius must be 0..64 metres");
+  lua_pushinteger(L, zb_fire_ignite(F(L), &pos, radius));
+  return 1;
+}
+
+/* @lua sim.add_heat(pos: PlanetPos, radius: number, joules: number)
+ * Adds heat spread over radius metres (up to 64): enough of it dries and then
+ * ignites the fuel there.
+ */
+static int s_add_heat(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2), joules = luaL_checknumber(L, 3);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 64.0, 2, "radius must be 0..64 metres");
+  luaL_argcheck(L, joules >= 0.0 && joules <= 1e12, 3, "joules must be 0..1e12");
+  zb_fire_add_heat(F(L), &pos, radius, joules);
+  return 0;
+}
+
+/* @lua sim.fire_at(pos: PlanetPos): FireCell
+ * The 2 m cell of the heat and fire simulation at a place.
+ * @field loaded boolean In the active tier
+ * @field burning boolean On fire
+ * @field burnt boolean Burnt out
+ * @field water boolean Under water
+ * @field temperature number deg C
+ * @field fuel number kg/m^2
+ * @field moisture number kg of water per kg of fuel
+ * @field material string? The fuel's material key
+ */
+static int s_fire_at(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  zb_fire_cell c;
+  zb_fire_cell_at(F(L), &pos, &c);
+  lua_createtable(L, 0, 8);
+  lua_pushboolean(L, c.loaded);
+  lua_setfield(L, -2, "loaded");
+  lua_pushboolean(L, c.burning);
+  lua_setfield(L, -2, "burning");
+  lua_pushboolean(L, c.burnt);
+  lua_setfield(L, -2, "burnt");
+  lua_pushboolean(L, c.water);
+  lua_setfield(L, -2, "water");
+  set_number(L, "temperature", c.temperature);
+  set_number(L, "fuel", c.fuel);
+  set_number(L, "moisture", c.moisture);
+  if (c.material >= 0 && M(L)) {
+    lua_pushstring(L, M(L)->info[c.material].key);
+    lua_setfield(L, -2, "material");
+  }
+  return 1;
+}
+
+/* @lua sim.fire_stats(): FireStats
+ * The heat and fire simulation as a whole.
+ * @field chunks integer Chunks in the active tier
+ * @field awake integer Of those, chunks with heat or fire
+ * @field burning integer Cells on fire
+ * @field burnt integer Cells burnt out so far
+ * @field embers integer Embers thrown so far
+ * @field spots integer Spot fires they started
+ * @field max_temperature number deg C of the hottest cell
+ */
+static int s_fire_stats(lua_State *L) {
+  zb_fire_stats st;
+  zb_fire_get_stats(F(L), &st);
+  lua_createtable(L, 0, 7);
+  const struct {
+    const char *name;
+    int value;
+  } ints[] = {{"chunks", st.chunks}, {"awake", st.awake},   {"burning", st.burning},
+              {"burnt", st.burnt},   {"embers", st.embers}, {"spots", st.spots}};
+  for (size_t i = 0; i < sizeof ints / sizeof ints[0]; ++i) {
+    lua_pushinteger(L, ints[i].value);
+    lua_setfield(L, -2, ints[i].name);
+  }
+  set_number(L, "max_temperature", st.max_temperature);
+  return 1;
+}
+
+/* @lua sim.set_weather(weather: Weather)
+ * The wind and rain the fire sees (until the weather simulation drives them).
+ * @field wind_east number? m/s towards the east
+ * @field wind_north number? m/s towards the north
+ * @field rain number? mm/h
+ */
+static int s_set_weather(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  zb_fire_weather w = *zb_fire_weather_get(F(L));
+  const struct {
+    const char *name;
+    double *value, lo, hi;
+  } fields[] = {{"wind_east", &w.wind_east, -60.0, 60.0},
+                {"wind_north", &w.wind_north, -60.0, 60.0},
+                {"rain", &w.rain, 0.0, 500.0}};
+  for (size_t i = 0; i < sizeof fields / sizeof fields[0]; ++i) {
+    lua_getfield(L, 1, fields[i].name);
+    if (!lua_isnil(L, -1)) {
+      double v = luaL_checknumber(L, -1);
+      if (v < fields[i].lo || v > fields[i].hi) {
+        return luaL_error(L, "%s must be %d..%d", fields[i].name, (int)fields[i].lo, (int)fields[i].hi);
+      }
+      *fields[i].value = v;
+    }
+    lua_pop(L, 1);
+  }
+  zb_fire_set_weather(F(L), &w);
+  return 0;
+}
+
+/* @lua sim.weather(): Weather
+ * The wind and rain the fire sees.
+ */
+static int s_weather(lua_State *L) {
+  const zb_fire_weather *w = zb_fire_weather_get(F(L));
+  lua_createtable(L, 0, 3);
+  set_number(L, "wind_east", w->wind_east);
+  set_number(L, "wind_north", w->wind_north);
+  set_number(L, "rain", w->rain);
+  return 1;
+}
+
 void zb_script_open_sim(zb_script *s) {
   static const luaL_Reg registry_fns[] = {{"keys", r_keys}, {"get", r_get}, {NULL, NULL}};
-  static const luaL_Reg sim_fns[] = {{"material", s_material}, {"material_at", s_material_at}, {NULL, NULL}};
+  static const luaL_Reg sim_fns[] = {
+      {"material", s_material},       {"material_at", s_material_at}, {"ignite", s_ignite},
+      {"add_heat", s_add_heat},       {"fire_at", s_fire_at},         {"fire_stats", s_fire_stats},
+      {"set_weather", s_set_weather}, {"weather", s_weather},         {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, registry_fns, 0);
   lua_setglobal(s->L, "registry");

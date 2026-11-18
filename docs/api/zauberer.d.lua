@@ -921,6 +921,27 @@ function registry.keys(kind) end
 
 sim = {}
 
+---Adds heat spread over radius metres (up to 64): enough of it dries and then ignites the fuel there.
+---@param pos PlanetPos
+---@param radius number
+---@param joules number
+function sim.add_heat(pos, radius, joules) end
+
+---The 2 m cell of the heat and fire simulation at a place.
+---@param pos PlanetPos
+---@return FireCell
+function sim.fire_at(pos) end
+
+---The heat and fire simulation as a whole.
+---@return FireStats
+function sim.fire_stats() end
+
+---Sets fire to the fuel within radius metres (default 2, up to 64) of a place in the active tier: lightning, a spell, a torch. Returns the cells (about 2 m) that caught; wet or bare ground and water do not.
+---@param pos PlanetPos
+---@param radius? number
+---@return integer
+function sim.ignite(pos, radius) end
+
 ---What the simulations use of a material (SI units, deg C); nil when there is no such material.
 ---@param ref string
 ---@return Material?
@@ -931,6 +952,14 @@ function sim.material(ref) end
 ---@param temperature number
 ---@return string
 function sim.material_at(ref, temperature) end
+
+---The wind and rain the fire sees (until the weather simulation drives them).
+---@param weather Weather
+function sim.set_weather(weather) end
+
+---The wind and rain the fire sees.
+---@return Weather
+function sim.weather() end
 
 ---Id of the package whose script is running (package environments only).
 ---@type string

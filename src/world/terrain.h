@@ -26,6 +26,7 @@ typedef enum zb_material {
   ZB_MAT_SNOW,
   ZB_MAT_ICE,
   ZB_MAT_MUD,
+  ZB_MAT_ASH, /* burnt ground, for a while after a fire */
   ZB_MAT_COUNT
 } zb_material;
 

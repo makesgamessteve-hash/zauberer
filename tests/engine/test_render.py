@@ -37,6 +37,9 @@ class RenderTests(EngineTestCase):
     def test_forest_view(self):
         self.assert_ok(self.windowed("forest_view"))
 
+    def test_fire_view(self):
+        self.assert_ok(self.windowed("fire_view"))
+
     def test_night_sky(self):
         self.assert_ok(self.windowed("night_sky"))
 

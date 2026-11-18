@@ -303,7 +303,8 @@ zb_material zb_terrain_biome_material(int biome, double height, double slope, do
 }
 
 const char *zb_material_name(zb_material m) {
-  static const char *const names[ZB_MAT_COUNT] = {"none", "soil", "sand", "rock", "gravel", "snow", "ice", "mud"};
+  static const char *const names[ZB_MAT_COUNT] = {"none", "soil", "sand", "rock", "gravel",
+                                                  "snow", "ice",  "mud",  "ash"};
   return (unsigned)m < ZB_MAT_COUNT ? names[m] : "none";
 }
 

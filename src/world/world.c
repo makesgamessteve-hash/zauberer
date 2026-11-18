@@ -22,7 +22,10 @@ struct zb_world {
   zb_deltas *deltas;
 };
 
-static bool arrived(void *ctx, zb_chunk_terrain *ct) { return zb_deltas_apply(((zb_world *)ctx)->deltas, ct); }
+static bool arrived(void *ctx, zb_chunk_terrain *ct) {
+  zb_world *w = ctx;
+  return zb_deltas_apply(w->deltas, ct, w->time);
+}
 
 zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) {
   zb_world *w = zb_alloc(desc->a, sizeof *w);
@@ -92,7 +95,7 @@ static zb_result edit(zb_world *w, zb_chunk c, const zb_edit *e) {
   zb_result r = zb_deltas_add(w->deltas, c, e);
   zb_chunk_terrain *ct = r == ZB_OK ? zb_stream_edit(w->stream, c) : NULL;
   if (ct) {
-    zb_deltas_apply(w->deltas, ct);
+    zb_deltas_apply(w->deltas, ct, w->time);
   }
   return r;
 }
@@ -119,6 +122,23 @@ int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius)
   return removed;
 }
 
+zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count) {
+  zb_edit e = {ZB_EDIT_BURNT, 0, 0, 0, (uint32_t)(w->time / 60.0)};
+  for (int i = 0; i < count; ++i) {
+    e.x = (uint16_t)(cells[i] % ZB_BURN_RES);
+    e.y = (uint16_t)(cells[i] / ZB_BURN_RES);
+    zb_result r = zb_deltas_add(w->deltas, c, &e);
+    if (r != ZB_OK) {
+      return r;
+    }
+  }
+  zb_chunk_terrain *ct = count > 0 ? zb_stream_edit(w->stream, c) : NULL;
+  if (ct) {
+    zb_deltas_apply(w->deltas, ct, w->time);
+  }
+  return ZB_OK;
+}
+
 zb_result zb_world_set_material(zb_world *w, const zb_planet_pos *pos, int material) {
   int x = (int)pos->lx, y = (int)pos->ly;
   x = x < 0 ? 0 : (x >= ZB_SURFACE_RES ? ZB_SURFACE_RES - 1 : x);
@@ -132,6 +152,16 @@ double zb_world_time(const zb_world *w) { return w->time; }
 void zb_world_set_time(zb_world *w, double time) { w->time = time > 0.0 ? time : 0.0; }
 void zb_world_advance_time(zb_world *w, double real_seconds) {
   w->time += zb_calendar_game_seconds(&w->calendar, real_seconds);
+}
+
+int zb_world_focus(const zb_world *w, zb_planet_pos *out, int max) {
+  int n = 0;
+  for (int i = 0; i < ZB_STREAM_MAX_FOCUS && n < max; ++i) {
+    if (w->active[i]) {
+      out[n++] = w->focus[i].pos;
+    }
+  }
+  return n;
 }
 
 bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus) {

@@ -8,6 +8,7 @@
 #include "core/log.h"
 #include "core/luon.h"
 #include "core/version.h"
+#include "sim/fire.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -112,6 +113,9 @@ static bool host_use_bundle(void *ctx, zb_world_bundle *bundle, char *err, size_
   e->terrain_view = tv;
   e->bundle = bundle;
   zb_script_set_world(e->script, w);
+  if (e->fire) {
+    zb_fire_set_world(e->fire, w);
+  }
   if (bundle) {
     zb_info("playing a created world (seed %llu, %s quality)", (unsigned long long)bundle->options.seed,
             zb_world_quality_name(bundle->options.quality));
@@ -562,6 +566,16 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   if (!e->terrain_view) {
     return ZB_HOST_FAILURE;
   }
+  /* Heat and fire in the active tier (concept 5.15: 384 m desktop, 256 m web, 160 m touch). */
+  if (e->materials) {
+#ifdef __EMSCRIPTEN__
+    double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 256.0;
+#else
+    double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 384.0;
+#endif
+    e->fire = zb_fire_create(a, e->world, e->materials, active);
+  }
+  e->flame_sprite = zb_render_load_sprite(e->render, "sprites/flame.lua");
 
   /* Co-op session: the same world (seed) and package set on every peer. */
   zb_net_config nc;
@@ -619,6 +633,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.seed = e->seed;
   sc.world = e->world;
   sc.materials = e->materials;
+  sc.fire = e->fire;
   sc.net = e->net;
   sc.jobs = e->jobs;
   sc.test_api = e->mode != ZB_MODE_GAME;
@@ -683,6 +698,11 @@ static void tick(zb_engine *e) {
   zb_audio_tick(e->audio, zb_loop_tick_seconds());
   e->ticks++;
   zb_world_advance_time(e->world, zb_loop_tick_seconds());
+  if (e->fire) {
+    zb_planet_pos focus[ZB_STREAM_MAX_FOCUS];
+    int n = zb_world_focus(e->world, focus, ZB_STREAM_MAX_FOCUS);
+    zb_fire_update(e->fire, focus, n, zb_loop_tick_seconds());
+  }
   zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
@@ -713,6 +733,61 @@ static void apply_daylight(zb_engine *e, zb_vec3 eye) {
   zb_terrain_view_set_season(e->terrain_view, (float)d.sky.season);
 }
 
+/* Flames on the burning cells nearest the camera. */
+#define FLAME_RANGE 400.0f
+#define FLAMES 512
+#define FLAME_CANDIDATES 8192
+
+typedef struct flame {
+  zb_vec3 pos;
+  float dist, scale;
+  uint32_t seed;
+} flame;
+
+typedef struct flame_pick {
+  const zb_origin *origin;
+  const zb_planet *planet;
+  zb_vec3 eye;
+  flame *list;
+  int n;
+} flame_pick;
+
+static void pick_flame(void *ctx, const zb_planet_pos *pos, double intensity, double fuel) {
+  (void)intensity;
+  flame_pick *fp = ctx;
+  zb_vec3 p = zb_origin_to_local(fp->origin, fp->planet, pos);
+  float d = zb_v3_length(zb_v3_sub(p, fp->eye));
+  if (d <= FLAME_RANGE && fp->n < FLAME_CANDIDATES) {
+    float s = 0.7f + 0.25f * (float)fuel;
+    fp->list[fp->n++] = (flame){p, d, s > 3.0f ? 3.0f : s, (uint32_t)(pos->lx * 131.0f + pos->ly * 17.0f)};
+  }
+}
+
+static int nearer(const void *a, const void *b) {
+  float x = ((const flame *)a)->dist, y = ((const flame *)b)->dist;
+  return x < y ? -1 : (x > y);
+}
+
+static void draw_flames(zb_engine *e, zb_vec3 eye) {
+  zb_fire_stats st;
+  zb_fire_get_stats(e->fire, &st);
+  if (st.burning == 0) {
+    return;
+  }
+  flame *list = zb_alloc(e->a, sizeof(flame) * FLAME_CANDIDATES);
+  if (!list) {
+    return;
+  }
+  flame_pick fp = {zb_world_origin(e->world), zb_world_planet(e->world), eye, list, 0};
+  zb_fire_each_burning(e->fire, pick_flame, &fp);
+  qsort(list, (size_t)fp.n, sizeof *list, nearer);
+  double t = (double)e->ticks / (double)ZB_TICK_HZ;
+  for (int i = 0; i < fp.n && i < FLAMES; ++i) {
+    zb_render_draw_sprite(e->render, e->flame_sprite, list[i].pos, list[i].scale, t + (list[i].seed % 97) * 0.013);
+  }
+  zb_free(e->a, list);
+}
+
 /* Terrain and the sky's horizon, for the camera the scripts set. */
 static void draw_world(zb_engine *e) {
   zb_vec3 eye = zb_render_camera_eye(e->render);
@@ -721,6 +796,9 @@ static void draw_world(zb_engine *e) {
   }
   if (!e->headless) { /* headless runs draw nothing: no meshes to build */
     zb_terrain_view_draw(e->terrain_view, e->world, eye);
+    if (e->fire) {
+      draw_flames(e, eye);
+    }
   }
   const zb_atmosphere *cur = zb_render_atmosphere(e->render);
   if (!cur->enabled) {
@@ -892,6 +970,7 @@ void zb_engine_destroy(zb_engine *e) {
   zb_script_destroy(e->script);
   zb_terrain_view_destroy(e->terrain_view);
   zb_net_destroy(e->net);
+  zb_fire_destroy(e->fire);
   zb_world_destroy(e->world);
   if (e->materials) {
     zb_materials_free(e->materials);

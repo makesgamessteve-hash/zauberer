@@ -36,6 +36,8 @@ typedef struct zb_engine {
   struct zb_world_bundle *bundle; /* the created world being played (owned), or NULL */
   zb_flora flora;                 /* plant species (count 0: none) */
   zb_materials *materials;        /* the material registry (NULL: unusable data) */
+  struct zb_fire *fire;           /* heat and fire in the active tier (NULL without materials) */
+  uint32_t flame_sprite;
   zb_terrain_view *terrain_view;
   zb_net *net;
   zb_loop loop;
