@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MIT -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Zauberer</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #140f24; color: #e8e0ff; font: 15px sans-serif; overflow: hidden; }
+    #canvas { display: block; width: 100vw; height: 100vh; touch-action: none; outline: none; }
+    #status, #error { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 80vw; text-align: center; }
+    #error { background: #3a1020; border: 1px solid #c04060; padding: 1em 1.5em; white-space: pre-wrap; }
+    #xr { position: absolute; right: 16px; bottom: 16px; padding: 0.6em 1.2em; font: inherit; color: #140f24;
+          background: #e8c060; border: 2px solid #fff3c0; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+  <div id="status">Loading…</div>
+  <div id="error" role="alert" hidden></div>
+  <button id="xr" type="button" hidden>Enter VR</button>
+  <noscript>Zauberer needs JavaScript and WebGL 2.</noscript>
+  <script src="zauberer-loader.js"></script>
+</body>
+</html>
