@@ -36,7 +36,7 @@ The material a substance becomes at a temperature SHALL follow its phase changes
 - **THEN** water freezes to ice, ice turns to steam above boiling, steam turns to ice below freezing, granite melts to lava that cools into basalt, and sand melts and cools into glass
 
 ### Requirement: Required materials
-Building the materials SHALL fail with a message when air, water or any terrain surface material (soil, sand, rock, gravel, snow, ice, mud) has no usable entry, and SHALL keep at most 250 materials.
+Building the materials SHALL fail with a message when air, water or any terrain surface material (soil, sand, rock, gravel, snow, ice, mud, ash) has no usable entry, and SHALL keep at most 250 materials.
 
 #### Scenario: The engine's materials are required
 - **WHEN** any one of the required materials is missing, or more than 250 are defined
