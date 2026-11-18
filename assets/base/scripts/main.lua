@@ -27,6 +27,7 @@ local walker = require("player.walker")
 local survival = require("player.survival")
 local pack = require("player.pack")
 local bag = require("player.bag")
+local condition = require("flight.condition")
 local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
@@ -71,6 +72,7 @@ local function setup_flight()
   game.survival = survival.new(back and back.survival, save.get("difficulty"))
   game.pack = pack.new(back and back.pack)
   game.bag = bag.new(back and back.bag)
+  game.condition = condition.new(back and back.condition)
   game.codex = codex.new(back and back.codex)
   game.survival_at = nil
   if game.fauna then
@@ -146,7 +148,7 @@ function game.save()
   local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
     health = game.health and health.snapshot(game.health),
     survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
-    bag = game.bag and bag.snapshot(game.bag),
+    bag = game.bag and bag.snapshot(game.bag), condition = game.condition and condition.snapshot(game.condition),
     codex = game.codex and codex.snapshot(game.codex),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
@@ -253,6 +255,7 @@ local function flight_tick(dt)
       w = game.walker
     end
   end
+  game.carpet.limits = condition.limits(game.condition) -- (wet, torn or grounded, it flies worse)
   local c = coop.tick(co, game.carpet, (down or w) and still or controls.flight_input(st), dt, WORLD, net)
   game.carpet = c
   -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
@@ -322,6 +325,21 @@ local function flight_tick(dt)
   pack.tick(game.pack, dt)
   bag.tick(game.bag, dt)
   bag.spoil(game.bag, game_dt / 3600, body.air)
+  -- The carpet's condition: burns, tears, rain and drying.
+  do
+    local ground = world.ground_height(c.pos)
+    local cell = sim.fire_at(c.pos)
+    local water = sim.water_at(c.pos)
+    condition.tick(game.condition, dt, game_dt / 3600, { exposed = true, height = c.pos.alt - ground, speed = c.speed,
+      grounded = c.grounded and c.pos.alt - ground < 3, burning = cell.loaded and cell.burning,
+      on_water = w ~= nil and water.loaded and water.depth > 0.1 and c.pos.alt - ground < 3,
+      rain = sim.weather().rain, air = body.air, fire = cooking.fire_near(c.pos) })
+  end
+  if w and input.state("patch").pressed and walker.near_carpet(w, c) then
+    local mage = game.magic.caster.mage
+    local done, why = condition.patch(game.condition, game.pack, mage)
+    if not done then condition.say(game.condition, why) end
+  end
   survival.tick_news(game.survival, dt)
   -- Gathering, fire and food (on foot), eating and drinking.
   local function said(list)
@@ -436,7 +454,7 @@ local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
-    bag.hud_lines(game.bag),
+    bag.hud_lines(game.bag), condition.hud_lines(game.condition),
     codex.hud_lines(game.codex),
     magic.hud_lines(game.magic), fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
@@ -548,5 +566,5 @@ _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
-  pack = pack, bag = bag, harvest = harvest, cooking = cooking, codex = codex,
+  pack = pack, bag = bag, condition = condition, harvest = harvest, cooking = cooking, codex = codex,
 }

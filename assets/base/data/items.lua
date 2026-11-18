@@ -15,6 +15,7 @@
 --   salty     makes one thirstier
 --   spoils    microbes grow on it ("fresh", "cooked", "dried"; omitted: it keeps)
 --   fuel      kg of firewood it makes
+--   thread    units of thread it gives for patching the carpet
 return {
   -- From trees
   { id = "acorns", name = "Acorns", kind = "food", weight = 0.004, kcal = 12, raw = 0.02, spoils = "dried" },
@@ -33,8 +34,8 @@ return {
   { id = "wood", name = "Wood", kind = "material", weight = 1.0, fuel = 1.0 },
   { id = "deadwood", name = "Dry deadwood", kind = "material", weight = 0.8, fuel = 0.8 },
   { id = "hazel_rods", name = "Hazel rods", kind = "material", weight = 0.15, fuel = 0.15 },
-  { id = "palm_fibre", name = "Palm fibre", kind = "material", weight = 0.05 },
-  { id = "kapok_fibre", name = "Kapok fibre", kind = "material", weight = 0.01 },
+  { id = "palm_fibre", name = "Palm fibre", kind = "material", weight = 0.05, thread = 1 },
+  { id = "kapok_fibre", name = "Kapok fibre", kind = "material", weight = 0.01, thread = 1 },
   { id = "kapok_bark", name = "Kapok bark", kind = "herb", weight = 0.05, brew = "bark_tea" },
   -- From shrubs and ground cover
   { id = "saltbush_leaves", name = "Saltbush leaves", kind = "food", weight = 0.01, kcal = 2, salty = true,
@@ -52,7 +53,7 @@ return {
     cooked = "roasted_reed_roots", spoils = "fresh" },
   { id = "roasted_reed_roots", name = "Roasted reed roots", kind = "food", weight = 0.05, kcal = 35,
     spoils = "cooked" },
-  { id = "reed_fibre", name = "Reed fibre", kind = "material", weight = 0.1, fuel = 0.1 }, -- dry bundles burn
+  { id = "reed_fibre", name = "Reed fibre", kind = "material", weight = 0.1, fuel = 0.1, thread = 1 }, -- dry bundles burn
   -- Fungi
   { id = "chanterelles", name = "Chanterelles", kind = "food", weight = 0.02, kcal = 8, raw = 0.1,
     cooked = "fried_mushrooms", spoils = "fresh" },
@@ -67,7 +68,7 @@ return {
   { id = "raw_meat", name = "Raw meat", kind = "food", weight = 0.25, kcal = 400, raw = 0.3, cooked = "cooked_meat",
     spoils = "fresh" },
   { id = "cooked_meat", name = "Cooked meat", kind = "food", weight = 0.2, kcal = 450, spoils = "cooked" },
-  { id = "hide", name = "Hide", kind = "material", weight = 2.0 },
+  { id = "hide", name = "Hide", kind = "material", weight = 2.0, thread = 4 }, -- (cut into thongs)
   { id = "feathers", name = "Feathers", kind = "material", weight = 0.01 },
   { id = "storm_feather", name = "Storm feather", kind = "material", weight = 0.02 },
   -- Water, by cup (half a litre)
