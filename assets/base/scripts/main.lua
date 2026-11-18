@@ -15,6 +15,12 @@ local flight_hud = require("flight.hud")
 local spawn = require("flight.spawn")
 local coop = require("flight.coop")
 local creation = require("create.screen")
+local magic = require("magic.play")
+local fauna = require("life.fauna")
+local motes = require("magic.motes")
+local effects = require("magic.effects")
+local health = require("player.health")
+local walker = require("player.walker")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -23,6 +29,7 @@ local assets = {}
 local SHOWCASE_ACTIONS = { "turn", "look", "zoom", "spin", "chime", "credits", "fullscreen", "quit" }
 local WORLD_START = 8 * 3600 -- a new world's time (game seconds)
 local WORLD = { move = world.move, height = world.height, water = world.water, chunk_hash = world.chunk_hash }
+local FOOT = { move = world.move, height = world.ground_height, water = world.water } -- the ground as drawn
 local SUN = { 0.45, 0.6, -0.66 }
 
 -- A new world begins on a spring morning where the carpet starts (its clock
@@ -37,6 +44,7 @@ local function setup_flight()
   local p = world.planet()
   local pos, heading = spawn.find(world.height, p.chunks_per_edge), 0
   pos.alt = math.max(world.height(pos), 0) + 60
+  game.home = { pos = world.move(pos, 0, 0, 0), heading = heading } -- where a defeated player gets up again
   local back = game.restore -- the player of a loaded save
   if back and type(back.pos) == "table" then
     pos, heading = back.pos, back.heading or 0
@@ -46,6 +54,16 @@ local function setup_flight()
     world.set_time(morning_at(pos))
   end
   game.carpet = carpet.new(pos, heading)
+  game.walker = back and type(back.on_foot) == "table" and back.on_foot.pos
+    and walker.new(back.on_foot.pos, back.on_foot.heading, FOOT) or nil
+  game.magic = magic.new(back and back.magic)
+  game.health = health.new(back and back.health)
+  if game.fauna then
+    fauna.clear(game.fauna)
+  end
+  game.fauna = fauna.new(pos, heading)
+  game.motes = motes.new(engine.info().seed)
+  game.channeling = false
   game.chase = camera.new()
   game.coop = coop.new()
   game.last_frame_time = nil
@@ -97,7 +115,9 @@ end
 -- and remembers it for the next start.
 function game.save()
   local c = game.carpet
-  local player = c and { pos = c.pos, heading = c.heading } or nil
+  local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
+    health = game.health and health.snapshot(game.health), on_foot = game.walker and walker.snapshot(game.walker) }
+    or nil
   local ok, err = world.save_game(game.save_name, player)
   if ok then
     save.set("world", game.save_name)
@@ -132,6 +152,7 @@ end
 engine.on("init", function()
   assets.carpet = render.model("models/carpet.glb")
   assets.mote = render.sprite("sprites/mote.lua")
+  assets.flame = render.sprite("sprites/flame.lua")
   assets.font = render.font("fonts/pixel.lua")
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
   game.credits = engine.credits()
@@ -182,10 +203,71 @@ local function flight_tick(dt)
   end
   local st = controls.read()
   local co = game.coop
-  local c = coop.tick(co, game.carpet, controls.flight_input(st), dt, WORLD, net)
+  local down = game.health.down ~= nil -- a defeated player lies still
+  local still = { turn = 0, throttle = 0, climb = 0, boost = false }
+  -- Stepping off a carpet resting low and slow, and back on.
+  local w = game.walker
+  if not down and input.state("mount").pressed then
+    if w and walker.near_carpet(w, game.carpet) then
+      game.walker, w = nil, nil
+    elseif not w and walker.can_step_off(game.carpet, FOOT) then
+      game.carpet.speed = 0
+      game.walker = walker.step_off(game.carpet, FOOT)
+      w = game.walker
+    end
+  end
+  local c = coop.tick(co, game.carpet, (down or w) and still or controls.flight_input(st), dt, WORLD, net)
   game.carpet = c
-  camera.update(game.chase, st.look, dt, input.mode() ~= "touch")
-  world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
+  -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
+  local spell = {}
+  for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
+  if down then
+    for name in pairs(spell) do spell[name] = {} end
+  end
+  local look = not spell.draw.held and st.look or nil
+  if w then
+    local steer = st.steer or {}
+    local walking = { turn = controls.curve(steer.x or 0), throttle = controls.curve(steer.y or 0),
+      run = st.boost and st.boost.held, jump = input.state("jump").pressed, look = look,
+      mouse = input.mode() ~= "touch" }
+    walker.update(w, down and {} or walking, dt, FOOT)
+  else
+    camera.update(game.chase, look, dt, input.mode() ~= "touch")
+  end
+  local me = w and w.pos or c.pos -- where the player is
+  local here = mana.at(me)
+  local hands = w and walker.hands(w) or c
+  local cast_now = magic.tick(game.magic, spell, dt, hands, { heading = hands.heading, pitch = w and w.pitch or -0.12 },
+    here.loaded and here.stored or nil)
+  game.last_cast = cast_now or game.last_cast
+  -- Creatures, and the motes of the magical ones that die.
+  local creature_events = fauna.tick(game.fauna, dt, me, w ~= nil)
+  for _, ev in ipairs(creature_events) do
+    if ev.kind == "died" and ev.magical and ev.mana and (ev.motes or 0) > 0 then
+      motes.release(game.motes, ev.pos, ev.mana, ev.motes, 8)
+    end
+  end
+  -- Harm and healing; a defeated player gets up again where the carpet set out.
+  local fx = game.magic.caster.effects
+  local fate = health.tick(game.health, dt, { pos = me, on_foot = w ~= nil, landing = w and w.landing,
+    events = creature_events,
+    heard = effects.take_events(fx), cast = cast_now, wards = function(kind) return effects.warded(fx, kind) end })
+  if fate == "revived" then
+    game.carpet = carpet.new(world.move(game.home.pos, 0, 0, 0), game.home.heading)
+    c = game.carpet
+    game.walker, w = nil, nil
+    me = c.pos
+    camera.reset(game.chase)
+  end
+  local m = game.magic.caster.mage
+  motes.tick(game.motes, dt, { { pos = me, mage = m } })
+  motes.bloom(game.motes, me, dt)
+  game.channeling = input.state("channel").held and motes.channel(m, me, dt, w and math.abs(w.speed) or c.speed) > 0
+  if w then
+    world.set_focus(1, me, { 0, 0, 0 }, { math.sin(w.heading), 0, -math.cos(w.heading) })
+  else
+    world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
+  end
   -- The host streams around every heir (one focus each).
   for p = 1, 3 do
     local other = co.role == "host" and co.carpets[p]
@@ -241,6 +323,25 @@ local function draw_hud(lines)
   end
 end
 
+-- The HUD in flight: the carpet, health, magic, creatures and motes.
+local function flight_lines()
+  local c = game.carpet
+  local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
+  local parts = { health.hud_lines(game.health), magic.hud_lines(game.magic), fauna.hud_lines(game.fauna),
+    motes.hud_lines(game.motes) }
+  for _, more in ipairs(parts) do
+    for _, line in ipairs(more) do lines[#lines + 1] = line end
+  end
+  if game.channeling then lines[#lines + 1] = "Channeling" end
+  local w = game.walker
+  if w then
+    lines[#lines + 1] = "On foot" .. (w.on_ice and ", on the ice" or "") .. (w.blocked and " - too deep to wade" or "")
+  elseif walker.can_step_off(c, FOOT) then
+    lines[#lines + 1] = "Low and slow: E to step off"
+  end
+  return lines
+end
+
 local function flight_frame()
   local c = game.carpet
   local now = engine.time()
@@ -250,17 +351,29 @@ local function flight_frame()
   local up = world.up_at(c.pos)
   if game.camera_override then
     render.camera(game.camera_override())
+  elseif game.walker then -- on foot: out of the eyes
+    local eye, target = walker.view(game.walker)
+    render.camera({ eye = eye, target = target, up = world.up_at(game.walker.pos), fov = 70, near = 0.1, far = 30000 })
   else
     local eye, target = camera.view(game.chase, p, c.heading, up, dt)
     render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
   end
   render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
+  local sights = magic.sights(game.magic)
+  for _, l in ipairs(sights.lights) do render.draw_sprite(assets.mote, world.to_local(l), 2) end
+  for _, mote in ipairs(game.motes.list) do render.draw_sprite(assets.mote, world.to_local(mote.pos), 0.7) end
+  for _, b in ipairs(sights.bolts) do
+    render.draw_sprite(b.color == "water" and assets.mote or assets.flame, world.to_local(b.pos), 1.2)
+  end
   for _, other in pairs(game.coop.carpets) do
     if other ~= c then
       render.draw_model(assets.carpet, { position = world.to_local(other.pos), rotation = carpet.rotation(other) })
     end
   end
-  draw_hud(flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time()))
+  draw_hud(flight_lines())
+  for _, t in ipairs(sights.trail) do -- the gesture being drawn
+    render.draw_text(assets.font, "o", 80 + t[1], 160 + t[2], 1, { 1, 0.9, 0.5, 1 })
+  end
 end
 
 local function create_frame()
@@ -304,7 +417,8 @@ end)
 
 -- The simulation state that replays and the determinism checks hash.
 engine.on("hash", function()
-  return { mode = game.mode, showcase = game.state, carpet = game.carpet and carpet.snapshot(game.carpet) }
+  return { mode = game.mode, showcase = game.state, carpet = game.carpet and carpet.snapshot(game.carpet),
+    magic = game.magic and magic.hash_state(game.magic) }
 end)
 
 engine.on("event", function(name, args)
@@ -321,5 +435,6 @@ end)
 -- Exposed for scenario tests.
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
-  creation = creation,
+  creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
+  walker = walker,
 }
