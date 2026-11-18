@@ -368,6 +368,10 @@ function render.capture(target) end
 ---@param b number
 function render.clear_color(r, g, b) end
 
+---Lights the scene from the world's sky (the sun, the moon and the stars, day and night, the seasons of plants and snow) instead of render.light and the colours of render.atmosphere; its fog distance still applies.
+---@param on boolean
+function render.daylight(on) end
+
 ---Draws a model this frame (call from a frame hook).
 ---@param model integer
 ---@param transform? Transform
@@ -686,6 +690,15 @@ function world.province(pos) end
 ---@param view? number[]
 function world.set_focus(index, pos, velocity, view) end
 
+---Sets the world's time (game seconds since the world began), e.g. after sleeping.
+---@param seconds number
+function world.set_time(seconds) end
+
+---The sky over a position now.
+---@param pos PlanetPos
+---@return Sky
+function world.sky(pos) end
+
 ---The rock record under a position, youngest first, nil in the noise world.
 ---@param pos PlanetPos
 ---@return Stratum[]?
@@ -699,6 +712,10 @@ function world.stream_stats() end
 ---@param pos PlanetPos
 ---@return string
 function world.surface(pos) end
+
+---The world's time and date (the clock at longitude 0).
+---@return WorldTime
+function world.time() end
 
 ---Planet-centred coordinates in metres (+Z is the north pole).
 ---@param pos PlanetPos

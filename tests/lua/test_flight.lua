@@ -135,6 +135,8 @@ test.case("heads-up text", function()
   test.expect(lines[3]:find("above ground 20 m", 1, true) ~= nil)
   test.expect_eq(lines[4], "flown 2.5 km")
   test.expect(fhud.lines(c, -50, "touch", { version = "x" })[5]:find("BOOST", 1, true) ~= nil)
+  local t = { day = 3, season = "spring", hour = 14, minute = 5 }
+  test.expect_eq(fhud.lines(c, 100, "desktop", { version = "0.1.0" }, t)[4], "flown 2.5 km  day 3 of spring, 14:05")
 end)
 
 test.case("spawn on land", function()

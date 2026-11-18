@@ -44,6 +44,7 @@ typedef struct zb_draw_item {
   float size[2];    /* sprite world size */
   float pivot[2];   /* sprite pivot (0..1) */
   float uv[4];      /* sprite uv rect: u0, v0, u1, v1 */
+  float snow;       /* terrain: 0 .. 1 snow on flat ground */
 } zb_draw_item;
 
 typedef struct zb_view {

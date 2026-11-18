@@ -5,6 +5,7 @@
 scenario { name = "forest view" }
 local game = demo.game
 game.hud = false
+render.daylight(false) -- the same light at any time of day
 for _ = 1, 900 do
   step(1)
   local s = world.stream_stats()

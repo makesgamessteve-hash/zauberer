@@ -13,6 +13,7 @@ for _ = 1, 20000 do
   sleep(2)
 end
 expect(game.fly_in_new_world())
+render.daylight(false) -- the same light at any time of day
 -- An inland stretch of river: look around until one is well above the sea.
 local river, surface
 for k = 0, 15 do

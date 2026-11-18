@@ -171,6 +171,7 @@ typedef struct gl_program {
   GLint cam_right, cam_up, cam_fwd, tan_half, tan_offset, world_up, zenith, horizon, dip, sun_dir, sun_color;
   GLint scene, lut, bayer, dither, palette;
   GLint time, tints;
+  GLint night, moon_dir, moon_light, celestial, snow;
 } gl_program;
 
 typedef struct sprite_instance {
@@ -338,6 +339,11 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const cha
                {"u_dither", offsetof(gl_program, dither)},
                {"u_time", offsetof(gl_program, time)},
                {"u_tints", offsetof(gl_program, tints)},
+               {"u_night", offsetof(gl_program, night)},
+               {"u_moon_dir", offsetof(gl_program, moon_dir)},
+               {"u_moon_light", offsetof(gl_program, moon_light)},
+               {"u_celestial", offsetof(gl_program, celestial)},
+               {"u_snow", offsetof(gl_program, snow)},
                {"u_palette", offsetof(gl_program, palette)}};
   for (size_t i = 0; i < sizeof extra / sizeof extra[0]; ++i) {
     *(GLint *)((char *)out + extra[i].offset) = c->gl.glGetUniformLocation(p, extra[i].name);
@@ -563,6 +569,8 @@ static void draw_meshes(gl_ctx *c, const zb_frame *f, int view, zb_draw_kind kin
     c->gl.glUniformMatrix4fv(p->normal, 1, GL_FALSE, nm.m);
     if (kind == ZB_DRAW_MODEL) {
       c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, it->texture));
+    } else {
+      c->gl.glUniform1f(p->snow, it->snow);
     }
     c->gl.glBindVertexArray(m->vao);
     c->gl.glDrawElements(GL_TRIANGLES, (GLsizei)it->count, GL_UNSIGNED_INT,
@@ -741,6 +749,10 @@ static void draw_sky(gl_ctx *c, const zb_frame *f, int view) {
   c->gl.glUniform1f(p->dip, a->horizon_dip);
   c->gl.glUniform3f(p->sun_dir, a->sun_dir.x, a->sun_dir.y, a->sun_dir.z);
   c->gl.glUniform3f(p->sun_color, a->sun_color.x, a->sun_color.y, a->sun_color.z);
+  c->gl.glUniform1f(p->night, a->night);
+  c->gl.glUniform3f(p->moon_dir, a->moon_dir.x, a->moon_dir.y, a->moon_dir.z);
+  c->gl.glUniform1f(p->moon_light, a->moon_light);
+  c->gl.glUniformMatrix4fv(p->celestial, 1, GL_FALSE, a->celestial.m);
   c->gl.glBindVertexArray(c->empty_vao);
   c->gl.glDrawArrays(GL_TRIANGLES, 0, 3);
   c->gl.glEnable(GL_DEPTH_TEST);

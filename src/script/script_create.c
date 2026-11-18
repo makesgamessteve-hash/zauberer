@@ -754,7 +754,8 @@ static int w_draw_globe(lua_State *L) {
   }
   zb_quat q = zb_quat_axis_angle((zb_vec3){0.0f, 1.0f, 0.0f}, spin);
   zb_mat4 m = zb_m4_trs((zb_vec3){pos[0], pos[1], pos[2]}, q, (zb_vec3){radius, radius, radius});
-  zb_render_draw_terrain(s->cfg.render, s->globe_mesh, s->globe_index_count, m, (zb_vec3){0.0f, 0.0f, 0.0f}, 1.0f);
+  zb_render_draw_terrain(s->cfg.render, s->globe_mesh, s->globe_index_count, m, (zb_vec3){0.0f, 0.0f, 0.0f}, 1.0f,
+                         0.0f);
   lua_pushboolean(L, true);
   return 1;
 }

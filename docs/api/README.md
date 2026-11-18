@@ -148,6 +148,10 @@ Test API: reads back the last frame.
 
 Background colour.
 
+### `render.daylight(on: boolean)`
+
+Lights the scene from the world's sky (the sun, the moon and the stars, day and night, the seasons of plants and snow) instead of render.light and the colours of render.atmosphere; its fog distance still applies.
+
 ### `render.draw_model(model: integer, transform?: Transform)`
 
 Draws a model this frame (call from a frame hook).
@@ -378,6 +382,14 @@ The biogeographic province under a position (1-based) and its isolation (0 well 
 
 Streams terrain around a focus point (1..4, one per player camera). velocity (m/s) and view are {x, y, z} in the local frame at pos (x east, y up, z south).
 
+### `world.set_time(seconds: number)`
+
+Sets the world's time (game seconds since the world began), e.g. after sleeping.
+
+### `world.sky(pos: PlanetPos): Sky`
+
+The sky over a position now.
+
 ### `world.strata(pos: PlanetPos): Stratum[]?`
 
 The rock record under a position, youngest first, nil in the noise world.
@@ -389,6 +401,10 @@ Chunk streaming statistics.
 ### `world.surface(pos: PlanetPos): string`
 
 Surface material at the position: "soil", "sand", "rock", "gravel", "snow", "ice" or "mud".
+
+### `world.time(): WorldTime`
+
+The world's time and date (the clock at longitude 0).
 
 ### `world.to_cartesian(pos: PlanetPos): number, number, number`
 

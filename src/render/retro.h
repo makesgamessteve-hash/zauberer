@@ -20,6 +20,11 @@ typedef struct zb_atmosphere {
   zb_vec3 sun_dir;   /* direction towards the sun */
   zb_vec3 sun_color;
   float fog_density; /* per metre: fog = 1 - exp(-(distance * density)^2) */
+  /* Night (the GPU sky only; zb_sky_color ignores them): */
+  float night;       /* 0 day .. 1 night: how bright the stars are */
+  zb_vec3 moon_dir;  /* towards the moon */
+  float moon_light;  /* lit fraction of the moon's disc (0: no moon drawn) */
+  zb_mat4 celestial; /* render directions to the star sphere (columns) */
 } zb_atmosphere;
 
 /* Fog amount (0 clear .. 1 fully fogged) at a distance. */

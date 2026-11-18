@@ -66,6 +66,7 @@ struct zb_render {
   zb_atmosphere atmosphere;
   double time; /* seconds, for animated water and swaying plants */
   bool time_pinned;
+  bool daylight;
   float foliage_tints[ZB_FOLIAGE_TINTS][3];
   uint32_t lut_asset, bayer_asset, atlas_asset;
   float dither;
@@ -623,7 +624,7 @@ static uint32_t ready_texture(const zb_render *r, uint32_t handle) {
 }
 
 static void draw_mesh_item(zb_render *r, zb_draw_kind kind, uint32_t mesh, uint32_t index_count, zb_mat4 transform,
-                           zb_vec3 center, float radius) {
+                           zb_vec3 center, float radius, float snow) {
   if (!r->in_frame || mesh == 0) {
     return;
   }
@@ -640,6 +641,7 @@ static void draw_mesh_item(zb_render *r, zb_draw_kind kind, uint32_t mesh, uint3
     it.mesh = mesh;
     it.count = index_count;
     it.model = transform;
+    it.snow = snow;
     uint64_t pass = kind == ZB_DRAW_WATER ? 3ull : 2ull;
     it.sort_key = ((uint64_t)v << 60) | (pass << 56) | ((uint64_t)mesh << 16) | (r->items.len & 0xFFFF);
     if (zb_array_push(&r->items, &it)) {
@@ -654,13 +656,13 @@ static void draw_mesh_item(zb_render *r, zb_draw_kind kind, uint32_t mesh, uint3
 }
 
 void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
-                            float radius) {
-  draw_mesh_item(r, ZB_DRAW_TERRAIN, mesh, index_count, transform, center, radius);
+                            float radius, float snow) {
+  draw_mesh_item(r, ZB_DRAW_TERRAIN, mesh, index_count, transform, center, radius, snow);
 }
 
 void zb_render_draw_water(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
                           float radius) {
-  draw_mesh_item(r, ZB_DRAW_WATER, mesh, index_count, transform, center, radius);
+  draw_mesh_item(r, ZB_DRAW_WATER, mesh, index_count, transform, center, radius, 0.0f);
 }
 
 static uint32_t ready_texture(const zb_render *r, uint32_t handle);
@@ -670,6 +672,9 @@ void zb_render_set_time(zb_render *r, double seconds) {
     r->time = seconds;
   }
 }
+
+void zb_render_set_daylight(zb_render *r, bool on) { r->daylight = on; }
+bool zb_render_daylight(const zb_render *r) { return r->daylight; }
 
 void zb_render_pin_time(zb_render *r, double seconds) {
   r->time_pinned = seconds >= 0.0;

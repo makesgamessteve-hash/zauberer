@@ -88,15 +88,20 @@ zb_layout zb_render_compute_layout(int drawable_w, int drawable_h, int internal_
  * target is set). */
 void zb_render_begin(zb_render *r, int drawable_w, int drawable_h);
 void zb_render_draw_model(zb_render *r, uint32_t model, zb_mat4 transform);
-/* A terrain mesh (from zb_render_upload_mesh) with its bounding sphere in mesh coordinates. */
+/* A terrain mesh (from zb_render_upload_mesh) with its bounding sphere in mesh
+ * coordinates, and how much snow (0 .. 1) lies on its flat ground. */
 void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
-                            float radius);
+                            float radius, float snow);
 /* A translucent water mesh (colour alpha = opacity, uv = metres for its
  * ripples), drawn after the opaque scene without writing depth. */
 void zb_render_draw_water(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
                           float radius);
 /* The time that animates water and plants, in seconds. */
 void zb_render_set_time(zb_render *r, double seconds);
+/* Whether the engine lights the scene from the world's sky (day, night,
+ * seasons) instead of the light and atmosphere the scripts set. */
+void zb_render_set_daylight(zb_render *r, bool on);
+bool zb_render_daylight(const zb_render *r);
 /* Holds the animation time at seconds (photos and golden images), or lets it
  * run again when seconds is negative. */
 void zb_render_pin_time(zb_render *r, double seconds);

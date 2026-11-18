@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "app/daylight.h"
 #include "core/array.h"
 #include "core/dmath.h"
 #include "core/log.h"
@@ -24,6 +25,8 @@ typedef struct cache_entry {
   uint32_t foliage_version;
   zb_vec3 foliage_center;
   float foliage_radius;
+  float climate[3]; /* annual mean, coldest and warmest month (deg C at sea level) */
+  float height;     /* the chunk's middle height, metres */
   zb_vec3 water_center;
   float water_radius;
   int lod;
@@ -651,6 +654,11 @@ static void build(zb_terrain_view *tv, const build_request *req) {
     memset(&fresh, 0, sizeof fresh);
     fresh.chunk = req->chunk;
     fresh.foliage_band = -1;
+    double mean, coldest, warmest, rain;
+    zb_terrain_chunk_climate(zb_world_terrain(tv->world), req->chunk, &mean, &coldest, &warmest, &rain);
+    fresh.climate[0] = (float)mean;
+    fresh.climate[1] = (float)coldest;
+    fresh.climate[2] = (float)warmest;
     zb_origin_init(&fresh.frame, zb_world_planet(tv->world), req->chunk);
     e = zb_array_push(&tv->entries, &fresh);
     if (!e || zb_map_put(&tv->index, zb_chunk_key(req->chunk), tv->entries.len - 1) != ZB_OK) {
@@ -664,6 +672,7 @@ static void build(zb_terrain_view *tv, const build_request *req) {
   zb_render_release_mesh(tv->r, e->mesh);
   e->mesh = mesh;
   e->count = count;
+  e->height = 0.5f * (req->ct->min_height + req->ct->max_height);
   /* The water over it, if any (none when memory runs out: the land still shows). */
   zb_render_release_mesh(tv->r, e->water_mesh);
   e->water_mesh = e->water_count = 0;
@@ -741,7 +750,8 @@ void zb_terrain_view_draw(zb_terrain_view *tv, zb_world *w, zb_vec3 eye) {
       e->origin_version = origin_version;
       e->transformed = true;
     }
-    zb_render_draw_terrain(tv->r, e->mesh, e->count, e->transform, e->center, e->radius);
+    float snow = zb_daylight_snow(e->climate[0], e->climate[1], e->climate[2], e->height, tv->season);
+    zb_render_draw_terrain(tv->r, e->mesh, e->count, e->transform, e->center, e->radius, snow);
     if (e->water_mesh) {
       zb_render_draw_water(tv->r, e->water_mesh, e->water_count, e->transform, e->water_center, e->water_radius);
       tv->stats.water++;

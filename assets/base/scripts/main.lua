@@ -20,13 +20,25 @@ local game = { mode = "flight", state = state.new(), fullscreen = false, hud = t
 local assets = {}
 
 local SHOWCASE_ACTIONS = { "turn", "look", "zoom", "spin", "chime", "credits", "fullscreen", "quit" }
+local WORLD_START = 8 * 3600 -- a new world's time (game seconds)
 local WORLD = { move = world.move, height = world.height, water = world.water, chunk_hash = world.chunk_hash }
 local SUN = { 0.45, 0.6, -0.66 }
+
+-- A new world begins on a spring morning where the carpet starts (its clock
+-- runs at longitude 0): 08:00 local solar time on the first day.
+local function morning_at(pos)
+  local x, y = world.to_cartesian(pos)
+  local noon = (math.pi - math.atan(y, x)) / (2 * math.pi)
+  return ((noon - 4 / 24) % 1) * 86400
+end
 
 local function setup_flight()
   local p = world.planet()
   local pos = spawn.find(world.height, p.chunks_per_edge)
   pos.alt = math.max(world.height(pos), 0) + 60
+  if world.time().time == WORLD_START then
+    world.set_time(morning_at(pos))
+  end
   game.carpet = carpet.new(pos, 0)
   game.chase = camera.new()
   game.coop = coop.new()
@@ -35,11 +47,13 @@ local function setup_flight()
   render.atmosphere({ zenith = { 0.2, 0.4, 0.78 }, horizon = { 0.72, 0.8, 0.88 }, sun = SUN,
     sun_color = { 1, 0.95, 0.8 }, fog_distance = 12000 })
   render.palette({})
+  render.daylight(true) -- the sun, the moon and the seasons over the carpet
   world.set_focus(1, game.carpet.pos, { 0, 0, 0 }, carpet.forward(game.carpet))
 end
 
 local function setup_create()
   world.clear_focus(1)
+  render.daylight(false)
   render.atmosphere(false)
   render.palette({})
   render.clear_color(0.02, 0.02, 0.06)
@@ -51,6 +65,7 @@ end
 
 local function setup_showcase()
   world.clear_focus(1)
+  render.daylight(false)
   render.atmosphere(false)
   render.palette(false)
   render.clear_color(0.08, 0.06, 0.14)
@@ -214,7 +229,7 @@ local function flight_frame()
       render.draw_model(assets.carpet, { position = world.to_local(other.pos), rotation = carpet.rotation(other) })
     end
   end
-  draw_hud(flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info()))
+  draw_hud(flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time()))
 end
 
 local function create_frame()

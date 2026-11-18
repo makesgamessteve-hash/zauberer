@@ -4,6 +4,7 @@
 #ifndef ZB_WORLD_WORLD_H
 #define ZB_WORLD_WORLD_H
 
+#include "world/calendar.h"
 #include "world/stream.h"
 
 typedef struct zb_world_desc {
@@ -38,6 +39,13 @@ bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus);
 void zb_world_update(zb_world *w);
 /* The render origin. zb_world_update moves it to the chunk of focus 1 when
  * that focus is more than ZB_ORIGIN_REBASE_DISTANCE away from it. */
+/* World time (game seconds since the world began) and its calendar; the axial
+ * tilt comes from a created world. */
+const zb_calendar_config *zb_world_calendar(const zb_world *w);
+double zb_world_time(const zb_world *w);
+void zb_world_set_time(zb_world *w, double time);
+/* Lets real seconds of play pass. */
+void zb_world_advance_time(zb_world *w, double real_seconds);
 const zb_origin *zb_world_origin(const zb_world *w);
 /* Increases whenever the origin moves. */
 uint32_t zb_world_origin_version(const zb_world *w);

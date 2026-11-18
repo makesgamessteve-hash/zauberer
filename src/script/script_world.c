@@ -278,6 +278,83 @@ static int w_water(lua_State *L) {
   return 5;
 }
 
+/* @lua world.time(): WorldTime
+ * The world's time and date (the clock at longitude 0).
+ * @field time number Game seconds since the world began
+ * @field year integer From 0
+ * @field season string "spring", "summer", "autumn" or "winter" (northern)
+ * @field day integer Day of the season, from 1
+ * @field hour integer
+ * @field minute integer
+ * @field year_fraction number 0 .. 1 from the spring equinox
+ * @field day_fraction number 0 .. 1 from midnight
+ */
+static int w_time(lua_State *L) {
+  double t = zb_world_time(W(L));
+  zb_date d;
+  zb_calendar_date(t, &d);
+  static const char *const seasons[4] = {"spring", "summer", "autumn", "winter"};
+  lua_createtable(L, 0, 8);
+  lua_pushnumber(L, t);
+  lua_setfield(L, -2, "time");
+  lua_pushinteger(L, (lua_Integer)d.year);
+  lua_setfield(L, -2, "year");
+  lua_pushstring(L, seasons[d.season]);
+  lua_setfield(L, -2, "season");
+  lua_pushinteger(L, d.day + 1);
+  lua_setfield(L, -2, "day");
+  lua_pushinteger(L, d.hour);
+  lua_setfield(L, -2, "hour");
+  lua_pushinteger(L, d.minute);
+  lua_setfield(L, -2, "minute");
+  lua_pushnumber(L, d.year_fraction);
+  lua_setfield(L, -2, "year_fraction");
+  lua_pushnumber(L, d.day_fraction);
+  lua_setfield(L, -2, "day_fraction");
+  return 1;
+}
+
+/* @lua world.set_time(seconds: number)
+ * Sets the world's time (game seconds since the world began), e.g. after sleeping.
+ */
+static int w_set_time(lua_State *L) {
+  double t = luaL_checknumber(L, 1);
+  luaL_argcheck(L, t >= 0.0, 1, "time must not be negative");
+  zb_world_set_time(W(L), t);
+  return 0;
+}
+
+/* @lua world.sky(pos: PlanetPos): Sky
+ * The sky over a position now.
+ * @field sun_elevation number Radians above the horizon (negative at night)
+ * @field moon_elevation number Radians above the horizon
+ * @field moon_phase number 0 new, 0.5 full
+ * @field moon_light number Lit fraction of the moon, 0 .. 1
+ * @field daylight number 0 night .. 1 day
+ * @field season number Local season 0 .. 4 (0 spring; half a year on south of the equator)
+ */
+static int w_sky(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  pos.alt = 0.0f;
+  zb_dvec3 c = zb_planet_to_cart(P(L), &pos);
+  double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+  zb_dvec3 d = {c.x / len, c.y / len, c.z / len};
+  zb_sky_place s;
+  zb_calendar_sky(zb_world_calendar(W(L)), zb_world_time(W(L)), d, &s);
+  lua_createtable(L, 0, 6);
+  const struct {
+    const char *name;
+    double value;
+  } fields[] = {{"sun_elevation", s.sun_elevation}, {"moon_elevation", s.moon_elevation},
+                {"moon_phase", s.moon_phase},       {"moon_light", s.moon_light},
+                {"daylight", s.daylight},           {"season", s.season}};
+  for (size_t i = 0; i < sizeof fields / sizeof fields[0]; ++i) {
+    lua_pushnumber(L, fields[i].value);
+    lua_setfield(L, -2, fields[i].name);
+  }
+  return 1;
+}
+
 /* @lua world.flora(): Species[]
  * The plant species of the world, in registry order.
  * @field id string Species id
@@ -525,6 +602,9 @@ void zb_script_open_world(zb_script *s) {
                                        {"ground_height", w_ground_height},
                                        {"water", w_water},
                                        {"flora", w_flora},
+                                       {"time", w_time},
+                                       {"set_time", w_set_time},
+                                       {"sky", w_sky},
                                        {"plants", w_plants},
                                        {"stream_stats", w_stream_stats},
                                        {"chunk_stage", w_chunk_stage},

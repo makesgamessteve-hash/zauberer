@@ -12,11 +12,13 @@ uniform vec3 u_light_dir;
 uniform vec3 u_light_color;
 uniform vec3 u_ambient;
 uniform vec3 u_eye;
+uniform float u_snow;
 out vec3 v_light;
 out vec3 v_color;
 out vec2 v_uv;
 flat out float v_layer;
 out float v_dist;
+out float v_snow;
 void main() {
   vec3 n = normalize((u_normal * vec4(a_normal, 0.0)).xyz);
   v_light = u_ambient + u_light_color * max(dot(n, -u_light_dir), 0.0);
@@ -25,5 +27,8 @@ void main() {
   v_layer = floor(a_color.a * 255.0 + 0.5);
   vec4 world = u_model * vec4(a_pos, 1.0);
   v_dist = length(world.xyz - u_eye);
+  // Snow settles on flat ground only.
+  vec3 up = normalize((u_model * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+  v_snow = u_snow * clamp((dot(n, up) - 0.75) * 5.0, 0.0, 1.0);
   gl_Position = u_view_proj * world;
 }

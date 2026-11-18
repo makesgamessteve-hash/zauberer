@@ -9,7 +9,12 @@ function M.compass(heading)
   return COMPASS[math.floor((deg + 22.5) / 45) % 8 + 1]
 end
 
-function M.lines(c, ground, mode, info)
+-- "day 3 of spring, 14:05" from world.time()
+function M.date(t)
+  return string.format("day %d of %s, %02d:%02d", t.day, t.season, t.hour, t.minute)
+end
+
+function M.lines(c, ground, mode, info, time)
   local deg = math.floor(math.deg(c.heading) % 360 + 0.5) % 360
   local lines = {
     string.format("Zauberer %s - first flight", info.version),
@@ -17,7 +22,7 @@ function M.lines(c, ground, mode, info)
       deg, M.compass(c.heading)),
     string.format("altitude %d m  above ground %d m", math.floor(c.pos.alt + 0.5),
       math.floor(c.pos.alt - math.max(ground, 0) + 0.5)),
-    string.format("flown %.1f km", c.distance / 1000),
+    string.format("flown %.1f km", c.distance / 1000) .. (time and ("  " .. M.date(time)) or ""),
   }
   if mode == "touch" then
     lines[#lines + 1] = "Left stick: steer | Right stick: climb | BOOST"

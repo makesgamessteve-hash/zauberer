@@ -185,6 +185,9 @@ class ScenarioTests(EngineTestCase):
     def test_plants(self):
         self.assert_ok(self.scenario("plants"))
 
+    def test_day_and_night(self):
+        self.assert_ok(self.scenario("day_and_night"))
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 

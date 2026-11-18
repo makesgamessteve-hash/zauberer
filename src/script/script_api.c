@@ -933,6 +933,17 @@ static int r_clear_color(lua_State *L) {
   return 0;
 }
 
+/* @lua render.daylight(on: boolean)
+ * Lights the scene from the world's sky (the sun, the moon and the stars, day
+ * and night, the seasons of plants and snow) instead of render.light and the
+ * colours of render.atmosphere; its fog distance still applies.
+ */
+static int r_daylight(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TBOOLEAN);
+  zb_render_set_daylight(S(L)->cfg.render, lua_toboolean(L, 1));
+  return 0;
+}
+
 /* @lua render.pin_time(seconds?: number)
  * Holds the time that animates water and swaying plants (for photos and
  * golden images); nil lets it run with the game again.
@@ -1366,6 +1377,7 @@ void zb_script_open_api(zb_script *s) {
                                         {"light", r_light},
                                         {"clear_color", r_clear_color},
                                         {"pin_time", r_pin_time},
+                                        {"daylight", r_daylight},
                                         {"atmosphere", r_atmosphere},
                                         {"palette", r_palette},
                                         {"internal_height", r_internal_height},

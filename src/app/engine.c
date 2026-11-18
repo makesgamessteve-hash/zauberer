@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "app/engine.h"
 
+#include "app/daylight.h"
 #include "world/bundle.h"
 
 #include "core/hash.h"
@@ -636,6 +637,7 @@ static void tick(zb_engine *e) {
   }
   zb_audio_tick(e->audio, zb_loop_tick_seconds());
   e->ticks++;
+  zb_world_advance_time(e->world, zb_loop_tick_seconds());
   zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
@@ -654,9 +656,24 @@ static void step(zb_engine *e) {
   frame(e, 0.0);
 }
 
+/* Day and night from the world's sky over the camera, when the scripts ask for it. */
+static void apply_daylight(zb_engine *e, zb_vec3 eye) {
+  zb_daylight d;
+  zb_daylight_compute(zb_world_calendar(e->world), zb_world_time(e->world), zb_world_origin(e->world), eye, &d);
+  zb_atmosphere a = d.atmosphere;
+  const zb_atmosphere *cur = zb_render_atmosphere(e->render);
+  a.fog_density = cur->fog_density; /* the scripts' visibility stays */
+  zb_render_set_atmosphere(e->render, &a);
+  zb_render_set_light(e->render, d.light_dir, d.light_color, d.ambient);
+  zb_terrain_view_set_season(e->terrain_view, (float)d.sky.season);
+}
+
 /* Terrain and the sky's horizon, for the camera the scripts set. */
 static void draw_world(zb_engine *e) {
   zb_vec3 eye = zb_render_camera_eye(e->render);
+  if (zb_render_daylight(e->render)) {
+    apply_daylight(e, eye);
+  }
   if (!e->headless) { /* headless runs draw nothing: no meshes to build */
     zb_terrain_view_draw(e->terrain_view, e->world, eye);
   }

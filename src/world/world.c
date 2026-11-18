@@ -16,6 +16,8 @@ struct zb_world {
   bool active[ZB_STREAM_MAX_FOCUS];
   zb_origin origin;
   uint32_t origin_version;
+  zb_calendar_config calendar;
+  double time; /* game seconds */
 };
 
 zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) {
@@ -39,6 +41,11 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) 
   zb_terrain_init(&w->terrain, &w->planet, seed, NULL);
   zb_terrain_use_bundle(&w->terrain, desc->bundle);
   zb_terrain_use_flora(&w->terrain, desc->flora);
+  zb_calendar_default(&w->calendar);
+  if (desc->bundle) {
+    w->calendar.axial_tilt = desc->bundle->options.axial_tilt;
+  }
+  w->time = w->calendar.start;
   zb_chunk start = {ZB_FACE_PX, w->planet.n / 2, w->planet.n / 2};
   zb_origin_init(&w->origin, &w->planet, start);
   zb_stream_config cfg;
@@ -68,6 +75,13 @@ const zb_planet *zb_world_planet(const zb_world *w) { return &w->planet; }
 const zb_terrain *zb_world_terrain(const zb_world *w) { return &w->terrain; }
 const zb_world_bundle *zb_world_get_bundle(const zb_world *w) { return w->terrain.bundle; }
 zb_stream *zb_world_stream(zb_world *w) { return w->stream; }
+
+const zb_calendar_config *zb_world_calendar(const zb_world *w) { return &w->calendar; }
+double zb_world_time(const zb_world *w) { return w->time; }
+void zb_world_set_time(zb_world *w, double time) { w->time = time > 0.0 ? time : 0.0; }
+void zb_world_advance_time(zb_world *w, double real_seconds) {
+  w->time += zb_calendar_game_seconds(&w->calendar, real_seconds);
+}
 
 bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus) {
   if (index < 0 || index >= ZB_STREAM_MAX_FOCUS) {
