@@ -182,6 +182,9 @@ class ScenarioTests(EngineTestCase):
     def test_water_bodies(self):
         self.assert_ok(self.scenario("water"))
 
+    def test_plants(self):
+        self.assert_ok(self.scenario("plants"))
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 

@@ -141,7 +141,7 @@ static void test_stages(void) {
   TEST_ASSERT_NULL(ct.material);
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_terrain_generate(&g_terrain, a, &ct, ZB_STAGE_COARSE));
   TEST_ASSERT_EQUAL_INT(ZB_STAGE_TERRAIN, ct.stage);
-  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_terrain_generate(&g_terrain, a, &ct, 3));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_terrain_generate(&g_terrain, a, &ct, ZB_STAGE_ECOLOGY + 1));
   zb_chunk_terrain_release(a, &ct);
   zb_chunk_terrain bad;
   zb_chunk_terrain_init(&bad, (zb_chunk){0, g_planet.n, 0});
@@ -296,7 +296,7 @@ static uint64_t golden_hash(const zb_terrain *t, const zb_allocator *a) {
 }
 
 /* Update only when terrain generation changes on purpose (worlds change with it). */
-#define GOLDEN "73daf5681c45c1de"
+#define GOLDEN "74b959361dfc7f8f"
 
 /* spec: terrain-generation: Golden worldgen hashes */
 /* spec: terrain-generation: Two peers */

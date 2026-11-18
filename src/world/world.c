@@ -38,6 +38,7 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) 
   }
   zb_terrain_init(&w->terrain, &w->planet, seed, NULL);
   zb_terrain_use_bundle(&w->terrain, desc->bundle);
+  zb_terrain_use_flora(&w->terrain, desc->flora);
   zb_chunk start = {ZB_FACE_PX, w->planet.n / 2, w->planet.n / 2};
   zb_origin_init(&w->origin, &w->planet, start);
   zb_stream_config cfg;
@@ -46,6 +47,7 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) 
   cfg.jobs = desc->jobs;
   cfg.clock_ns = desc->clock_ns;
   cfg.clock_ctx = desc->clock_ctx;
+  cfg.ecology_radius = desc->flora ? zb_stream_profile_ecology_radius(desc->profile) : 0.0f;
   w->stream = zb_stream_create(&w->terrain, &cfg);
   if (!w->stream) {
     snprintf(err, err_len, "out of memory");

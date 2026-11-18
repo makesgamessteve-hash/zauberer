@@ -18,6 +18,11 @@ typedef struct zb_terrain_view_config {
   float lod_distance[ZB_TERRAIN_LODS - 1];
   int fine_builds;   /* 4 m and 8 m meshes built per frame */
   int coarse_builds; /* coarser meshes built per frame */
+  /* Plants: every plant below the first distance (chunk centres), trees and
+   * shrubs below the second, clump impostors below the third; beyond, the
+   * canopy surface of the terrain mesh. */
+  float foliage_distance[3];
+  int foliage_builds; /* plant buffers built per frame */
 } zb_terrain_view_config;
 
 typedef struct zb_terrain_view_stats {
@@ -26,8 +31,12 @@ typedef struct zb_terrain_view_stats {
   size_t drawn;     /* chunks submitted this frame (before culling) */
   size_t triangles; /* triangles submitted this frame */
   size_t per_lod[ZB_TERRAIN_LODS];
-  size_t water;        /* chunks drawn with water this frame */
-  size_t water_meshes; /* water meshes held */
+  size_t water;         /* chunks drawn with water this frame */
+  size_t water_meshes;  /* water meshes held */
+  size_t foliage;       /* chunks drawn with plants this frame */
+  size_t plants;        /* plant billboards drawn this frame (before culling) */
+  size_t foliage_built; /* plant buffers built this frame */
+  size_t foliage_per_band[3];
 } zb_terrain_view_stats;
 
 typedef struct zb_terrain_view zb_terrain_view;
@@ -43,6 +52,16 @@ void zb_terrain_view_destroy(zb_terrain_view *tv);
  * zb_render_begin and zb_render_end). eye is the camera in render coordinates. */
 void zb_terrain_view_draw(zb_terrain_view *tv, zb_world *w, zb_vec3 eye);
 void zb_terrain_view_get_stats(const zb_terrain_view *tv, zb_terrain_view_stats *out);
+/* The season the plants show: 0 spring, 1 summer, 2 autumn, 3 winter,
+ * fractions blending into the next (the default is 1). */
+void zb_terrain_view_set_season(zb_terrain_view *tv, float season);
+/* The plant band a chunk at this distance gets: 0 every plant, 1 trees and
+ * shrubs, 2 clumps, 3 none (the canopy surface). */
+int zb_terrain_view_foliage_band(const zb_terrain_view *tv, float distance);
+/* Builds a chunk's plant billboards for a band (exposed for tests); count 0
+ * when there are none. The instances are in the chunk's tangent frame. */
+zb_result zb_foliage_build(const zb_allocator *a, const zb_terrain *t, const zb_chunk_terrain *ct, int band,
+                           zb_foliage_instance **out, size_t *count, zb_vec3 *center, float *radius);
 /* The level a chunk at this distance gets (0 = 4 m grid). */
 int zb_terrain_view_lod(const zb_terrain_view *tv, float distance);
 /* Builds a chunk mesh (exposed for tests): grid step 4 << lod metres. */

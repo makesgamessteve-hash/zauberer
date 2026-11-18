@@ -17,7 +17,17 @@
 #define THRESHOLD_SAMPLES 2048
 
 /* Independent noise streams. */
-enum { SEED_CONTINENT = 1, SEED_HILLS, SEED_MOUNTAIN_MASK, SEED_RIDGES, SEED_DETAIL, SEED_JITTER, SEED_CRAGS };
+enum {
+  SEED_CONTINENT = 1,
+  SEED_HILLS,
+  SEED_MOUNTAIN_MASK,
+  SEED_RIDGES,
+  SEED_DETAIL,
+  SEED_JITTER,
+  SEED_CRAGS,
+  SEED_RAIN,
+  SEED_PLANTS
+};
 
 static uint64_t stream(const zb_terrain *t, int which) {
   return zb_mix64(t->seed ^ ((uint64_t)(uint32_t)which * 0x9e3779b97f4a7c15ull));
@@ -86,9 +96,42 @@ void zb_terrain_init(zb_terrain *t, const zb_planet *p, uint64_t seed, const zb_
   k = k < 0 ? 0 : (k >= THRESHOLD_SAMPLES ? THRESHOLD_SAMPLES - 1 : k);
   t->continent_threshold = samples[k];
   t->bundle = NULL;
+  t->flora = NULL;
 }
 
 void zb_terrain_use_bundle(zb_terrain *t, const zb_world_bundle *bundle) { t->bundle = bundle; }
+
+void zb_terrain_use_flora(zb_terrain *t, const zb_flora *flora) { t->flora = flora; }
+
+void zb_terrain_chunk_climate(const zb_terrain *t, zb_chunk c, double *mean, double *coldest, double *warmest,
+                              double *precipitation) {
+  zb_dvec3 d = zb_planet_chunk_dir(&t->planet, c);
+  if (t->bundle) {
+    double sum = 0.0, rain = 0.0, lo = 1e9, hi = -1e9;
+    for (int m = 0; m < ZB_MONTHS; ++m) {
+      double temp, p;
+      zb_world_bundle_climate(t->bundle, d, m, 0.0, &temp, &p);
+      sum += temp;
+      rain += p;
+      lo = temp < lo ? temp : lo;
+      hi = temp > hi ? temp : hi;
+    }
+    *mean = sum / ZB_MONTHS;
+    *coldest = lo;
+    *warmest = hi;
+    *precipitation = rain;
+    return;
+  }
+  /* The noise world: warm at the equator, seasons growing poleward, and
+   * rainy and dry regions a few hundred kilometres across. */
+  double s2 = d.z * d.z, r = t->planet.radius / 400000.0;
+  double wet = 0.5 + 0.5 * zb_fbm3(stream(t, SEED_RAIN), d.x * r, d.y * r, d.z * r, 3, 0.5);
+  double swing = 4.0 + 30.0 * fabs(d.z);
+  *mean = 27.0 - 42.0 * s2;
+  *coldest = *mean - 0.5 * swing;
+  *warmest = *mean + 0.5 * swing;
+  *precipitation = (150.0 + 2200.0 * wet * wet) * (1.25 - 0.85 * s2);
+}
 
 /* Terrain v2: the created world's macro grid with hills and crags below its
  * 6 km cells; both fade into river valleys. rs holds the rivers nearby. */
@@ -273,6 +316,7 @@ void zb_chunk_terrain_init(zb_chunk_terrain *ct, zb_chunk c) {
 void zb_chunk_terrain_release(const zb_allocator *a, zb_chunk_terrain *ct) {
   zb_free(a, ct->height);
   zb_free(a, ct->material);
+  zb_free(a, ct->plants);
   zb_chunk_terrain_init(ct, ct->chunk);
 }
 
@@ -289,6 +333,11 @@ void zb_chunk_terrain_trim(const zb_allocator *a, zb_chunk_terrain *ct, int stag
   if (stage < ZB_STAGE_COARSE) {
     zb_chunk_terrain_release(a, ct);
     return;
+  }
+  if (stage < ZB_STAGE_ECOLOGY && ct->plants) {
+    zb_free(a, ct->plants);
+    ct->plants = NULL;
+    ct->plant_count = 0;
   }
   if (stage < ZB_STAGE_SURFACE && ct->material) {
     zb_free(a, ct->material);
@@ -312,6 +361,7 @@ size_t zb_chunk_terrain_bytes(const zb_chunk_terrain *ct) {
   if (ct->material) {
     n += (size_t)ZB_SURFACE_RES * ZB_SURFACE_RES;
   }
+  n += sizeof(zb_plant) * ct->plant_count;
   return n;
 }
 
@@ -426,6 +476,71 @@ static void coarse_biomes(const zb_terrain *t, zb_chunk c, uint8_t out[ZB_COARSE
   }
 }
 
+/* ---- Plants ------------------------------------------------------------------ */
+
+#define LAPSE 0.0065 /* deg C per metre */
+
+/* The biome of a place: the created world's, or for the noise world from its
+ * climate. */
+static int site_biome(const zb_terrain *t, int bundle_biome, double temperature, double precipitation, double warmest,
+                      int material) {
+  if (t->bundle) {
+    return bundle_biome;
+  }
+  return (int)zb_biome_classify(temperature, precipitation, warmest, 0.35, material == ZB_MAT_ROCK ? 1.0 : 0.0);
+}
+
+/* Stage 0: how much of each 32 m of the chunk is under trees, and which far-
+ * forest impostor suits it best. */
+static void stage0_canopy(const zb_terrain *t, zb_chunk_terrain *ct, const uint8_t *biomes, double cell_w,
+                          double cell_h) {
+  memset(ct->canopy, 0, sizeof ct->canopy);
+  ct->clump = 0;
+  const zb_flora *f = t->flora;
+  if (!f) {
+    return;
+  }
+  double mean, coldest, warmest, rain;
+  zb_terrain_chunk_climate(t, ct->chunk, &mean, &coldest, &warmest, &rain);
+  double best[ZB_FLORA_MAX];
+  memset(best, 0, sizeof best);
+  for (int j = 0; j < ZB_CANOPY_RES; ++j) {
+    for (int i = 0; i < ZB_CANOPY_RES; ++i) {
+      int x = 2 * i, y = 2 * j;
+      const float *m = &ct->macro[(y + 1) * MACRO_RES + x + 1];
+      double h = (double)m[0];
+      if (h < 0.0) {
+        continue;
+      }
+      double gx = ((double)m[1] - (double)m[-1]) / (2.0 * cell_w),
+             gy = ((double)m[MACRO_RES] - (double)m[-MACRO_RES]) / (2.0 * cell_h);
+      double slope = sqrt(gx * gx + gy * gy), lapse = LAPSE * h;
+      int material = ct->coarse_material[y * ZB_COARSE_RES + x];
+      int biome = site_biome(t, biomes[y * ZB_COARSE_RES + x], mean - lapse, rain, warmest - lapse, material);
+      bool wet = zb_biome_is_wet(biome);
+      double cover = zb_biome_cover(biome, ZB_PLANT_TREE), vigour = 0.0;
+      for (int s = 0; s < f->count; ++s) {
+        const zb_species *sp = &f->species[s];
+        if (sp->layer != ZB_PLANT_TREE || !zb_species_ground_ok(sp, material, slope, wet)) {
+          continue;
+        }
+        double v = zb_species_climate(sp, mean - lapse, coldest - lapse, rain) * (double)sp->density;
+        vigour += v;
+        best[s] += v * cover;
+      }
+      double c = cover * (vigour < 1.0 ? vigour : 1.0);
+      ct->canopy[j * ZB_CANOPY_RES + i] = (uint8_t)(255.0 * (c < 1.0 ? c : 1.0) + 0.5);
+    }
+  }
+  int top = -1;
+  for (int s = 0; s < f->count; ++s) {
+    if (f->species[s].clump >= 0 && best[s] > 0.0 && (top < 0 || best[s] > best[top])) {
+      top = s;
+    }
+  }
+  ct->clump = (uint8_t)(top >= 0 ? top + 1 : 0);
+}
+
 static zb_result generate_coarse(const zb_terrain *t, const zb_allocator *a, zb_chunk_terrain *ct) {
   face_frame f = frame_of(ct->chunk.face);
   double ta[MACRO_RES], tb[MACRO_RES];
@@ -467,6 +582,7 @@ static zb_result generate_coarse(const zb_terrain *t, const zb_allocator *a, zb_
       }
     }
   }
+  stage0_canopy(t, ct, biomes, 0.5 * sx, 0.5 * sy);
   ct->stage = ZB_STAGE_COARSE;
   return ZB_OK;
 }
@@ -678,8 +794,143 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
   return ZB_OK;
 }
 
+/* Stage 3: plants on jittered grids, one per layer (trees about every 6 m,
+ * shrubs 4 m, ground cover 2.5 m), each kept with a probability from the
+ * biome's cover and how well the species there suit the climate and ground,
+ * and the species drawn by suitability. Nothing grows under water. */
+static const int LAYER_CELLS[ZB_PLANT_LAYERS] = {42, 64, 100};
+static const double LAYER_FILL[ZB_PLANT_LAYERS] = {0.6, 0.25, 0.35};
+
+static double unit(uint64_t h, int k) { return (double)((h >> (k * 16)) & 0xffff) / 65536.0; }
+
+static zb_result generate_ecology(const zb_terrain *t, const zb_allocator *a, zb_chunk_terrain *ct) {
+  const zb_flora *f = t->flora;
+  if (!f || f->count == 0) {
+    ct->stage = ZB_STAGE_ECOLOGY;
+    return ZB_OK;
+  }
+  enum { SAMPLES = ZB_COARSE_RES * ZB_COARSE_RES, WATER = 33 };
+  float *weight = zb_alloc(a, sizeof(float) * SAMPLES * (size_t)f->count);
+  zb_plant *out = zb_alloc(a, sizeof(zb_plant) * ZB_PLANTS_MAX);
+  uint8_t *wkind = zb_alloc(a, WATER * WATER);
+  float *wsurf = zb_alloc(a, sizeof(float) * WATER * WATER);
+  zb_result r = weight && out && wkind && wsurf ? zb_terrain_water_grid(t, a, ct, 8, wkind, wsurf) : ZB_ERR_NOMEM;
+  if (r != ZB_OK) {
+    zb_free(a, weight);
+    zb_free(a, out);
+    zb_free(a, wkind);
+    zb_free(a, wsurf);
+    return r;
+  }
+  /* The climate's part of every species' suitability at the 16 m samples. */
+  double mean, coldest, warmest, rain;
+  zb_terrain_chunk_climate(t, ct->chunk, &mean, &coldest, &warmest, &rain);
+  uint8_t biomes[SAMPLES], sample_biome[SAMPLES];
+  coarse_biomes(t, ct->chunk, biomes);
+  for (int k = 0; k < SAMPLES; ++k) {
+    double h = (double)zb_chunk_coarse_height(ct, k % ZB_COARSE_RES, k / ZB_COARSE_RES);
+    double lapse = LAPSE * (h > 0.0 ? h : 0.0);
+    sample_biome[k] = (uint8_t)site_biome(t, biomes[k], mean - lapse, rain, warmest - lapse, ct->coarse_material[k]);
+    for (int s = 0; s < f->count; ++s) {
+      const zb_species *sp = &f->species[s];
+      weight[k * f->count + s] =
+          (float)(zb_species_climate(sp, mean - lapse, coldest - lapse, rain) * (double)sp->density);
+    }
+  }
+  bool oasis =
+      t->bundle && (t->bundle->cell_flags[zb_world_bundle_cell(t->bundle, zb_planet_chunk_dir(&t->planet, ct->chunk))] &
+                    ZB_CELL_OASIS);
+  double w, h;
+  zb_planet_chunk_size(&t->planet, ct->chunk, &w, &h);
+  double mx = w / ZB_CHUNK_SIZE, my = h / ZB_CHUNK_SIZE; /* metres per nominal metre */
+  uint64_t base = zb_mix64(stream(t, SEED_PLANTS) ^ zb_chunk_key(ct->chunk));
+  uint32_t n = 0;
+  float picks[ZB_FLORA_MAX];
+  for (int layer = 0; layer < ZB_PLANT_LAYERS; ++layer) {
+    int cells = LAYER_CELLS[layer];
+    double size = ZB_CHUNK_SIZE / cells;
+    for (int j = 0; j < cells; ++j) {
+      for (int i = 0; i < cells; ++i) {
+        uint64_t r1 = zb_mix64(base ^ ((uint64_t)(uint32_t)layer << 56) ^ ((uint64_t)(uint32_t)j << 28) ^
+                               ((uint64_t)(uint32_t)i * 0x9e3779b97f4a7c15ull));
+        uint64_t r2 = zb_mix64(r1);
+        double x = (i + unit(r1, 0)) * size, y = (j + unit(r1, 1)) * size;
+        int k = (int)(y / COARSE_STEP + 0.5) * ZB_COARSE_RES + (int)(x / COARSE_STEP + 0.5);
+        double cover = zb_biome_cover(sample_biome[k], (zb_plant_layer)layer);
+        if (cover <= 0.0) {
+          continue;
+        }
+        int px = (int)x, py = (int)y;
+        px = px > ZB_SURFACE_RES - 1 ? ZB_SURFACE_RES - 1 : px;
+        py = py > ZB_SURFACE_RES - 1 ? ZB_SURFACE_RES - 1 : py;
+        const float *hp = &ct->height[py * ZB_HEIGHT_RES + px];
+        double ground = (double)*hp;
+        double gx = ((double)hp[1] - ground) / mx, gy = ((double)hp[ZB_HEIGHT_RES] - ground) / my;
+        double slope = sqrt(gx * gx + gy * gy);
+        int vx = (int)(x / 8.0 + 0.5), vy = (int)(y / 8.0 + 0.5);
+        int wv = vy * WATER + vx;
+        if (ground < 0.0 || (wkind[wv] != ZB_WATER_NONE && ground < (double)wsurf[wv] + 0.2)) {
+          continue; /* under water */
+        }
+        bool wet = oasis || zb_biome_is_wet(sample_biome[k]);
+        for (int dy = -1; dy <= 1 && !wet; ++dy) {
+          for (int dx = -1; dx <= 1 && !wet; ++dx) {
+            int ux = vx + dx, uy = vy + dy;
+            wet = ux >= 0 && uy >= 0 && ux < WATER && uy < WATER &&
+                  (wkind[uy * WATER + ux] == ZB_WATER_RIVER || wkind[uy * WATER + ux] == ZB_WATER_LAKE);
+          }
+        }
+        int material = ct->material[py * ZB_SURFACE_RES + px];
+        double total = 0.0;
+        for (int s = 0; s < f->count; ++s) {
+          const zb_species *sp = &f->species[s];
+          bool ok = (int)sp->layer == layer && zb_species_ground_ok(sp, material, slope, wet);
+          picks[s] = ok ? weight[k * f->count + s] : 0.0f;
+          total += (double)picks[s];
+        }
+        double p = total * LAYER_FILL[layer] * cover;
+        if (unit(r1, 2) >= (p < 0.95 ? p : 0.95) || n == ZB_PLANTS_MAX) {
+          continue;
+        }
+        double target = unit(r1, 3) * total;
+        int chosen = -1;
+        for (int s = 0; s < f->count && chosen < 0; ++s) {
+          target -= (double)picks[s];
+          chosen = picks[s] > 0.0f && target < 0.0 ? s : -1;
+        }
+        if (chosen < 0) { /* rounding at the very end of the range */
+          for (int s = f->count - 1; s >= 0 && chosen < 0; --s) {
+            chosen = picks[s] > 0.0f ? s : -1;
+          }
+        }
+        zb_plant *pl = &out[n++];
+        pl->x = (uint16_t)(x * 256.0 > 65535.0 ? 65535.0 : x * 256.0);
+        pl->y = (uint16_t)(y * 256.0 > 65535.0 ? 65535.0 : y * 256.0);
+        pl->species = (uint8_t)chosen;
+        pl->size = (uint8_t)(unit(r2, 0) * 256.0);
+        pl->variant = (uint8_t)(r2 >> 56);
+        pl->layer = (uint8_t)layer;
+      }
+    }
+  }
+  zb_free(a, weight);
+  zb_free(a, wkind);
+  zb_free(a, wsurf);
+  if (n == 0) {
+    zb_free(a, out);
+    out = NULL;
+  } else {
+    zb_plant *fit = zb_realloc(a, out, sizeof(zb_plant) * n);
+    out = fit ? fit : out;
+  }
+  ct->plants = out;
+  ct->plant_count = n;
+  ct->stage = ZB_STAGE_ECOLOGY;
+  return ZB_OK;
+}
+
 zb_result zb_terrain_generate(const zb_terrain *t, const zb_allocator *a, zb_chunk_terrain *ct, int stage) {
-  if (stage > ZB_STAGE_SURFACE || !zb_chunk_valid(&t->planet, ct->chunk)) {
+  if (stage > ZB_STAGE_ECOLOGY || !zb_chunk_valid(&t->planet, ct->chunk)) {
     return ZB_ERR_INVALID;
   }
   if (ct->stage < ZB_STAGE_COARSE && stage >= ZB_STAGE_COARSE) {
@@ -695,7 +946,13 @@ zb_result zb_terrain_generate(const zb_terrain *t, const zb_allocator *a, zb_chu
     }
   }
   if (ct->stage < ZB_STAGE_SURFACE && stage >= ZB_STAGE_SURFACE) {
-    return generate_surface(t, a, ct);
+    zb_result r = generate_surface(t, a, ct);
+    if (r != ZB_OK) {
+      return r;
+    }
+  }
+  if (ct->stage < ZB_STAGE_ECOLOGY && stage >= ZB_STAGE_ECOLOGY) {
+    return generate_ecology(t, a, ct);
   }
   return ZB_OK;
 }
@@ -736,12 +993,20 @@ uint64_t zb_chunk_terrain_hash(const zb_chunk_terrain *ct) {
   if (ct->stage >= ZB_STAGE_COARSE) {
     zb_hasher_bytes(&h, ct->macro, sizeof ct->macro);
     zb_hasher_bytes(&h, ct->coarse_material, sizeof ct->coarse_material);
+    zb_hasher_bytes(&h, ct->canopy, sizeof ct->canopy);
+    zb_hasher_u64(&h, ct->clump);
   }
   if (ct->height) {
     zb_hasher_bytes(&h, ct->height, sizeof(float) * ZB_HEIGHT_RES * ZB_HEIGHT_RES);
   }
   if (ct->material) {
     zb_hasher_bytes(&h, ct->material, (size_t)ZB_SURFACE_RES * ZB_SURFACE_RES);
+  }
+  for (uint32_t i = 0; i < ct->plant_count; ++i) {
+    const zb_plant *pl = &ct->plants[i];
+    uint64_t v = (uint64_t)pl->x | (uint64_t)pl->y << 16 | (uint64_t)pl->species << 32 | (uint64_t)pl->size << 40 |
+                 (uint64_t)pl->variant << 48 | (uint64_t)pl->layer << 56;
+    zb_hasher_u64(&h, v);
   }
   return zb_hasher_final(&h);
 }

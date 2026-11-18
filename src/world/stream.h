@@ -22,6 +22,7 @@ typedef struct zb_stream_config {
   zb_jobs *jobs;                   /* NULL: an inline job queue of the stream's own */
   uint64_t (*clock_ns)(void *ctx); /* inline time budget; NULL: one job per update */
   void *clock_ctx;
+  float ecology_radius;   /* metres: chunks brought to stage 3 (plants); 0 (the default): none */
   float near_radius;      /* metres: chunks brought to stage 2 */
   float far_radius;       /* metres at ground level: chunks brought to stage 0 */
   float far_per_altitude; /* extra far radius per metre of altitude */
@@ -42,7 +43,7 @@ typedef struct zb_stream_focus {
 } zb_stream_focus;
 
 typedef struct zb_stream_stats {
-  size_t chunks[3]; /* loaded chunks at stage 0, 1 and 2 */
+  size_t chunks[4]; /* loaded chunks at stage 0, 1, 2 and 3 */
   size_t wanted;    /* chunks inside the rings */
   size_t cached;    /* loaded chunks outside the rings (kept until evicted) */
   size_t bytes;     /* chunk data */
@@ -55,6 +56,8 @@ typedef struct zb_stream zb_stream;
 
 void zb_stream_default_config(zb_stream_config *c, zb_stream_profile profile);
 /* The terrain must outlive the stream. Returns NULL when out of memory. */
+/* The ecology ring of a profile, for worlds with plants (metres). */
+float zb_stream_profile_ecology_radius(zb_stream_profile profile);
 zb_stream *zb_stream_create(const zb_terrain *t, const zb_stream_config *cfg);
 /* Cancels pending jobs and waits for running ones. */
 void zb_stream_destroy(zb_stream *s);

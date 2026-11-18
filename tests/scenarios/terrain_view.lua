@@ -22,12 +22,15 @@ end
 for _ = 1, 3000 do
   step(1)
   local st = world.stream_stats()
-  if st.queued == 0 and st.jobs == 0 and st.stage2 > 0 then break end
+  if st.queued == 0 and st.jobs == 0 and st.stage2 + st.stage3 > 0 then break end
 end
+render.pin_time(10) -- water and plants hold still for the golden image
 step(120) -- terrain meshes are built over a few frames
 expect(render.stats().terrain_items > 100, "terrain chunks drawn")
 local ok, info = render.match_golden("terrain")
 expect(ok, info)
+render.pin_time()
+expect_error(function() render.pin_time(-1) end, "time must not be negative")
 
 -- Every pixel is one of the palette's colours.
 local palette = {}

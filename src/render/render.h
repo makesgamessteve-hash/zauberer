@@ -24,6 +24,8 @@ typedef struct zb_render_stats {
   size_t terrain_items;
   size_t terrain_triangles;
   size_t water_items;
+  size_t foliage_items;
+  size_t foliage_instances;
   size_t text_glyphs;
   size_t culled;
   uint64_t frames;
@@ -93,8 +95,21 @@ void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, z
  * ripples), drawn after the opaque scene without writing depth. */
 void zb_render_draw_water(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
                           float radius);
-/* The time that animates water, in seconds. */
+/* The time that animates water and plants, in seconds. */
 void zb_render_set_time(zb_render *r, double seconds);
+/* Holds the animation time at seconds (photos and golden images), or lets it
+ * run again when seconds is negative. */
+void zb_render_pin_time(zb_render *r, double seconds);
+/* Plant billboards (zb_foliage_instance) uploaded once, e.g. per chunk. */
+uint32_t zb_render_upload_foliage(zb_render *r, const zb_foliage_instance *instances, size_t count);
+void zb_render_release_foliage(zb_render *r, uint32_t foliage);
+/* Draws count billboards of a foliage buffer with a texture asset (the plant
+ * atlas), with their bounding sphere in buffer coordinates. */
+void zb_render_draw_foliage(zb_render *r, uint32_t foliage, uint32_t count, uint32_t texture, zb_mat4 transform,
+                            zb_vec3 center, float radius);
+/* Colours per species index for foliage (rgb triples; count <= ZB_FOLIAGE_TINTS),
+ * e.g. the season's; unset species keep white. */
+void zb_render_set_foliage_tints(zb_render *r, const float *rgb, int count);
 /* The current camera eye (render coordinates). */
 zb_vec3 zb_render_camera_eye(const zb_render *r);
 void zb_render_draw_sprite(zb_render *r, uint32_t sprite, zb_vec3 position, float scale, double time_s);

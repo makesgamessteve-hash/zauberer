@@ -34,6 +34,9 @@ class RenderTests(EngineTestCase):
     def test_water_view(self):
         self.assert_ok(self.windowed("water_view"))
 
+    def test_forest_view(self):
+        self.assert_ok(self.windowed("forest_view"))
+
     # spec: rendering-core: Missing glyph
     def test_missing_glyph(self):
         self.install_mods("glyphs")

@@ -33,13 +33,13 @@ static int cmp_double(const void *a, const void *b) {
   return x < y ? -1 : (x > y);
 }
 
-/* spec: retro-rendering: Frame budgets */
-static void test_desktop_frame(void) {
+static void desktop_frame(const zb_flora *flora) {
   zb_world_desc d;
   memset(&d, 0, sizeof d);
   d.a = zb_test_alloc();
   d.seed = 1;
   d.profile = ZB_STREAM_DESKTOP;
+  d.flora = flora;
   d.clock_ns = frozen_clock; /* inline: every update generates all it can */
   char err[128];
   zb_world *w = zb_world_create(&d, err, sizeof err);
@@ -67,7 +67,7 @@ static void test_desktop_frame(void) {
     zb_render_end(r);
     zb_terrain_view_stats st;
     zb_terrain_view_get_stats(tv, &st);
-    if (st.built == 0) { /* steady state: everything meshed */
+    if (st.built == 0 && st.foliage_built == 0) { /* steady state: everything meshed */
       times[measured++] = t;
     }
   }
@@ -77,8 +77,10 @@ static void test_desktop_frame(void) {
   zb_terrain_view_get_stats(tv, &st);
   qsort(times, FRAMES, sizeof times[0], cmp_double);
   double median = (times[FRAMES / 2 - 1] + times[FRAMES / 2]) * 0.5;
-  printf("terrain view: %zu chunks meshed, %zu items and %zu triangles drawn, %.2f ms per frame (budget %.1f ms)\n",
-         st.meshes, rs->terrain_items, rs->terrain_triangles, median, BUDGET_MS);
+  printf(
+      "terrain view%s: %zu chunks meshed, %zu items and %zu triangles drawn, %zu plants, %.2f ms per frame "
+      "(budget %.1f ms)\n",
+      flora ? " with plants" : "", st.meshes, rs->terrain_items, rs->terrain_triangles, st.plants, median, BUDGET_MS);
   TEST_ASSERT_TRUE(st.meshes > 5000);
   TEST_ASSERT_TRUE(rs->terrain_items <= MAX_ITEMS);
   TEST_ASSERT_TRUE(rs->terrain_triangles <= MAX_TRIANGLES);
@@ -88,8 +90,39 @@ static void test_desktop_frame(void) {
   zb_world_destroy(w);
 }
 
+/* spec: retro-rendering: Frame budgets */
+static void test_desktop_frame(void) { desktop_frame(NULL); }
+
+static char *read_asset(const char *rel, size_t *len) {
+  char path[1024];
+  snprintf(path, sizeof path, "%s/assets/base/%s", getenv("ZB_SOURCE_DIR") ? getenv("ZB_SOURCE_DIR") : ".", rel);
+  FILE *f = fopen(path, "rb");
+  TEST_ASSERT_NOT_NULL_MESSAGE(f, path);
+  fseek(f, 0, SEEK_END);
+  long n = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  char *data = malloc((size_t)n + 1);
+  *len = fread(data, 1, (size_t)n, f);
+  fclose(f);
+  return data;
+}
+
+/* spec: vegetation: Vegetation budgets */
+static void test_desktop_frame_with_plants(void) {
+  size_t sl, al;
+  char *species = read_asset("data/flora.lua", &sl), *atlas = read_asset("sprites/flora.lua", &al);
+  static zb_flora flora;
+  char err[160];
+  TEST_ASSERT_EQUAL_INT_MESSAGE(ZB_OK, zb_flora_parse(&flora, zb_test_alloc(), species, sl, atlas, al, err, sizeof err),
+                                err);
+  free(species);
+  free(atlas);
+  desktop_frame(&flora);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_desktop_frame);
+  RUN_TEST(test_desktop_frame_with_plants);
   return UNITY_END();
 }

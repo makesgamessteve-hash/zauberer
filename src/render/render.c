@@ -64,7 +64,9 @@ struct zb_render {
   int target_w, target_h; /* 0: present to the window */
   zb_vec3 light_dir, light_color, ambient;
   zb_atmosphere atmosphere;
-  double time; /* seconds, for animated water */
+  double time; /* seconds, for animated water and swaying plants */
+  bool time_pinned;
+  float foliage_tints[ZB_FOLIAGE_TINTS][3];
   uint32_t lut_asset, bayer_asset, atlas_asset;
   float dither;
   int atlas_layers;
@@ -114,6 +116,7 @@ zb_render *zb_render_create(const zb_allocator *a, zb_vfs *vfs, zb_render_backen
   zb_render_set_camera(r, zb_v3(0, 1.5f, 4), zb_v3(0, 0, 0), zb_v3(0, 1, 0), 60.0f, 0.1f, 500.0f);
   zb_render_set_light(r, zb_v3(-0.4f, -1.0f, -0.3f), zb_v3(1, 0.95f, 0.85f), zb_v3(0.3f, 0.3f, 0.35f));
   r->eye_sep = 0.064f;
+  zb_render_set_foliage_tints(r, NULL, 0);
   zb_image white = {1, 1, (unsigned char[]){255, 255, 255, 255}};
   r->white_tex = backend->create_texture(backend->ctx, &white);
   zb_image checker;
@@ -365,19 +368,21 @@ static void finish_texture(zb_render *r, asset *as, const char *data, size_t len
   zb_image_free(r->a, &img);
 }
 
-static bool parse_descriptor(zb_render *r, asset *as, const char *data, size_t len, zb_luon_doc *doc) {
+static bool parse_descriptor(zb_render *r, uint32_t handle, const char *data, size_t len, zb_luon_doc *doc) {
   zb_luon_error err;
   if (zb_luon_parse(doc, r->a, data, len, &err) != ZB_OK) {
-    zb_error("descriptor '%s':%d: %s", as->path, err.line, err.message);
+    zb_error("descriptor '%s':%d: %s", asset_at(r, handle)->path, err.line, err.message);
     return false;
   }
   const char *tex = zb_value_str(zb_table_get(&doc->root, "texture"), NULL);
   if (!tex) {
-    zb_error("descriptor '%s' has no 'texture'", as->path);
+    zb_error("descriptor '%s' has no 'texture'", asset_at(r, handle)->path);
     zb_luon_free(doc);
     return false;
   }
-  as->texture_asset = zb_render_load_texture(r, tex);
+  /* Loading the texture may grow the asset array: look the asset up afterwards. */
+  uint32_t texture = zb_render_load_texture(r, tex);
+  asset_at(r, handle)->texture_asset = texture;
   return true;
 }
 
@@ -388,7 +393,7 @@ static int num_field(const zb_value *t, const char *key, int def, int lo) {
 
 static void finish_sprite(zb_render *r, uint32_t handle, const char *data, size_t len) {
   zb_luon_doc doc;
-  if (!parse_descriptor(r, asset_at(r, handle), data, len, &doc)) {
+  if (!parse_descriptor(r, handle, data, len, &doc)) {
     asset_at(r, handle)->state = ZB_ASSET_FAILED;
     return;
   }
@@ -410,7 +415,7 @@ static void finish_sprite(zb_render *r, uint32_t handle, const char *data, size_
 
 static void finish_font(zb_render *r, uint32_t handle, const char *data, size_t len) {
   zb_luon_doc doc;
-  if (!parse_descriptor(r, asset_at(r, handle), data, len, &doc)) {
+  if (!parse_descriptor(r, handle, data, len, &doc)) {
     asset_at(r, handle)->state = ZB_ASSET_FAILED;
     return;
   }
@@ -658,7 +663,64 @@ void zb_render_draw_water(zb_render *r, uint32_t mesh, uint32_t index_count, zb_
   draw_mesh_item(r, ZB_DRAW_WATER, mesh, index_count, transform, center, radius);
 }
 
-void zb_render_set_time(zb_render *r, double seconds) { r->time = seconds; }
+static uint32_t ready_texture(const zb_render *r, uint32_t handle);
+
+void zb_render_set_time(zb_render *r, double seconds) {
+  if (!r->time_pinned) {
+    r->time = seconds;
+  }
+}
+
+void zb_render_pin_time(zb_render *r, double seconds) {
+  r->time_pinned = seconds >= 0.0;
+  r->time = seconds >= 0.0 ? seconds : r->time;
+}
+
+uint32_t zb_render_upload_foliage(zb_render *r, const zb_foliage_instance *instances, size_t count) {
+  return count ? r->backend->create_foliage(r->backend->ctx, instances, count) : 0;
+}
+
+void zb_render_release_foliage(zb_render *r, uint32_t foliage) {
+  if (foliage) {
+    r->backend->destroy_foliage(r->backend->ctx, foliage);
+  }
+}
+
+void zb_render_set_foliage_tints(zb_render *r, const float *rgb, int count) {
+  for (int i = 0; i < ZB_FOLIAGE_TINTS; ++i) {
+    for (int k = 0; k < 3; ++k) {
+      r->foliage_tints[i][k] = i < count ? rgb[i * 3 + k] : 1.0f;
+    }
+  }
+}
+
+void zb_render_draw_foliage(zb_render *r, uint32_t foliage, uint32_t count, uint32_t texture, zb_mat4 transform,
+                            zb_vec3 center, float radius) {
+  uint32_t tex = ready_texture(r, texture);
+  if (!r->in_frame || foliage == 0 || count == 0 || tex == 0) {
+    return;
+  }
+  zb_vec3 c = zb_m4_transform_point(transform, center);
+  for (int v = 0; v < r->frame.view_count; ++v) {
+    if (!zb_frustum_sphere_visible(&r->frustums[v], c, radius)) {
+      r->stats.culled++;
+      continue;
+    }
+    zb_draw_item it;
+    memset(&it, 0, sizeof it);
+    it.kind = ZB_DRAW_FOLIAGE;
+    it.view = (uint8_t)v;
+    it.mesh = foliage;
+    it.count = count;
+    it.texture = tex;
+    it.model = transform;
+    it.sort_key = ((uint64_t)v << 60) | (2ull << 56) | ((uint64_t)foliage << 16) | (r->items.len & 0xFFFF);
+    if (zb_array_push(&r->items, &it)) {
+      r->stats.foliage_items++;
+      r->stats.foliage_instances += count;
+    }
+  }
+}
 
 /* ---- Frame ------------------------------------------------------------------ */
 
@@ -935,6 +997,7 @@ void zb_render_end(zb_render *r) {
   r->frame.atlas_texture = ready_texture(r, r->atlas_asset);
   r->frame.atlas_layers = r->frame.atlas_texture ? r->atlas_layers : 0;
   r->frame.time = (float)r->time;
+  memcpy(r->frame.foliage_tints, r->foliage_tints, sizeof r->foliage_tints);
   r->backend->execute(r->backend->ctx, &r->frame);
   r->stats.frames++;
   r->in_frame = false;

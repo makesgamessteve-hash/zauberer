@@ -381,7 +381,7 @@ static void test_golden(void) {
   char hex[17];
   zb_hash_hex(zb_hasher_final(&h), hex);
   printf("water golden hash: %s\n", hex);
-  TEST_ASSERT_EQUAL_STRING("05bb5d31d2f0bfe7", hex); /* the same on every platform */
+  TEST_ASSERT_EQUAL_STRING("bbe12c5fde057dc1", hex); /* the same on every platform */
 }
 
 int main(void) {

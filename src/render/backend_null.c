@@ -11,7 +11,7 @@ typedef struct null_ctx {
   uint32_t next;
   size_t counts[ZB_DRAW_KINDS]; /* per zb_draw_kind */
   size_t frames;
-  size_t live_meshes;
+  size_t live_meshes, live_foliage;
   zb_frame last;
 } null_ctx;
 
@@ -42,6 +42,21 @@ static void null_destroy_mesh(void *ctx, uint32_t h) {
   null_ctx *n = ctx;
   if (h && n->live_meshes) {
     n->live_meshes--;
+  }
+}
+
+static uint32_t null_create_foliage(void *ctx, const zb_foliage_instance *instances, size_t count) {
+  (void)instances;
+  (void)count;
+  null_ctx *n = ctx;
+  n->live_foliage++;
+  return ++n->next;
+}
+
+static void null_destroy_foliage(void *ctx, uint32_t h) {
+  null_ctx *n = ctx;
+  if (h && n->live_foliage) {
+    n->live_foliage--;
   }
 }
 
@@ -76,6 +91,8 @@ zb_render_backend *zb_render_null_backend(const zb_allocator *a) {
   n->iface.destroy_texture = null_destroy_handle;
   n->iface.create_mesh = null_create_mesh;
   n->iface.destroy_mesh = null_destroy_mesh;
+  n->iface.create_foliage = null_create_foliage;
+  n->iface.destroy_foliage = null_destroy_foliage;
   n->iface.execute = null_execute;
   n->iface.capture = null_capture;
   return &n->iface;
@@ -100,3 +117,5 @@ const zb_frame *zb_render_null_last_frame(const zb_render_backend *b) {
   const null_ctx *n = b->ctx;
   return &n->last;
 }
+
+size_t zb_render_null_foliage(const zb_render_backend *b) { return ((const null_ctx *)b->ctx)->live_foliage; }

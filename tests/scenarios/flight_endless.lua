@@ -31,7 +31,7 @@ expect_eq(c.speed, 0, "braked to a stop")
 local ready = false
 for _ = 1, 6000 do
   step(1)
-  if world.chunk_stage(c.pos) == 2 then
+  if world.chunk_stage(c.pos) >= 2 then
     ready = true
     break
   end

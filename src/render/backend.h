@@ -11,13 +11,31 @@
 
 #define ZB_RENDER_MAX_VIEWS 2
 
-typedef enum zb_draw_kind { ZB_DRAW_MODEL, ZB_DRAW_SPRITE, ZB_DRAW_TERRAIN, ZB_DRAW_WATER, ZB_DRAW_KINDS } zb_draw_kind;
+typedef enum zb_draw_kind {
+  ZB_DRAW_MODEL,
+  ZB_DRAW_SPRITE,
+  ZB_DRAW_TERRAIN,
+  ZB_DRAW_WATER,
+  ZB_DRAW_FOLIAGE,
+  ZB_DRAW_KINDS
+} zb_draw_kind;
+
+#define ZB_FOLIAGE_TINTS 64 /* per-species colours (the season's) */
+
+/* One plant billboard: standing on pos, facing the camera about the mesh's up
+ * axis (+y), swaying in the wind at the top. */
+typedef struct zb_foliage_instance {
+  float pos[3];  /* base, in mesh coordinates */
+  float size[2]; /* width and height, metres */
+  float uv[4];   /* atlas rectangle: u0, v0 (top), u1, v1 (bottom); u0 > u1 mirrors */
+  float tint[4]; /* rgb shade, and the species (index into the frame's tints) */
+} zb_foliage_instance;
 
 typedef struct zb_draw_item {
   zb_draw_kind kind;
   uint8_t view;
   uint64_t sort_key;
-  uint32_t mesh;    /* backend mesh handle (models, terrain, water) */
+  uint32_t mesh;    /* backend mesh handle (models, terrain, water), foliage buffer */
   uint32_t texture; /* backend texture handle (0 = white) */
   uint32_t first;   /* first index (models) */
   uint32_t count;   /* index count (models) */
@@ -82,7 +100,8 @@ typedef struct zb_frame {
   float dither;
   uint32_t atlas_texture; /* terrain material atlas */
   int atlas_layers;
-  float time; /* seconds, for animated water */
+  float time; /* seconds, for animated water and swaying plants */
+  float foliage_tints[ZB_FOLIAGE_TINTS][3];
 } zb_frame;
 
 typedef struct zb_render_backend {
@@ -93,6 +112,9 @@ typedef struct zb_render_backend {
   void (*destroy_texture)(void *ctx, uint32_t texture);
   uint32_t (*create_mesh)(void *ctx, const zb_mesh_data *mesh);
   void (*destroy_mesh)(void *ctx, uint32_t mesh);
+  /* A static buffer of plant billboards (0 on failure). */
+  uint32_t (*create_foliage)(void *ctx, const zb_foliage_instance *instances, size_t count);
+  void (*destroy_foliage)(void *ctx, uint32_t foliage);
   void (*execute)(void *ctx, const zb_frame *frame);
   /* Reads back the internal framebuffer (internal == true) or the window. */
   zb_result (*capture)(void *ctx, bool internal, const zb_allocator *a, zb_image *out);
@@ -104,6 +126,8 @@ size_t zb_render_null_item_count(const zb_render_backend *b, zb_draw_kind kind);
 size_t zb_render_null_frames(const zb_render_backend *b);
 /* Meshes created and not yet destroyed. */
 size_t zb_render_null_meshes(const zb_render_backend *b);
+/* Foliage buffers created and not yet destroyed. */
+size_t zb_render_null_foliage(const zb_render_backend *b);
 /* A copy of the last frame (its item and text pointers are only valid until
  * the next frame begins). */
 const zb_frame *zb_render_null_last_frame(const zb_render_backend *b);

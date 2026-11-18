@@ -184,6 +184,10 @@ Starts loading a glTF model (.glb/.gltf); returns its handle.
 
 Quantises the scene to the palette with ordered dithering (text stays as drawn); false switches it off.
 
+### `render.pin_time(seconds?: number)`
+
+Holds the time that animates water and swaying plants (for photos and golden images); nil lets it run with the game again.
+
 ### `render.pixel(x: integer, y: integer): integer, integer, integer, integer`
 
 Test API: RGBA of a pixel of the last capture (origin top-left).
@@ -276,7 +280,7 @@ The chunk's stable 64-bit key.
 
 ### `world.chunk_stage(pos: PlanetPos): integer`
 
-Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
+Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface, 3 plants), or -1.
 
 ### `world.clear_focus(index: integer)`
 
@@ -313,6 +317,10 @@ Draws the planet as a globe: a time-lapse frame of the world being created (1-ba
 ### `world.find_water(pos: PlanetPos, kind: "river"|"lake"|"ocean", radius: number?): PlanetPos?`
 
 The nearest place within radius metres (default 50 km) where a created world has water of a kind: for a river, the middle of the channel leaving the nearest macro cell that has one; for a lake or the sea, the centre of the nearest such cell. nil in the noise world or when there is none.
+
+### `world.flora(): Species[]`
+
+The plant species of the world, in registry order.
 
 ### `world.from_cartesian(x: number, y: number, z: number): PlanetPos`
 
@@ -353,6 +361,10 @@ Centres of the chunks sharing an edge or corner with the position's chunk (7 or 
 ### `world.planet(): PlanetInfo`
 
 Describes the planet.
+
+### `world.plants(pos: PlanetPos, radius: number): Plant[]`
+
+The plants within radius metres (up to 256) of a position, from the chunks loaded with their plants (stage 3); at most 4096.
 
 ### `world.position(face: integer, x: integer, y: integer, lx?: number, ly?: number, alt?: number): PlanetPos`
 
@@ -674,6 +686,8 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `terrain_items` | `integer` | Terrain chunk draw items (after culling) |
 | `terrain_triangles` | `integer` | Terrain triangles drawn |
 | `water_items` | `integer` | Water surface draw items (after culling) |
+| `foliage_items` | `integer` | Plant buffers drawn (after culling) |
+| `foliage_instances` | `integer` | Plant billboards drawn (after culling) |
 | `glyphs` | `integer` | Text glyphs |
 | `culled` | `integer` | Items culled by the view frustum |
 | `frames` | `integer` | Frames rendered so far |
@@ -696,6 +710,7 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `stage0` | `integer` | Loaded chunks at stage 0 (coarse) |
 | `stage1` | `integer` | Loaded chunks at stage 1 (heightfield) |
 | `stage2` | `integer` | Loaded chunks at stage 2 (surface) |
+| `stage3` | `integer` | Loaded chunks at stage 3 (plants) |
 | `wanted` | `integer` | Chunks inside the rings |
 | `cached` | `integer` | Loaded chunks outside the rings |
 | `bytes` | `integer` | Chunk memory |

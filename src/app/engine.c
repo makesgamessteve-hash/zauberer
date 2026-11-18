@@ -77,6 +77,7 @@ static zb_world *make_world(zb_engine *e, const zb_world_bundle *bundle, char *e
   wd.jobs = e->jobs;
   wd.seed = e->seed;
   wd.bundle = bundle;
+  wd.flora = e->flora.count ? &e->flora : NULL;
 #ifdef __EMSCRIPTEN__
   wd.profile = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? ZB_STREAM_MOBILE : ZB_STREAM_WEB;
 #else
@@ -494,6 +495,17 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   if (!setup_replay(e)) {
     return ZB_HOST_FAILURE;
   }
+
+  /* Plants: the species registry against the sprite atlas (none if missing). */
+  char *species = NULL, *atlas = NULL;
+  size_t species_len = 0, atlas_len = 0;
+  if (zb_vfs_read(e->vfs, "data/flora.lua", a, &species, &species_len) == ZB_OK &&
+      zb_vfs_read(e->vfs, "sprites/flora.lua", a, &atlas, &atlas_len) == ZB_OK &&
+      zb_flora_parse(&e->flora, a, species, species_len, atlas, atlas_len, err, sizeof err) != ZB_OK) {
+    zb_warn("no plants: %s", err);
+  }
+  zb_free(a, species);
+  zb_free(a, atlas);
 
   /* World: planet, terrain and chunk streaming around the scripts' focus points. */
   e->world = make_world(e, NULL, err, sizeof err);

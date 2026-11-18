@@ -104,6 +104,8 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
  * @field terrain_items integer Terrain chunk draw items (after culling)
  * @field terrain_triangles integer Terrain triangles drawn
  * @field water_items integer Water surface draw items (after culling)
+ * @field foliage_items integer Plant buffers drawn (after culling)
+ * @field foliage_instances integer Plant billboards drawn (after culling)
  * @field glyphs integer Text glyphs
  * @field culled integer Items culled by the view frustum
  * @field frames integer Frames rendered so far
@@ -931,6 +933,17 @@ static int r_clear_color(lua_State *L) {
   return 0;
 }
 
+/* @lua render.pin_time(seconds?: number)
+ * Holds the time that animates water and swaying plants (for photos and
+ * golden images); nil lets it run with the game again.
+ */
+static int r_pin_time(lua_State *L) {
+  double t = luaL_optnumber(L, 1, -1.0);
+  luaL_argcheck(L, lua_isnoneornil(L, 1) || t >= 0.0, 1, "time must not be negative");
+  zb_render_pin_time(S(L)->cfg.render, t);
+  return 0;
+}
+
 /* @lua render.internal_height(height?: integer): integer
  * Gets or sets the internal rendering height (default 360).
  */
@@ -1034,6 +1047,10 @@ static int r_stats(lua_State *L) {
   lua_setfield(L, -2, "terrain_triangles");
   lua_pushinteger(L, (lua_Integer)st->water_items);
   lua_setfield(L, -2, "water_items");
+  lua_pushinteger(L, (lua_Integer)st->foliage_items);
+  lua_setfield(L, -2, "foliage_items");
+  lua_pushinteger(L, (lua_Integer)st->foliage_instances);
+  lua_setfield(L, -2, "foliage_instances");
   lua_pushinteger(L, (lua_Integer)st->text_glyphs);
   lua_setfield(L, -2, "glyphs");
   lua_pushinteger(L, (lua_Integer)st->culled);
@@ -1348,6 +1365,7 @@ void zb_script_open_api(zb_script *s) {
                                         {"camera", r_camera},
                                         {"light", r_light},
                                         {"clear_color", r_clear_color},
+                                        {"pin_time", r_pin_time},
                                         {"atmosphere", r_atmosphere},
                                         {"palette", r_palette},
                                         {"internal_height", r_internal_height},

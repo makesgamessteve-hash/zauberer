@@ -3,9 +3,11 @@
 #include "core/dmath.h"
 #include "support/test_support.h"
 #include "unity.h"
+#include "world/dvec.h"
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 ZB_TEST_LEAK_CHECKED
@@ -211,6 +213,7 @@ static void test_view(void) {
     }
   }
   TEST_ASSERT_EQUAL_size_t(loaded, st.meshes);
+  TEST_ASSERT_EQUAL_INT(ZB_STAGE_SURFACE, zb_stream_target(zb_world_stream(w), f.pos.chunk)); /* no flora */
   /* Water meshes over the sea, and the renderer's own placeholder cube. */
   TEST_ASSERT_TRUE(st.water_meshes > 0 && st.water == st.water_meshes);
   TEST_ASSERT_TRUE(zb_render_get_stats(r)->water_items > 0);
@@ -247,11 +250,210 @@ static void test_view(void) {
   zb_world_destroy(w);
 }
 
+/* ---- Plants ---------------------------------------------------------------------------- */
+
+static char *read_asset(const char *rel, size_t *len) {
+  char path[1024];
+  snprintf(path, sizeof path, "%s/assets/base/%s", getenv("ZB_SOURCE_DIR") ? getenv("ZB_SOURCE_DIR") : ".", rel);
+  FILE *f = fopen(path, "rb");
+  TEST_ASSERT_NOT_NULL_MESSAGE(f, path);
+  fseek(f, 0, SEEK_END);
+  long n = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  char *data = malloc((size_t)n + 1);
+  *len = fread(data, 1, (size_t)n, f);
+  fclose(f);
+  return data;
+}
+
+static zb_flora g_flora;
+
+static void load_flora(void) {
+  static bool done = false;
+  if (!done) {
+    size_t sl, al;
+    char *species = read_asset("data/flora.lua", &sl), *atlas = read_asset("sprites/flora.lua", &al);
+    char err[160];
+    TEST_ASSERT_EQUAL_INT_MESSAGE(
+        ZB_OK, zb_flora_parse(&g_flora, zb_heap_allocator(), species, sl, atlas, al, err, sizeof err), err);
+    free(species);
+    free(atlas);
+    done = true;
+  }
+}
+
+/* A forested land chunk of the noise world around 45 degrees north. */
+static zb_chunk forest_chunk(const zb_terrain *t, const zb_planet *p) {
+  zb_chunk best = {0, 0, 0};
+  int most = -1;
+  for (int k = 0; k < 120; ++k) {
+    double lat = (40.0 + 0.1 * k) * ZB_DPI / 180.0, lon = 0.07 * k;
+    zb_dvec3 d = {zb_dcos(lat) * zb_dcos(lon), zb_dcos(lat) * zb_dsin(lon), zb_dsin(lat)};
+    if (zb_terrain_macro_height(t, d) < 40.0) {
+      continue;
+    }
+    zb_chunk_terrain ct;
+    zb_chunk_terrain_init(&ct, zb_planet_from_cart(p, zb_dv_scale(d, p->radius)).chunk);
+    TEST_ASSERT_EQUAL_INT(ZB_OK, zb_terrain_generate(t, zb_test_alloc(), &ct, ZB_STAGE_COARSE));
+    int cover = 0;
+    for (int i = 0; i < ZB_CANOPY_RES * ZB_CANOPY_RES; ++i) {
+      cover += ct.canopy[i];
+    }
+    if (cover > most) {
+      most = cover;
+      best = ct.chunk;
+    }
+    zb_chunk_terrain_release(zb_test_alloc(), &ct);
+  }
+  TEST_ASSERT_TRUE(most > 0);
+  return best;
+}
+
+/* spec: vegetation: Four levels of forest */
+static void test_foliage_bands(void) {
+  init_world();
+  load_flora();
+  zb_terrain t = g_terrain;
+  zb_terrain_use_flora(&t, &g_flora);
+  zb_chunk_terrain ct;
+  zb_chunk_terrain_init(&ct, forest_chunk(&t, &g_planet));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_terrain_generate(&t, zb_test_alloc(), &ct, ZB_STAGE_ECOLOGY));
+  TEST_ASSERT_TRUE(ct.plant_count > 0 && ct.clump > 0);
+  size_t ground = 0, canopy = 0;
+  for (uint32_t i = 0; i < ct.plant_count; ++i) {
+    ground += ct.plants[i].layer == ZB_PLANT_GROUND;
+  }
+  for (int i = 0; i < ZB_CANOPY_RES * ZB_CANOPY_RES; ++i) {
+    canopy += ct.canopy[i] >= 39; /* 0.15 */
+  }
+  size_t expect[4] = {ct.plant_count, ct.plant_count - ground, canopy, 0};
+  for (int band = 0; band < 4; ++band) {
+    zb_foliage_instance *inst;
+    size_t n;
+    zb_vec3 center;
+    float radius;
+    TEST_ASSERT_EQUAL_INT(ZB_OK, zb_foliage_build(zb_test_alloc(), &t, &ct, band, &inst, &n, &center, &radius));
+    TEST_ASSERT_EQUAL_size_t(expect[band], n);
+    int mirrored = 0;
+    for (size_t i = 0; i < n; ++i) {
+      TEST_ASSERT_TRUE(inst[i].size[0] > 0.0f && inst[i].size[1] > 0.0f);
+      TEST_ASSERT_TRUE(inst[i].uv[1] < inst[i].uv[3]);
+      for (int k = 0; k < 4; ++k) {
+        TEST_ASSERT_TRUE(inst[i].uv[k] > 0.0f && inst[i].uv[k] < 1.0f);
+      }
+      mirrored += inst[i].uv[0] > inst[i].uv[2];
+      TEST_ASSERT_TRUE(inst[i].tint[3] >= 0.0f && inst[i].tint[3] < (float)g_flora.count);
+      zb_vec3 p = zb_v3(inst[i].pos[0], inst[i].pos[1], inst[i].pos[2]);
+      TEST_ASSERT_TRUE(zb_v3_length(zb_v3_sub(p, center)) <= radius);
+    }
+    TEST_ASSERT_TRUE(n == 0 || mirrored > 0);
+    zb_free(zb_test_alloc(), inst);
+  }
+  /* Far away the canopy raises the terrain mesh and colours it. */
+  zb_mesh_data m;
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_terrain_mesh_build(zb_test_alloc(), &g_planet, &ct, 3, COLORS, LAYERS, &m));
+  int green = 0;
+  for (size_t k = 0; k < 9 * 9; ++k) {
+    green += m.vertices[k].color[1] > m.vertices[k].color[0] * 1.5f;
+  }
+  TEST_ASSERT_TRUE(green > 0);
+  zb_mesh_free(zb_test_alloc(), &m);
+  zb_failing_allocator fa;
+  zb_foliage_instance *inst;
+  size_t n;
+  zb_vec3 center;
+  float radius;
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_NOMEM, zb_foliage_build(zb_failing_init(&fa, zb_test_alloc(), 0), &t, &ct, 0, &inst, &n,
+                                                       &center, &radius));
+  /* No flora: no plants. */
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_foliage_build(zb_test_alloc(), &g_terrain, &ct, 0, &inst, &n, &center, &radius));
+  TEST_ASSERT_EQUAL_size_t(0, n);
+  zb_chunk_terrain_release(zb_test_alloc(), &ct);
+}
+
+/* spec: vegetation: Four levels of forest */
+/* spec: vegetation: Seasons colour the plants */
+/* spec: vegetation: Plants on every chunk near the player */
+static void test_foliage_view(void) {
+  init_world();
+  load_flora();
+  zb_world_desc d;
+  memset(&d, 0, sizeof d);
+  d.a = zb_test_alloc();
+  d.seed = 1;
+  d.profile = ZB_STREAM_MOBILE;
+  d.clock_ns = frozen_clock;
+  d.flora = &g_flora;
+  char err[128];
+  zb_world *w = zb_world_create(&d, err, sizeof err);
+  TEST_ASSERT_NOT_NULL_MESSAGE(w, err);
+  zb_render *r = zb_render_create(zb_test_alloc(), NULL, zb_render_null_backend(zb_test_alloc()));
+  zb_terrain_view_config cfg;
+  zb_terrain_view_default_config(&cfg);
+  cfg.fine_builds = 8;
+  zb_terrain_view *tv = zb_terrain_view_create(zb_test_alloc(), r, NULL, NULL, &cfg);
+  TEST_ASSERT_EQUAL_INT(0, zb_terrain_view_foliage_band(tv, 100.0f));
+  TEST_ASSERT_EQUAL_INT(1, zb_terrain_view_foliage_band(tv, 500.0f));
+  TEST_ASSERT_EQUAL_INT(2, zb_terrain_view_foliage_band(tv, 2000.0f));
+  TEST_ASSERT_EQUAL_INT(3, zb_terrain_view_foliage_band(tv, 9000.0f));
+  zb_stream_focus f;
+  memset(&f, 0, sizeof f);
+  f.pos.chunk = forest_chunk(zb_world_terrain(w), zb_world_planet(w));
+  f.pos.lx = f.pos.ly = 128.0f;
+  f.pos.alt = 200.0f;
+  zb_world_set_focus(w, 0, &f);
+  zb_world_set_origin(w, f.pos.chunk);
+  zb_vec3 eye = zb_origin_to_local(zb_world_origin(w), zb_world_planet(w), &f.pos);
+  zb_terrain_view_set_season(tv, 2.0f); /* autumn */
+  zb_terrain_view_stats st;
+  for (int frame = 0; frame < 600; ++frame) {
+    zb_world_update(w);
+    zb_render_begin(r, 640, 360);
+    zb_render_set_camera(r, eye, zb_v3(eye.x + 100, eye.y - 60, eye.z), zb_v3(0, 1, 0), 60, 1, 20000);
+    zb_terrain_view_draw(tv, w, eye);
+    zb_render_end(r);
+    zb_terrain_view_get_stats(tv, &st);
+    zb_stream_stats ss;
+    zb_stream_get_stats(zb_world_stream(w), &ss);
+    if (ss.queued == 0 && ss.jobs == 0 && st.built == 0 && st.foliage_per_band[0] > 0 && frame > 50) {
+      break;
+    }
+  }
+  printf("plants: %zu chunks (%zu near, %zu mid, %zu far), %zu billboards\n", st.foliage, st.foliage_per_band[0],
+         st.foliage_per_band[1], st.foliage_per_band[2], st.plants);
+  TEST_ASSERT_TRUE(st.foliage_per_band[0] > 0 && st.foliage_per_band[2] > 0);
+  /* The chunk under the focus has its plants; those far away only their canopy. */
+  TEST_ASSERT_EQUAL_INT(ZB_STAGE_ECOLOGY, zb_stream_target(zb_world_stream(w), f.pos.chunk));
+  zb_chunk far = f.pos.chunk;
+  far.x += 6;
+  TEST_ASSERT_TRUE(zb_stream_target(zb_world_stream(w), far) < ZB_STAGE_ECOLOGY);
+  TEST_ASSERT_TRUE(st.plants > 100);
+  TEST_ASSERT_EQUAL_size_t(st.foliage, zb_render_null_foliage(zb_render_backend_of(r)));
+  /* The season's colours reach the frame. */
+  const zb_frame *fr = zb_render_null_last_frame(zb_render_backend_of(r));
+  int oak = zb_flora_find(&g_flora, "oak");
+  TEST_ASSERT_EQUAL_FLOAT(g_flora.species[oak].seasons[2][0], fr->foliage_tints[oak][0]);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, fr->foliage_tints[ZB_FOLIAGE_TINTS - 1][0]); /* beyond the species */
+  zb_terrain_view_set_season(tv, 3.5f);                                      /* half-way from winter to spring */
+  zb_render_begin(r, 640, 360);
+  zb_terrain_view_draw(tv, w, eye);
+  zb_render_end(r);
+  fr = zb_render_null_last_frame(zb_render_backend_of(r));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.5f * (g_flora.species[oak].seasons[3][1] + g_flora.species[oak].seasons[0][1]),
+                           fr->foliage_tints[oak][1]);
+  zb_terrain_view_destroy(tv);
+  TEST_ASSERT_EQUAL_size_t(0, zb_render_null_foliage(zb_render_backend_of(r)));
+  zb_render_destroy(r);
+  zb_world_destroy(w);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_mesh_levels);
   RUN_TEST(test_water);
   RUN_TEST(test_curvature);
   RUN_TEST(test_view);
+  RUN_TEST(test_foliage_bands);
+  RUN_TEST(test_foliage_view);
   return UNITY_END();
 }

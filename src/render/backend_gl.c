@@ -129,6 +129,7 @@ typedef ptrdiff_t GLintptr;
   X(void, glUniform1f, (GLint loc, GLfloat v)) \
   X(void, glUniform2f, (GLint loc, GLfloat x, GLfloat y)) \
   X(void, glUniform3f, (GLint loc, GLfloat x, GLfloat y, GLfloat z)) \
+  X(void, glUniform3fv, (GLint loc, GLsizei count, const GLfloat *v)) \
   X(void, glUniformMatrix4fv, (GLint loc, GLsizei count, GLboolean transpose, const GLfloat *v)) \
   X(void, glDrawElements, (GLenum mode, GLsizei count, GLenum type, const void *indices)) \
   X(void, glDrawArrays, (GLenum mode, GLint first, GLsizei count)) \
@@ -159,13 +160,17 @@ typedef struct gl_mesh {
   GLuint vao, vbo, ibo;
 } gl_mesh;
 
+typedef struct gl_foliage {
+  GLuint vao, vbo; /* vao == 0: a free slot */
+} gl_foliage;
+
 typedef struct gl_program {
   GLuint id;
   GLint view_proj, model, normal, light_dir, light_color, ambient, tex, right, up, screen;
   GLint eye, fog_color, fog_density, layers;
   GLint cam_right, cam_up, cam_fwd, tan_half, tan_offset, world_up, zenith, horizon, dip, sun_dir, sun_color;
   GLint scene, lut, bayer, dither, palette;
-  GLint time;
+  GLint time, tints;
 } gl_program;
 
 typedef struct sprite_instance {
@@ -183,8 +188,9 @@ typedef struct gl_ctx {
   zb_array textures; /* GLuint, handle = index + 1, 0 = free slot */
   zb_array meshes;   /* gl_mesh; vao == 0 marks a free slot */
   size_t free_hint;  /* no free slot below this index */
-  gl_program model, sprite, text, terrain, water, sky, post;
-  GLuint empty_vao; /* fullscreen passes draw from gl_VertexID */
+  gl_program model, sprite, text, terrain, water, foliage, sky, post;
+  zb_array foliage_buffers; /* gl_foliage, handle = index + 1 */
+  GLuint empty_vao;         /* fullscreen passes draw from gl_VertexID */
   GLuint post_fbo, post_color;
   GLuint quad_vbo, inst_vbo, sprite_vao;
   GLuint text_vbo, text_vao;
@@ -331,6 +337,7 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const cha
                {"u_bayer", offsetof(gl_program, bayer)},
                {"u_dither", offsetof(gl_program, dither)},
                {"u_time", offsetof(gl_program, time)},
+               {"u_tints", offsetof(gl_program, tints)},
                {"u_palette", offsetof(gl_program, palette)}};
   for (size_t i = 0; i < sizeof extra / sizeof extra[0]; ++i) {
     *(GLint *)((char *)out + extra[i].offset) = c->gl.glGetUniformLocation(p, extra[i].name);
@@ -437,6 +444,49 @@ static void gl_destroy_mesh(void *ctx, uint32_t handle) {
   }
 }
 
+static uint32_t gl_create_foliage(void *ctx, const zb_foliage_instance *instances, size_t count) {
+  gl_ctx *c = ctx;
+  gl_foliage f;
+  c->gl.glGenVertexArrays(1, &f.vao);
+  c->gl.glBindVertexArray(f.vao);
+  c->gl.glBindBuffer(GL_ARRAY_BUFFER, c->quad_vbo);
+  attrib(c, 0, 2, 2 * sizeof(float), 0, 0);
+  c->gl.glGenBuffers(1, &f.vbo);
+  c->gl.glBindBuffer(GL_ARRAY_BUFFER, f.vbo);
+  c->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(count * sizeof(zb_foliage_instance)), instances, GL_STATIC_DRAW);
+  GLsizei st = (GLsizei)sizeof(zb_foliage_instance);
+  attrib(c, 1, 3, st, offsetof(zb_foliage_instance, pos), 1);
+  attrib(c, 2, 2, st, offsetof(zb_foliage_instance, size), 1);
+  attrib(c, 3, 4, st, offsetof(zb_foliage_instance, uv), 1);
+  attrib(c, 4, 4, st, offsetof(zb_foliage_instance, tint), 1);
+  c->gl.glBindVertexArray(0);
+  for (size_t i = 0; i < c->foliage_buffers.len; ++i) {
+    gl_foliage *slot = zb_array_at(&c->foliage_buffers, i);
+    if (slot->vao == 0) {
+      *slot = f;
+      return (uint32_t)(i + 1);
+    }
+  }
+  if (!zb_array_push(&c->foliage_buffers, &f)) {
+    c->gl.glDeleteVertexArrays(1, &f.vao);
+    c->gl.glDeleteBuffers(1, &f.vbo);
+    return 0;
+  }
+  return (uint32_t)c->foliage_buffers.len;
+}
+
+static void gl_destroy_foliage(void *ctx, uint32_t handle) {
+  gl_ctx *c = ctx;
+  if (handle && handle <= c->foliage_buffers.len) {
+    gl_foliage *f = zb_array_at(&c->foliage_buffers, handle - 1);
+    if (f->vao) {
+      c->gl.glDeleteVertexArrays(1, &f->vao);
+      c->gl.glDeleteBuffers(1, &f->vbo);
+      memset(f, 0, sizeof *f);
+    }
+  }
+}
+
 static void ensure_fbo(gl_ctx *c, int w, int h) {
   if (c->fbo && c->fbo_w == w && c->fbo_h == h) {
     return;
@@ -517,6 +567,44 @@ static void draw_meshes(gl_ctx *c, const zb_frame *f, int view, zb_draw_kind kin
     c->gl.glBindVertexArray(m->vao);
     c->gl.glDrawElements(GL_TRIANGLES, (GLsizei)it->count, GL_UNSIGNED_INT,
                          (const void *)((size_t)it->first * sizeof(uint32_t)));
+  }
+}
+
+/* Plant billboards: alpha-tested, both sides, swaying with the frame's time. */
+static void draw_foliage(gl_ctx *c, const zb_frame *f, int view) {
+  const gl_program *p = &c->foliage;
+  const zb_view *v = &f->views[view];
+  bool started = false;
+  for (size_t i = 0; i < f->item_count; ++i) {
+    const zb_draw_item *it = &f->items[i];
+    if (it->kind != ZB_DRAW_FOLIAGE || it->view != view || it->mesh == 0 || it->mesh > c->foliage_buffers.len) {
+      continue;
+    }
+    const gl_foliage *fb = zb_array_at(&c->foliage_buffers, it->mesh - 1);
+    if (!fb->vao) {
+      continue;
+    }
+    if (!started) {
+      c->gl.glUseProgram(p->id);
+      c->gl.glUniformMatrix4fv(p->view_proj, 1, GL_FALSE, v->view_proj.m);
+      c->gl.glUniform3f(p->right, v->right.x, v->right.y, v->right.z);
+      c->gl.glUniform3f(p->light_color, f->light_color.x, f->light_color.y, f->light_color.z);
+      c->gl.glUniform3f(p->ambient, f->ambient.x, f->ambient.y, f->ambient.z);
+      c->gl.glUniform1f(p->time, f->time);
+      c->gl.glUniform3fv(p->tints, ZB_FOLIAGE_TINTS, &f->foliage_tints[0][0]);
+      c->gl.glUniform1i(p->tex, 0);
+      set_fog(c, p, f, view);
+      c->gl.glActiveTexture(GL_TEXTURE0);
+      c->gl.glDisable(GL_CULL_FACE);
+      started = true;
+    }
+    c->gl.glUniformMatrix4fv(p->model, 1, GL_FALSE, it->model.m);
+    c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, it->texture));
+    c->gl.glBindVertexArray(fb->vao);
+    c->gl.glDrawArraysInstanced(GL_TRIANGLES, 0, 6, (GLsizei)it->count);
+  }
+  if (started) {
+    c->gl.glEnable(GL_CULL_FACE);
   }
 }
 
@@ -706,6 +794,7 @@ static void gl_execute(void *ctx, const zb_frame *f) {
     }
     draw_meshes(c, f, v, ZB_DRAW_TERRAIN);
     draw_meshes(c, f, v, ZB_DRAW_MODEL);
+    draw_foliage(c, f, v);
     draw_sprites(c, f, v);
     draw_water(c, f, v);
   }
@@ -765,8 +854,8 @@ static void gl_destroy(void *ctx) {
     c->gl.glDeleteProgram(c->sprite.id);
   if (c->text.id)
     c->gl.glDeleteProgram(c->text.id);
-  const GLuint extra_programs[4] = {c->terrain.id, c->water.id, c->sky.id, c->post.id};
-  for (int i = 0; i < 4; ++i) {
+  const GLuint extra_programs[5] = {c->terrain.id, c->water.id, c->foliage.id, c->sky.id, c->post.id};
+  for (int i = 0; i < 5; ++i) {
     if (extra_programs[i]) {
       c->gl.glDeleteProgram(extra_programs[i]);
     }
@@ -799,8 +888,12 @@ static void gl_destroy(void *ctx) {
   for (size_t i = 0; i < c->meshes.len; ++i) {
     free_mesh(c, zb_array_at(&c->meshes, i));
   }
+  for (size_t i = 0; i < c->foliage_buffers.len; ++i) {
+    gl_destroy_foliage(c, (uint32_t)(i + 1));
+  }
   zb_array_free(&c->textures);
   zb_array_free(&c->meshes);
+  zb_array_free(&c->foliage_buffers);
   zb_array_free(&c->instances);
   zb_free(c->a, c);
 }
@@ -842,6 +935,7 @@ zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load
   c->gles = gles;
   zb_array_init(&c->textures, a, sizeof(GLuint));
   zb_array_init(&c->meshes, a, sizeof(gl_mesh));
+  zb_array_init(&c->foliage_buffers, a, sizeof(gl_foliage));
   zb_array_init(&c->instances, a, sizeof(sprite_instance));
   /* Check the version first: an old driver (e.g. Windows' GDI OpenGL 1.1)
    * lacks most functions, and the version is the useful message then. */
@@ -871,12 +965,14 @@ zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load
   static const char *const model_attribs[] = {"a_pos", "a_normal", "a_color", "a_uv", NULL};
   static const char *const sprite_attribs[] = {"a_corner", "i_pos", "i_size_pivot", "i_uv", NULL};
   static const char *const text_attribs[] = {"a_pos", "a_uv", "a_color", NULL};
+  static const char *const foliage_attribs[] = {"a_corner", "i_pos", "i_size", "i_uv", "i_tint", NULL};
   static const char *const no_attribs[] = {NULL};
   if (!build_program(c, vfs, "model", "model", model_attribs, &c->model, err, err_len) ||
       !build_program(c, vfs, "sprite", "sprite", sprite_attribs, &c->sprite, err, err_len) ||
       !build_program(c, vfs, "text", "text", text_attribs, &c->text, err, err_len) ||
       !build_program(c, vfs, "terrain", "terrain", model_attribs, &c->terrain, err, err_len) ||
       !build_program(c, vfs, "water", "water", model_attribs, &c->water, err, err_len) ||
+      !build_program(c, vfs, "foliage", "foliage", foliage_attribs, &c->foliage, err, err_len) ||
       !build_program(c, vfs, "fullscreen", "sky", no_attribs, &c->sky, err, err_len) ||
       !build_program(c, vfs, "fullscreen", "post", no_attribs, &c->post, err, err_len)) {
     gl_destroy(c);
@@ -891,6 +987,8 @@ zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load
   c->iface.destroy_texture = gl_destroy_texture;
   c->iface.create_mesh = gl_create_mesh;
   c->iface.destroy_mesh = gl_destroy_mesh;
+  c->iface.create_foliage = gl_create_foliage;
+  c->iface.destroy_foliage = gl_destroy_foliage;
   c->iface.execute = gl_execute;
   c->iface.capture = gl_capture;
   return &c->iface;

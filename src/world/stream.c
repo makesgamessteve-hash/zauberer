@@ -93,6 +93,14 @@ void zb_stream_default_config(zb_stream_config *c, zb_stream_profile profile) {
   }
 }
 
+float zb_stream_profile_ecology_radius(zb_stream_profile profile) {
+  switch (profile) {
+    case ZB_STREAM_DESKTOP: return 768.0f;
+    case ZB_STREAM_WEB: return 512.0f;
+    default: return 320.0f;
+  }
+}
+
 zb_stream *zb_stream_create(const zb_terrain *t, const zb_stream_config *cfg) {
   zb_stream *s = zb_alloc(cfg->a, sizeof *s);
   if (!s) {
@@ -131,6 +139,9 @@ static void discard_work(entry *e) {
   }
   if (e->work.material && e->work.material != e->data.material) {
     zb_free(e->chunk_alloc, e->work.material);
+  }
+  if (e->work.plants && e->work.plants != e->data.plants) {
+    zb_free(e->chunk_alloc, e->work.plants);
   }
   e->work = e->data;
 }
@@ -297,6 +308,7 @@ static entry *create_entry(zb_stream *s, zb_chunk c, zb_dvec3 dir) {
 
 typedef struct ring_limits {
   double near, far, near_keep, far_keep; /* cosines of the angular radii */
+  double ecology, ecology_keep;          /* (above 1 when there is no ecology ring) */
 } ring_limits;
 
 /* Visits every chunk of one face inside the focus's keep cap. */
@@ -363,8 +375,11 @@ static void scan_face(zb_stream *s, const focus_state *f, int face, const ring_l
       if (dd < lim->far_keep) {
         continue;
       }
-      int want = dd >= lim->near ? ZB_STAGE_SURFACE : (dd >= lim->far ? ZB_STAGE_COARSE : ZB_STAGE_NONE);
-      int keep = dd >= lim->near_keep ? ZB_STAGE_SURFACE : ZB_STAGE_COARSE;
+      int want = dd >= lim->ecology ? ZB_STAGE_ECOLOGY
+                 : dd >= lim->near  ? ZB_STAGE_SURFACE
+                 : dd >= lim->far   ? ZB_STAGE_COARSE
+                                    : ZB_STAGE_NONE;
+      int keep = dd >= lim->ecology_keep ? ZB_STAGE_ECOLOGY : dd >= lim->near_keep ? ZB_STAGE_SURFACE : ZB_STAGE_COARSE;
       zb_chunk c = {face, x, y};
       entry *e = lookup(s, c);
       if (!e) {
@@ -397,8 +412,13 @@ static void refresh(zb_stream *s, int count) {
   for (int i = 0; i < count; ++i) {
     const focus_state *f = &s->now[i];
     double near = (double)s->cfg.near_radius;
-    ring_limits lim = {zb_dcos((near + HALF_DIAGONAL) / r), zb_dcos((f->far + HALF_DIAGONAL) / r),
-                       zb_dcos((near * h + HALF_DIAGONAL) / r), zb_dcos((f->far * h + HALF_DIAGONAL) / r)};
+    double eco = (double)s->cfg.ecology_radius < near ? (double)s->cfg.ecology_radius : near;
+    ring_limits lim = {zb_dcos((near + HALF_DIAGONAL) / r),
+                       zb_dcos((f->far + HALF_DIAGONAL) / r),
+                       zb_dcos((near * h + HALF_DIAGONAL) / r),
+                       zb_dcos((f->far * h + HALF_DIAGONAL) / r),
+                       eco > 0.0 ? zb_dcos((eco + HALF_DIAGONAL) / r) : 2.0,
+                       eco > 0.0 ? zb_dcos((eco * h + HALF_DIAGONAL) / r) : 2.0};
     double scan = (f->far * h + HALF_DIAGONAL) / r;
     for (int face = 0; face < ZB_PLANET_FACES; ++face) {
       scan_face(s, f, face, &lim, scan);

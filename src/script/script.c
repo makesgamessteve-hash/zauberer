@@ -685,7 +685,7 @@ zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_l
   zb_world *world = cfg->world;
   if (!world) {
     /* Unit tests and tools: a private world that generates inline. */
-    zb_world_desc wd = {cfg->a, NULL, cfg->planet_radius, cfg->seed, ZB_STREAM_DESKTOP, NULL, NULL, NULL};
+    zb_world_desc wd = {cfg->a, NULL, cfg->planet_radius, cfg->seed, ZB_STREAM_DESKTOP, NULL, NULL, NULL, NULL};
     world = zb_world_create(&wd, err, err_len);
     if (!world) {
       return NULL;

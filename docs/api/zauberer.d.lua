@@ -126,6 +126,8 @@
 ---@field terrain_items integer Terrain chunk draw items (after culling)
 ---@field terrain_triangles integer Terrain triangles drawn
 ---@field water_items integer Water surface draw items (after culling)
+---@field foliage_items integer Plant buffers drawn (after culling)
+---@field foliage_instances integer Plant billboards drawn (after culling)
 ---@field glyphs integer Text glyphs
 ---@field culled integer Items culled by the view frustum
 ---@field frames integer Frames rendered so far
@@ -142,6 +144,7 @@
 ---@field stage0 integer Loaded chunks at stage 0 (coarse)
 ---@field stage1 integer Loaded chunks at stage 1 (heightfield)
 ---@field stage2 integer Loaded chunks at stage 2 (surface)
+---@field stage3 integer Loaded chunks at stage 3 (plants)
 ---@field wanted integer Chunks inside the rings
 ---@field cached integer Loaded chunks outside the rings
 ---@field bytes integer Chunk memory
@@ -416,6 +419,10 @@ function render.model(path) end
 ---@param palette Palette|false
 function render.palette(palette) end
 
+---Holds the time that animates water and swaying plants (for photos and golden images); nil lets it run with the game again.
+---@param seconds? number
+function render.pin_time(seconds) end
+
 ---Test API: RGBA of a pixel of the last capture (origin top-left).
 ---@param x integer
 ---@param y integer
@@ -531,7 +538,7 @@ function world.chunk_hash(pos, stage) end
 ---@return integer
 function world.chunk_key(pos) end
 
----Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
+---Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface, 3 plants), or -1.
 ---@param pos PlanetPos
 ---@return integer
 function world.chunk_stage(pos) end
@@ -587,6 +594,10 @@ function world.draw_globe(frame, position, radius, spin) end
 ---@param radius number?
 ---@return PlanetPos?
 function world.find_water(pos, kind, radius) end
+
+---The plant species of the world, in registry order.
+---@return Species[]
+function world.flora() end
 
 ---The position of planet-centred coordinates in metres.
 ---@param x number
@@ -645,6 +656,12 @@ function world.neighbors(pos) end
 ---Describes the planet.
 ---@return PlanetInfo
 function world.planet() end
+
+---The plants within radius metres (up to 256) of a position, from the chunks loaded with their plants (stage 3); at most 4096.
+---@param pos PlanetPos
+---@param radius number
+---@return Plant[]
+function world.plants(pos, radius) end
 
 ---Makes a position; the offsets default to 0. Errors when the chunk is not on the planet.
 ---@param face integer

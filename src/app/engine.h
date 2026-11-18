@@ -33,6 +33,7 @@ typedef struct zb_engine {
   zb_script *script;
   zb_world *world;
   struct zb_world_bundle *bundle; /* the created world being played (owned), or NULL */
+  zb_flora flora;                 /* plant species (count 0: none) */
   zb_terrain_view *terrain_view;
   zb_net *net;
   zb_loop loop;

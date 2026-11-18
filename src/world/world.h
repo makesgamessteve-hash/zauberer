@@ -17,6 +17,9 @@ typedef struct zb_world_desc {
   /* A created world (terrain v2); it must outlive the world, and its radius
    * and seed replace radius and seed. NULL: the noise world. */
   const struct zb_world_bundle *bundle;
+  /* Plant species (must outlive the world): chunks near a focus get their
+   * plants (stage 3). NULL: no plants. */
+  const zb_flora *flora;
 } zb_world_desc;
 
 typedef struct zb_world zb_world;

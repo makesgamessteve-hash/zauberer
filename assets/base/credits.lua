@@ -3,6 +3,7 @@
 return {
   { file = "fonts/pixel.png", author = "Zauberer contributors", source = "tools/gen/gen_font.py", license = "CC-BY-4.0" },
   { file = "sprites/mote.png", author = "Zauberer contributors", source = "tools/gen/gen_sprites.py", license = "CC-BY-4.0" },
+  { file = "sprites/flora.png", author = "Zauberer contributors", source = "tools/gen/gen_flora.py", license = "CC-BY-4.0" },
   { file = "models/carpet.glb", author = "Zauberer contributors", source = "tools/gen/gen_carpet.py", license = "CC-BY-4.0" },
   { file = "sounds/chime.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
   { file = "music/loop.ogg", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },

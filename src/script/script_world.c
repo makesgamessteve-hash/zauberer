@@ -278,6 +278,74 @@ static int w_water(lua_State *L) {
   return 5;
 }
 
+/* @lua world.flora(): Species[]
+ * The plant species of the world, in registry order.
+ * @field id string Species id
+ * @field name string Display name
+ * @field layer string "tree", "shrub" or "ground"
+ */
+static int w_flora(lua_State *L) {
+  const zb_flora *f = T(L)->flora;
+  int n = f ? f->count : 0;
+  static const char *const layers[ZB_PLANT_LAYERS] = {"tree", "shrub", "ground"};
+  lua_createtable(L, n, 0);
+  for (int i = 0; i < n; ++i) {
+    lua_createtable(L, 0, 3);
+    lua_pushstring(L, f->species[i].id);
+    lua_setfield(L, -2, "id");
+    lua_pushstring(L, f->species[i].name);
+    lua_setfield(L, -2, "name");
+    lua_pushstring(L, layers[f->species[i].layer]);
+    lua_setfield(L, -2, "layer");
+    lua_rawseti(L, -2, i + 1);
+  }
+  return 1;
+}
+
+/* @lua world.plants(pos: PlanetPos, radius: number): Plant[]
+ * The plants within radius metres (up to 256) of a position, from the chunks
+ * loaded with their plants (stage 3); at most 4096.
+ * @field species string Species id
+ * @field layer string "tree", "shrub" or "ground"
+ * @field height number Metres
+ * @field pos PlanetPos Where it stands (on the ground)
+ */
+static int w_plants(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 256.0, 2, "radius must be 0..256 metres");
+  const zb_flora *f = T(L)->flora;
+  zb_chunk chunks[9];
+  chunks[0] = pos.chunk;
+  int n = 1 + zb_planet_neighbors(P(L), pos.chunk, &chunks[1]);
+  static const char *const layers[ZB_PLANT_LAYERS] = {"tree", "shrub", "ground"};
+  lua_newtable(L);
+  int found = 0;
+  for (int c = 0; c < n && f; ++c) {
+    const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(W(L)), chunks[c]);
+    for (uint32_t i = 0; ct && i < ct->plant_count && found < 4096; ++i) {
+      const zb_plant *pl = &ct->plants[i];
+      zb_planet_pos at = {chunks[c], (float)pl->x / 256.0f, (float)pl->y / 256.0f, 0.0f};
+      if (zb_planet_distance(P(L), &pos, &at) > radius) {
+        continue;
+      }
+      const zb_species *sp = &f->species[pl->species];
+      at.alt = zb_chunk_height_at(ct, at.lx, at.ly);
+      lua_createtable(L, 0, 4);
+      lua_pushstring(L, sp->id);
+      lua_setfield(L, -2, "species");
+      lua_pushstring(L, layers[sp->layer]);
+      lua_setfield(L, -2, "layer");
+      lua_pushnumber(L, (double)sp->height[0] + (double)(sp->height[1] - sp->height[0]) * pl->size / 255.0);
+      lua_setfield(L, -2, "height");
+      zb_script_push_pos(L, &at);
+      lua_setfield(L, -2, "pos");
+      lua_rawseti(L, -2, ++found);
+    }
+  }
+  return 1;
+}
+
 /* @lua world.ground_height(pos: PlanetPos): number
  * Ground height in metres above sea level from the loaded heightfield (the analytic terrain
  * where the chunk is not loaded at stage 1 or more).
@@ -395,7 +463,7 @@ static int w_chunk_hash(lua_State *L) {
 }
 
 /* @lua world.chunk_stage(pos: PlanetPos): integer
- * Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
+ * Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface, 3 plants), or -1.
  */
 static int w_chunk_stage(lua_State *L) {
   zb_planet_pos pos = zb_script_check_pos(L, 1);
@@ -408,6 +476,7 @@ static int w_chunk_stage(lua_State *L) {
  * @field stage0 integer Loaded chunks at stage 0 (coarse)
  * @field stage1 integer Loaded chunks at stage 1 (heightfield)
  * @field stage2 integer Loaded chunks at stage 2 (surface)
+ * @field stage3 integer Loaded chunks at stage 3 (plants)
  * @field wanted integer Chunks inside the rings
  * @field cached integer Loaded chunks outside the rings
  * @field bytes integer Chunk memory
@@ -424,16 +493,16 @@ static int w_chunk_stage(lua_State *L) {
 static int w_stream_stats(lua_State *L) {
   zb_stream_stats st;
   zb_stream_get_stats(zb_world_stream(W(L)), &st);
-  lua_createtable(L, 0, 11);
+  lua_createtable(L, 0, 12);
   const struct {
     const char *name;
     lua_Integer value;
-  } fields[] = {{"stage0", (lua_Integer)st.chunks[0]},    {"stage1", (lua_Integer)st.chunks[1]},
-                {"stage2", (lua_Integer)st.chunks[2]},    {"wanted", (lua_Integer)st.wanted},
-                {"cached", (lua_Integer)st.cached},       {"bytes", (lua_Integer)st.bytes},
-                {"jobs", (lua_Integer)st.jobs},           {"queued", (lua_Integer)st.queued},
-                {"generated", (lua_Integer)st.generated}, {"evicted", (lua_Integer)st.evicted},
-                {"cancelled", (lua_Integer)st.cancelled}};
+  } fields[] = {{"stage0", (lua_Integer)st.chunks[0]}, {"stage1", (lua_Integer)st.chunks[1]},
+                {"stage2", (lua_Integer)st.chunks[2]}, {"stage3", (lua_Integer)st.chunks[3]},
+                {"wanted", (lua_Integer)st.wanted},    {"cached", (lua_Integer)st.cached},
+                {"bytes", (lua_Integer)st.bytes},      {"jobs", (lua_Integer)st.jobs},
+                {"queued", (lua_Integer)st.queued},    {"generated", (lua_Integer)st.generated},
+                {"evicted", (lua_Integer)st.evicted},  {"cancelled", (lua_Integer)st.cancelled}};
   for (size_t i = 0; i < sizeof fields / sizeof fields[0]; ++i) {
     lua_pushinteger(L, fields[i].value);
     lua_setfield(L, -2, fields[i].name);
@@ -455,6 +524,8 @@ void zb_script_open_world(zb_script *s) {
                                        {"clear_focus", w_clear_focus},
                                        {"ground_height", w_ground_height},
                                        {"water", w_water},
+                                       {"flora", w_flora},
+                                       {"plants", w_plants},
                                        {"stream_stats", w_stream_stats},
                                        {"chunk_stage", w_chunk_stage},
                                        {"to_local", w_to_local},
