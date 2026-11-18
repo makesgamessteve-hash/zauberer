@@ -3,7 +3,7 @@
 ## 1. Deterministic math
 
 - [x] 1.1 Implement `core/dmath` (sin, cos, tan, atan, atan2, asin, acos, exp, log, pow) with range reduction and fixed kernels; verify unit tests "deterministic-math: Accuracy", "Special values" and the golden hash "Golden values"
-- [ ] 1.2 Run the golden test in the Linux, Windows and web-node CI jobs (it is part of the unit suite)
+- [x] 1.2 Run the golden test in the Linux, Windows and web-node CI jobs (it is part of the unit suite)
 
 ## 2. Planet model
 
