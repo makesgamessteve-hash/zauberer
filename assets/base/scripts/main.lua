@@ -17,10 +17,19 @@ local coop = require("flight.coop")
 local creation = require("create.screen")
 local magic = require("magic.play")
 local fauna = require("life.fauna")
+local ecology = require("life.ecology")
+local plants = require("life.plants")
+local smalllife = require("life.smalllife")
 local motes = require("magic.motes")
 local effects = require("magic.effects")
 local health = require("player.health")
 local walker = require("player.walker")
+local survival = require("player.survival")
+local pack = require("player.pack")
+local harvest = require("life.harvest")
+local cooking = require("life.cooking")
+local items = require("life.items")
+local codex = require("life.codex")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -58,10 +67,27 @@ local function setup_flight()
     and walker.new(back.on_foot.pos, back.on_foot.heading, FOOT) or nil
   game.magic = magic.new(back and back.magic)
   game.health = health.new(back and back.health)
+  game.survival = survival.new(back and back.survival, save.get("difficulty"))
+  game.pack = pack.new(back and back.pack)
+  game.codex = codex.new(back and back.codex)
+  game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
   end
   game.fauna = fauna.new(pos, heading)
+  -- The land's populations and what was taken from its plants: from the save,
+  -- kept when flying on in the same world, new in a new one.
+  local world_id = tostring((world.info() or {}).seed or ("noise " .. engine.info().seed))
+  if game.ecology then
+    ecology.fold_all(game.ecology)
+  end
+  if back or game.life_world ~= world_id then
+    local life = back and back.life or {}
+    game.ecology = ecology.new(life.ecology)
+    game.plants = plants.new(life.plants)
+    game.smalllife = smalllife.new(life.smalllife)
+  end
+  game.life_world = world_id
   game.motes = motes.new(engine.info().seed)
   game.channeling = false
   game.chase = camera.new()
@@ -116,8 +142,13 @@ end
 function game.save()
   local c = game.carpet
   local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
-    health = game.health and health.snapshot(game.health), on_foot = game.walker and walker.snapshot(game.walker) }
-    or nil
+    health = game.health and health.snapshot(game.health),
+    survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
+    codex = game.codex and codex.snapshot(game.codex),
+    on_foot = game.walker and walker.snapshot(game.walker),
+    life = game.ecology and { ecology = ecology.snapshot(game.ecology),
+      plants = plants.snapshot(game.plants, world.time().time),
+      smalllife = smalllife.snapshot(game.smalllife, world.time().time) } } or nil
   local ok, err = world.save_game(game.save_name, player)
   if ok then
     save.set("world", game.save_name)
@@ -153,6 +184,9 @@ engine.on("init", function()
   assets.carpet = render.model("models/carpet.glb")
   assets.mote = render.sprite("sprites/mote.lua")
   assets.flame = render.sprite("sprites/flame.lua")
+  for _, kind in ipairs({ "bee", "mosquito", "firefly", "butterfly" }) do
+    assets[kind] = render.sprite("sprites/" .. kind .. ".lua")
+  end
   assets.font = render.font("fonts/pixel.lua")
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
   game.credits = engine.credits()
@@ -241,12 +275,26 @@ local function flight_tick(dt)
     here.loaded and here.stored or nil)
   game.last_cast = cast_now or game.last_cast
   -- Creatures, and the motes of the magical ones that die.
+  local now = world.time().time
+  ecology.tick(game.ecology, dt, me, now)
   local creature_events = fauna.tick(game.fauna, dt, me, w ~= nil)
   for _, ev in ipairs(creature_events) do
     if ev.kind == "died" and ev.magical and ev.mana and (ev.motes or 0) > 0 then
       motes.release(game.motes, ev.pos, ev.mana, ev.motes, 8)
     end
+    if ev.kind == "died" then smalllife.died(game.smalllife, ev.id, now) end -- carcasses rot away
   end
+  smalllife.tick(game.smalllife, dt, me, now) -- mushrooms, microbes, insects
+  -- The Codex: what is in sight is seen, what is looked at is observed.
+  local view
+  if w then
+    local cp = math.cos(w.pitch)
+    view = { eye = world.move(w.pos, 0, 0, 0, walker.EYE), feet = w.pos,
+      dir = { math.sin(w.heading) * cp, math.sin(w.pitch), -math.cos(w.heading) * cp } }
+  else
+    view = { eye = c.pos, dir = camera.direction(game.chase, c.heading) }
+  end
+  codex.look(game.codex, dt, view, { smalllife = game.smalllife }, now)
   -- Harm and healing; a defeated player gets up again where the carpet set out.
   local fx = game.magic.caster.effects
   local fate = health.tick(game.health, dt, { pos = me, on_foot = w ~= nil, landing = w and w.landing,
@@ -258,6 +306,52 @@ local function flight_tick(dt)
     game.walker, w = nil, nil
     me = c.pos
     camera.reset(game.chase)
+  end
+  -- Food, water, rest and warmth run in game time (a time skip is not counted
+  -- here: sleep counts its own).
+  local game_dt = math.min(math.max(now - (game.survival_at or now), 0), 300)
+  game.survival_at = now
+  local body = survival.sense(me, w, smalllife.bites(game.smalllife, me))
+  for _, h in ipairs(survival.tick(game.survival, game_dt, body)) do
+    health.hurt(game.health, h[1], h[2], function(kind) return effects.warded(fx, kind) end)
+  end
+  pack.spoil(game.pack, game_dt / 3600, body.air, false)
+  pack.tick(game.pack, dt)
+  survival.tick_news(game.survival, dt)
+  -- Gathering, fire and food (on foot), eating and drinking.
+  local function said(list)
+    local parts = {}
+    for id, n in pairs(list) do parts[#parts + 1] = items.name(id):lower() .. " " .. n end
+    table.sort(parts)
+    return table.concat(parts, ", ")
+  end
+  if w and input.state("gather").pressed then
+    local got, why = harvest.gather(game.pack, { plants = game.plants, smalllife = game.smalllife,
+      method = function(id) return codex.method(game.codex, id) end }, w.pos, now, w.heading)
+    pack.say(game.pack, got and ("Gathered " .. said(got.items)) or why)
+    if got then codex.sampled(game.codex, got.sources) end
+  end
+  if w and input.state("campfire").pressed then
+    local kg, why = cooking.campfire(game.pack, world.move(w.pos, w.heading, 0.6, 0))
+    pack.say(game.pack, kg and string.format("A campfire of %.1f kg laid: light it", kg) or why)
+  end
+  if w and input.state("cook").pressed then
+    local made, why = cooking.cook(game.pack, w.pos)
+    pack.say(game.pack, made and ("Cooked " .. said(made)) or why)
+  end
+  for action, fn in pairs({ eat = cooking.eat, drink = cooking.drink }) do
+    if input.state(action).pressed then
+      local name, why = fn(game.pack, game.survival, function(item) return codex.warned(game.codex, item) end)
+      pack.say(game.pack, name and ("You " .. action .. " " .. name:lower()) or why)
+    end
+  end
+  if input.state("codex").pressed then codex.browse(game.codex) end
+  if w and input.state("sleep").pressed and not game.health.down then
+    local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
+    for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
+    world.set_time(now + hours * 3600)
+    game.survival_at = now + hours * 3600
+    game.slept = hours
   end
   local m = game.magic.caster.mage
   motes.tick(game.motes, dt, { { pos = me, mage = m } })
@@ -327,8 +421,9 @@ end
 local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
-  local parts = { health.hud_lines(game.health), magic.hud_lines(game.magic), fauna.hud_lines(game.fauna),
-    motes.hud_lines(game.motes) }
+  local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
+    codex.hud_lines(game.codex),
+    magic.hud_lines(game.magic), fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
@@ -362,6 +457,7 @@ local function flight_frame()
   local sights = magic.sights(game.magic)
   for _, l in ipairs(sights.lights) do render.draw_sprite(assets.mote, world.to_local(l), 2) end
   for _, mote in ipairs(game.motes.list) do render.draw_sprite(assets.mote, world.to_local(mote.pos), 0.7) end
+  for _, bug in ipairs(smalllife.sights(game.smalllife)) do render.draw_sprite(assets[bug.kind], bug.pos, 1) end
   for _, b in ipairs(sights.bolts) do
     render.draw_sprite(b.color == "water" and assets.mote or assets.flame, world.to_local(b.pos), 1.2)
   end
@@ -436,5 +532,6 @@ end)
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
-  walker = walker,
+  walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
+  pack = pack, harvest = harvest, cooking = cooking, codex = codex,
 }

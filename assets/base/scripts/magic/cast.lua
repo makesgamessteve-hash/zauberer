@@ -24,6 +24,12 @@ function cast.aim(origin, heading, pitch, reach)
   return hit and hit.pos or far
 end
 
+-- The seed of the roll for a caster's next cast: one per cast and tick, and
+-- opts.seed (a number) to vary it.
+function cast.next_seed(c, opts)
+  return ((opts and opts.seed) or 0) * 1000003 + (c.count + 1) * 7919 + engine.tick()
+end
+
 -- Casts weave w (verb, colors, form, modifiers, power) from origin along
 -- heading and pitch. opts: accuracy (the gesture's, default 0.8), charge
 -- (seconds the cast was charged), carpet (for Void moves), seed.
@@ -50,8 +56,8 @@ function cast.weave(c, w, origin, heading, pitch, opts)
   end
   local overcharge = mage.overcharge(c.mage, w.power, opts.charge or 1)
   mage.strain_by(c.mage, overcharge)
+  local seed = cast.next_seed(c, opts)
   c.count = c.count + 1
-  local seed = (opts.seed or 0) * 1000003 + c.count * 7919 + engine.tick()
   local control = weave.control(opts.accuracy or 0.8, casts)
   if c.mage.strain > 60 then control = control * 0.8 end -- blurred by strain
   local plan = weave.resolve(w, { control = control, overcharge = overcharge, casts = casts, seed = seed })
