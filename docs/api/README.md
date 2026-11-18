@@ -560,6 +560,32 @@ Scenarios: waits ms milliseconds of real time (for tests with several processes;
 
 Scenarios: runs ticks simulation ticks (default 1) before continuing.
 
+## mana
+
+### `mana.at(pos: PlanetPos): ManaCell`
+
+The mana of the 32 m cell at a place in the active tier.
+
+### `mana.colors(): string[]`
+
+The eight colours in the order of the mana wheel: fire, storm, light, life, water, earth, void, decay (opposites are four apart).
+
+### `mana.draw(pos: PlanetPos, color: string, amount: number, radius?: number): number`
+
+Draws up to amount mana (0 .. 1e6) of a colour from the cells within radius metres (default 0: the cell at pos; up to 256); returns how much it got. Emptying a cell with heavy drawing blights it.
+
+### `mana.ley(pos: PlanetPos): LeySample`
+
+The ley network near a place (anywhere on the planet).
+
+### `mana.release(pos: PlanetPos, color: string, amount: number)`
+
+Gives mana back to the field at a place (0 .. 1e6): motes dissolving, spells fading.
+
+### `mana.stats(): ManaStats`
+
+
+
 ## registry
 
 ### `registry.get(kind: string, ref: string): RegistryEntry?`

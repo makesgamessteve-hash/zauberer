@@ -23,6 +23,7 @@ struct zb_world {
   double time;      /* game seconds */
   double healed_at; /* when burnt chunks were last looked at (game seconds; < 0: not yet) */
   zb_deltas *deltas;
+  zb_ley ley;
 };
 
 static bool arrived(void *ctx, zb_chunk_terrain *ct) {
@@ -51,6 +52,7 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) 
   zb_terrain_init(&w->terrain, &w->planet, seed, NULL);
   zb_terrain_use_bundle(&w->terrain, desc->bundle);
   zb_terrain_use_flora(&w->terrain, desc->flora);
+  zb_ley_build(&w->ley, &w->terrain, radius, seed);
   zb_calendar_default(&w->calendar);
   if (desc->bundle) {
     w->calendar.axial_tilt = desc->bundle->options.axial_tilt;
@@ -88,6 +90,7 @@ void zb_world_destroy(zb_world *w) {
 }
 
 const zb_planet *zb_world_planet(const zb_world *w) { return &w->planet; }
+const zb_ley *zb_world_ley(const zb_world *w) { return &w->ley; }
 const zb_terrain *zb_world_terrain(const zb_world *w) { return &w->terrain; }
 const zb_world_bundle *zb_world_get_bundle(const zb_world *w) { return w->terrain.bundle; }
 zb_stream *zb_world_stream(zb_world *w) { return w->stream; }
@@ -124,6 +127,11 @@ int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius)
     }
   }
   return removed;
+}
+
+zb_result zb_world_blight(zb_world *w, zb_chunk c, int x, int y, double when) {
+  zb_edit e = {ZB_EDIT_BLIGHT, 0, (uint16_t)x, (uint16_t)y, (uint32_t)((when > 0.0 ? when : 0.0) / 60.0)};
+  return x >= 0 && y >= 0 ? zb_deltas_add(w->deltas, c, &e) : ZB_ERR_INVALID;
 }
 
 zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count, double when) {

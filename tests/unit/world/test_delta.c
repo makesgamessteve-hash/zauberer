@@ -227,6 +227,7 @@ static void test_burnt(void) {
 }
 
 /* spec: terrain-deformation: Heights are kept as edits */
+/* spec: mana: Drawing depletes and overdrawing blights */
 static void test_heights(void) {
   zb_deltas *d = zb_deltas_create(zb_test_alloc());
   zb_chunk_terrain ct;
@@ -248,6 +249,11 @@ static void test_heights(void) {
   TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &bad));
   memcpy(&bad.index, &huge, sizeof huge);
   TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &bad));
+  /* Blighted mana cells: 8 per chunk edge; they change nothing in the chunk. */
+  zb_edit blight = {ZB_EDIT_BLIGHT, 0, 7, 7, 100};
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_add(d, ct.chunk, &blight));
+  blight.x = ZB_BLIGHT_RES;
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_deltas_add(d, ct.chunk, &blight));
   TEST_ASSERT_FALSE(zb_deltas_apply(d, &ct, 0.0)); /* no heights yet */
   ct.height = height;
   TEST_ASSERT_TRUE(zb_deltas_apply(d, &ct, 0.0));
@@ -263,8 +269,9 @@ static void test_heights(void) {
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_deltas_read_region(back, file.data, file.len, err, sizeof err));
   size_t n;
   const zb_edit *got = zb_deltas_get(back, ct.chunk, &n);
-  TEST_ASSERT_EQUAL_size_t(1, n);
+  TEST_ASSERT_EQUAL_size_t(2, n);
   TEST_ASSERT_TRUE(got[0].kind == ZB_EDIT_HEIGHT && got[0].index == e.index);
+  TEST_ASSERT_TRUE(got[1].kind == ZB_EDIT_BLIGHT && got[1].index == 100);
   zb_array_free(&file);
   zb_deltas_destroy(back);
   zb_deltas_destroy(d);

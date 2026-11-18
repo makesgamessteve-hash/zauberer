@@ -5,6 +5,7 @@
 #define ZB_WORLD_WORLD_H
 
 #include "world/calendar.h"
+#include "world/ley.h"
 #include "world/stream.h"
 
 typedef struct zb_world_desc {
@@ -30,6 +31,7 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len);
 void zb_world_destroy(zb_world *w);
 const zb_planet *zb_world_planet(const zb_world *w);
 const zb_terrain *zb_world_terrain(const zb_world *w);
+const zb_ley *zb_world_ley(const zb_world *w); /* the world's ley lines and nexuses */
 /* The created world's bundle, or NULL for the noise world. */
 const struct zb_world_bundle *zb_world_get_bundle(const zb_world *w);
 zb_stream *zb_world_stream(zb_world *w);
@@ -58,6 +60,9 @@ int zb_world_deform(zb_world *w, const zb_planet_pos *pos, double radius, double
 /* Records burnt 2 m cells of a chunk (index y * ZB_BURN_RES + x), burnt at
  * game time `when`, and applies them if the chunk is loaded. */
 zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count, double when);
+/* Records a 32 m mana cell (x, y in 0..7) of a chunk as blighted from game
+ * time `when`: overdrawn land (concept 3.2). */
+zb_result zb_world_blight(zb_world *w, zb_chunk c, int x, int y, double when);
 /* World time (game seconds since the world began) and its calendar; the axial
  * tilt comes from a created world. */
 const zb_calendar_config *zb_world_calendar(const zb_world *w);

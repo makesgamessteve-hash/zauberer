@@ -2,7 +2,8 @@
 /* Deltas: everything the players changed in the generated world, per chunk, so
  * that a chunk generated again comes back as they left it. Saves store only
  * these (in region files of 16 x 16 chunks), and co-op sends the same edits.
- * So far: removed plants and painted surface materials. */
+ * Removed plants, painted surface materials, burnt cells, changed heights
+ * and blighted mana cells. */
 #ifndef ZB_WORLD_DELTA_H
 #define ZB_WORLD_DELTA_H
 
@@ -16,8 +17,12 @@ typedef enum zb_edit_kind {
   ZB_EDIT_PLANT_REMOVED = 1, /* index: the plant (stage 3) */
   ZB_EDIT_MATERIAL = 2,      /* x, y: the 1 m cell; value: the zb_material (stage 2) */
   ZB_EDIT_BURNT = 3,         /* x, y: the 2 m cell (0..127); index: when, in game minutes */
-  ZB_EDIT_HEIGHT = 4         /* x, y: the 1 m height sample (0..256); index: its height in metres (float bits) */
+  ZB_EDIT_HEIGHT = 4,        /* x, y: the 1 m height sample (0..256); index: its height in metres (float bits) */
+  ZB_EDIT_BLIGHT = 5         /* x, y: the 32 m mana cell (0..7); index: when, in game minutes */
 } zb_edit_kind;
+
+#define ZB_BLIGHT_RES 8                    /* blighted cells per chunk edge */
+#define ZB_BLIGHT_SECONDS (60.0 * 86400.0) /* how long overdrawn land stays blighted */
 
 #define ZB_BURN_RES 128 /* burnt cells per chunk edge */
 /* After a fire the ground is ash for a while, and plants grow back by layer

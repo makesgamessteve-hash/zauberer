@@ -569,6 +569,7 @@ static int s_air_stats(lua_State *L) {
  * @field air_ms number
  * @field weather_ms number Weather, lightning and water putting fire out
  * @field bodies_ms number Rigid bodies and projectiles
+ * @field mana_ms number The mana field
  * @field total_ms number
  * @field budget_ms number
  * @field over_budget integer Seconds over the budget so far
@@ -582,7 +583,8 @@ static int s_tier_stats(lua_State *L) {
   zb_tier_stats st;
   zb_tier_get_stats(tier, &st);
   lua_createtable(L, 0, 8);
-  static const char *const names[ZB_TIER_SYSTEMS] = {"fire_ms", "water_ms", "air_ms", "weather_ms", "bodies_ms"};
+  static const char *const names[ZB_TIER_SYSTEMS] = {"fire_ms",    "water_ms",  "air_ms",
+                                                     "weather_ms", "bodies_ms", "mana_ms"};
   for (int k = 0; k < ZB_TIER_SYSTEMS; ++k) {
     set_number(L, names[k], st.ms[k]);
   }

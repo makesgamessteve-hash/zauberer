@@ -920,6 +920,40 @@ function sleep(ms) end
 ---@param ticks? integer
 function step(ticks) end
 
+mana = {}
+
+---The mana of the 32 m cell at a place in the active tier.
+---@param pos PlanetPos
+---@return ManaCell
+function mana.at(pos) end
+
+---The eight colours in the order of the mana wheel: fire, storm, light, life, water, earth, void, decay (opposites are four apart).
+---@return string[]
+function mana.colors() end
+
+---Draws up to amount mana (0 .. 1e6) of a colour from the cells within radius metres (default 0: the cell at pos; up to 256); returns how much it got. Emptying a cell with heavy drawing blights it.
+---@param pos PlanetPos
+---@param color string
+---@param amount number
+---@param radius? number
+---@return number
+function mana.draw(pos, color, amount, radius) end
+
+---The ley network near a place (anywhere on the planet).
+---@param pos PlanetPos
+---@return LeySample
+function mana.ley(pos) end
+
+---Gives mana back to the field at a place (0 .. 1e6): motes dissolving, spells fading.
+---@param pos PlanetPos
+---@param color string
+---@param amount number
+function mana.release(pos, color, amount) end
+
+---
+---@return ManaStats
+function mana.stats() end
+
 registry = {}
 
 ---An entry as its packages left it: its fields, plus key, package (that added it) and changed (the last package that overrode or patched it). ref is a key or an id that only one package defines; nil when there is no such entry.

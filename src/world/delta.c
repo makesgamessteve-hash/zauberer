@@ -84,6 +84,7 @@ static bool valid(const zb_edit *e) {
     case ZB_EDIT_MATERIAL:
       return e->x < ZB_SURFACE_RES && e->y < ZB_SURFACE_RES && e->value > ZB_MAT_NONE && e->value < ZB_MAT_COUNT;
     case ZB_EDIT_BURNT: return e->x < ZB_BURN_RES && e->y < ZB_BURN_RES;
+    case ZB_EDIT_BLIGHT: return e->x < ZB_BLIGHT_RES && e->y < ZB_BLIGHT_RES;
     case ZB_EDIT_HEIGHT: {
       float h;
       memcpy(&h, &e->index, sizeof h);

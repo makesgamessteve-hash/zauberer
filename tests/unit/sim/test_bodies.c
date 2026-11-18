@@ -578,8 +578,8 @@ static void test_odd_cases(void) {
   uint32_t edge = spawn(&s, ZB_SHAPE_SPHERE, "rock", 255.6f, 255.6f, 50.5);
   for (int k = 0; k < 4; ++k) {
     zb_body_desc t = desc(&s, ZB_SHAPE_BOX, "rock", 200.0f, 40.0f + 4.0f * (float)k, 50.5);
-    double flips[4][2][3] = {{{-1, 0, 0}, {0, 0, -1}}, {{0, -1, 0}, {0, 0, 1}}, {{0, 1, 0}, {-1, 0, 0}},
-                             {{0, 0, 1}, {0, 1, 0}}};
+    double flips[4][2][3] = {
+        {{-1, 0, 0}, {0, 0, -1}}, {{0, -1, 0}, {0, 0, 1}}, {{0, 1, 0}, {-1, 0, 0}}, {{0, 0, 1}, {0, 1, 0}}};
     memcpy(t.axis_x, flips[k][0], sizeof t.axis_x);
     memcpy(t.axis_z, flips[k][1], sizeof t.axis_z);
     uint32_t id = zb_bodies_add(s.bodies, &t);

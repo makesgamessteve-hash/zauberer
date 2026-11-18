@@ -9,7 +9,8 @@
  * - fire smokes into the air and leans with the air's local wind;
  * - standing water puts fire out and soaks its fuel;
  * - rigid bodies float in the water and wake when the ground under them
- *   changes.
+ *   changes;
+ * - the mana field draws its richness from all of them and the weather.
  *
  * It times every simulation against the budget for the whole tier. */
 #ifndef ZB_SIM_TIER_H
@@ -18,6 +19,7 @@
 #include "sim/air.h"
 #include "sim/bodies.h"
 #include "sim/fire.h"
+#include "sim/mana.h"
 #include "sim/water.h"
 #include "world/weather.h"
 
@@ -29,6 +31,7 @@ typedef enum zb_tier_system {
   ZB_TIER_AIR,
   ZB_TIER_WEATHER,
   ZB_TIER_BODIES,
+  ZB_TIER_MANA,
   ZB_TIER_SYSTEMS
 } zb_tier_system;
 
@@ -58,6 +61,7 @@ zb_fire *zb_tier_fire(const zb_tier *t);
 zb_surface_water *zb_tier_water(const zb_tier *t);
 zb_air *zb_tier_air(const zb_tier *t);
 zb_bodies *zb_tier_bodies(const zb_tier *t); /* NULL without materials */
+zb_mana *zb_tier_mana(const zb_tier *t);
 zb_weather_control *zb_tier_weather(zb_tier *t);
 /* Advances everything by one tick of seconds around the world's focus points. */
 void zb_tier_update(zb_tier *t, double seconds);
