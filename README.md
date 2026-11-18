@@ -1,5 +1,11 @@
 # Zauberer
 
+<p align="center">
+  <a href="https://makesgamessteve-hash.github.io/zauberer/"><b><font size="7">▶ PLAY</font></b></a>
+  <br>
+  <sub>In your browser: the latest web build, no install. Keyboard and mouse or touch.</sub>
+</p>
+
 *Working title. "Zauberer" is German for "wizard".*
 
 Zauberer is an open-source game about a child who inherits a living flying carpet and a
@@ -9,7 +15,7 @@ from words, gestures, ingredients and eight colors of mana, and it acts through 
 world's simulation of heat, fire, water, air and life. Play alone, or in online co-op
 with up to three friends as the father's children, the heirs of the carpet.
 
-> **Status: M4, first magic (Vertical Slice A).** M0–M4 are done.
+> **Status: M5, living things.** M0–M5 are done.
 >
 > - The engine runs on Linux, Windows, macOS and the web, with co-op flight over WebSockets
 >   and a WebXR spike.
@@ -19,7 +25,10 @@ with up to three friends as the father's children, the heirs of the carpet.
 >   mana fields.
 > - Magic: an open weave grammar (words, gestures, colours, forms, modifiers, power) with a
 >   spellbook, motes and channeling.
-> - The first creatures (wolves, deer, storm birds), a damage model, and walking on foot.
+> - Living things: populations that migrate and virtualise, animals with needs, herds,
+>   packs and scent tracking, plant life cycles, fungi and insects, survival (food, water,
+>   rest, warmth, disease), foraging, hunting, campfires and cooking, and a Codex that
+>   grows from Seen to Understood.
 
 ## Documents
 
