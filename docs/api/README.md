@@ -100,7 +100,7 @@ Adds an on-screen stick (normalised screen coordinates) for "touch:stick:<name>"
 
 ### `input.bind(action: string, binding: string)`
 
-Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_stick", "touch:button:spin".
+Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_stick", "touch:button:spin", "xr:select" or "xr:right_squeeze" (WebXR controllers; "xr:select" and "xr:squeeze" accept either hand).
 
 ### `input.bindings(action: string): string[]`
 
@@ -334,6 +334,20 @@ The local up direction at a position, in render coordinates (it tilts with the p
 
 Gets or sets the streaming rings: chunks get full detail within near metres and coarse detail within far metres (growing with altitude up to twice far).
 
+## xr: WebXR session and head tracking
+
+### `xr.emulate(head?: XrPose|false)`
+
+Test API: starts or moves an emulated headset at the head pose (default: the session origin). Its two views render side by side into the window, eyes 64 mm apart, through the same path as a real session. false ends the session.
+
+### `xr.emulate_button(hand: "left"|"right"|"none", button: "select"|"squeeze", down: boolean)`
+
+Test API: a controller button event, as a headset reports it ("none" for sources without a hand).
+
+### `xr.state(): XrState`
+
+The WebXR session. While it runs, the camera set with render.camera is the session origin (the seat on the carpet): every eye sees the scene from the head pose relative to it, with the headset's field of view. The head pose is updated before the frame hooks of every XR frame; it is presentation data and not part of replays. A session start or end reaches the event hook as "xr_session" (value "started" or "ended"); controller buttons are bindings such as "xr:select" (see input.bind).
+
 ## test: Lua tests
 
 ### `test.case(name: string, fn: function)`
@@ -560,3 +574,22 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `position` | `number[]?` | Translation {x, y, z} |
 | `rotation` | `number[]?` | Euler angles in degrees (applied Y, X, Z) |
 | `scale` | `number[] or number?` | Scale per axis or uniform |
+
+### XrPose
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `position` | `number[]` | {x, y, z} in metres, relative to the session origin |
+| `orientation` | `number[]` | Rotation quaternion {x, y, z, w} |
+
+### XrState
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `available` | `boolean` | An immersive VR session can be started (web build with a headset) |
+| `active` | `boolean` | A session is running |
+| `emulated` | `boolean` | The running session is emulated (test API) |
+| `views` | `integer` | Views of the last XR frame (0 without a session) |
+| `frames` | `integer` | XR frames rendered in the running session |
+| `size` | `integer[]` | Width and height of the XR framebuffer in pixels |
+| `head` | `XrPose` | Viewer (head) pose relative to the session origin |

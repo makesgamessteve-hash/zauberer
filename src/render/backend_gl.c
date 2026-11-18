@@ -162,7 +162,7 @@ typedef struct gl_program {
   GLuint id;
   GLint view_proj, model, normal, light_dir, light_color, ambient, tex, right, up, screen;
   GLint eye, fog_color, fog_density, layers;
-  GLint cam_right, cam_up, cam_fwd, tan_half, world_up, zenith, horizon, dip, sun_dir, sun_color;
+  GLint cam_right, cam_up, cam_fwd, tan_half, tan_offset, world_up, zenith, horizon, dip, sun_dir, sun_color;
   GLint scene, lut, bayer, dither, palette;
 } gl_program;
 
@@ -189,6 +189,7 @@ typedef struct gl_ctx {
   GLuint fbo, fbo_color, fbo_depth;
   int fbo_w, fbo_h;
   int last_dw, last_dh;
+  GLuint last_target; /* framebuffer the last frame was presented into */
   zb_array instances; /* sprite_instance */
 } gl_ctx;
 
@@ -316,6 +317,7 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const cha
                {"u_cam_up", offsetof(gl_program, cam_up)},
                {"u_cam_fwd", offsetof(gl_program, cam_fwd)},
                {"u_tan_half", offsetof(gl_program, tan_half)},
+               {"u_tan_offset", offsetof(gl_program, tan_offset)},
                {"u_world_up", offsetof(gl_program, world_up)},
                {"u_zenith", offsetof(gl_program, zenith)},
                {"u_horizon", offsetof(gl_program, horizon)},
@@ -565,18 +567,26 @@ static void draw_text(gl_ctx *c, const zb_frame *f) {
     return;
   }
   const gl_program *p = &c->text;
-  c->gl.glViewport(0, 0, f->layout.internal_w, f->layout.internal_h);
   c->gl.glDisable(GL_DEPTH_TEST);
   c->gl.glDisable(GL_CULL_FACE);
   c->gl.glUseProgram(p->id);
-  c->gl.glUniform2f(p->screen, (GLfloat)f->layout.internal_w, (GLfloat)f->layout.internal_h);
   c->gl.glUniform1i(p->tex, 0);
   c->gl.glBindVertexArray(c->text_vao);
   c->gl.glBindBuffer(GL_ARRAY_BUFFER, c->text_vbo);
   c->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(f->text_count * sizeof(zb_text_vertex)), f->text, GL_STREAM_DRAW);
-  for (size_t b = 0; b < f->text_batch_count; ++b) {
-    c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, f->text_batches[b].texture));
-    c->gl.glDrawArrays(GL_TRIANGLES, (GLint)f->text_batches[b].first, (GLsizei)f->text_batches[b].count);
+  /* Explicit (headset) views each show the text at the same place. */
+  int passes = f->explicit_views ? f->view_count : 1;
+  for (int v = 0; v < passes; ++v) {
+    const zb_view *w = &f->views[v];
+    int x = f->explicit_views ? w->x : 0, y = f->explicit_views ? w->y : 0;
+    int width = f->explicit_views ? w->width : f->layout.internal_w;
+    int height = f->explicit_views ? w->height : f->layout.internal_h;
+    c->gl.glViewport(x, y, width, height);
+    c->gl.glUniform2f(p->screen, (GLfloat)width, (GLfloat)height);
+    for (size_t b = 0; b < f->text_batch_count; ++b) {
+      c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, f->text_batches[b].texture));
+      c->gl.glDrawArrays(GL_TRIANGLES, (GLint)f->text_batches[b].first, (GLsizei)f->text_batches[b].count);
+    }
   }
   c->gl.glEnable(GL_DEPTH_TEST);
   c->gl.glEnable(GL_CULL_FACE);
@@ -594,6 +604,8 @@ static void draw_sky(gl_ctx *c, const zb_frame *f, int view) {
   c->gl.glUniform3f(p->cam_up, v->up.x, v->up.y, v->up.z);
   c->gl.glUniform3f(p->cam_fwd, fwd.x, fwd.y, fwd.z);
   c->gl.glUniform2f(p->tan_half, 1.0f / v->proj.m[0], 1.0f / v->proj.m[5]);
+  /* Off-axis (headset) projections shift the frustum's centre. */
+  c->gl.glUniform2f(p->tan_offset, v->proj.m[8] / v->proj.m[0], v->proj.m[9] / v->proj.m[5]);
   c->gl.glUniform3f(p->world_up, a->up.x, a->up.y, a->up.z);
   c->gl.glUniform3f(p->zenith, a->zenith.x, a->zenith.y, a->zenith.z);
   c->gl.glUniform3f(p->horizon, a->horizon.x, a->horizon.y, a->horizon.z);
@@ -658,17 +670,27 @@ static void gl_execute(void *ctx, const zb_frame *f) {
   draw_post(c, f);
   draw_text(c, f);
   c->gl.glBindVertexArray(0);
-  /* Upscale to the window with nearest-neighbour filtering. */
+  /* Upscale to the window (or the target) with nearest-neighbour filtering. */
   c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, c->post_fbo);
-  c->gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  c->gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, f->target);
   c->gl.glViewport(0, 0, l->drawable_w, l->drawable_h);
-  c->gl.glClearColor(f->clear[0], f->clear[1], f->clear[2], 1.0f);
-  c->gl.glClear(GL_COLOR_BUFFER_BIT);
-  c->gl.glBlitFramebuffer(0, 0, l->internal_w, l->internal_h, l->out_x, l->out_y, l->out_x + l->out_w,
-                          l->out_y + l->out_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+  if (f->explicit_views) {
+    /* Each eye into its viewport; the rest of the target is left alone. */
+    for (int v = 0; v < f->view_count; ++v) {
+      const zb_view *w = &f->views[v];
+      c->gl.glBlitFramebuffer(w->x, w->y, w->x + w->width, w->y + w->height, w->out_x, w->out_y, w->out_x + w->out_w,
+                              w->out_y + w->out_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+  } else {
+    c->gl.glClearColor(f->clear[0], f->clear[1], f->clear[2], 1.0f);
+    c->gl.glClear(GL_COLOR_BUFFER_BIT);
+    c->gl.glBlitFramebuffer(0, 0, l->internal_w, l->internal_h, l->out_x, l->out_y, l->out_x + l->out_w,
+                            l->out_y + l->out_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+  }
   c->gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
   c->last_dw = l->drawable_w;
   c->last_dh = l->drawable_h;
+  c->last_target = f->target;
 }
 
 static zb_result gl_capture(void *ctx, bool internal, const zb_allocator *a, zb_image *out) {
@@ -685,7 +707,7 @@ static zb_result gl_capture(void *ctx, bool internal, const zb_allocator *a, zb_
     return ZB_ERR_NOMEM;
   }
   c->gl.glFinish();
-  c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, internal ? c->post_fbo : 0);
+  c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, internal ? c->post_fbo : c->last_target);
   c->gl.glPixelStorei(GL_PACK_ALIGNMENT, 1);
   c->gl.glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, out->rgba);
   c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

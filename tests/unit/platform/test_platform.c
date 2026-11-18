@@ -355,10 +355,27 @@ static void no_state(void *user, char *out, size_t len) {
   (void)len;
 }
 
+static bool no_xr_frame(void *user, const zb_xr_frame *frame) {
+  (void)user;
+  (void)frame;
+  TEST_FAIL_MESSAGE("no XR frames on the desktop");
+  return false;
+}
+
+static void no_xr_event(void *user, const zb_event *ev) {
+  (void)user;
+  (void)ev;
+  TEST_FAIL_MESSAGE("no XR events on the desktop");
+}
+
 static void test_web_bridge_on_desktop(void) {
   TEST_ASSERT_FALSE(zb_platform_has_fetch(g_p));
   TEST_ASSERT_EQUAL_INT(ZB_ERR_UNSUPPORTED, zb_platform_fetch(g_p, "assets/base/x.png", no_fetch, NULL));
   zb_platform_set_state_provider(g_p, no_state, NULL);
+  /* The WebXR handler is accepted but never called. */
+  zb_xr_handler xr = {NULL, no_xr_frame, no_xr_event};
+  zb_platform_set_xr_handler(g_p, &xr);
+  zb_platform_set_xr_handler(g_p, NULL);
   TEST_ASSERT_TRUE(SDL_InitSubSystem(SDL_INIT_EVENTS));
   zb_platform_push_audio_unlock();
   SDL_Event e;

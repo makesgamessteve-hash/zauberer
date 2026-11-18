@@ -10,6 +10,7 @@
 #include "core/event.h"
 #include "core/fs.h"
 #include "core/thread.h"
+#include "core/xr.h"
 
 typedef struct zb_platform zb_platform;
 
@@ -83,5 +84,20 @@ typedef void (*zb_state_fn)(void *user, char *out, size_t len);
 /* Queues the audio-unlock event (web: the first user gesture; also tests). */
 void zb_platform_push_audio_unlock(void);
 void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user);
+
+/* WebXR: the page's bridge (web/lib_zauberer.js) reports availability and
+ * session changes (ZB_EV_XR_STATUS), controller buttons (ZB_EV_XR_BUTTON) and
+ * one frame per XR animation frame, straight to the handler: SDL's event pump
+ * only runs in the window loop, which a presenting headset pauses. Desktop
+ * builds never call it. */
+typedef struct zb_xr_handler {
+  void *user;
+  /* Runs one XR frame; returns false to end the session. */
+  bool (*frame)(void *user, const zb_xr_frame *frame);
+  void (*event)(void *user, const zb_event *ev);
+} zb_xr_handler;
+/* Sets the handler (NULL clears it); the last availability report, if any,
+ * is delivered at once. */
+void zb_platform_set_xr_handler(zb_platform *p, const zb_xr_handler *h);
 
 #endif

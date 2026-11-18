@@ -12,6 +12,7 @@ typedef struct null_ctx {
   size_t counts[3]; /* per zb_draw_kind */
   size_t frames;
   size_t live_meshes;
+  zb_frame last;
 } null_ctx;
 
 static void null_destroy(void *ctx) {
@@ -51,6 +52,7 @@ static void null_execute(void *ctx, const zb_frame *frame) {
     n->counts[frame->items[i].kind]++;
   }
   n->frames++;
+  n->last = *frame;
 }
 
 static zb_result null_capture(void *ctx, bool internal, const zb_allocator *a, zb_image *out) {
@@ -92,4 +94,9 @@ size_t zb_render_null_meshes(const zb_render_backend *b) {
 size_t zb_render_null_frames(const zb_render_backend *b) {
   const null_ctx *n = b->ctx;
   return n->frames;
+}
+
+const zb_frame *zb_render_null_last_frame(const zb_render_backend *b) {
+  const null_ctx *n = b->ctx;
+  return &n->last;
 }

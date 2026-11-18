@@ -70,6 +70,8 @@ zb_script *zb_script_from(lua_State *L);
 void zb_script_open_api(zb_script *s);
 /* Registers world (planet coordinates). */
 void zb_script_open_world(zb_script *s);
+/* Registers xr (WebXR session and head tracking; test helpers with the test API). */
+void zb_script_open_xr(zb_script *s);
 /* Adds the test helpers (test.*) and scenario helpers to the global table. */
 void zb_script_open_test_api(zb_script *s);
 /* Canonical hash of a Lua value (sorted keys, IEEE bit patterns). */

@@ -58,6 +58,10 @@ struct zb_render {
   zb_vec3 eye, target, up;
   float fovy, znear, zfar;
   float eye_sep;
+  zb_xr_view xr_views[ZB_RENDER_MAX_VIEWS];
+  int xr_view_count; /* explicit views; 0 = derived from the camera */
+  uint32_t target_fb;
+  int target_w, target_h; /* 0: present to the window */
   zb_vec3 light_dir, light_color, ambient;
   zb_atmosphere atmosphere;
   uint32_t lut_asset, bayer_asset, atlas_asset;
@@ -209,6 +213,21 @@ void zb_render_set_light(zb_render *r, zb_vec3 direction, zb_vec3 color, zb_vec3
 }
 
 void zb_render_set_eye_separation(zb_render *r, float metres) { r->eye_sep = metres; }
+
+void zb_render_set_views(zb_render *r, const zb_xr_view *views, int count) {
+  count = views == NULL || count < 0 ? 0 : (count > ZB_RENDER_MAX_VIEWS ? ZB_RENDER_MAX_VIEWS : count);
+  for (int i = 0; i < count; ++i) {
+    r->xr_views[i] = views[i];
+  }
+  r->xr_view_count = count;
+}
+
+void zb_render_set_target(zb_render *r, uint32_t framebuffer, int width, int height) {
+  bool on = width > 0 && height > 0;
+  r->target_fb = on ? framebuffer : 0;
+  r->target_w = on ? width : 0;
+  r->target_h = on ? height : 0;
+}
 
 /* ---- Assets ---------------------------------------------------------------- */
 
@@ -625,12 +644,81 @@ void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, z
 
 /* ---- Frame ------------------------------------------------------------------ */
 
+/* A headset projection with the camera's depth range (perspective matrices only). */
+static zb_mat4 with_depth_range(zb_mat4 p, float znear, float zfar) {
+  if (p.m[11] < -0.5f && fabsf(p.m[15]) < 1e-6f && zfar > znear) {
+    p.m[10] = (zfar + znear) / (znear - zfar);
+    p.m[14] = 2.0f * zfar * znear / (znear - zfar);
+  }
+  return p;
+}
+
+/* Views from explicit (headset) views relative to the camera: each at the
+ * internal height with its viewport's aspect ratio, side by side. */
+static void explicit_views(zb_render *r) {
+  zb_layout *l = &r->frame.layout;
+  int ih = r->internal_h, total = 0, scale = 0;
+  int widths[ZB_RENDER_MAX_VIEWS];
+  for (int v = 0; v < r->xr_view_count; ++v) {
+    const zb_xr_view *xv = &r->xr_views[v];
+    int vw = xv->width > 0 ? xv->width : 1, vh = xv->height > 0 ? xv->height : 1;
+    long w = lroundf((float)ih * (float)vw / (float)vh);
+    widths[v] = (int)(w < 1 ? 1 : (w > 4L * ih ? 4L * ih : w));
+    total += widths[v];
+    /* An integer upscale when every view is the same exact multiple. */
+    int k = vh / ih;
+    bool exact = k >= 1 && vh == k * ih && vw == k * widths[v];
+    scale = exact && (v == 0 || k == scale) ? k : 0;
+  }
+  l->internal_w = total;
+  l->internal_h = ih;
+  l->out_x = 0;
+  l->out_y = 0;
+  l->out_w = l->drawable_w;
+  l->out_h = l->drawable_h;
+  l->scale = scale;
+  zb_mat4 camera = zb_m4_look_at(r->eye, r->target, r->up);
+  int x = 0;
+  for (int v = 0; v < r->xr_view_count; ++v) {
+    const zb_xr_view *xv = &r->xr_views[v];
+    zb_view *vw = &r->frame.views[v];
+    vw->x = x;
+    vw->y = 0;
+    vw->width = widths[v];
+    vw->height = ih;
+    x += widths[v];
+    vw->out_x = xv->x;
+    vw->out_y = xv->y;
+    vw->out_w = xv->width;
+    vw->out_h = xv->height;
+    vw->view = zb_m4_mul(xv->view, camera);
+    vw->proj = with_depth_range(xv->proj, r->znear, r->zfar);
+    vw->view_proj = zb_m4_mul(vw->proj, vw->view);
+    /* Rigid view matrix: its rows are the eye's axes, and eye = -R t. */
+    const float *m = vw->view.m;
+    vw->right = zb_v3(m[0], m[4], m[8]);
+    vw->up = zb_v3(m[1], m[5], m[9]);
+    zb_vec3 back = zb_v3(m[2], m[6], m[10]);
+    vw->eye = zb_v3_scale(
+        zb_v3_add(zb_v3_add(zb_v3_scale(vw->right, m[12]), zb_v3_scale(vw->up, m[13])), zb_v3_scale(back, m[14])),
+        -1.0f);
+    r->frustums[v] = zb_frustum_from_matrix(vw->view_proj);
+  }
+  r->frame.view_count = r->xr_view_count;
+  r->frame.explicit_views = true;
+}
+
 void zb_render_begin(zb_render *r, int drawable_w, int drawable_h) {
   zb_array_clear(&r->items);
   zb_array_clear(&r->text);
   zb_array_clear(&r->text_batches);
   memset(&r->frame, 0, sizeof r->frame);
+  if (r->target_w > 0) {
+    drawable_w = r->target_w;
+    drawable_h = r->target_h;
+  }
   r->frame.layout = zb_render_compute_layout(drawable_w, drawable_h, r->internal_h);
+  r->frame.target = r->target_fb;
   memcpy(r->frame.clear, r->clear, sizeof r->clear);
   r->frame.view_count = r->view_count;
   r->frame.light_dir = r->light_dir;
@@ -641,7 +729,7 @@ void zb_render_begin(zb_render *r, int drawable_w, int drawable_h) {
   zb_vec3 fwd = zb_v3_normalize(zb_v3_sub(r->target, r->eye));
   zb_vec3 right = zb_v3_normalize(zb_v3_cross(fwd, r->up));
   zb_vec3 up = zb_v3_cross(right, fwd);
-  for (int v = 0; v < r->view_count; ++v) {
+  for (int v = 0; v < r->view_count && r->xr_view_count == 0; ++v) {
     zb_view *vw = &r->frame.views[v];
     vw->width = iw / r->view_count;
     vw->height = ih;
@@ -659,9 +747,12 @@ void zb_render_begin(zb_render *r, int drawable_w, int drawable_h) {
     vw->up = up;
     r->frustums[v] = zb_frustum_from_matrix(vw->view_proj);
   }
+  if (r->xr_view_count > 0) {
+    explicit_views(r);
+  }
   memset(&r->stats, 0, sizeof(zb_render_stats) - sizeof(uint64_t));
   r->stats.layout = r->frame.layout;
-  r->stats.views = r->view_count;
+  r->stats.views = r->frame.view_count;
   r->in_frame = true;
 }
 

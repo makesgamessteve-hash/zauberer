@@ -658,7 +658,8 @@ static int i_define(lua_State *L) {
 }
 
 /* @lua input.bind(action: string, binding: string)
- * Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_stick", "touch:button:spin".
+ * Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_stick", "touch:button:spin",
+ * "xr:select" or "xr:right_squeeze" (WebXR controllers; "xr:select" and "xr:squeeze" accept either hand).
  */
 static int i_bind(lua_State *L) {
   zb_script *s = S(L);
@@ -1368,4 +1369,5 @@ void zb_script_open_api(zb_script *s) {
   static const luaL_Reg save_fns[] = {{"get", s_get}, {"set", s_set}, {"flush", s_flush}, {NULL, NULL}};
   reg(L, "save", save_fns);
   zb_script_open_world(s);
+  zb_script_open_xr(s);
 }

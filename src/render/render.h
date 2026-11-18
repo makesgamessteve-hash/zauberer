@@ -4,6 +4,7 @@
 #ifndef ZB_RENDER_RENDER_H
 #define ZB_RENDER_RENDER_H
 
+#include "core/xr.h"
 #include "render/backend.h"
 #include "vfs/vfs.h"
 
@@ -52,6 +53,17 @@ bool zb_render_palette_enabled(const zb_render *r);
 void zb_render_set_terrain_atlas(zb_render *r, uint32_t texture, int layers);
 /* Distance between the eyes in stereo mode (metres). */
 void zb_render_set_eye_separation(zb_render *r, float metres);
+/* Explicit views (WebXR), copied, in effect from the next zb_render_begin
+ * until cleared with count 0. They replace the camera-derived views: each
+ * view's matrix is applied relative to the camera (view x camera view), its
+ * projection keeps the field of view but takes the camera's near and far
+ * planes, and its viewport is the destination in the target. Every view is
+ * rendered at the internal height with its viewport's aspect ratio, side by
+ * side in the internal framebuffer. */
+void zb_render_set_views(zb_render *r, const zb_xr_view *views, int count);
+/* Presents into a backend framebuffer of width x height pixels instead of
+ * the window; a size of 0 returns to the window. */
+void zb_render_set_target(zb_render *r, uint32_t framebuffer, int width, int height);
 
 /* Asset handles are non-zero; repeated loads of a path return the same handle. */
 uint32_t zb_render_load_texture(zb_render *r, const char *path);
@@ -69,6 +81,8 @@ size_t zb_render_asset_count(const zb_render *r);
  * an exact multiple of the internal size, otherwise the largest fit. */
 zb_layout zb_render_compute_layout(int drawable_w, int drawable_h, int internal_h);
 
+/* Starts a frame for a window drawable of the given size (ignored while a
+ * target is set). */
 void zb_render_begin(zb_render *r, int drawable_w, int drawable_h);
 void zb_render_draw_model(zb_render *r, uint32_t model, zb_mat4 transform);
 /* A terrain mesh (from zb_render_upload_mesh) with its bounding sphere in mesh coordinates. */

@@ -57,6 +57,9 @@ cmake --preset web-st && cmake --build --preset web-st
 node tests/web/server.mjs build/web-st/bin    # prints the URL to open
 ```
 
+With a WebXR headset (or a WebXR emulator extension), the page shows an **Enter VR** button
+that starts an immersive session; the camera becomes the seat the head moves around.
+
 Useful options: `--assets <dir>`, `--user-dir <dir>`, `--headless`, `--ticks <n>`,
 `--seed <n>`, `--debug-views 2` (stereo), `--record <file>` / `--replay <file>`
 (`zauberer --help` lists all). Player data lives in `%APPDATA%/Zauberer`,

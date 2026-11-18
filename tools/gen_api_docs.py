@@ -31,7 +31,7 @@ SOURCE_DIR = "src/script"
 OUT_MD = "docs/api/README.md"
 OUT_LUA = "docs/api/zauberer.d.lua"
 SPDX_TAG = "SPDX-" + "License-Identifier:"  # split so license scanners skip it
-MODULE_ORDER = ("engine", "vfs", "input", "render", "audio", "save", "world", "test", "math", "")
+MODULE_ORDER = ("engine", "vfs", "input", "render", "audio", "save", "world", "xr", "test", "math", "")
 MODULE_TITLES = {
     "engine": "engine: lifecycle, time and state",
     "vfs": "vfs: package files",
@@ -40,6 +40,7 @@ MODULE_TITLES = {
     "audio": "audio: sounds and music",
     "save": "save: player data",
     "world": "world: planet coordinates and terrain",
+    "xr": "xr: WebXR session and head tracking",
     "test": "test: Lua tests",
     "math": "math: deterministic randomness",
     "": "Globals",

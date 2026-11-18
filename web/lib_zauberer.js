@@ -45,3 +45,140 @@ addToLibrary({
     }
   },
 });
+
+// WebXR bridge (immersive VR, design: openspec add-webxr-session). It reports
+// whether an immersive-vr session is possible, starts one for the page's Enter
+// VR button (Module.zbXrEnter) with a 'local' reference space and a WebGL layer
+// on the engine's context, and drives the engine from the session's frames:
+// per frame it writes the layer size, the viewer pose and each view's viewport,
+// view matrix and projection into wasm memory (layout: src/core/xr.h) and calls
+// zb_web_xr_frame. Select and squeeze become engine input events. The page
+// hears about changes through Module.zbXrStatus('unsupported' | 'supported' |
+// 'running').
+addToLibrary({
+  $ZBXR__deps: ['$GL'],
+  $ZBXR: {
+    supported: false,
+    session: null,
+    space: null,
+    framebuffer: 0,
+    HANDS: { left: 1, right: 2 },
+    STATUS: ['unsupported', 'supported', 'running'],
+
+    report: function (status) {
+      _zb_web_xr_status(status);
+      if (Module['zbXrStatus']) Module['zbXrStatus'](ZBXR.STATUS[status]);
+    },
+
+    init: function () {
+      Module['zbXrEnter'] = ZBXR.enter;
+      Module['zbXrExit'] = ZBXR.exit;
+      var xr = typeof navigator !== 'undefined' ? navigator.xr : undefined;
+      if (!xr || typeof xr.isSessionSupported !== 'function' || typeof XRWebGLLayer === 'undefined') {
+        ZBXR.report(0);
+        return;
+      }
+      xr.isSessionSupported('immersive-vr').then(function (ok) {
+        ZBXR.supported = !!ok;
+        if (!ZBXR.session) ZBXR.report(ok ? 1 : 0);
+      }, function () {
+        ZBXR.report(0);
+      });
+    },
+
+    // Called from a user gesture (the button). Resolves to whether a session started.
+    enter: function () {
+      if (ZBXR.session || !ZBXR.supported) return Promise.resolve(false);
+      var gl = GL.currentContext ? GL.currentContext.GLctx : null;
+      var session = null;
+      return navigator.xr.requestSession('immersive-vr').then(function (s) {
+        session = s;
+        return gl.makeXRCompatible();
+      }).then(function () {
+        // No antialiasing: WebGL 2 cannot blit into a multisampled framebuffer,
+        // and the retro look needs none. The engine writes no depth.
+        var layer = new XRWebGLLayer(session, gl, { antialias: false, depth: false, alpha: false });
+        session.updateRenderState({ baseLayer: layer });
+        return session.requestReferenceSpace('local');
+      }).then(function (space) {
+        ZBXR.start(session, space);
+        return true;
+      }).catch(function (error) {
+        console.error('WebXR: the session could not start: ' + error);
+        if (session) session.end().catch(function () {});
+        return false;
+      });
+    },
+
+    exit: function () {
+      return ZBXR.session ? ZBXR.session.end() : Promise.resolve();
+    },
+
+    start: function (session, space) {
+      var layer = session.renderState.baseLayer;
+      ZBXR.session = session;
+      ZBXR.space = space;
+      ZBXR.framebuffer = 0;
+      if (layer.framebuffer) {
+        // The layer's opaque framebuffer gets a GL name the engine can bind.
+        var id = GL.getNewId(GL.framebuffers);
+        layer.framebuffer.name = id;
+        GL.framebuffers[id] = layer.framebuffer;
+        ZBXR.framebuffer = id;
+      }
+      ['selectstart', 'selectend', 'squeezestart', 'squeezeend'].forEach(function (type) {
+        session.addEventListener(type, ZBXR.onInput);
+      });
+      session.addEventListener('end', ZBXR.onEnd);
+      ZBXR.report(2);
+      session.requestAnimationFrame(ZBXR.onFrame);
+    },
+
+    onInput: function (event) {
+      var hand = (event.inputSource && ZBXR.HANDS[event.inputSource.handedness]) || 0;
+      var button = event.type.indexOf('squeeze') === 0 ? 1 : 0;
+      _zb_web_xr_button(hand, button, /start$/.test(event.type) ? 1 : 0);
+    },
+
+    onFrame: function (time, frame) {
+      var session = frame.session;
+      if (session !== ZBXR.session) return;
+      session.requestAnimationFrame(ZBXR.onFrame);
+      var layer = session.renderState.baseLayer;
+      var pose = frame.getViewerPose(ZBXR.space);
+      if (!pose || !layer || pose.views.length < 1) return; // tracking lost: the compositor keeps the last frame
+      var views = Math.min(pose.views.length, 2);
+      var h = HEAPF32, at = _zb_web_xr_buffer() >> 2;
+      var p = pose.transform.position, o = pose.transform.orientation;
+      h[at] = views;
+      h[at + 1] = layer.framebufferWidth;
+      h[at + 2] = layer.framebufferHeight;
+      h[at + 3] = p.x; h[at + 4] = p.y; h[at + 5] = p.z;
+      h[at + 6] = o.x; h[at + 7] = o.y; h[at + 8] = o.z; h[at + 9] = o.w;
+      for (var i = 0; i < views; ++i) {
+        var view = pose.views[i], vp = layer.getViewport(view), v = at + 10 + i * 36;
+        h[v] = vp.x; h[v + 1] = vp.y; h[v + 2] = vp.width; h[v + 3] = vp.height;
+        h.set(view.transform.inverse.matrix, v + 4);
+        h.set(view.projectionMatrix, v + 20);
+      }
+      if (!_zb_web_xr_frame(ZBXR.framebuffer, 10 + views * 36)) {
+        session.end().catch(function () {});
+      }
+    },
+
+    onEnd: function (event) {
+      if ((event.session || ZBXR.session) !== ZBXR.session) return;
+      if (ZBXR.framebuffer) GL.framebuffers[ZBXR.framebuffer] = null;
+      ZBXR.framebuffer = 0;
+      ZBXR.session = null;
+      ZBXR.space = null;
+      ZBXR.report(ZBXR.supported ? 1 : 0);
+    },
+  },
+
+  // Called by the platform layer once the engine's WebGL context exists.
+  zb_js_xr_init__deps: ['$ZBXR'],
+  zb_js_xr_init: function () {
+    ZBXR.init();
+  },
+});

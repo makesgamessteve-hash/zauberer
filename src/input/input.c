@@ -3,6 +3,7 @@
 
 #include "core/keys.h"
 #include "core/log.h"
+#include "core/xr.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -25,7 +26,8 @@ typedef enum src_kind {
   SRC_KEYS_1D,
   SRC_KEYS_2D,
   SRC_TOUCH_STICK,
-  SRC_TOUCH_BUTTON
+  SRC_TOUCH_BUTTON,
+  SRC_XR_BUTTON /* a: zb_xr_hand or -1 for any hand, b: zb_xr_button */
 } src_kind;
 
 typedef struct binding {
@@ -84,6 +86,7 @@ struct zb_input {
   button_raw mouse[ZB_MOUSE_BUTTON_COUNT];
   float mouse_dx, mouse_dy;
   pad pads[MAX_PADS];
+  button_raw xr[ZB_XR_HAND_COUNT][ZB_XR_BUTTON_COUNT];
   touch touches[MAX_TOUCHES];
   control controls[ZB_INPUT_MAX_CONTROLS];
   size_t ncontrols;
@@ -232,6 +235,20 @@ static bool parse_binding(const char *text, zb_action_type type, binding *b) {
       return type != ZB_ACTION_AXIS2;
     }
     return false;
+  }
+  if (dev_len == 2 && strncmp(text, "xr", 2) == 0) {
+    /* "select" or "squeeze", optionally "left_" or "right_" first. */
+    b->kind = SRC_XR_BUTTON;
+    b->a = -1;
+    if (strncmp(rest, "left_", 5) == 0) {
+      b->a = ZB_XR_HAND_LEFT;
+      rest += 5;
+    } else if (strncmp(rest, "right_", 6) == 0) {
+      b->a = ZB_XR_HAND_RIGHT;
+      rest += 6;
+    }
+    b->b = strcmp(rest, "squeeze") == 0 ? ZB_XR_SQUEEZE : ZB_XR_SELECT;
+    return (strcmp(rest, "select") == 0 || b->b == ZB_XR_SQUEEZE) && type != ZB_ACTION_AXIS2;
   }
   if (dev_len == 5 && strncmp(text, "touch", 5) == 0) {
     if (strncmp(rest, "stick:", 6) == 0 && rest[6] && strlen(rest + 6) < NAME_LEN) {
@@ -551,6 +568,11 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
       }
       break;
     }
+    case ZB_EV_XR_BUTTON:
+      if (ev->u.xr_button.hand < ZB_XR_HAND_COUNT && ev->u.xr_button.button < ZB_XR_BUTTON_COUNT) {
+        press(&in->xr[ev->u.xr_button.hand][ev->u.xr_button.button], ev->u.xr_button.down);
+      }
+      break;
     case ZB_EV_TOUCH_DOWN:
       in->any_touch_seen = true;
       in->last_touch_ns = ev->time_ns;
@@ -617,6 +639,17 @@ static bool pad_button(const zb_input *in, int button) {
   return false;
 }
 
+/* An XR button of one hand, or of any hand when hand < 0. */
+static bool xr_button(const zb_input *in, int hand, int button) {
+  for (int h = 0; h < ZB_XR_HAND_COUNT; ++h) {
+    const button_raw *b = &in->xr[h][button];
+    if ((hand < 0 || hand == h) && (b->down || b->pressed_since)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /* Evaluates one binding into (x, y); returns its magnitude. */
 static float eval_binding(const zb_input *in, const binding *b, float *x, float *y) {
   *x = 0.0f;
@@ -656,6 +689,7 @@ static float eval_binding(const zb_input *in, const binding *b, float *x, float 
       *x = (c && !c->is_stick && (c->held || c->pressed_since)) ? 1.0f : 0.0f;
       break;
     }
+    case SRC_XR_BUTTON: *x = xr_button(in, b->a, b->b) ? 1.0f : 0.0f; break;
   }
   return sqrtf(*x * *x + *y * *y);
 }
@@ -711,6 +745,11 @@ void zb_input_sample(zb_input *in, uint64_t now_ns) {
   }
   for (size_t c = 0; c < in->ncontrols; ++c) {
     in->controls[c].pressed_since = false;
+  }
+  for (int h = 0; h < ZB_XR_HAND_COUNT; ++h) {
+    for (int k = 0; k < ZB_XR_BUTTON_COUNT; ++k) {
+      in->xr[h][k].pressed_since = false;
+    }
   }
   in->mouse_dx = 0.0f;
   in->mouse_dy = 0.0f;

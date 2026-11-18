@@ -143,6 +143,16 @@ class ScenarioTests(EngineTestCase):
     def test_stream_focus_scenario(self):
         self.assert_ok(self.scenario("stream_focus"))
 
+    # spec: webxr-session: No session on the desktop
+    # spec: webxr-session: Head pose reaches Lua
+    # spec: webxr-session: Select presses an action
+    def test_xr_emulated_scenario(self):
+        self.install_mods("xr_events")
+        result = self.scenario("xr_emulated")
+        self.assert_ok(result)
+        self.assertIn("WebXR: session started (emulated headset)", result.stdout)
+        self.assertIn("WebXR: session ended after", result.stdout)
+
     # spec: game-loop: Paused game keeps rendering
     def test_pause_scenario(self):
         self.assert_ok(self.scenario("pause"))

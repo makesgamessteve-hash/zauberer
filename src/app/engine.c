@@ -281,14 +281,16 @@ static void web_state(void *user, char *out, size_t len) {
   bool ready = e->script != NULL && e->scripts_ready;
   snprintf(out, len,
            "{\"ticks\":%llu,\"frames\":%llu,\"input_mode\":\"%s\",\"audio_locked\":%s,"
-           "\"audio_device\":%s,\"voices\":%zu,\"script_errors\":%zu,\"drawable\":[%d,%d],\"quit\":%s}",
+           "\"audio_device\":%s,\"voices\":%zu,\"script_errors\":%zu,\"drawable\":[%d,%d],\"quit\":%s,"
+           "\"xr\":{\"available\":%s,\"active\":%s,\"frames\":%llu}}",
            (unsigned long long)e->ticks, (unsigned long long)(e->render ? zb_render_get_stats(e->render)->frames : 0),
            e->input && zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop",
            e->audio && zb_audio_is_locked(e->audio) ? "true" : "false",
            e->audio && zb_audio_has_device(e->audio) ? "true" : "false",
            e->audio ? zb_audio_active_voices(e->audio) : (size_t)0,
            ready ? zb_script_error_count(e->script) : (size_t)0, e->drawable_w, e->drawable_h,
-           e->quit ? "true" : "false");
+           e->quit ? "true" : "false", e->xr.state.available ? "true" : "false", e->xr.state.active ? "true" : "false",
+           (unsigned long long)e->xr.state.frames);
 }
 #endif
 
@@ -486,6 +488,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.host.save_bindings = host_save_bindings;
   sc.host.set_window_size = host_window_size;
   sc.host.user_data_changed = host_user_data_changed;
+  zb_engine_xr_attach(e, &sc.host);
   sc.seed = e->seed;
   sc.world = e->world;
   sc.test_api = e->mode != ZB_MODE_GAME;
@@ -649,6 +652,9 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
   if (e->quit) {
     return finish(e);
   }
+  if (zb_engine_xr_takes_over(e)) {
+    return e->quit ? finish(e) : ZB_HOST_CONTINUE; /* a running XR session's frames drive the step */
+  }
   uint64_t now = zb_platform_now_ns(e->platform);
   zb_script_poll_reload(e->script, now);
   if (e->mode == ZB_MODE_SCENARIO) {
@@ -673,14 +679,15 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
     zb_vfs_poll(e->vfs);
     frame(e, zb_loop_alpha(&e->loop));
   }
-  if (!e->headless) {
+  if (!e->headless && !e->xr.in_frame) {
     zb_platform_swap(e->platform);
     if (!e->first_frame_shown) {
       e->first_frame_shown = true;
       zb_info("first frame presented (%dx%d)", e->drawable_w, e->drawable_h);
     }
   }
-  return e->quit ? finish(e) : ZB_HOST_CONTINUE;
+  /* Inside an XR frame the session ends first; the window loop finishes. */
+  return e->quit && !e->xr.in_frame ? finish(e) : ZB_HOST_CONTINUE;
 }
 
 zb_host_status zb_engine_event(zb_engine *e, const zb_event *ev) {

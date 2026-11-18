@@ -5,6 +5,7 @@ uniform vec3 u_cam_right;
 uniform vec3 u_cam_up;
 uniform vec3 u_cam_fwd;
 uniform vec2 u_tan_half;
+uniform vec2 u_tan_offset; // off-axis (headset) projections; 0 for the camera's
 uniform vec3 u_world_up;
 uniform vec3 u_zenith;
 uniform vec3 u_horizon;
@@ -13,7 +14,8 @@ uniform vec3 u_sun_dir;
 uniform vec3 u_sun_color;
 out vec4 o_color;
 void main() {
-  vec3 ray = normalize(u_cam_fwd + v_ndc.x * u_tan_half.x * u_cam_right + v_ndc.y * u_tan_half.y * u_cam_up);
+  vec2 tangent = v_ndc * u_tan_half + u_tan_offset;
+  vec3 ray = normalize(u_cam_fwd + tangent.x * u_cam_right + tangent.y * u_cam_up);
   float elevation = asin(clamp(dot(ray, u_world_up), -1.0, 1.0)) + u_dip;
   float t = clamp(elevation / 0.6, 0.0, 1.0);
   t = t * (2.0 - t);

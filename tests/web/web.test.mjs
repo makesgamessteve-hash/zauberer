@@ -50,13 +50,16 @@ function makeDist() {
 }
 
 /** Opens the game; returns { page, server, logs, errors, close }. Pass a
- * server to revisit the same origin (Cache Storage and IndexedDB are per origin). */
-async function open({ query = '', isolated = false, context = null, dist = null, device = null, server = null } = {}) {
+ * server to revisit the same origin (Cache Storage and IndexedDB are per origin),
+ * and init = [fn, arg] to run a script in the page before any of its own. */
+async function open({ query = '', isolated = false, context = null, dist = null, device = null, server = null,
+  init = null } = {}) {
   const root = server ? server.root : (dist || makeDist());
   const ownServer = !server;
   server = server || await startServer(root, { isolated });
   const ctx = context || await browser.newContext(device ? { ...devices[device] } : {});
   const page = await ctx.newPage();
+  if (init) await page.addInitScript(...init);
   const logs = [];
   const errors = [];
   page.on('console', (m) => {
@@ -101,6 +104,175 @@ async function waitForLog(g, pattern, timeout = 60000) {
 
 function assetRequests(requests) {
   return requests.filter((r) => r.startsWith('assets/') && r !== 'assets/index.tsv');
+}
+
+/** The emulated WebXR device: an 820 x 420 layer with two 400 x 400 viewports
+ * and a 10 px border; the left eye looks ahead, the right one 60 degrees up;
+ * the head is at (0.1, 0.2, -0.3), turned 30 degrees to the left. */
+const XR_DEVICE = {
+  size: [820, 420],
+  head: { position: [0.1, 0.2, -0.3], orientation: [0, Math.sin(Math.PI / 12), 0, Math.cos(Math.PI / 12)] },
+  views: [
+    { eye: 'left', viewport: { x: 10, y: 10, width: 400, height: 400 }, position: [-0.032, 0, 0],
+      orientation: [0, 0, 0, 1] },
+    { eye: 'right', viewport: { x: 410, y: 10, width: 400, height: 400 }, position: [0.032, 0, 0],
+      orientation: [Math.sin(Math.PI / 6), 0, 0, Math.cos(Math.PI / 6)] },
+  ],
+};
+
+/** Runs in the page before its scripts: a mock of navigator.xr with the parts
+ * of the WebXR API the bridge uses. The layer's framebuffer is a real,
+ * readable one that is cleared before every XR frame, like a browser's.
+ * window.zbXrMock reads pixels, presses controller buttons and ends the session. */
+function installXrMock(device) {
+  const mock = { requests: [], spaces: [], frames: 0, handles: 0, compatible: false, layerOptions: null,
+    session: null, layer: null, gl: null };
+
+  // A rigid transform (column-major) from a position and a quaternion, with its inverse.
+  function rigid(p, q) {
+    const [x, y, z, w] = q;
+    const r = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y),
+      2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x),
+      2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)]; // columns
+    const m = new Float32Array(16);
+    const inv = new Float32Array(16);
+    for (let c = 0; c < 3; ++c) {
+      for (let k = 0; k < 3; ++k) {
+        m[c * 4 + k] = r[c * 3 + k];
+        inv[k * 4 + c] = r[c * 3 + k];
+      }
+      inv[12 + c] = -(r[c * 3] * p[0] + r[c * 3 + 1] * p[1] + r[c * 3 + 2] * p[2]);
+    }
+    m[12] = p[0];
+    m[13] = p[1];
+    m[14] = p[2];
+    m[15] = inv[15] = 1;
+    return { position: { x: p[0], y: p[1], z: p[2], w: 1 }, orientation: { x, y, z, w }, matrix: m,
+      inverse: { matrix: inv } };
+  }
+
+  // 90 degrees in both directions, near 0.1, far 1000.
+  const projection = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1000.1 / 999.9, -1, 0, 0, -200 / 999.9, 0]);
+  const pose = {
+    transform: rigid(device.head.position, device.head.orientation),
+    views: device.views.map((v) => ({ eye: v.eye, projectionMatrix: projection,
+      transform: rigid(v.position, v.orientation) })),
+  };
+
+  function withLayer(fn) {
+    const gl = mock.gl;
+    const draw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+    const read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mock.layer.framebuffer);
+    try {
+      return fn(gl);
+    } finally {
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, draw);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, read);
+    }
+  }
+
+  class MockLayer {
+    constructor(session, gl, options) {
+      mock.layerOptions = options || {};
+      mock.gl = gl;
+      this.framebufferWidth = device.size[0];
+      this.framebufferHeight = device.size[1];
+      const draw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+      const read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+      const texture = gl.getParameter(gl.TEXTURE_BINDING_2D);
+      const color = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, color);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, device.size[0], device.size[1], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      this.framebuffer = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, color, 0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, draw);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, read);
+      mock.layer = this;
+    }
+
+    getViewport(view) {
+      return device.views.find((v) => v.eye === view.eye).viewport;
+    }
+  }
+
+  class MockSession extends EventTarget {
+    constructor() {
+      super();
+      this.renderState = { baseLayer: null, depthNear: 0.1, depthFar: 1000 };
+      this.ended = false;
+    }
+
+    updateRenderState(state) {
+      Object.assign(this.renderState, state);
+    }
+
+    requestReferenceSpace(type) {
+      mock.spaces.push(type);
+      return type === 'local' || type === 'viewer' ? Promise.resolve({ type })
+        : Promise.reject(new DOMException(`${type} is not supported`, 'NotSupportedError'));
+    }
+
+    requestAnimationFrame(callback) {
+      window.requestAnimationFrame((time) => {
+        if (this.ended) return;
+        if (mock.layer) {
+          withLayer((gl) => {
+            const clear = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.clearColor(clear[0], clear[1], clear[2], clear[3]);
+          });
+        }
+        mock.frames++;
+        callback(time, { session: this, getViewerPose: () => pose });
+      });
+      return ++mock.handles;
+    }
+
+    end() {
+      if (!this.ended) {
+        this.ended = true;
+        const event = new Event('end');
+        event.session = this;
+        this.dispatchEvent(event);
+      }
+      return Promise.resolve();
+    }
+  }
+
+  const xr = new EventTarget();
+  xr.isSessionSupported = (mode) => Promise.resolve(mode === 'immersive-vr');
+  xr.requestSession = (mode) => {
+    mock.requests.push(mode);
+    if (mode !== 'immersive-vr') return Promise.reject(new DOMException(mode, 'NotSupportedError'));
+    mock.session = new MockSession();
+    return Promise.resolve(mock.session);
+  };
+  Object.defineProperty(Navigator.prototype, 'xr', { configurable: true, get: () => xr });
+  window.XRWebGLLayer = MockLayer;
+  WebGL2RenderingContext.prototype.makeXRCompatible = function () {
+    mock.compatible = true;
+    return Promise.resolve();
+  };
+  // RGBA of a layer pixel (origin bottom-left), as the last XR frame left it.
+  mock.pixel = (x, y) => withLayer((gl) => {
+    const px = new Uint8Array(4);
+    gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    return Array.from(px);
+  });
+  // A controller's select or squeeze, started and ended at once (between two ticks).
+  mock.press = (handedness, button) => {
+    for (const type of [`${button}start`, button, `${button}end`]) {
+      const event = new Event(type);
+      event.inputSource = { handedness, targetRayMode: 'tracked-pointer' };
+      mock.session.dispatchEvent(event);
+    }
+  };
+  mock.end = () => mock.session.end();
+  window.zbXrMock = mock;
 }
 
 // spec: platform-targets: Static host without isolation headers
@@ -283,3 +455,78 @@ test('missing content shows a page message', async () => {
     fs.rmSync(dist, { recursive: true, force: true });
   }
 });
+
+// spec: webxr-session: No button without support
+test('no Enter VR button without an immersive VR device', async () => {
+  const g = await open();
+  try {
+    const s = await waitForFrames(g);
+    assert.equal(s.xr.available, false);
+    assert.equal(s.xr.active, false);
+    assert.equal(await g.page.locator('#xr').isVisible(), false);
+    assert.equal(await g.page.evaluate(() => Module.zbXrEnter()), false, 'no session starts');
+    assert.deepEqual(g.errors, []);
+  } finally {
+    await g.close();
+  }
+});
+
+/** Enters VR with the emulated device, checks the layer, a select and the end of the session. */
+async function xrSession(isolated) {
+  const g = await open({
+    query: 'args=--scenario%20tests/scenarios/xr_web.lua&files=tests/scenarios/xr_web.lua',
+    init: [installXrMock, XR_DEVICE],
+    isolated,
+  });
+  try {
+    assert.equal(await g.page.evaluate(() => window.zbBuild), isolated ? 'zauberer' : 'zauberer-st');
+    const button = g.page.locator('#xr');
+    await button.waitFor({ state: 'visible', timeout: 60000 });
+    assert.equal((await g.state()).xr.available, true);
+    await waitForLog(g, /xr web: waiting for the session/);
+    await button.click();
+    await waitForLog(g, /xr web: views checked|scenario 'webxr session'/, 120000);
+    const s = await g.state();
+    assert.equal(s.xr.active, true, g.logs.join('\n'));
+    assert.ok(s.xr.frames >= 5);
+    assert.equal(s.script_errors, 0);
+    assert.equal(await button.isVisible(), false, 'no button while the session runs');
+    const device = await g.page.evaluate(() => ({ requests: zbXrMock.requests, spaces: zbXrMock.spaces,
+      compatible: zbXrMock.compatible, antialias: zbXrMock.layerOptions.antialias }));
+    assert.deepEqual(device, { requests: ['immersive-vr'], spaces: ['local'], compatible: true, antialias: false });
+
+    // The layer after an XR frame: each viewport shows the sky as its own view
+    // sees it, and the border around the viewports stays as the browser cleared it.
+    const px = await g.page.evaluate(() => ({
+      left: zbXrMock.pixel(210, 210),
+      right: zbXrMock.pixel(610, 210),
+      border: [zbXrMock.pixel(5, 5), zbXrMock.pixel(815, 210), zbXrMock.pixel(410, 415), zbXrMock.pixel(210, 3)],
+    }));
+    assert.equal(px.left[3], 255, `left view drawn: ${px.left}`);
+    assert.ok(px.left[0] > px.left[2] + 60, `the left view looks at the warm horizon: ${px.left}`);
+    assert.equal(px.right[3], 255, `right view drawn: ${px.right}`);
+    for (const [i, want] of [26, 51, 204].entries()) {
+      assert.ok(Math.abs(px.right[i] - want) <= 16, `the right view looks up at the zenith: ${px.right}`);
+    }
+    assert.deepEqual(px.border, [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+
+    await g.page.evaluate(() => zbXrMock.press('right', 'select'));
+    await waitForLog(g, /xr web: select seen|scenario 'webxr session'/, 120000);
+    await g.page.evaluate(() => zbXrMock.end());
+    const line = await waitForLog(g, /scenario 'webxr session': (passed|\d+ failure)/, 120000);
+    assert.match(line, /passed/, g.logs.join('\n'));
+    assert.equal(await button.isVisible(), true, 'the button returns after the session');
+    assert.deepEqual(g.errors, []);
+  } finally {
+    await g.close();
+  }
+}
+
+// spec: webxr-session: Enter and leave
+// spec: webxr-session: Two views in the XR layer
+// spec: webxr-session: Head pose reaches Lua
+// spec: webxr-session: Select presses an action
+test('an emulated headset enters VR, renders both views and leaves again', () => xrSession(false));
+
+test('the threaded build enters VR the same way', { skip: !HAS_MT && 'no threaded web build' },
+  () => xrSession(true));

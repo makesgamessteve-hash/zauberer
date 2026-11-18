@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "core/keys.h"
 #include "core/log.h"
+#include "core/xr.h"
 #include "input/input.h"
 #include "support/test_support.h"
 #include "unity.h"
@@ -488,6 +489,72 @@ static void test_record_and_replay(void) {
   }
 }
 
+static zb_event xr_button(zb_xr_hand hand, zb_xr_button button, bool down) {
+  zb_event e;
+  memset(&e, 0, sizeof e);
+  e.type = ZB_EV_XR_BUTTON;
+  e.u.xr_button.hand = (uint8_t)hand;
+  e.u.xr_button.button = (uint8_t)button;
+  e.u.xr_button.down = down;
+  return e;
+}
+
+/* spec: webxr-session: Select presses an action */
+static void test_xr_buttons(void) {
+  int any = zb_input_define(in, "any", ZB_ACTION_BUTTON);
+  int right = zb_input_define(in, "right", ZB_ACTION_BUTTON);
+  int left = zb_input_define(in, "left", ZB_ACTION_BUTTON);
+  int grab = zb_input_define(in, "grab", ZB_ACTION_AXIS1);
+  int left_grab = zb_input_define(in, "left_grab", ZB_ACTION_BUTTON);
+  int aim = zb_input_define(in, "aim", ZB_ACTION_AXIS2);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, any, "xr:select"));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, right, "xr:right_select"));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, left, "xr:left_select"));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, grab, "xr:squeeze"));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, left_grab, "xr:left_squeeze"));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, left_grab, "xr:right_squeeze"));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_input_bind(in, any, "xr:grab"));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_input_bind(in, any, "xr:left_"));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_input_bind(in, any, "xr:"));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_input_bind(in, aim, "xr:select"));
+  TEST_ASSERT_EQUAL_STRING("xr:right_select", zb_input_binding(in, right, 0));
+
+  /* The right controller's select starts and ends between two ticks. */
+  zb_event ev = xr_button(ZB_XR_HAND_RIGHT, ZB_XR_SELECT, true);
+  zb_input_handle_event(in, &ev);
+  ev = xr_button(ZB_XR_HAND_RIGHT, ZB_XR_SELECT, false);
+  zb_input_handle_event(in, &ev);
+  zb_input_sample(in, 0);
+  TEST_ASSERT_TRUE(zb_input_state(in, any)->pressed);
+  TEST_ASSERT_TRUE(zb_input_state(in, right)->pressed);
+  TEST_ASSERT_FALSE(zb_input_state(in, left)->pressed);
+  TEST_ASSERT_FALSE(zb_input_state(in, grab)->held);
+  zb_input_sample(in, 1);
+  TEST_ASSERT_TRUE(zb_input_state(in, any)->released);
+  TEST_ASSERT_FALSE(zb_input_state(in, right)->held);
+
+  /* A squeeze held by a source without a hand: "xr:squeeze" only. */
+  ev = xr_button(ZB_XR_HAND_NONE, ZB_XR_SQUEEZE, true);
+  zb_input_handle_event(in, &ev);
+  zb_input_sample(in, 2);
+  zb_input_sample(in, 3);
+  TEST_ASSERT_TRUE(zb_input_state(in, grab)->held);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, zb_input_state(in, grab)->x);
+  TEST_ASSERT_FALSE(zb_input_state(in, left_grab)->held);
+  ev = xr_button(ZB_XR_HAND_RIGHT, ZB_XR_SQUEEZE, true);
+  zb_input_handle_event(in, &ev);
+  zb_input_sample(in, 4);
+  TEST_ASSERT_TRUE(zb_input_state(in, left_grab)->pressed);
+  /* Out-of-range hands and buttons are ignored. */
+  ev = xr_button(ZB_XR_HAND_COUNT, ZB_XR_SELECT, true);
+  zb_input_handle_event(in, &ev);
+  ev = xr_button(ZB_XR_HAND_LEFT, ZB_XR_BUTTON_COUNT, true);
+  zb_input_handle_event(in, &ev);
+  zb_input_sample(in, 5);
+  TEST_ASSERT_FALSE(zb_input_state(in, any)->held);
+  TEST_ASSERT_FALSE(zb_input_state(in, left)->held);
+}
+
 static void test_oom_create(void) {
   zb_failing_allocator fa;
   TEST_ASSERT_NULL(zb_input_create(zb_failing_init(&fa, zb_test_alloc(), 0)));
@@ -507,6 +574,7 @@ int main(void) {
   RUN_TEST(test_virtual_controls);
   RUN_TEST(test_inject);
   RUN_TEST(test_record_and_replay);
+  RUN_TEST(test_xr_buttons);
   RUN_TEST(test_oom_create);
   return UNITY_END();
 }

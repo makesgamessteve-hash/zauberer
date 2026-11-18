@@ -37,6 +37,11 @@ class RenderTests(EngineTestCase):
     def test_forced_stereo(self):
         self.assert_ok(self.windowed("stereo", "--debug-views", "2"))
 
+    # spec: webxr-session: Emulated headset on the desktop
+    def test_xr_emulated_stereo(self):
+        self.install_mods("xr_events")
+        self.assert_ok(self.windowed("xr_emulated"))
+
     # spec: rendering-core: Full HD window
     def test_full_hd_window(self):
         self.assert_ok(self.windowed("layout_fullhd", size="1920x1080"))

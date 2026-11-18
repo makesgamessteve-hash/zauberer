@@ -171,6 +171,16 @@
   }
   ['pointerdown', 'keydown', 'touchend'].forEach(function (t) { window.addEventListener(t, unlockAudio, true); });
 
+  // WebXR: the engine's bridge (web/lib_zauberer.js) reports whether a headset
+  // can present; the button starts an immersive session (a user gesture).
+  var xrButton = $('xr');
+  xrButton.addEventListener('click', function () {
+    if (Module.zbXrEnter) Module.zbXrEnter();
+  });
+  function xrStatus(status) {
+    xrButton.hidden = status !== 'supported';
+  }
+
   var args = (params.get('args') || '').split(' ').filter(Boolean);
 
   window.Module = {
@@ -181,6 +191,7 @@
     zbFetch: zbFetch,
     zbStats: stats,
     zbShowError: showError,
+    zbXrStatus: xrStatus,
     zbState: function () { return JSON.parse(UTF8ToStringSafe(Module._zb_web_state())); },
     preRun: [function () {
       var FS = Module.FS;
