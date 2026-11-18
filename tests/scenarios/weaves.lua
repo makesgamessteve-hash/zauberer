@@ -88,9 +88,9 @@ expect(r.cost.total > 0 and r.effect.heat == 30 * 1000000)
 run(3)
 expect(burning_near(spot, 6) > 0, "it burns")
 -- A number in the effects of all the attempts a cast took.
-local function total(r, field)
+local function total(result, field)
   local sum = 0
-  for _, attempt in ipairs(r.all) do sum = sum + (attempt.effect[field] or 0) end
+  for _, attempt in ipairs(result.all) do sum = sum + (attempt.effect[field] or 0) end
   return sum
 end
 r = weave_at(spot, "unmake", { "fire" }, "circle", 60, { "wide" })

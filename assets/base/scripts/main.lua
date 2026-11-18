@@ -15,6 +15,7 @@ local flight_hud = require("flight.hud")
 local spawn = require("flight.spawn")
 local coop = require("flight.coop")
 local creation = require("create.screen")
+local magic = require("magic.play")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -46,6 +47,7 @@ local function setup_flight()
     world.set_time(morning_at(pos))
   end
   game.carpet = carpet.new(pos, heading)
+  game.magic = magic.new(back and back.magic)
   game.chase = camera.new()
   game.coop = coop.new()
   game.last_frame_time = nil
@@ -97,7 +99,7 @@ end
 -- and remembers it for the next start.
 function game.save()
   local c = game.carpet
-  local player = c and { pos = c.pos, heading = c.heading } or nil
+  local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic) } or nil
   local ok, err = world.save_game(game.save_name, player)
   if ok then
     save.set("world", game.save_name)
@@ -132,6 +134,7 @@ end
 engine.on("init", function()
   assets.carpet = render.model("models/carpet.glb")
   assets.mote = render.sprite("sprites/mote.lua")
+  assets.flame = render.sprite("sprites/flame.lua")
   assets.font = render.font("fonts/pixel.lua")
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
   game.credits = engine.credits()
@@ -184,7 +187,13 @@ local function flight_tick(dt)
   local co = game.coop
   local c = coop.tick(co, game.carpet, controls.flight_input(st), dt, WORLD, net)
   game.carpet = c
-  camera.update(game.chase, st.look, dt, input.mode() ~= "touch")
+  -- Magic: while a gesture is drawn the mouse draws instead of turning the camera.
+  local spell = {}
+  for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
+  local here = mana.at(c.pos)
+  game.last_cast = magic.tick(game.magic, spell, dt, c, { heading = c.heading, pitch = -0.12 },
+    here.loaded and here.stored or nil) or game.last_cast
+  camera.update(game.chase, not spell.draw.held and st.look or nil, dt, input.mode() ~= "touch")
   world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
   -- The host streams around every heir (one focus each).
   for p = 1, 3 do
@@ -255,12 +264,22 @@ local function flight_frame()
     render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
   end
   render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
+  local sights = magic.sights(game.magic)
+  for _, l in ipairs(sights.lights) do render.draw_sprite(assets.mote, world.to_local(l), 2) end
+  for _, b in ipairs(sights.bolts) do
+    render.draw_sprite(b.color == "water" and assets.mote or assets.flame, world.to_local(b.pos), 1.2)
+  end
   for _, other in pairs(game.coop.carpets) do
     if other ~= c then
       render.draw_model(assets.carpet, { position = world.to_local(other.pos), rotation = carpet.rotation(other) })
     end
   end
-  draw_hud(flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time()))
+  local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
+  for _, line in ipairs(magic.hud_lines(game.magic)) do lines[#lines + 1] = line end
+  draw_hud(lines)
+  for _, t in ipairs(sights.trail) do -- the gesture being drawn
+    render.draw_text(assets.font, "o", 80 + t[1], 160 + t[2], 1, { 1, 0.9, 0.5, 1 })
+  end
 end
 
 local function create_frame()
@@ -304,7 +323,8 @@ end)
 
 -- The simulation state that replays and the determinism checks hash.
 engine.on("hash", function()
-  return { mode = game.mode, showcase = game.state, carpet = game.carpet and carpet.snapshot(game.carpet) }
+  return { mode = game.mode, showcase = game.state, carpet = game.carpet and carpet.snapshot(game.carpet),
+    magic = game.magic and magic.hash_state(game.magic) }
 end)
 
 engine.on("event", function(name, args)
@@ -321,5 +341,5 @@ end)
 -- Exposed for scenario tests.
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
-  creation = creation,
+  creation = creation, magic = magic,
 }

@@ -261,6 +261,9 @@ class ScenarioTests(EngineTestCase):
     def test_weaves(self):
         self.assert_ok(self.scenario("weaves"))
 
+    def test_spellbook(self):
+        self.assert_ok(self.scenario("spellbook"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))
