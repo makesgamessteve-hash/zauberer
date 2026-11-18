@@ -12,6 +12,8 @@ struct zb_world {
   zb_stream *stream;
   zb_stream_focus focus[ZB_STREAM_MAX_FOCUS];
   bool active[ZB_STREAM_MAX_FOCUS];
+  zb_origin origin;
+  uint32_t origin_version;
 };
 
 zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) {
@@ -28,6 +30,8 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) 
     return NULL;
   }
   zb_terrain_init(&w->terrain, &w->planet, desc->seed, NULL);
+  zb_chunk start = {ZB_FACE_PX, w->planet.n / 2, w->planet.n / 2};
+  zb_origin_init(&w->origin, &w->planet, start);
   zb_stream_config cfg;
   zb_stream_default_config(&cfg, desc->profile);
   cfg.a = desc->a;
@@ -65,7 +69,22 @@ bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus) {
   return true;
 }
 
+const zb_origin *zb_world_origin(const zb_world *w) { return &w->origin; }
+uint32_t zb_world_origin_version(const zb_world *w) { return w->origin_version; }
+
+void zb_world_set_origin(zb_world *w, zb_chunk anchor) {
+  zb_origin_init(&w->origin, &w->planet, anchor);
+  w->origin_version++;
+}
+
 void zb_world_update(zb_world *w) {
+  if (w->active[0]) {
+    zb_vec3 l = zb_origin_to_local(&w->origin, &w->planet, &w->focus[0].pos);
+    l.y = 0.0f; /* altitude alone never moves the origin */
+    if (zb_origin_should_rebase(l, ZB_ORIGIN_REBASE_DISTANCE)) {
+      zb_world_set_origin(w, w->focus[0].pos.chunk);
+    }
+  }
   zb_stream_focus list[ZB_STREAM_MAX_FOCUS];
   int count = 0;
   for (int i = 0; i < ZB_STREAM_MAX_FOCUS; ++i) {

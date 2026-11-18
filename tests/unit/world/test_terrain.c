@@ -216,7 +216,7 @@ static zb_chunk find_chunk(bool coast) {
   for (int i = 0; i < 30000; ++i) {
     zb_dvec3 d = random_dir(&s);
     double h = zb_terrain_macro_height(&g_terrain, d);
-    double score = coast ? fabs(h) : -h;
+    double score = coast ? fabs(h - 3.0) : -h; /* coast: where beach turns to soil */
     if (score < best) {
       best = score;
       best_dir = d;

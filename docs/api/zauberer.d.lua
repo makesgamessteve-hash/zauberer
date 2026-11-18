@@ -9,6 +9,14 @@
 ---@field x number Axis value (axis1, axis2)
 ---@field y number Second axis value (axis2)
 
+---@class Atmosphere
+---@field enabled boolean? Draw the sky and apply fog (default true)
+---@field zenith number[]? Sky colour overhead {r, g, b}
+---@field horizon number[]? Sky colour at the horizon, also the fog colour
+---@field sun number[]? Direction towards the sun (render coordinates)
+---@field sun_color number[]? Colour of the sun disc and glow
+---@field fog_distance number? Distance at which fog hides 98 % of the scene (0 = no fog)
+
 ---@class Camera
 ---@field eye number[]? Eye position {x, y, z} (default {0, 1.5, 4})
 ---@field target number[]? Point looked at (default the origin)
@@ -54,6 +62,11 @@
 ---@field load_order integer? Position in the load order (enabled packages)
 ---@field error string? Why the package is disabled
 
+---@class Palette
+---@field lut string? 32x32x32 lookup table image (default "palettes/base_lut.png")
+---@field bayer string? 8x8 ordered-dither matrix image (default "palettes/bayer8.png")
+---@field dither number? Dither amplitude in colour units (default 0.08)
+
 ---@class PlanetInfo
 ---@field radius number Sea-level radius in metres
 ---@field chunks_per_edge integer Chunks along one cube-face edge
@@ -86,6 +99,8 @@
 ---@field views integer Rendered views (2 in stereo)
 ---@field model_draws integer Model draw items
 ---@field sprite_draws integer Sprite draw items
+---@field terrain_items integer Terrain chunk draw items (after culling)
+---@field terrain_triangles integer Terrain triangles drawn
 ---@field glyphs integer Text glyphs
 ---@field culled integer Items culled by the view frustum
 ---@field frames integer Frames rendered so far
@@ -265,6 +280,10 @@ function input.state(action) end
 
 render = {}
 
+---Sky and fog. The engine keeps the horizon's up direction and dip in step with the camera over the planet. false switches both off.
+---@param atmosphere Atmosphere|false
+function render.atmosphere(atmosphere) end
+
 ---Sets the camera for the following frames.
 ---@param camera Camera
 function render.camera(camera) end
@@ -327,6 +346,10 @@ function render.match_golden(name, target) end
 ---@param path string
 ---@return integer
 function render.model(path) end
+
+---Quantises the scene to the palette with ordered dithering (text stays as drawn); false switches it off.
+---@param palette Palette|false
+function render.palette(palette) end
 
 ---Test API: RGBA of a pixel of the last capture (origin top-left).
 ---@param x integer
@@ -454,6 +477,13 @@ function world.distance(a, b) end
 ---@return PlanetPos
 function world.from_cartesian(x, y, z) end
 
+---The position at render coordinates.
+---@param x number
+---@param y number
+---@param z number
+---@return PlanetPos
+function world.from_local(x, y, z) end
+
 ---Ground height in metres above sea level from the loaded heightfield (the analytic terrain where the chunk is not loaded at stage 1 or more).
 ---@param pos PlanetPos
 ---@return number
@@ -505,6 +535,23 @@ function world.surface(pos) end
 ---@return number
 ---@return number
 function world.to_cartesian(pos) end
+
+---Render coordinates {x, y, z} of a position (relative to the floating origin; x east, y up, z south at the origin).
+---@param pos PlanetPos
+---@return number[]
+function world.to_local(pos) end
+
+---The local up direction at a position, in render coordinates (it tilts with the planet's curvature away from the origin).
+---@param pos PlanetPos
+---@return number[]
+function world.up_at(pos) end
+
+---Gets or sets the streaming rings: chunks get full detail within near metres and coarse detail within far metres (growing with altitude up to twice far).
+---@param near? number
+---@param far? number
+---@return number
+---@return number
+function world.view_distance(near, far) end
 
 test = {}
 

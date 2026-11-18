@@ -4,6 +4,7 @@
 #ifndef ZB_APP_ENGINE_H
 #define ZB_APP_ENGINE_H
 
+#include "app/terrain_view.h"
 #include "audio/audio.h"
 #include "core/array.h"
 #include "core/cli.h"
@@ -30,6 +31,7 @@ typedef struct zb_engine {
   zb_audio *audio;
   zb_script *script;
   zb_world *world;
+  zb_terrain_view *terrain_view;
   zb_loop loop;
   bool headless;
   bool quit;

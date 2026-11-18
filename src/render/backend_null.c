@@ -9,7 +9,9 @@ typedef struct null_ctx {
   zb_render_backend iface;
   const zb_allocator *a;
   uint32_t next;
-  size_t models, sprites, frames;
+  size_t counts[3]; /* per zb_draw_kind */
+  size_t frames;
+  size_t live_meshes;
 } null_ctx;
 
 static void null_destroy(void *ctx) {
@@ -31,19 +33,22 @@ static void null_destroy_handle(void *ctx, uint32_t h) {
 static uint32_t null_create_mesh(void *ctx, const zb_mesh_data *mesh) {
   (void)mesh;
   null_ctx *n = ctx;
+  n->live_meshes++;
   return ++n->next;
+}
+
+static void null_destroy_mesh(void *ctx, uint32_t h) {
+  null_ctx *n = ctx;
+  if (h && n->live_meshes) {
+    n->live_meshes--;
+  }
 }
 
 static void null_execute(void *ctx, const zb_frame *frame) {
   null_ctx *n = ctx;
-  n->models = 0;
-  n->sprites = 0;
+  memset(n->counts, 0, sizeof n->counts);
   for (size_t i = 0; i < frame->item_count; ++i) {
-    if (frame->items[i].kind == ZB_DRAW_MODEL) {
-      n->models++;
-    } else {
-      n->sprites++;
-    }
+    n->counts[frame->items[i].kind]++;
   }
   n->frames++;
 }
@@ -68,7 +73,7 @@ zb_render_backend *zb_render_null_backend(const zb_allocator *a) {
   n->iface.create_texture = null_create_texture;
   n->iface.destroy_texture = null_destroy_handle;
   n->iface.create_mesh = null_create_mesh;
-  n->iface.destroy_mesh = null_destroy_handle;
+  n->iface.destroy_mesh = null_destroy_mesh;
   n->iface.execute = null_execute;
   n->iface.capture = null_capture;
   return &n->iface;
@@ -76,7 +81,12 @@ zb_render_backend *zb_render_null_backend(const zb_allocator *a) {
 
 size_t zb_render_null_item_count(const zb_render_backend *b, zb_draw_kind kind) {
   const null_ctx *n = b->ctx;
-  return kind == ZB_DRAW_MODEL ? n->models : n->sprites;
+  return (unsigned)kind < 3 ? n->counts[kind] : 0;
+}
+
+size_t zb_render_null_meshes(const zb_render_backend *b) {
+  const null_ctx *n = b->ctx;
+  return n->live_meshes;
 }
 
 size_t zb_render_null_frames(const zb_render_backend *b) {

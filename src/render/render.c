@@ -59,6 +59,10 @@ struct zb_render {
   float fovy, znear, zfar;
   float eye_sep;
   zb_vec3 light_dir, light_color, ambient;
+  zb_atmosphere atmosphere;
+  uint32_t lut_asset, bayer_asset, atlas_asset;
+  float dither;
+  int atlas_layers;
   uint32_t white_tex, checker_tex;
   uint32_t cube_mesh;
   model_part cube_part;
@@ -557,6 +561,68 @@ zb_layout zb_render_compute_layout(int drawable_w, int drawable_h, int internal_
   return l;
 }
 
+/* ---- Retro look and terrain ------------------------------------------------- */
+
+void zb_render_set_atmosphere(zb_render *r, const zb_atmosphere *a) { r->atmosphere = *a; }
+const zb_atmosphere *zb_render_atmosphere(const zb_render *r) { return &r->atmosphere; }
+
+void zb_render_set_palette(zb_render *r, uint32_t lut_texture, uint32_t bayer_texture, float dither) {
+  r->lut_asset = lut_texture;
+  r->bayer_asset = bayer_texture;
+  r->dither = dither;
+}
+
+bool zb_render_palette_enabled(const zb_render *r) { return r->lut_asset != 0 && r->bayer_asset != 0; }
+
+void zb_render_set_terrain_atlas(zb_render *r, uint32_t texture, int layers) {
+  r->atlas_asset = texture;
+  r->atlas_layers = layers;
+}
+
+uint32_t zb_render_upload_mesh(zb_render *r, const zb_mesh_data *mesh) {
+  return r->backend->create_mesh(r->backend->ctx, mesh);
+}
+
+void zb_render_release_mesh(zb_render *r, uint32_t mesh) {
+  if (mesh) {
+    r->backend->destroy_mesh(r->backend->ctx, mesh);
+  }
+}
+
+zb_vec3 zb_render_camera_eye(const zb_render *r) { return r->eye; }
+
+/* Backend texture of a texture asset that loaded successfully, else 0. */
+static uint32_t ready_texture(const zb_render *r, uint32_t handle) {
+  const asset *as = asset_at(r, handle);
+  return as && as->kind == ASSET_TEXTURE && as->state == ZB_ASSET_READY ? as->tex : 0;
+}
+
+void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
+                            float radius) {
+  if (!r->in_frame || mesh == 0) {
+    return;
+  }
+  zb_vec3 c = zb_m4_transform_point(transform, center);
+  for (int v = 0; v < r->frame.view_count; ++v) {
+    if (!zb_frustum_sphere_visible(&r->frustums[v], c, radius)) {
+      r->stats.culled++;
+      continue;
+    }
+    zb_draw_item it;
+    memset(&it, 0, sizeof it);
+    it.kind = ZB_DRAW_TERRAIN;
+    it.view = (uint8_t)v;
+    it.mesh = mesh;
+    it.count = index_count;
+    it.model = transform;
+    it.sort_key = ((uint64_t)v << 60) | (2ull << 56) | ((uint64_t)mesh << 16) | (r->items.len & 0xFFFF);
+    if (zb_array_push(&r->items, &it)) {
+      r->stats.terrain_items++;
+      r->stats.terrain_triangles += index_count / 3;
+    }
+  }
+}
+
 /* ---- Frame ------------------------------------------------------------------ */
 
 void zb_render_begin(zb_render *r, int drawable_w, int drawable_h) {
@@ -570,6 +636,7 @@ void zb_render_begin(zb_render *r, int drawable_w, int drawable_h) {
   r->frame.light_dir = r->light_dir;
   r->frame.light_color = r->light_color;
   r->frame.ambient = r->ambient;
+
   int iw = r->frame.layout.internal_w, ih = r->frame.layout.internal_h;
   zb_vec3 fwd = zb_v3_normalize(zb_v3_sub(r->target, r->eye));
   zb_vec3 right = zb_v3_normalize(zb_v3_cross(fwd, r->up));
@@ -750,6 +817,14 @@ void zb_render_end(zb_render *r) {
   r->frame.text_count = r->text.len;
   r->frame.text_batches = (const zb_text_batch *)r->text_batches.data;
   r->frame.text_batch_count = r->text_batches.len;
+  /* The look as set by the end of the frame (scripts change it in frame hooks). */
+  r->frame.atmosphere = r->atmosphere;
+  r->frame.lut_texture = ready_texture(r, r->lut_asset);
+  r->frame.bayer_texture = ready_texture(r, r->bayer_asset);
+  r->frame.palette = r->frame.lut_texture != 0 && r->frame.bayer_texture != 0;
+  r->frame.dither = r->dither;
+  r->frame.atlas_texture = ready_texture(r, r->atlas_asset);
+  r->frame.atlas_layers = r->frame.atlas_texture ? r->atlas_layers : 0;
   r->backend->execute(r->backend->ctx, &r->frame);
   r->stats.frames++;
   r->in_frame = false;

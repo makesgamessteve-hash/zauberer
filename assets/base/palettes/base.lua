@@ -6,6 +6,17 @@ return {
   lut_size = 32,
   dither = "palettes/bayer8.png",
   colors = 64,
+  -- The colours as RRGGBB, in palette order.
+  hex = {
+    "080810", "191931", "21214a", "3a3a6b", "292929", "4a4242", "635a5a", "7b7b73",
+    "9c9494", "bdbdad", "a5b5c5", "c5d6de", "e6efef", "ffffff", "101952", "21318c",
+    "314abd", "5a73de", "5284c5", "73adde", "a5c5ef", "cee6f7", "102942", "19425a",
+    "21637b", "31849c", "106b6b", "21948c", "42bdad", "84dece", "193119", "295221",
+    "3a6b29", "528c3a", "7bad4a", "424221", "636329", "8c843a", "ada552", "291910",
+    "422921", "5a4229", "7b5a3a", "947352", "734a19", "9c6321", "bd8431", "d6a552",
+    "a58c63", "c5ad7b", "dec594", "efdeb5", "c56b19", "e68c19", "f7b529", "f7d66b",
+    "4a1019", "731029", "a52131", "c5423a", "e67b63", "3a2163", "6b3a94", "9c73ce",
+  },
   -- Ramps run from dark to light; values are 1-based palette indices.
   ramps = {
     night = { 1, 2, 3, 4 },

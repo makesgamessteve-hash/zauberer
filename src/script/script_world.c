@@ -257,6 +257,72 @@ static int w_ground_height(lua_State *L) {
   return 1;
 }
 
+static void push_vec(lua_State *L, zb_vec3 v) {
+  lua_createtable(L, 3, 0);
+  lua_pushnumber(L, v.x);
+  lua_rawseti(L, -2, 1);
+  lua_pushnumber(L, v.y);
+  lua_rawseti(L, -2, 2);
+  lua_pushnumber(L, v.z);
+  lua_rawseti(L, -2, 3);
+}
+
+/* @lua world.to_local(pos: PlanetPos): number[]
+ * Render coordinates {x, y, z} of a position (relative to the floating origin; x east,
+ * y up, z south at the origin).
+ */
+static int w_to_local(lua_State *L) {
+  zb_planet_pos pos = check_pos(L, 1);
+  push_vec(L, zb_origin_to_local(zb_world_origin(W(L)), P(L), &pos));
+  return 1;
+}
+
+/* @lua world.from_local(x: number, y: number, z: number): PlanetPos
+ * The position at render coordinates.
+ */
+static int w_from_local(lua_State *L) {
+  zb_vec3 l = zb_v3((float)luaL_checknumber(L, 1), (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3));
+  zb_planet_pos pos = zb_origin_to_pos(zb_world_origin(W(L)), P(L), l);
+  push_pos(L, &pos);
+  return 1;
+}
+
+/* @lua world.up_at(pos: PlanetPos): number[]
+ * The local up direction at a position, in render coordinates (it tilts with the
+ * planet's curvature away from the origin).
+ */
+static int w_up_at(lua_State *L) {
+  zb_planet_pos pos = check_pos(L, 1);
+  const zb_origin *o = zb_world_origin(W(L));
+  zb_dvec3 c = zb_planet_to_cart(P(L), &pos);
+  double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+  zb_dvec3 d = {c.x / len, c.y / len, c.z / len};
+  zb_vec3 up = zb_v3((float)(d.x * o->east.x + d.y * o->east.y + d.z * o->east.z),
+                     (float)(d.x * o->up.x + d.y * o->up.y + d.z * o->up.z),
+                     (float)-(d.x * o->north.x + d.y * o->north.y + d.z * o->north.z));
+  push_vec(L, up);
+  return 1;
+}
+
+/* @lua world.view_distance(near?: number, far?: number): number, number
+ * Gets or sets the streaming rings: chunks get full detail within near metres and coarse
+ * detail within far metres (growing with altitude up to twice far).
+ */
+static int w_view_distance(lua_State *L) {
+  zb_stream *st = zb_world_stream(W(L));
+  float near_r, far_r;
+  zb_stream_get_radii(st, &near_r, &far_r);
+  if (!lua_isnoneornil(L, 1)) {
+    near_r = (float)luaL_checknumber(L, 1);
+    far_r = (float)luaL_optnumber(L, 2, far_r);
+    luaL_argcheck(L, near_r >= 0.0f && far_r >= near_r && far_r <= 100000.0f, 1, "0 <= near <= far <= 100 km");
+    zb_stream_set_radii(st, near_r, far_r);
+  }
+  lua_pushnumber(L, near_r);
+  lua_pushnumber(L, far_r);
+  return 2;
+}
+
 /* @lua world.chunk_stage(pos: PlanetPos): integer
  * Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
  */
@@ -319,6 +385,10 @@ void zb_script_open_world(zb_script *s) {
                                        {"ground_height", w_ground_height},
                                        {"stream_stats", w_stream_stats},
                                        {"chunk_stage", w_chunk_stage},
+                                       {"to_local", w_to_local},
+                                       {"from_local", w_from_local},
+                                       {"up_at", w_up_at},
+                                       {"view_distance", w_view_distance},
                                        {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, world_fns, 0);

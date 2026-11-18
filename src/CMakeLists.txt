@@ -26,7 +26,7 @@ zb_module(zb_vfs SOURCES vfs/vfs.c DEPS zb_core)
 zb_module(zb_world SOURCES world/noise.c world/planet.c world/stream.c world/terrain.c world/world.c
   DEPS zb_core)
 zb_module(zb_input SOURCES input/input.c DEPS zb_core)
-zb_module(zb_render SOURCES render/render.c render/image.c render/mesh.c render/backend_null.c
+zb_module(zb_render SOURCES render/render.c render/image.c render/mesh.c render/retro.c render/backend_null.c
   render/backend_gl.c DEPS zb_core zb_vfs PRIVATE_DEPS zb_thirdparty_impl)
 target_include_directories(zb_render SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/third_party/stb"
   "${PROJECT_SOURCE_DIR}/third_party/cgltf")
@@ -48,7 +48,7 @@ else()
   endif()
 endif()
 
-zb_module(zb_app SOURCES app/engine.c app/host.c
+zb_module(zb_app SOURCES app/engine.c app/host.c app/terrain_view.c
   DEPS zb_core zb_platform zb_vfs zb_input zb_render zb_audio zb_script)
 
 add_executable(zauberer ${ZB_ENTRY})

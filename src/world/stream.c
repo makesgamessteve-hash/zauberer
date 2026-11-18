@@ -168,6 +168,18 @@ void zb_stream_destroy(zb_stream *s) {
   zb_free(s->cfg.a, s);
 }
 
+void zb_stream_set_radii(zb_stream *s, float near_radius, float far_radius) {
+  s->cfg.near_radius = near_radius;
+  s->cfg.far_radius = far_radius;
+  s->cfg.max_far_radius = 2.0f * far_radius;
+  s->last_count = -1; /* recompute the rings */
+}
+
+void zb_stream_get_radii(const zb_stream *s, float *near_radius, float *far_radius) {
+  *near_radius = s->cfg.near_radius;
+  *far_radius = s->cfg.far_radius;
+}
+
 /* ---- Jobs ------------------------------------------------------------------ */
 
 static void generate_job(void *arg) {

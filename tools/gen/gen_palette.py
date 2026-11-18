@@ -217,6 +217,11 @@ def main(out_dir):
              "  lut_size = %d," % LUT_SIZE,
              '  dither = "palettes/bayer8.png",',
              "  colors = %d," % len(PALETTE),
+             "  -- The colours as RRGGBB, in palette order.",
+             "  hex = {"]
+    for i in range(0, len(PALETTE), 8):
+        lines.append("    " + " ".join('"%02x%02x%02x",' % c for c in PALETTE[i:i + 8]))
+    lines += ["  },",
              "  -- Ramps run from dark to light; values are 1-based palette indices.",
              "  ramps = {"]
     for name, indices in RAMP_INDICES:

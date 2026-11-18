@@ -28,6 +28,13 @@ zb_stream *zb_world_stream(zb_world *w);
 bool zb_world_set_focus(zb_world *w, int index, const zb_stream_focus *focus);
 /* Streams around the focus points (call once per frame). */
 void zb_world_update(zb_world *w);
+/* The render origin. zb_world_update moves it to the chunk of focus 1 when
+ * that focus is more than ZB_ORIGIN_REBASE_DISTANCE away from it. */
+const zb_origin *zb_world_origin(const zb_world *w);
+/* Increases whenever the origin moves. */
+uint32_t zb_world_origin_version(const zb_world *w);
+/* Moves the origin to a chunk now. */
+void zb_world_set_origin(zb_world *w, zb_chunk anchor);
 /* Ground height (metres above sea level) at a position: from the loaded
  * heightfield when its chunk is at stage 1 or more, else the analytic terrain. */
 double zb_world_ground_height(const zb_world *w, const zb_planet_pos *pos);

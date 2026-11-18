@@ -20,6 +20,8 @@ typedef struct zb_render_stats {
   int views;
   size_t model_items;
   size_t sprite_items;
+  size_t terrain_items;
+  size_t terrain_triangles;
   size_t text_glyphs;
   size_t culled;
   uint64_t frames;
@@ -39,6 +41,15 @@ void zb_render_set_clear_color(zb_render *r, float red, float green, float blue)
 void zb_render_set_camera(zb_render *r, zb_vec3 eye, zb_vec3 target, zb_vec3 up, float fovy_deg, float znear,
                           float zfar);
 void zb_render_set_light(zb_render *r, zb_vec3 direction, zb_vec3 color, zb_vec3 ambient);
+/* Sky and fog (copied; disabled by default). */
+void zb_render_set_atmosphere(zb_render *r, const zb_atmosphere *a);
+const zb_atmosphere *zb_render_atmosphere(const zb_render *r);
+/* Palette quantisation with ordered dithering: texture assets of the 32^3 LUT
+ * and the 8x8 Bayer matrix (0 switches the palette off). */
+void zb_render_set_palette(zb_render *r, uint32_t lut_texture, uint32_t bayer_texture, float dither);
+bool zb_render_palette_enabled(const zb_render *r);
+/* Terrain material atlas: a texture asset with `layers` square layers stacked vertically. */
+void zb_render_set_terrain_atlas(zb_render *r, uint32_t texture, int layers);
 /* Distance between the eyes in stereo mode (metres). */
 void zb_render_set_eye_separation(zb_render *r, float metres);
 
@@ -48,6 +59,9 @@ uint32_t zb_render_load_model(zb_render *r, const char *path);
 uint32_t zb_render_load_sprite(zb_render *r, const char *path);
 uint32_t zb_render_load_font(zb_render *r, const char *path);
 zb_asset_state zb_render_asset_state(const zb_render *r, uint32_t handle);
+/* Runtime meshes (terrain): uploaded at once; handles are backend mesh handles. */
+uint32_t zb_render_upload_mesh(zb_render *r, const zb_mesh_data *mesh);
+void zb_render_release_mesh(zb_render *r, uint32_t mesh);
 /* Number of textures, models, sprites and fonts known. */
 size_t zb_render_asset_count(const zb_render *r);
 
@@ -57,6 +71,11 @@ zb_layout zb_render_compute_layout(int drawable_w, int drawable_h, int internal_
 
 void zb_render_begin(zb_render *r, int drawable_w, int drawable_h);
 void zb_render_draw_model(zb_render *r, uint32_t model, zb_mat4 transform);
+/* A terrain mesh (from zb_render_upload_mesh) with its bounding sphere in mesh coordinates. */
+void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
+                            float radius);
+/* The current camera eye (render coordinates). */
+zb_vec3 zb_render_camera_eye(const zb_render *r);
 void zb_render_draw_sprite(zb_render *r, uint32_t sprite, zb_vec3 position, float scale, double time_s);
 /* Screen-space text in internal pixels (origin top-left). */
 void zb_render_draw_text(zb_render *r, uint32_t font, const char *utf8, float x, float y, float scale,

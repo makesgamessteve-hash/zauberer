@@ -125,6 +125,7 @@ typedef ptrdiff_t GLintptr;
   X(void, glUseProgram, (GLuint p)) \
   X(GLint, glGetUniformLocation, (GLuint p, const GLchar *name)) \
   X(void, glUniform1i, (GLint loc, GLint v)) \
+  X(void, glUniform1f, (GLint loc, GLfloat v)) \
   X(void, glUniform2f, (GLint loc, GLfloat x, GLfloat y)) \
   X(void, glUniform3f, (GLint loc, GLfloat x, GLfloat y, GLfloat z)) \
   X(void, glUniformMatrix4fv, (GLint loc, GLsizei count, GLboolean transpose, const GLfloat *v)) \
@@ -160,6 +161,9 @@ typedef struct gl_mesh {
 typedef struct gl_program {
   GLuint id;
   GLint view_proj, model, normal, light_dir, light_color, ambient, tex, right, up, screen;
+  GLint eye, fog_color, fog_density, layers;
+  GLint cam_right, cam_up, cam_fwd, tan_half, world_up, zenith, horizon, dip, sun_dir, sun_color;
+  GLint scene, lut, bayer, dither, palette;
 } gl_program;
 
 typedef struct sprite_instance {
@@ -175,8 +179,11 @@ typedef struct gl_ctx {
   bool gles;
   char version[160];
   zb_array textures; /* GLuint, handle = index + 1, 0 = free slot */
-  zb_array meshes;   /* gl_mesh */
-  gl_program model, sprite, text;
+  zb_array meshes;   /* gl_mesh; vao == 0 marks a free slot */
+  size_t free_hint;  /* no free slot below this index */
+  gl_program model, sprite, text, terrain, sky, post;
+  GLuint empty_vao; /* fullscreen passes draw from gl_VertexID */
+  GLuint post_fbo, post_color;
   GLuint quad_vbo, inst_vbo, sprite_vao;
   GLuint text_vbo, text_vao;
   GLuint fbo, fbo_color, fbo_depth;
@@ -255,9 +262,9 @@ static GLuint compile(gl_ctx *c, GLenum type, const char *src, const char *what,
   return s;
 }
 
-static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *name, const char *const *attribs, gl_program *out,
-                          char *err, size_t err_len) {
-  char *vs_src = load_source(c, vfs, name, "vert", err, err_len);
+static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const char *name, const char *const *attribs,
+                          gl_program *out, char *err, size_t err_len) {
+  char *vs_src = load_source(c, vfs, vs_name, "vert", err, err_len);
   char *fs_src = vs_src ? load_source(c, vfs, name, "frag", err, err_len) : NULL;
   GLuint vs = fs_src ? compile(c, GL_VERTEX_SHADER, vs_src, name, err, err_len) : 0;
   GLuint fs = vs ? compile(c, GL_FRAGMENT_SHADER, fs_src, name, err, err_len) : 0;
@@ -298,6 +305,31 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *name, const char *
   out->right = c->gl.glGetUniformLocation(p, "u_right");
   out->up = c->gl.glGetUniformLocation(p, "u_up");
   out->screen = c->gl.glGetUniformLocation(p, "u_screen");
+  static const struct {
+    const char *name;
+    size_t offset;
+  } extra[] = {{"u_eye", offsetof(gl_program, eye)},
+               {"u_fog_color", offsetof(gl_program, fog_color)},
+               {"u_fog_density", offsetof(gl_program, fog_density)},
+               {"u_layers", offsetof(gl_program, layers)},
+               {"u_cam_right", offsetof(gl_program, cam_right)},
+               {"u_cam_up", offsetof(gl_program, cam_up)},
+               {"u_cam_fwd", offsetof(gl_program, cam_fwd)},
+               {"u_tan_half", offsetof(gl_program, tan_half)},
+               {"u_world_up", offsetof(gl_program, world_up)},
+               {"u_zenith", offsetof(gl_program, zenith)},
+               {"u_horizon", offsetof(gl_program, horizon)},
+               {"u_dip", offsetof(gl_program, dip)},
+               {"u_sun_dir", offsetof(gl_program, sun_dir)},
+               {"u_sun_color", offsetof(gl_program, sun_color)},
+               {"u_scene", offsetof(gl_program, scene)},
+               {"u_lut", offsetof(gl_program, lut)},
+               {"u_bayer", offsetof(gl_program, bayer)},
+               {"u_dither", offsetof(gl_program, dither)},
+               {"u_palette", offsetof(gl_program, palette)}};
+  for (size_t i = 0; i < sizeof extra / sizeof extra[0]; ++i) {
+    *(GLint *)((char *)out + extra[i].offset) = c->gl.glGetUniformLocation(p, extra[i].name);
+  }
   return true;
 }
 
@@ -343,6 +375,8 @@ static void gl_destroy_texture(void *ctx, uint32_t handle) {
   }
 }
 
+static void free_mesh(gl_ctx *c, gl_mesh *m);
+
 static uint32_t gl_create_mesh(void *ctx, const zb_mesh_data *mesh) {
   gl_ctx *c = ctx;
   gl_mesh m;
@@ -362,9 +396,20 @@ static uint32_t gl_create_mesh(void *ctx, const zb_mesh_data *mesh) {
   attrib(c, 2, 4, stride, offsetof(zb_vertex, color), 0);
   attrib(c, 3, 2, stride, offsetof(zb_vertex, uv), 0);
   c->gl.glBindVertexArray(0);
+  /* Reuse a freed slot: terrain meshes come and go all the time. */
+  for (size_t i = c->free_hint; i < c->meshes.len; ++i) {
+    gl_mesh *slot = zb_array_at(&c->meshes, i);
+    if (slot->vao == 0) {
+      *slot = m;
+      c->free_hint = i + 1;
+      return (uint32_t)(i + 1);
+    }
+  }
   if (!zb_array_push(&c->meshes, &m)) {
+    free_mesh(c, &m);
     return 0;
   }
+  c->free_hint = c->meshes.len;
   return (uint32_t)c->meshes.len;
 }
 
@@ -381,6 +426,9 @@ static void gl_destroy_mesh(void *ctx, uint32_t handle) {
   gl_ctx *c = ctx;
   if (handle && handle <= c->meshes.len) {
     free_mesh(c, zb_array_at(&c->meshes, handle - 1));
+    if (handle - 1 < c->free_hint) {
+      c->free_hint = handle - 1;
+    }
   }
 }
 
@@ -392,6 +440,8 @@ static void ensure_fbo(gl_ctx *c, int w, int h) {
     c->gl.glDeleteFramebuffers(1, &c->fbo);
     c->gl.glDeleteTextures(1, &c->fbo_color);
     c->gl.glDeleteRenderbuffers(1, &c->fbo_depth);
+    c->gl.glDeleteFramebuffers(1, &c->post_fbo);
+    c->gl.glDeleteTextures(1, &c->post_color);
   }
   c->gl.glGenTextures(1, &c->fbo_color);
   c->gl.glBindTexture(GL_TEXTURE_2D, c->fbo_color);
@@ -408,29 +458,57 @@ static void ensure_fbo(gl_ctx *c, int w, int h) {
   if (c->gl.glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     zb_error("internal framebuffer %dx%d is incomplete", w, h);
   }
+  /* The palette pass writes here; text and the window blit read from here. */
+  c->gl.glGenTextures(1, &c->post_color);
+  c->gl.glBindTexture(GL_TEXTURE_2D, c->post_color);
+  c->gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  c->gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  c->gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  c->gl.glGenFramebuffers(1, &c->post_fbo);
+  c->gl.glBindFramebuffer(GL_FRAMEBUFFER, c->post_fbo);
+  c->gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, c->post_color, 0);
+  if (c->gl.glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    zb_error("post framebuffer %dx%d is incomplete", w, h);
+  }
   c->fbo_w = w;
   c->fbo_h = h;
 }
 
-static void draw_models(gl_ctx *c, const zb_frame *f, int view) {
-  const gl_program *p = &c->model;
+static void set_fog(gl_ctx *c, const gl_program *p, const zb_frame *f, int view) {
+  const zb_atmosphere *a = &f->atmosphere;
+  const zb_vec3 eye = f->views[view].eye;
+  c->gl.glUniform3f(p->eye, eye.x, eye.y, eye.z);
+  c->gl.glUniform3f(p->fog_color, a->horizon.x, a->horizon.y, a->horizon.z);
+  c->gl.glUniform1f(p->fog_density, a->enabled ? a->fog_density : 0.0f);
+}
+
+/* Models and terrain share the lit-mesh path; they differ in program and texture. */
+static void draw_meshes(gl_ctx *c, const zb_frame *f, int view, zb_draw_kind kind) {
+  const gl_program *p = kind == ZB_DRAW_TERRAIN ? &c->terrain : &c->model;
   c->gl.glUseProgram(p->id);
   c->gl.glUniformMatrix4fv(p->view_proj, 1, GL_FALSE, f->views[view].view_proj.m);
   c->gl.glUniform3f(p->light_dir, f->light_dir.x, f->light_dir.y, f->light_dir.z);
   c->gl.glUniform3f(p->light_color, f->light_color.x, f->light_color.y, f->light_color.z);
   c->gl.glUniform3f(p->ambient, f->ambient.x, f->ambient.y, f->ambient.z);
   c->gl.glUniform1i(p->tex, 0);
+  c->gl.glUniform1f(p->layers, (GLfloat)f->atlas_layers);
+  set_fog(c, p, f, view);
   c->gl.glActiveTexture(GL_TEXTURE0);
+  if (kind == ZB_DRAW_TERRAIN) {
+    c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, f->atlas_texture));
+  }
   for (size_t i = 0; i < f->item_count; ++i) {
     const zb_draw_item *it = &f->items[i];
-    if (it->kind != ZB_DRAW_MODEL || it->view != view || it->mesh == 0 || it->mesh > c->meshes.len) {
+    if (it->kind != kind || it->view != view || it->mesh == 0 || it->mesh > c->meshes.len) {
       continue;
     }
     const gl_mesh *m = zb_array_at(&c->meshes, it->mesh - 1);
     zb_mat4 nm = zb_m4_normal_matrix(it->model);
     c->gl.glUniformMatrix4fv(p->model, 1, GL_FALSE, it->model.m);
     c->gl.glUniformMatrix4fv(p->normal, 1, GL_FALSE, nm.m);
-    c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, it->texture));
+    if (kind == ZB_DRAW_MODEL) {
+      c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, it->texture));
+    }
     c->gl.glBindVertexArray(m->vao);
     c->gl.glDrawElements(GL_TRIANGLES, (GLsizei)it->count, GL_UNSIGNED_INT,
                          (const void *)((size_t)it->first * sizeof(uint32_t)));
@@ -466,6 +544,7 @@ static void draw_sprites(gl_ctx *c, const zb_frame *f, int view) {
       c->gl.glUniform3f(p->right, v->right.x, v->right.y, v->right.z);
       c->gl.glUniform3f(p->up, v->up.x, v->up.y, v->up.z);
       c->gl.glUniform1i(p->tex, 0);
+      set_fog(c, p, f, view);
       c->gl.glDisable(GL_CULL_FACE);
       c->gl.glBindVertexArray(c->sprite_vao);
       started = true;
@@ -503,6 +582,57 @@ static void draw_text(gl_ctx *c, const zb_frame *f) {
   c->gl.glEnable(GL_CULL_FACE);
 }
 
+static void draw_sky(gl_ctx *c, const zb_frame *f, int view) {
+  const zb_atmosphere *a = &f->atmosphere;
+  const zb_view *v = &f->views[view];
+  const gl_program *p = &c->sky;
+  zb_vec3 fwd = zb_v3_cross(v->up, v->right);
+  c->gl.glDisable(GL_DEPTH_TEST);
+  c->gl.glDisable(GL_CULL_FACE);
+  c->gl.glUseProgram(p->id);
+  c->gl.glUniform3f(p->cam_right, v->right.x, v->right.y, v->right.z);
+  c->gl.glUniform3f(p->cam_up, v->up.x, v->up.y, v->up.z);
+  c->gl.glUniform3f(p->cam_fwd, fwd.x, fwd.y, fwd.z);
+  c->gl.glUniform2f(p->tan_half, 1.0f / v->proj.m[0], 1.0f / v->proj.m[5]);
+  c->gl.glUniform3f(p->world_up, a->up.x, a->up.y, a->up.z);
+  c->gl.glUniform3f(p->zenith, a->zenith.x, a->zenith.y, a->zenith.z);
+  c->gl.glUniform3f(p->horizon, a->horizon.x, a->horizon.y, a->horizon.z);
+  c->gl.glUniform1f(p->dip, a->horizon_dip);
+  c->gl.glUniform3f(p->sun_dir, a->sun_dir.x, a->sun_dir.y, a->sun_dir.z);
+  c->gl.glUniform3f(p->sun_color, a->sun_color.x, a->sun_color.y, a->sun_color.z);
+  c->gl.glBindVertexArray(c->empty_vao);
+  c->gl.glDrawArrays(GL_TRIANGLES, 0, 3);
+  c->gl.glEnable(GL_DEPTH_TEST);
+  c->gl.glEnable(GL_CULL_FACE);
+}
+
+/* Scene colour -> palette (or a plain copy) in the post framebuffer. */
+static void draw_post(gl_ctx *c, const zb_frame *f) {
+  const gl_program *p = &c->post;
+  bool palette = f->palette && texture_id(c, f->lut_texture) && texture_id(c, f->bayer_texture);
+  c->gl.glBindFramebuffer(GL_FRAMEBUFFER, c->post_fbo);
+  c->gl.glViewport(0, 0, f->layout.internal_w, f->layout.internal_h);
+  c->gl.glDisable(GL_DEPTH_TEST);
+  c->gl.glDisable(GL_CULL_FACE);
+  c->gl.glUseProgram(p->id);
+  c->gl.glUniform1i(p->scene, 0);
+  c->gl.glUniform1i(p->lut, 1);
+  c->gl.glUniform1i(p->bayer, 2);
+  c->gl.glUniform1f(p->dither, f->dither);
+  c->gl.glUniform1i(p->palette, palette ? 1 : 0);
+  c->gl.glActiveTexture(GL_TEXTURE0);
+  c->gl.glBindTexture(GL_TEXTURE_2D, c->fbo_color);
+  c->gl.glActiveTexture(GL_TEXTURE0 + 1);
+  c->gl.glBindTexture(GL_TEXTURE_2D, palette ? texture_id(c, f->lut_texture) : 0);
+  c->gl.glActiveTexture(GL_TEXTURE0 + 2);
+  c->gl.glBindTexture(GL_TEXTURE_2D, palette ? texture_id(c, f->bayer_texture) : 0);
+  c->gl.glActiveTexture(GL_TEXTURE0);
+  c->gl.glBindVertexArray(c->empty_vao);
+  c->gl.glDrawArrays(GL_TRIANGLES, 0, 3);
+  c->gl.glEnable(GL_DEPTH_TEST);
+  c->gl.glEnable(GL_CULL_FACE);
+}
+
 static void gl_execute(void *ctx, const zb_frame *f) {
   gl_ctx *c = ctx;
   const zb_layout *l = &f->layout;
@@ -518,13 +648,18 @@ static void gl_execute(void *ctx, const zb_frame *f) {
   for (int v = 0; v < f->view_count; ++v) {
     const zb_view *view = &f->views[v];
     c->gl.glViewport(view->x, view->y, view->width, view->height);
-    draw_models(c, f, v);
+    if (f->atmosphere.enabled) {
+      draw_sky(c, f, v);
+    }
+    draw_meshes(c, f, v, ZB_DRAW_TERRAIN);
+    draw_meshes(c, f, v, ZB_DRAW_MODEL);
     draw_sprites(c, f, v);
   }
+  draw_post(c, f);
   draw_text(c, f);
   c->gl.glBindVertexArray(0);
   /* Upscale to the window with nearest-neighbour filtering. */
-  c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, c->fbo);
+  c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, c->post_fbo);
   c->gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   c->gl.glViewport(0, 0, l->drawable_w, l->drawable_h);
   c->gl.glClearColor(f->clear[0], f->clear[1], f->clear[2], 1.0f);
@@ -550,7 +685,7 @@ static zb_result gl_capture(void *ctx, bool internal, const zb_allocator *a, zb_
     return ZB_ERR_NOMEM;
   }
   c->gl.glFinish();
-  c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, internal ? c->fbo : 0);
+  c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, internal ? c->post_fbo : 0);
   c->gl.glPixelStorei(GL_PACK_ALIGNMENT, 1);
   c->gl.glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, out->rgba);
   c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -566,6 +701,15 @@ static void gl_destroy(void *ctx) {
     c->gl.glDeleteProgram(c->sprite.id);
   if (c->text.id)
     c->gl.glDeleteProgram(c->text.id);
+  const GLuint extra_programs[3] = {c->terrain.id, c->sky.id, c->post.id};
+  for (int i = 0; i < 3; ++i) {
+    if (extra_programs[i]) {
+      c->gl.glDeleteProgram(extra_programs[i]);
+    }
+  }
+  if (c->empty_vao) {
+    c->gl.glDeleteVertexArrays(1, &c->empty_vao);
+  }
   if (c->sprite_vao) {
     c->gl.glDeleteVertexArrays(1, &c->sprite_vao);
     c->gl.glDeleteBuffers(1, &c->quad_vbo);
@@ -579,6 +723,8 @@ static void gl_destroy(void *ctx) {
     c->gl.glDeleteFramebuffers(1, &c->fbo);
     c->gl.glDeleteTextures(1, &c->fbo_color);
     c->gl.glDeleteRenderbuffers(1, &c->fbo_depth);
+    c->gl.glDeleteFramebuffers(1, &c->post_fbo);
+    c->gl.glDeleteTextures(1, &c->post_color);
   }
   for (size_t i = 0; i < c->textures.len; ++i) {
     GLuint t = *(GLuint *)zb_array_at(&c->textures, i);
@@ -597,6 +743,7 @@ static void gl_destroy(void *ctx) {
 
 static void setup_geometry(gl_ctx *c) {
   static const float quad[12] = {0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1};
+  c->gl.glGenVertexArrays(1, &c->empty_vao);
   c->gl.glGenVertexArrays(1, &c->sprite_vao);
   c->gl.glBindVertexArray(c->sprite_vao);
   c->gl.glGenBuffers(1, &c->quad_vbo);
@@ -660,9 +807,13 @@ zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load
   static const char *const model_attribs[] = {"a_pos", "a_normal", "a_color", "a_uv", NULL};
   static const char *const sprite_attribs[] = {"a_corner", "i_pos", "i_size_pivot", "i_uv", NULL};
   static const char *const text_attribs[] = {"a_pos", "a_uv", "a_color", NULL};
-  if (!build_program(c, vfs, "model", model_attribs, &c->model, err, err_len) ||
-      !build_program(c, vfs, "sprite", sprite_attribs, &c->sprite, err, err_len) ||
-      !build_program(c, vfs, "text", text_attribs, &c->text, err, err_len)) {
+  static const char *const no_attribs[] = {NULL};
+  if (!build_program(c, vfs, "model", "model", model_attribs, &c->model, err, err_len) ||
+      !build_program(c, vfs, "sprite", "sprite", sprite_attribs, &c->sprite, err, err_len) ||
+      !build_program(c, vfs, "text", "text", text_attribs, &c->text, err, err_len) ||
+      !build_program(c, vfs, "terrain", "terrain", model_attribs, &c->terrain, err, err_len) ||
+      !build_program(c, vfs, "fullscreen", "sky", no_attribs, &c->sky, err, err_len) ||
+      !build_program(c, vfs, "fullscreen", "post", no_attribs, &c->post, err, err_len)) {
     gl_destroy(c);
     return NULL;
   }

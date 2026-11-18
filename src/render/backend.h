@@ -7,16 +7,17 @@
 #include "core/math.h"
 #include "render/image.h"
 #include "render/mesh.h"
+#include "render/retro.h"
 
 #define ZB_RENDER_MAX_VIEWS 2
 
-typedef enum zb_draw_kind { ZB_DRAW_MODEL, ZB_DRAW_SPRITE } zb_draw_kind;
+typedef enum zb_draw_kind { ZB_DRAW_MODEL, ZB_DRAW_SPRITE, ZB_DRAW_TERRAIN } zb_draw_kind;
 
 typedef struct zb_draw_item {
   zb_draw_kind kind;
   uint8_t view;
   uint64_t sort_key;
-  uint32_t mesh;    /* backend mesh handle (models) */
+  uint32_t mesh;    /* backend mesh handle (models, terrain) */
   uint32_t texture; /* backend texture handle (0 = white) */
   uint32_t first;   /* first index (models) */
   uint32_t count;   /* index count (models) */
@@ -70,6 +71,12 @@ typedef struct zb_frame {
   size_t text_count;
   const zb_text_batch *text_batches;
   size_t text_batch_count;
+  zb_atmosphere atmosphere; /* sky and fog (when enabled) */
+  bool palette;             /* quantise the scene to the palette */
+  uint32_t lut_texture, bayer_texture;
+  float dither;
+  uint32_t atlas_texture; /* terrain material atlas */
+  int atlas_layers;
 } zb_frame;
 
 typedef struct zb_render_backend {
@@ -89,6 +96,8 @@ typedef struct zb_render_backend {
 zb_render_backend *zb_render_null_backend(const zb_allocator *a);
 size_t zb_render_null_item_count(const zb_render_backend *b, zb_draw_kind kind);
 size_t zb_render_null_frames(const zb_render_backend *b);
+/* Meshes created and not yet destroyed. */
+size_t zb_render_null_meshes(const zb_render_backend *b);
 
 /* The OpenGL backend. load_proc resolves GL entry points; shader sources are
  * read from packages (shaders/<name>.vert|frag). Fails (with a message naming

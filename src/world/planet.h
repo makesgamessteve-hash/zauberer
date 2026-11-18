@@ -96,6 +96,9 @@ zb_vec3 zb_origin_to_local(const zb_origin *o, const zb_planet *p, const zb_plan
 zb_planet_pos zb_origin_to_pos(const zb_origin *o, const zb_planet *p, zb_vec3 local);
 /* True when a local position (the camera) is farther than distance from the anchor. */
 bool zb_origin_should_rebase(zb_vec3 local, float distance);
+/* Transform from one origin's local coordinates to another's (a chunk's own
+ * frame to the render origin, for example). */
+zb_mat4 zb_origin_transform(const zb_origin *from, const zb_origin *to);
 /* Moves the anchor to a new chunk; returns the transform from old to new local
  * coordinates (apply it to every float position kept in the old frame). */
 zb_mat4 zb_origin_rebase(zb_origin *o, const zb_planet *p, zb_chunk anchor);

@@ -6,6 +6,7 @@
 #include "core/luon.h"
 #include "core/version.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -459,6 +460,10 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
     fail(e, err);
     return ZB_HOST_FAILURE;
   }
+  e->terrain_view = zb_terrain_view_create(a, e->render, e->vfs, "textures/terrain/atlas.lua", NULL);
+  if (!e->terrain_view) {
+    return ZB_HOST_FAILURE;
+  }
 
   /* Scripts. */
   zb_script_config sc;
@@ -561,10 +566,31 @@ static void step(zb_engine *e) {
   frame(e, 0.0);
 }
 
+/* Terrain and the sky's horizon, for the camera the scripts set. */
+static void draw_world(zb_engine *e) {
+  zb_vec3 eye = zb_render_camera_eye(e->render);
+  zb_terrain_view_draw(e->terrain_view, e->world, eye);
+  const zb_atmosphere *cur = zb_render_atmosphere(e->render);
+  if (!cur->enabled) {
+    return;
+  }
+  zb_atmosphere a = *cur;
+  const zb_origin *o = zb_world_origin(e->world);
+  zb_dvec3 c = zb_origin_to_cart(o, eye);
+  double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+  zb_dvec3 d = {c.x / len, c.y / len, c.z / len};
+  a.up = zb_v3((float)(d.x * o->east.x + d.y * o->east.y + d.z * o->east.z),
+               (float)(d.x * o->up.x + d.y * o->up.y + d.z * o->up.z),
+               (float)-(d.x * o->north.x + d.y * o->north.y + d.z * o->north.z));
+  a.horizon_dip = zb_horizon_dip(zb_world_planet(e->world)->radius, len - zb_world_planet(e->world)->radius);
+  zb_render_set_atmosphere(e->render, &a);
+}
+
 static void frame(zb_engine *e, double alpha) {
   zb_world_update(e->world);
   zb_render_begin(e->render, e->drawable_w, e->drawable_h);
   zb_script_frame(e->script, alpha);
+  draw_world(e);
 #ifdef ZB_DEV
   /* On-screen script errors in development builds. */
   size_t n = zb_script_error_count(e->script);
@@ -706,6 +732,7 @@ void zb_engine_destroy(zb_engine *e) {
     }
   }
   zb_script_destroy(e->script);
+  zb_terrain_view_destroy(e->terrain_view);
   zb_world_destroy(e->world);
   zb_input_recorder_destroy(e->recorder);
   zb_input_replay_close(e->replay);

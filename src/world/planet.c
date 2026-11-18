@@ -279,19 +279,23 @@ static zb_dvec3 local_axis(const zb_origin *o, int i) {
   return i == 0 ? o->east : (i == 1 ? o->up : dv_scale(o->north, -1.0));
 }
 
+zb_mat4 zb_origin_transform(const zb_origin *from, const zb_origin *to) {
+  zb_mat4 m = zb_m4_identity();
+  for (int col = 0; col < 3; ++col) {
+    zb_dvec3 a = local_axis(from, col);
+    for (int row = 0; row < 3; ++row) {
+      m.m[col * 4 + row] = (float)dv_dot(local_axis(to, row), a);
+    }
+  }
+  zb_dvec3 t = dv_sub(from->center, to->center);
+  for (int row = 0; row < 3; ++row) {
+    m.m[12 + row] = (float)dv_dot(local_axis(to, row), t);
+  }
+  return m;
+}
+
 zb_mat4 zb_origin_rebase(zb_origin *o, const zb_planet *p, zb_chunk anchor) {
   zb_origin old = *o;
   zb_origin_init(o, p, anchor);
-  zb_mat4 m = zb_m4_identity();
-  for (int col = 0; col < 3; ++col) {
-    zb_dvec3 a = local_axis(&old, col);
-    for (int row = 0; row < 3; ++row) {
-      m.m[col * 4 + row] = (float)dv_dot(local_axis(o, row), a);
-    }
-  }
-  zb_dvec3 t = dv_sub(old.center, o->center);
-  for (int row = 0; row < 3; ++row) {
-    m.m[12 + row] = (float)dv_dot(local_axis(o, row), t);
-  }
-  return m;
+  return zb_origin_transform(&old, o);
 }

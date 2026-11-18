@@ -230,10 +230,39 @@ static zb_dvec3 sample_dir(const face_frame *f, double a, double b) {
   return d;
 }
 
-static double cell_jitter(const zb_terrain *t, zb_chunk c, int x, int y) {
-  uint64_t h =
-      zb_mix64(stream(t, SEED_JITTER) ^ zb_chunk_key(c) ^ ((uint64_t)(uint32_t)(y * 4096 + x) * 0x9e3779b97f4a7c15ull));
+/* Material-border jitter: value noise on a lattice every JITTER_CELL metres of
+ * the face grid (continuous across chunk borders within a face), so borders
+ * wander smoothly instead of speckling. */
+#define JITTER_CELL 32
+#define JITTER_RES (ZB_SURFACE_RES / JITTER_CELL + 1)
+
+static double lattice_value(const zb_terrain *t, int face, int64_t gx, int64_t gy) {
+  uint64_t h = zb_mix64(stream(t, SEED_JITTER) ^ ((uint64_t)(uint32_t)face << 61) ^
+                        ((uint64_t)gx * 0x9e3779b97f4a7c15ull) ^ ((uint64_t)gy * 0xc2b2ae3d27d4eb4full));
   return (double)(h >> 11) * (2.0 / 9007199254740992.0) - 1.0;
+}
+
+static void jitter_lattice(const zb_terrain *t, zb_chunk c, double out[JITTER_RES * JITTER_RES]) {
+  int64_t bx = (int64_t)c.x * (ZB_SURFACE_RES / JITTER_CELL), by = (int64_t)c.y * (ZB_SURFACE_RES / JITTER_CELL);
+  for (int y = 0; y < JITTER_RES; ++y) {
+    for (int x = 0; x < JITTER_RES; ++x) {
+      out[y * JITTER_RES + x] = lattice_value(t, c.face, bx + x, by + y);
+    }
+  }
+}
+
+/* Jitter at a cell (x, y in 0..255 of a chunk), smoothly interpolated. */
+static double jitter_at(const double *lat, double x, double y) {
+  double fx = x / JITTER_CELL, fy = y / JITTER_CELL;
+  int ix = (int)fx, iy = (int)fy;
+  ix = ix >= JITTER_RES - 1 ? JITTER_RES - 2 : ix;
+  iy = iy >= JITTER_RES - 1 ? JITTER_RES - 2 : iy;
+  double tx = fx - ix, ty = fy - iy;
+  tx = tx * tx * (3.0 - 2.0 * tx);
+  ty = ty * ty * (3.0 - 2.0 * ty);
+  const double *r0 = &lat[iy * JITTER_RES + ix], *r1 = r0 + JITTER_RES;
+  double a = r0[0] + (r0[1] - r0[0]) * tx, b = r1[0] + (r1[1] - r1[0]) * tx;
+  return a + (b - a) * ty;
 }
 
 static void update_range(zb_chunk_terrain *ct, const float *v, int n) {
@@ -263,6 +292,8 @@ static void generate_coarse(const zb_terrain *t, zb_chunk_terrain *ct) {
   double sx = 2.0 * COARSE_STEP * w / ZB_CHUNK_SIZE, sy = 2.0 * COARSE_STEP * h / ZB_CHUNK_SIZE;
   double sin_lat = zb_planet_chunk_dir(&t->planet, ct->chunk).z;
   coarse_range(ct);
+  double jitter[JITTER_RES * JITTER_RES];
+  jitter_lattice(t, ct->chunk, jitter);
   for (int y = 0; y < ZB_COARSE_RES; ++y) {
     const float *row = &ct->macro[(y + 1) * MACRO_RES + 1];
     for (int x = 0; x < ZB_COARSE_RES; ++x) {
@@ -270,7 +301,7 @@ static void generate_coarse(const zb_terrain *t, zb_chunk_terrain *ct) {
       double gy = (row[x + MACRO_RES] - row[x - MACRO_RES]) / sy;
       double slope = sqrt(gx * gx + gy * gy);
       ct->coarse_material[y * ZB_COARSE_RES + x] =
-          (uint8_t)zb_terrain_material_rule(row[x], slope, sin_lat, cell_jitter(t, ct->chunk, x, y + 1000));
+          (uint8_t)zb_terrain_material_rule(row[x], slope, sin_lat, jitter_at(jitter, x * 16.0, y * 16.0));
     }
   }
   ct->stage = ZB_STAGE_COARSE;
@@ -363,6 +394,8 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
   if (!mat) {
     return ZB_ERR_NOMEM;
   }
+  double jitter[JITTER_RES * JITTER_RES];
+  jitter_lattice(t, ct->chunk, jitter);
   double w, h;
   zb_planet_chunk_size(&t->planet, ct->chunk, &w, &h);
   double cw = w / ZB_SURFACE_RES, ch = h / ZB_SURFACE_RES;
@@ -375,7 +408,7 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
       double gy = ((double)r1[x] + r1[x + 1] - r0[x] - r0[x + 1]) / (2.0 * ch);
       double avg = ((double)r0[x] + r0[x + 1] + r1[x] + r1[x + 1]) * 0.25;
       mat[y * ZB_SURFACE_RES + x] =
-          (uint8_t)zb_terrain_material_rule(avg, sqrt(gx * gx + gy * gy), sin_lat, cell_jitter(t, ct->chunk, x, y));
+          (uint8_t)zb_terrain_material_rule(avg, sqrt(gx * gx + gy * gy), sin_lat, jitter_at(jitter, x + 0.5, y + 0.5));
     }
   }
   ct->material = mat;

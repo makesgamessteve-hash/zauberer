@@ -1,0 +1,38 @@
+/* SPDX-License-Identifier: MIT */
+/* The retro look: palette quantisation with ordered dithering, distance fog
+ * and the gradient sky. These CPU functions are the reference for the shaders
+ * (assets/base/shaders/post.frag, sky.frag and the fog in the scene shaders)
+ * and are used by tests to check rendered images. */
+#ifndef ZB_RENDER_RETRO_H
+#define ZB_RENDER_RETRO_H
+
+#include "core/math.h"
+#include "render/image.h"
+
+#define ZB_LUT_LEVELS 32 /* per channel; the LUT image is 1024 x 32 (x = b * 32 + r, y = g) */
+
+typedef struct zb_atmosphere {
+  bool enabled;      /* draw the sky and apply fog */
+  zb_vec3 zenith;    /* sky colour overhead */
+  zb_vec3 horizon;   /* sky colour at the horizon, also the fog colour */
+  zb_vec3 up;        /* local up (render coordinates) */
+  float horizon_dip; /* radians the horizon lies below the horizontal plane */
+  zb_vec3 sun_dir;   /* direction towards the sun */
+  zb_vec3 sun_color;
+  float fog_density; /* per metre: fog = 1 - exp(-(distance * density)^2) */
+} zb_atmosphere;
+
+/* Fog amount (0 clear .. 1 fully fogged) at a distance. */
+float zb_fog_factor(float distance, float density);
+/* Density at which fog reaches `amount` at `distance` metres. */
+float zb_fog_density_for(float distance, float amount);
+/* Sky colour along a unit view ray. */
+zb_vec3 zb_sky_color(const zb_atmosphere *a, zb_vec3 ray);
+/* Horizon dip below the horizontal plane at an altitude above a sphere. */
+float zb_horizon_dip(double radius, double altitude);
+/* Palette colour of an RGB value (0..1) at framebuffer pixel (x, y) (origin
+ * bottom-left, as gl_FragCoord), dithered with the 8x8 Bayer image. */
+void zb_palette_quantize(const zb_image *lut, const zb_image *bayer, float dither, const float rgb[3], int x, int y,
+                         unsigned char out[3]);
+
+#endif

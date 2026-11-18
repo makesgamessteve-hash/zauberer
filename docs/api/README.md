@@ -132,6 +132,10 @@ The action's snapshot for this tick.
 
 ## render: models, sprites, text and camera
 
+### `render.atmosphere(atmosphere: Atmosphere|false)`
+
+Sky and fog. The engine keeps the horizon's up direction and dip in step with the camera over the planet. false switches both off.
+
 ### `render.camera(camera: Camera)`
 
 Sets the camera for the following frames.
@@ -175,6 +179,10 @@ Test API: compares the frame with tests/golden/<name>.png (channel delta <= 8, <
 ### `render.model(path: string): integer`
 
 Starts loading a glTF model (.glb/.gltf); returns its handle.
+
+### `render.palette(palette: Palette|false)`
+
+Quantises the scene to the palette with ordered dithering (text stays as drawn); false switches it off.
 
 ### `render.pixel(x: integer, y: integer): integer, integer, integer, integer`
 
@@ -274,6 +282,10 @@ Great-circle distance at sea level in metres.
 
 The position of planet-centred coordinates in metres.
 
+### `world.from_local(x: number, y: number, z: number): PlanetPos`
+
+The position at render coordinates.
+
 ### `world.ground_height(pos: PlanetPos): number`
 
 Ground height in metres above sea level from the loaded heightfield (the analytic terrain where the chunk is not loaded at stage 1 or more).
@@ -309,6 +321,18 @@ Surface material at the position: "soil", "sand", "rock", "gravel", "snow", "ice
 ### `world.to_cartesian(pos: PlanetPos): number, number, number`
 
 Planet-centred coordinates in metres (+Z is the north pole).
+
+### `world.to_local(pos: PlanetPos): number[]`
+
+Render coordinates {x, y, z} of a position (relative to the floating origin; x east, y up, z south at the origin).
+
+### `world.up_at(pos: PlanetPos): number[]`
+
+The local up direction at a position, in render coordinates (it tilts with the planet's curvature away from the origin).
+
+### `world.view_distance(near?: number, far?: number): number, number`
+
+Gets or sets the streaming rings: chunks get full detail within near metres and coarse detail within far metres (growing with altitude up to twice far).
 
 ## test: Lua tests
 
@@ -380,6 +404,17 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `x` | `number` | Axis value (axis1, axis2) |
 | `y` | `number` | Second axis value (axis2) |
 
+### Atmosphere
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `enabled` | `boolean?` | Draw the sky and apply fog (default true) |
+| `zenith` | `number[]?` | Sky colour overhead {r, g, b} |
+| `horizon` | `number[]?` | Sky colour at the horizon, also the fog colour |
+| `sun` | `number[]?` | Direction towards the sun (render coordinates) |
+| `sun_color` | `number[]?` | Colour of the sun disc and glow |
+| `fog_distance` | `number?` | Distance at which fog hides 98 % of the scene (0 = no fog) |
+
 ### Camera
 
 | Field | Type | Description |
@@ -443,6 +478,14 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `load_order` | `integer?` | Position in the load order (enabled packages) |
 | `error` | `string?` | Why the package is disabled |
 
+### Palette
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `lut` | `string?` | 32x32x32 lookup table image (default "palettes/base_lut.png") |
+| `bayer` | `string?` | 8x8 ordered-dither matrix image (default "palettes/bayer8.png") |
+| `dither` | `number?` | Dither amplitude in colour units (default 0.08) |
+
 ### PlanetInfo
 
 | Field | Type | Description |
@@ -487,6 +530,8 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `views` | `integer` | Rendered views (2 in stereo) |
 | `model_draws` | `integer` | Model draw items |
 | `sprite_draws` | `integer` | Sprite draw items |
+| `terrain_items` | `integer` | Terrain chunk draw items (after culling) |
+| `terrain_triangles` | `integer` | Terrain triangles drawn |
 | `glyphs` | `integer` | Text glyphs |
 | `culled` | `integer` | Items culled by the view frustum |
 | `frames` | `integer` | Frames rendered so far |

@@ -65,6 +65,19 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
  * @field near number? Near plane (default 0.1)
  * @field far number? Far plane (default 500)
  *
+ * @luaclass Atmosphere
+ * @field enabled boolean? Draw the sky and apply fog (default true)
+ * @field zenith number[]? Sky colour overhead {r, g, b}
+ * @field horizon number[]? Sky colour at the horizon, also the fog colour
+ * @field sun number[]? Direction towards the sun (render coordinates)
+ * @field sun_color number[]? Colour of the sun disc and glow
+ * @field fog_distance number? Distance at which fog hides 98 % of the scene (0 = no fog)
+ *
+ * @luaclass Palette
+ * @field lut string? 32x32x32 lookup table image (default "palettes/base_lut.png")
+ * @field bayer string? 8x8 ordered-dither matrix image (default "palettes/bayer8.png")
+ * @field dither number? Dither amplitude in colour units (default 0.08)
+ *
  * @luaclass Light
  * @field direction number[]? Direction the light travels
  * @field color number[]? Light colour
@@ -88,6 +101,8 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
  * @field views integer Rendered views (2 in stereo)
  * @field model_draws integer Model draw items
  * @field sprite_draws integer Sprite draw items
+ * @field terrain_items integer Terrain chunk draw items (after culling)
+ * @field terrain_triangles integer Terrain triangles drawn
  * @field glyphs integer Text glyphs
  * @field culled integer Items culled by the view frustum
  * @field frames integer Frames rendered so far
@@ -851,6 +866,60 @@ static int r_light(lua_State *L) {
   return 0;
 }
 
+/* @lua render.atmosphere(atmosphere: Atmosphere|false)
+ * Sky and fog. The engine keeps the horizon's up direction and dip in step with the camera
+ * over the planet. false switches both off.
+ */
+static int r_atmosphere(lua_State *L) {
+  zb_render *r = S(L)->cfg.render;
+  zb_atmosphere a = *zb_render_atmosphere(r);
+  if (lua_isboolean(L, 1) && !lua_toboolean(L, 1)) {
+    a.enabled = false;
+    zb_render_set_atmosphere(r, &a);
+    return 0;
+  }
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_getfield(L, 1, "enabled");
+  a.enabled = lua_isnil(L, -1) ? true : lua_toboolean(L, -1);
+  lua_pop(L, 1);
+  a.zenith = vec_field(L, 1, "zenith", zb_v3(0.25f, 0.45f, 0.8f));
+  a.horizon = vec_field(L, 1, "horizon", zb_v3(0.7f, 0.8f, 0.9f));
+  a.sun_dir = zb_v3_normalize(vec_field(L, 1, "sun", zb_v3(0.3f, 0.6f, -0.7f)));
+  a.sun_color = vec_field(L, 1, "sun_color", zb_v3(1.0f, 0.95f, 0.8f));
+  if (zb_v3_dot(a.up, a.up) < 0.5f) {
+    a.up = zb_v3(0.0f, 1.0f, 0.0f);
+  }
+  a.fog_density = zb_fog_density_for(num_field(L, 1, "fog_distance", 0.0f), 0.98f);
+  zb_render_set_atmosphere(r, &a);
+  return 0;
+}
+
+/* @lua render.palette(palette: Palette|false)
+ * Quantises the scene to the palette with ordered dithering (text stays as drawn); false
+ * switches it off.
+ */
+static int r_palette(lua_State *L) {
+  zb_render *r = S(L)->cfg.render;
+  if (lua_isboolean(L, 1) && !lua_toboolean(L, 1)) {
+    zb_render_set_palette(r, 0, 0, 0.0f);
+    return 0;
+  }
+  const char *lut = "palettes/base_lut.png", *bayer = "palettes/bayer8.png";
+  float dither = 0.08f;
+  if (lua_istable(L, 1)) {
+    lua_getfield(L, 1, "lut");
+    lut = luaL_optstring(L, -1, lut);
+    lua_getfield(L, 1, "bayer");
+    bayer = luaL_optstring(L, -1, bayer);
+    dither = num_field(L, 1, "dither", dither);
+  }
+  zb_render_set_palette(r, zb_render_load_texture(r, lut), zb_render_load_texture(r, bayer), dither);
+  if (lua_istable(L, 1)) {
+    lua_pop(L, 2);
+  }
+  return 0;
+}
+
 /* @lua render.clear_color(r: number, g: number, b: number)
  * Background colour.
  */
@@ -957,6 +1026,10 @@ static int r_stats(lua_State *L) {
   lua_setfield(L, -2, "model_draws");
   lua_pushinteger(L, (lua_Integer)st->sprite_items);
   lua_setfield(L, -2, "sprite_draws");
+  lua_pushinteger(L, (lua_Integer)st->terrain_items);
+  lua_setfield(L, -2, "terrain_items");
+  lua_pushinteger(L, (lua_Integer)st->terrain_triangles);
+  lua_setfield(L, -2, "terrain_triangles");
   lua_pushinteger(L, (lua_Integer)st->text_glyphs);
   lua_setfield(L, -2, "glyphs");
   lua_pushinteger(L, (lua_Integer)st->culled);
@@ -1271,6 +1344,8 @@ void zb_script_open_api(zb_script *s) {
                                         {"camera", r_camera},
                                         {"light", r_light},
                                         {"clear_color", r_clear_color},
+                                        {"atmosphere", r_atmosphere},
+                                        {"palette", r_palette},
                                         {"internal_height", r_internal_height},
                                         {"draw_model", r_draw_model},
                                         {"draw_sprite", r_draw_sprite},

@@ -58,6 +58,10 @@ void zb_stream_default_config(zb_stream_config *c, zb_stream_profile profile);
 zb_stream *zb_stream_create(const zb_terrain *t, const zb_stream_config *cfg);
 /* Cancels pending jobs and waits for running ones. */
 void zb_stream_destroy(zb_stream *s);
+/* Changes the ring radii (metres); the far ring may grow with altitude up to
+ * twice far. Takes effect at the next update. */
+void zb_stream_set_radii(zb_stream *s, float near_radius, float far_radius);
+void zb_stream_get_radii(const zb_stream *s, float *near_radius, float *far_radius);
 /* One streaming step (call once per frame): collects finished jobs, updates
  * the rings when a focus moved, evicts, and starts new jobs. */
 void zb_stream_update(zb_stream *s, const zb_stream_focus *focus, int count);

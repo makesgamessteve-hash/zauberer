@@ -46,11 +46,15 @@ end)
 
 engine.on("frame", function()
   local s = game.state
-  local eye, target = state.camera(s)
-  render.camera({ eye = eye, target = target, fov = 60 })
-  render.draw_model(assets.carpet, { position = { 0, state.hover(s), 0 }, rotation = { 0, s.spin, state.bank(s) } })
-  for _, p in ipairs(state.motes(s)) do
-    render.draw_sprite(assets.mote, p, 1)
+  if game.camera then -- set by scenarios that look at the world instead
+    render.camera(game.camera())
+  else
+    local eye, target = state.camera(s)
+    render.camera({ eye = eye, target = target, fov = 60 })
+    render.draw_model(assets.carpet, { position = { 0, state.hover(s), 0 }, rotation = { 0, s.spin, state.bank(s) } })
+    for _, p in ipairs(state.motes(s)) do
+      render.draw_sprite(assets.mote, p, 1)
+    end
   end
   if game.hud then
     local info = engine.info()
