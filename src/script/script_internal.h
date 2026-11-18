@@ -86,6 +86,7 @@ void zb_script_open_world(zb_script *s);
 /* Registers world creation, saved worlds and the globe (after the world module). */
 void zb_script_open_create(zb_script *s);
 void zb_script_open_save(zb_script *s);
+void zb_script_open_sim(zb_script *s);
 /* World names: letters, digits, - and _ (at most 64). */
 bool zb_script_valid_name(const char *name);
 /* Plays in a bundle (owned from then on), NULL for the noise world. */

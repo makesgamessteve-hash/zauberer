@@ -906,6 +906,32 @@ function sleep(ms) end
 ---@param ticks? integer
 function step(ticks) end
 
+registry = {}
+
+---An entry as its packages left it: its fields, plus key, package (that added it) and changed (the last package that overrode or patched it). ref is a key or an id that only one package defines; nil when there is no such entry.
+---@param kind string
+---@param ref string
+---@return RegistryEntry?
+function registry.get(kind, ref) end
+
+---The keys ("package:id") of a registry's entries in load order. Kinds: "materials".
+---@param kind string
+---@return string[]
+function registry.keys(kind) end
+
+sim = {}
+
+---What the simulations use of a material (SI units, deg C); nil when there is no such material.
+---@param ref string
+---@return Material?
+function sim.material(ref) end
+
+---The material ref becomes at a temperature (deg C) through its phase changes: water at -5 is ice, ice at 150 is steam. Errors for an unknown material.
+---@param ref string
+---@param temperature number
+---@return string
+function sim.material_at(ref, temperature) end
+
 ---Id of the package whose script is running (package environments only).
 ---@type string
 package_id = nil

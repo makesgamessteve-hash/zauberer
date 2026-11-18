@@ -135,6 +135,43 @@ static void ensure_slash(char *path, size_t len) {
   }
 }
 
+/* Materials: data/materials.lua of every package, merged in load order. The
+ * simulations need them; without usable data they stay off (NULL). */
+static void load_materials(zb_engine *e) {
+  zb_registry r;
+  zb_registry_init(&r, e->a, "materials");
+  zb_result res = ZB_OK;
+  for (size_t i = 0; i < zb_vfs_load_count(e->vfs) && res == ZB_OK; ++i) {
+    const zb_package *pkg = zb_vfs_load_order(e->vfs, i);
+    char *text = NULL;
+    size_t len = 0;
+    if (zb_vfs_read_package(e->vfs, pkg, "data/materials.lua", e->a, &text, &len) != ZB_OK) {
+      continue;
+    }
+    zb_luon_doc doc;
+    zb_luon_error le;
+    if (zb_luon_parse(&doc, e->a, text, len, &le) != ZB_OK) {
+      zb_warn("materials of %s: data/materials.lua:%d: %s", pkg->id, le.line, le.message);
+    } else {
+      res = zb_registry_merge(&r, pkg->id, &doc.root);
+      zb_luon_free(&doc);
+    }
+    zb_free(e->a, text);
+  }
+  char err[160] = "out of memory";
+  e->materials = res == ZB_OK ? zb_alloc(e->a, sizeof *e->materials) : NULL;
+  if (!e->materials) {
+    zb_registry_free(&r);
+  } else if (zb_materials_build(e->materials, &r, err, sizeof err) != ZB_OK) {
+    zb_materials_free(e->materials);
+    zb_free(e->a, e->materials);
+    e->materials = NULL;
+  }
+  if (!e->materials) {
+    zb_warn("no materials: %s", err);
+  }
+}
+
 static void load_input_defaults(zb_engine *e) {
   for (size_t i = 0; i < zb_vfs_load_count(e->vfs); ++i) {
     const zb_package *p = zb_vfs_load_order(e->vfs, i);
@@ -513,6 +550,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   zb_free(a, species);
   zb_free(a, atlas);
 
+  load_materials(e);
+
   /* World: planet, terrain and chunk streaming around the scripts' focus points. */
   e->world = make_world(e, NULL, err, sizeof err);
   if (!e->world) {
@@ -579,6 +618,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   zb_engine_xr_attach(e, &sc.host);
   sc.seed = e->seed;
   sc.world = e->world;
+  sc.materials = e->materials;
   sc.net = e->net;
   sc.jobs = e->jobs;
   sc.test_api = e->mode != ZB_MODE_GAME;
@@ -853,6 +893,10 @@ void zb_engine_destroy(zb_engine *e) {
   zb_terrain_view_destroy(e->terrain_view);
   zb_net_destroy(e->net);
   zb_world_destroy(e->world);
+  if (e->materials) {
+    zb_materials_free(e->materials);
+    zb_free(e->a, e->materials);
+  }
   if (e->bundle) {
     zb_world_bundle_free(e->bundle);
     zb_free(e->a, e->bundle);

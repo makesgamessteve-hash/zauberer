@@ -552,6 +552,26 @@ Scenarios: waits ms milliseconds of real time (for tests with several processes;
 
 Scenarios: runs ticks simulation ticks (default 1) before continuing.
 
+## registry
+
+### `registry.get(kind: string, ref: string): RegistryEntry?`
+
+An entry as its packages left it: its fields, plus key, package (that added it) and changed (the last package that overrode or patched it). ref is a key or an id that only one package defines; nil when there is no such entry.
+
+### `registry.keys(kind: string): string[]`
+
+The keys ("package:id") of a registry's entries in load order. Kinds: "materials".
+
+## sim
+
+### `sim.material(ref: string): Material?`
+
+What the simulations use of a material (SI units, deg C); nil when there is no such material.
+
+### `sim.material_at(ref: string, temperature: number): string`
+
+The material ref becomes at a temperature (deg C) through its phase changes: water at -5 is ice, ice at 150 is steam. Errors for an unknown material.
+
 ## Types
 
 ### ActionState

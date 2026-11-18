@@ -2,7 +2,7 @@
 -- luacheck configuration for package scripts, Lua tests and scenarios.
 std = "lua54"
 max_line_length = 120
-read_globals = { "engine", "render", "audio", "input", "vfs", "save", "world", "net", "xr" }
+read_globals = { "engine", "render", "audio", "input", "vfs", "save", "world", "net", "xr", "registry", "sim" }
 globals = { "demo" }
 exclude_files = { "third_party/**", "build/**", "build-*/**" }
 

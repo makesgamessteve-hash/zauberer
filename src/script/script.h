@@ -64,14 +64,15 @@ typedef struct zb_script_config {
   const char *user_dir; /* with trailing '/' */
   zb_script_host host;
   uint64_t seed;
-  bool dev;                    /* hot reload, on-screen errors */
-  bool test_api;               /* test and scenario helpers, input injection */
-  uint64_t instruction_budget; /* per hook invocation; 0 = unlimited */
-  const char *coverage_path;   /* LuaCov-compatible stats file, or NULL */
-  zb_world *world;             /* NULL: a private world (inline generation) */
-  zb_net *net;                 /* co-op session; NULL: networking unavailable */
-  zb_jobs *jobs;               /* world creation runs here; NULL: on the calling thread */
-  double planet_radius;        /* private world only; 0 = ZB_PLANET_DEFAULT_RADIUS */
+  bool dev;                             /* hot reload, on-screen errors */
+  bool test_api;                        /* test and scenario helpers, input injection */
+  uint64_t instruction_budget;          /* per hook invocation; 0 = unlimited */
+  const char *coverage_path;            /* LuaCov-compatible stats file, or NULL */
+  zb_world *world;                      /* NULL: a private world (inline generation) */
+  const struct zb_materials *materials; /* the material registry; NULL: none */
+  zb_net *net;                          /* co-op session; NULL: networking unavailable */
+  zb_jobs *jobs;                        /* world creation runs here; NULL: on the calling thread */
+  double planet_radius;                 /* private world only; 0 = ZB_PLANET_DEFAULT_RADIUS */
 } zb_script_config;
 
 #define ZB_SCRIPT_DEFAULT_BUDGET 10000000u

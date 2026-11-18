@@ -217,6 +217,15 @@ class ScenarioTests(EngineTestCase):
         self.assert_ok(result)
         self.assertIn("loaded the game default (1 region(s) of edits)", result.stdout)
 
+    # spec: materials: Materials from Lua and mods
+    def test_materials(self):
+        self.install_mods("alchemy")
+        result = self.scenario("materials")
+        self.assert_ok(result)
+        self.assertIn("materials: base:sand patched by alchemy (hardness, mana)", result.stdout)
+        self.assertIn("materials: alchemy:phlogiston left out: phase must be solid, powder, liquid or gas",
+                      result.stdout)
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 
