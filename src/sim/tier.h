@@ -1,6 +1,15 @@
 /* SPDX-License-Identifier: MIT */
-/* The active tier's simulations together: what they share from outside,
- * such as the weather. Any of them may be missing (NULL). */
+/* The active tier (concept 5.2, 5.3): its simulations (heat and fire with the
+ * material registry, surface water, air), stepped at their own rates around
+ * the world's focus points and coupled to each other:
+ *
+ * - the weather in use (the world's own at the first focus point, once a
+ *   second, unless the scripts set one) drives them all, and storms send
+ *   lightning;
+ * - fire smokes into the air and leans with the air's local wind;
+ * - standing water puts fire out and soaks its fuel.
+ *
+ * It times every simulation against the budget for the whole tier. */
 #ifndef ZB_SIM_TIER_H
 #define ZB_SIM_TIER_H
 
@@ -9,14 +18,48 @@
 #include "sim/water.h"
 #include "world/weather.h"
 
-typedef struct zb_tier {
-  zb_fire *fire;
-  zb_surface_water *water;
-  zb_air *air;
-} zb_tier;
+#define ZB_TIER_BUDGET_MS 6.0 /* per 60 Hz tick, desktop (concept 5.15) */
 
-/* The weather the simulations see: the air's wind; rain on the water; rain
- * and snow wetting the fire's fuel. */
-void zb_tier_apply_weather(const zb_tier *t, const zb_weather *w);
+typedef enum zb_tier_system {
+  ZB_TIER_FIRE,
+  ZB_TIER_WATER,
+  ZB_TIER_AIR,
+  ZB_TIER_WEATHER,
+  ZB_TIER_SYSTEMS
+} zb_tier_system;
+
+typedef struct zb_tier_config {
+  const zb_allocator *a;
+  zb_world *world;
+  const zb_materials *materials;   /* NULL: no fire */
+  double radius;                   /* metres around each focus point */
+  uint64_t seed;                   /* lightning */
+  uint64_t (*clock_ns)(void *ctx); /* for timing; NULL: not timed */
+  void *clock_ctx;
+} zb_tier_config;
+
+typedef struct zb_tier_stats {
+  double ms[ZB_TIER_SYSTEMS]; /* per tick, averaged over the last second */
+  double total_ms;
+  double budget_ms;
+  int over_budget; /* seconds over the budget so far */
+} zb_tier_stats;
+
+typedef struct zb_tier zb_tier;
+
+zb_tier *zb_tier_create(const zb_tier_config *cfg);
+void zb_tier_destroy(zb_tier *t);
+void zb_tier_set_world(zb_tier *t, zb_world *world);
+zb_fire *zb_tier_fire(const zb_tier *t);
+zb_surface_water *zb_tier_water(const zb_tier *t);
+zb_air *zb_tier_air(const zb_tier *t);
+zb_weather_control *zb_tier_weather(zb_tier *t);
+/* Advances everything by one tick of seconds around the world's focus points. */
+void zb_tier_update(zb_tier *t, double seconds);
+/* Applies a weather to the simulations now (the scripts' weather). */
+void zb_tier_apply_weather(zb_tier *t, const zb_weather *w);
+/* Lightning at a place: fire in the dry fuel there, counted; the cells that caught. */
+int zb_tier_lightning(zb_tier *t, const zb_planet_pos *pos);
+void zb_tier_get_stats(const zb_tier *t, zb_tier_stats *out);
 
 #endif

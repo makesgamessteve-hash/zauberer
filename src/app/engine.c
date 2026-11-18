@@ -75,19 +75,6 @@ static void host_user_data_changed(void *ctx) { zb_platform_user_data_sync(((zb_
 
 static uint64_t world_clock(void *ctx) { return zb_platform_now_ns(ctx); }
 
-/* Fire and air: the air's local wind for fire, and fire's smoke for the air. */
-static void air_wind(void *ctx, zb_chunk c, double *east, double *north) { zb_air_chunk_wind(ctx, c, east, north); }
-
-typedef struct smoke_out {
-  zb_air *air;
-  double seconds;
-} smoke_out;
-
-static void emit_smoke(void *ctx, const zb_planet_pos *pos, double kg_per_s) {
-  smoke_out *so = ctx;
-  zb_air_emit(so->air, pos, ZB_GAS_SMOKE, kg_per_s * so->seconds);
-}
-
 static zb_world *make_world(zb_engine *e, const zb_world_bundle *bundle, char *err, size_t err_len) {
   zb_world_desc wd;
   memset(&wd, 0, sizeof wd);
@@ -129,11 +116,7 @@ static bool host_use_bundle(void *ctx, zb_world_bundle *bundle, char *err, size_
   e->terrain_view = tv;
   e->bundle = bundle;
   zb_script_set_world(e->script, w);
-  if (e->fire) {
-    zb_fire_set_world(e->fire, w);
-  }
-  zb_surface_water_set_world(e->water, w);
-  zb_air_set_world(e->air, w);
+  zb_tier_set_world(e->tier, w);
   if (bundle) {
     zb_info("playing a created world (seed %llu, %s quality)", (unsigned long long)bundle->options.seed,
             zb_world_quality_name(bundle->options.quality));
@@ -591,18 +574,15 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
 #else
   double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 384.0;
 #endif
-  if (e->materials) {
-    e->fire = zb_fire_create(a, e->world, e->materials, active);
-  }
-  e->water = zb_surface_water_create(a, e->world, active);
+  zb_tier_config tc = {a, e->world, e->materials, active, e->seed, world_clock, e->platform};
+  e->tier = zb_tier_create(&tc);
   e->water_view = zb_water_view_create(a, e->render);
-  e->air = zb_air_create(a, e->world, active);
-  if (!e->water || !e->water_view || !e->air) {
+  if (!e->tier || !e->water_view) {
     return ZB_HOST_FAILURE;
   }
-  if (e->fire) {
-    zb_fire_set_wind_source(e->fire, air_wind, e->air); /* fire leans with the local wind */
-  }
+  e->fire = zb_tier_fire(e->tier);
+  e->water = zb_tier_water(e->tier);
+  e->air = zb_tier_air(e->tier);
   e->smoke_sprite = zb_render_load_sprite(e->render, "sprites/smoke.lua");
   e->rain_sprite = zb_render_load_sprite(e->render, "sprites/rain.lua");
   e->snow_sprite = zb_render_load_sprite(e->render, "sprites/snow.lua");
@@ -667,7 +647,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.fire = e->fire;
   sc.water = e->water;
   sc.air = e->air;
-  sc.weather = &e->weather;
+  sc.weather = zb_tier_weather(e->tier);
+  sc.tier = e->tier;
   sc.net = e->net;
   sc.jobs = e->jobs;
   sc.test_api = e->mode != ZB_MODE_GAME;
@@ -715,48 +696,11 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
 
 /* ---- Running ------------------------------------------------------------------------ */
 
-/* The world's weather at the player, once a second, unless the scripts set
- * one; storms send lightning at the highest of a few places nearby. */
-static void update_weather(zb_engine *e, const zb_planet_pos *focus) {
-  zb_tier tier = {e->fire, e->water, e->air};
-  zb_weather *w = &e->weather.now;
-  if (!e->weather.overridden) {
-    zb_planet_pos ground = *focus;
-    ground.alt = (float)zb_world_ground_height(e->world, focus);
-    zb_weather_at(zb_world_terrain(e->world), zb_world_calendar(e->world), &ground, zb_world_time(e->world), w);
-    zb_tier_apply_weather(&tier, w);
-  }
-  uint64_t second = e->ticks / ZB_TICK_HZ;
-  double roll = (double)(zb_hash_combine(e->seed, second) >> 11) * (1.0 / 9007199254740992.0);
-  if (!e->fire || w->storm <= 0.0 || roll >= 0.03 * w->storm) {
-    return;
-  }
-  zb_planet_pos best = *focus;
-  double top = -1e9;
-  for (uint64_t k = 0; k < 6; ++k) {
-    double new_heading;
-    uint64_t h = zb_hash_combine(zb_hash_combine(e->seed, second), k + 1);
-    double heading = (double)(h & 0xffff) / 65536.0 * 2.0 * 3.14159265358979323846,
-           dist = 40.0 + (double)((h >> 16) & 0xff);
-    zb_planet_pos p = zb_planet_move(zb_world_planet(e->world), focus, heading, dist, 0.0, 0.0, &new_heading);
-    double hgt = zb_world_ground_height(e->world, &p);
-    if (hgt > top) {
-      top = hgt;
-      best = p;
-    }
-  }
-  best.alt = (float)top;
-  int lit = zb_fire_ignite(e->fire, &best, 3.0);
-  e->weather.strikes++;
-  zb_info("lightning struck %.0f m from the player (%d cell(s) caught)",
-          zb_planet_distance(zb_world_planet(e->world), focus, &best), lit);
-}
-
 /* Rain or snow falling around the camera. */
 #define DROPS 400
 
 static void draw_precipitation(zb_engine *e, zb_vec3 eye) {
-  const zb_weather *w = &e->weather.now;
+  const zb_weather *w = &zb_tier_weather(e->tier)->now;
   bool snow = w->snow > w->rain;
   double rate = snow ? w->snow : w->rain;
   int n = (int)(rate * 80.0);
@@ -790,22 +734,7 @@ static void tick(zb_engine *e) {
   zb_audio_tick(e->audio, zb_loop_tick_seconds());
   e->ticks++;
   zb_world_advance_time(e->world, zb_loop_tick_seconds());
-  if (e->fire) {
-    zb_planet_pos focus[ZB_STREAM_MAX_FOCUS];
-    int n = zb_world_focus(e->world, focus, ZB_STREAM_MAX_FOCUS);
-    zb_fire_update(e->fire, focus, n, zb_loop_tick_seconds());
-  }
-  zb_planet_pos wfocus[ZB_STREAM_MAX_FOCUS];
-  int wn = zb_world_focus(e->world, wfocus, ZB_STREAM_MAX_FOCUS);
-  zb_surface_water_update(e->water, wfocus, wn, zb_loop_tick_seconds());
-  if (e->fire) {
-    smoke_out smoke = {e->air, zb_loop_tick_seconds()};
-    zb_fire_each_smoke(e->fire, emit_smoke, &smoke);
-  }
-  zb_air_update(e->air, wfocus, wn, zb_loop_tick_seconds());
-  if (e->ticks % ZB_TICK_HZ == 0 && wn > 0) {
-    update_weather(e, &wfocus[0]);
-  }
+  zb_tier_update(e->tier, zb_loop_tick_seconds());
   zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
@@ -828,9 +757,10 @@ static void step(zb_engine *e) {
 static void apply_daylight(zb_engine *e, zb_vec3 eye) {
   zb_daylight d;
   zb_daylight_compute(zb_world_calendar(e->world), zb_world_time(e->world), zb_world_origin(e->world), eye, &d);
-  zb_daylight_overcast(&d, e->weather.now.cloud);
-  if (e->weather.strikes != e->strikes_seen) { /* lightning: a few frames of white light */
-    e->strikes_seen = e->weather.strikes;
+  const zb_weather_control *wc = zb_tier_weather(e->tier);
+  zb_daylight_overcast(&d, wc->now.cloud);
+  if (wc->strikes != e->strikes_seen) { /* lightning: a few frames of white light */
+    e->strikes_seen = wc->strikes;
     e->flash = 4;
   }
   if (e->flash > 0) {
@@ -1145,10 +1075,8 @@ void zb_engine_destroy(zb_engine *e) {
   zb_script_destroy(e->script);
   zb_terrain_view_destroy(e->terrain_view);
   zb_net_destroy(e->net);
-  zb_fire_destroy(e->fire);
   zb_water_view_destroy(e->water_view);
-  zb_surface_water_destroy(e->water);
-  zb_air_destroy(e->air);
+  zb_tier_destroy(e->tier);
   zb_world_destroy(e->world);
   if (e->materials) {
     zb_materials_free(e->materials);

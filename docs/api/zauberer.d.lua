@@ -992,6 +992,10 @@ function sim.natural_weather() end
 ---@param weather Weather
 function sim.set_weather(weather) end
 
+---What the active tier costs: milliseconds per tick for each simulation, averaged over the last second, against the budget.
+---@return TierStats
+function sim.tier_stats() end
+
 ---The 2 m cell of the surface-water simulation at a place.
 ---@param pos PlanetPos
 ---@return WaterCell

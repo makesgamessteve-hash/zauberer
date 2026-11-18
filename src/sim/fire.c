@@ -67,6 +67,14 @@ typedef struct fire_chunk {
   int scar_count;
 } fire_chunk;
 
+/* A fire still burning when its chunk left the active tier: where, and when. */
+typedef struct dormant_fire {
+  zb_chunk chunk;
+  double left_at; /* game seconds */
+  uint16_t *cells;
+  int count;
+} dormant_fire;
+
 struct zb_fire {
   const zb_allocator *a;
   zb_active grid;
@@ -78,7 +86,9 @@ struct zb_fire {
   void *wind_ctx;
   double pending; /* seconds not yet stepped */
   uint64_t steps;
-  double since_survey; /* seconds since chunks were last taken in */
+  double since_survey;                      /* seconds since chunks were last taken in */
+  dormant_fire dormant[ZB_FIRE_MAX_CHUNKS]; /* fires in chunks that left the active tier */
+  int dormant_count;
   int burnt, spots, embers;
 };
 
@@ -110,6 +120,7 @@ static const int DY[8] = {0, 0, -1, 1, -1, -1, 1, 1};
 /* ---------------------------------------------------------------- set-up */
 
 static void *take_in(void *ctx, const zb_active_chunk *ac, const zb_chunk_terrain *ct);
+static void catch_up(zb_fire *f, fire_chunk *c, const dormant_fire *d);
 static void let_go(void *ctx, void *data);
 
 static void find_fuels(zb_fire *f) {
@@ -150,16 +161,28 @@ static void free_chunk(const zb_fire *f, fire_chunk *c) {
   zb_free(f->a, c);
 }
 
+static void forget_dormant(zb_fire *f) {
+  for (int k = 0; k < f->dormant_count; ++k) {
+    zb_free(f->a, f->dormant[k].cells);
+  }
+  f->dormant_count = 0;
+}
+
 void zb_fire_destroy(zb_fire *f) {
   if (f) {
     zb_active_clear(&f->grid, NULL);
+    forget_dormant(f);
     zb_free(f->a, f);
   }
 }
 
 void zb_fire_set_radius(zb_fire *f, double radius) { f->grid.radius = radius; }
 
-void zb_fire_set_world(zb_fire *f, zb_world *world) { zb_active_clear(&f->grid, world); }
+void zb_fire_set_world(zb_fire *f, zb_world *world) {
+  zb_active_clear(&f->grid, NULL);
+  forget_dormant(f); /* another world's fires */
+  zb_active_clear(&f->grid, world);
+}
 
 static const zb_planet *planet(const zb_fire *f) { return zb_world_planet(f->grid.world); }
 
@@ -348,10 +371,109 @@ static void *take_in(void *ctx, const zb_active_chunk *ac, const zb_chunk_terrai
     return NULL;
   }
   lean_weights(f, c);
+  for (int k = 0; k < f->dormant_count; ++k) {
+    if (zb_chunk_equal(f->dormant[k].chunk, c->chunk)) {
+      catch_up(f, c, &f->dormant[k]);
+      zb_free(f->a, f->dormant[k].cells);
+      f->dormant[k] = f->dormant[--f->dormant_count];
+      break;
+    }
+  }
   return c;
 }
 
-static void let_go(void *ctx, void *data) { free_chunk(ctx, data); }
+/* A chunk leaves: its scars go to the world, and a fire still burning in it
+ * is remembered for when it comes back. */
+static void let_go(void *ctx, void *data) {
+  zb_fire *f = ctx;
+  fire_chunk *c = data;
+  if (c->scar_count > 0) {
+    zb_world_burn(f->grid.world, c->chunk, c->scars, c->scar_count, zb_world_time(f->grid.world));
+  }
+  int burning = 0;
+  for (int i = 0; c->awake && i < CELLS; ++i) {
+    burning += (c->state[i] & BURNING) ? 1 : 0;
+  }
+  dormant_fire *d = burning && f->dormant_count < ZB_FIRE_MAX_CHUNKS ? &f->dormant[f->dormant_count] : NULL;
+  uint16_t *cells = d ? zb_alloc(f->a, sizeof(uint16_t) * (size_t)burning) : NULL;
+  if (cells) {
+    d->chunk = c->chunk;
+    d->left_at = zb_world_time(f->grid.world);
+    d->cells = cells;
+    d->count = 0;
+    for (int i = 0; i < CELLS; ++i) {
+      if (c->state[i] & BURNING) {
+        cells[d->count++] = (uint16_t)i;
+      }
+    }
+    f->dormant_count++;
+  }
+  free_chunk(f, c);
+}
+
+/* A chunk comes back to a fire that burnt while nobody watched (concept 5.2,
+ * catch-up): shortly after, the fire goes on where it was; later, it has
+ * burnt the dry fuel around it, up to a distance that grows with the days
+ * gone (about 1.5 km a day in dry fuel, less in damp climates, within the
+ * chunk), and those cells are scarred as of when the chunk left. */
+static void catch_up(zb_fire *f, fire_chunk *c, const dormant_fire *d) {
+  double elapsed = zb_world_time(f->grid.world) - d->left_at;
+  if (elapsed < 600.0) {
+    for (int k = 0; k < d->count; ++k) {
+      int i = d->cells[k];
+      if (c->fuel[i] >= MIN_FUEL && !(c->state[i] & WATER)) {
+        c->state[i] |= BURNING;
+        c->t[i] = (float)FLAME;
+        c->awake = true;
+      }
+    }
+    return;
+  }
+  double reach = elapsed / 86400.0 * 1500.0 * (1.0 - c->emc / EXTINCTION);
+  int steps = (int)(reach / (c->cw < c->ch ? c->cw : c->ch));
+  steps = steps > N ? N : steps;
+  int32_t *queue = zb_alloc(f->a, sizeof(int32_t) * CELLS);
+  int16_t *dist = zb_alloc(f->a, sizeof(int16_t) * CELLS);
+  if (!queue || !dist) {
+    zb_free(f->a, queue);
+    zb_free(f->a, dist);
+    return;
+  }
+  memset(dist, 0xff, sizeof(int16_t) * CELLS);
+  int head = 0, tail = 0;
+  for (int k = 0; k < d->count; ++k) {
+    queue[tail++] = d->cells[k];
+    dist[d->cells[k]] = 0;
+  }
+  c->scar_count = 0;
+  while (head < tail) {
+    int i = queue[head++], x = i % N, y = i / N;
+    if (c->fuel[i] >= MIN_FUEL && !(c->state[i] & (WATER | BURNT))) {
+      c->fuel[i] *= 0.1f;
+      c->state[i] |= BURNT;
+      c->scars[c->scar_count++] = (uint16_t)i;
+      f->burnt++;
+    }
+    for (int k = 0; k < 8 && dist[i] < steps; ++k) {
+      int nx = x + DX[k], ny = y + DY[k], j = ny * N + nx;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= N || dist[j] >= 0) {
+        continue;
+      }
+      dist[j] = (int16_t)(dist[i] + 1);
+      if (c->fuel[j] >= MIN_FUEL && c->moist[j] < EXTINCTION && !(c->state[j] & WATER)) {
+        queue[tail++] = j;
+      }
+    }
+  }
+  if (c->scar_count > 0 && zb_world_burn(f->grid.world, c->chunk, c->scars, c->scar_count, d->left_at) == ZB_OK) {
+    for (int k = 0; k < c->scar_count; ++k) {
+      c->state[c->scars[k]] |= SCARRED;
+    }
+    c->scar_count = 0;
+  }
+  zb_free(f->a, queue);
+  zb_free(f->a, dist);
+}
 
 /* ------------------------------------------------------------- one step */
 
@@ -581,7 +703,8 @@ static void step(zb_fire *f) {
 static void flush_scars(zb_fire *f) {
   for (int s = 0; s < f->grid.count; ++s) {
     fire_chunk *c = FC(f, s);
-    if (c->scar_count > 0 && zb_world_burn(f->grid.world, c->chunk, c->scars, c->scar_count) == ZB_OK) {
+    if (c->scar_count > 0 &&
+        zb_world_burn(f->grid.world, c->chunk, c->scars, c->scar_count, zb_world_time(f->grid.world)) == ZB_OK) {
       for (int k = 0; k < c->scar_count; ++k) {
         c->state[c->scars[k]] |= SCARRED;
       }
@@ -729,5 +852,21 @@ void zb_fire_each_smoke(const zb_fire *f, zb_fire_smoke_fn fn, void *ctx) {
         fn(ctx, &p, kg);
       }
     }
+  }
+}
+
+int zb_fire_dormant_count(const zb_fire *f) { return f->dormant_count; }
+
+void zb_fire_soak(zb_fire *f, const zb_planet_pos *pos) {
+  int32_t cell = zb_active_cell_at(&f->grid, pos);
+  if (cell < 0) {
+    return;
+  }
+  fire_chunk *c = chunk_of(f, cell);
+  int i = cell % CELLS;
+  c->state[i] &= (uint8_t)~BURNING;
+  c->moist[i] = c->moist[i] > 1.0f ? c->moist[i] : 1.0f;
+  if (c->awake && c->t[i] > 0.0f) {
+    c->t[i] = 0.0f;
   }
 }

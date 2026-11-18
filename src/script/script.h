@@ -74,6 +74,7 @@ typedef struct zb_script_config {
   struct zb_surface_water *water;       /* surface water; NULL: none */
   struct zb_air *air;                   /* wind and gases; NULL: none */
   struct zb_weather_control *weather;   /* the weather in use; NULL: none */
+  struct zb_tier *tier;                 /* the active tier the three above belong to; NULL: none */
   zb_net *net;                          /* co-op session; NULL: networking unavailable */
   zb_jobs *jobs;                        /* world creation runs here; NULL: on the calling thread */
   double planet_radius;                 /* private world only; 0 = ZB_PLANET_DEFAULT_RADIUS */

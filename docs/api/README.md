@@ -620,6 +620,10 @@ Returns to the world's own weather (from the next second).
 
 Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 
+### `sim.tier_stats(): TierStats`
+
+What the active tier costs: milliseconds per tick for each simulation, averaged over the last second, against the budget.
+
 ### `sim.water_at(pos: PlanetPos): WaterCell`
 
 The 2 m cell of the surface-water simulation at a place.

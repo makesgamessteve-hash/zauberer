@@ -269,12 +269,6 @@ static int s_fire_stats(lua_State *L) {
   return 1;
 }
 
-static zb_tier tier_of(lua_State *L) {
-  const zb_script_config *cfg = &zb_script_from(L)->cfg;
-  zb_tier t = {cfg->fire, cfg->water, cfg->air};
-  return t;
-}
-
 /* The weather in use (the fire's, without a weather control). */
 static zb_weather current_weather(lua_State *L) {
   zb_weather_control *wc = zb_script_from(L)->cfg.weather;
@@ -325,8 +319,12 @@ static int s_set_weather(lua_State *L) {
     wc->overridden = true;
     wc->now = w;
   }
-  zb_tier t = tier_of(L);
-  zb_tier_apply_weather(&t, &w);
+  if (zb_script_from(L)->cfg.tier) {
+    zb_tier_apply_weather(zb_script_from(L)->cfg.tier, &w);
+  } else {
+    zb_fire_weather fw = {w.wind_east, w.wind_north, w.rain + w.snow};
+    zb_fire_set_weather(F(L), &fw);
+  }
   return 0;
 }
 
@@ -369,12 +367,8 @@ static int s_weather(lua_State *L) {
  */
 static int s_lightning(lua_State *L) {
   zb_planet_pos pos = zb_script_check_pos(L, 1);
-  int lit = zb_fire_ignite(F(L), &pos, 3.0);
-  zb_weather_control *wc = zb_script_from(L)->cfg.weather;
-  if (wc) {
-    wc->strikes++;
-  }
-  lua_pushinteger(L, lit);
+  zb_tier *tier = zb_script_from(L)->cfg.tier;
+  lua_pushinteger(L, tier ? zb_tier_lightning(tier, &pos) : zb_fire_ignite(F(L), &pos, 3.0));
   return 1;
 }
 
@@ -565,6 +559,39 @@ static int s_air_stats(lua_State *L) {
   return 1;
 }
 
+/* @lua sim.tier_stats(): TierStats
+ * What the active tier costs: milliseconds per tick for each simulation,
+ * averaged over the last second, against the budget.
+ * @field fire_ms number
+ * @field water_ms number
+ * @field air_ms number
+ * @field weather_ms number Weather, lightning and water putting fire out
+ * @field total_ms number
+ * @field budget_ms number
+ * @field over_budget integer Seconds over the budget so far
+ * @field dormant_fires integer Fires remembered in chunks that left the tier
+ */
+static int s_tier_stats(lua_State *L) {
+  zb_tier *tier = zb_script_from(L)->cfg.tier;
+  if (!tier) {
+    return luaL_error(L, "no active tier");
+  }
+  zb_tier_stats st;
+  zb_tier_get_stats(tier, &st);
+  lua_createtable(L, 0, 8);
+  static const char *const names[ZB_TIER_SYSTEMS] = {"fire_ms", "water_ms", "air_ms", "weather_ms"};
+  for (int k = 0; k < ZB_TIER_SYSTEMS; ++k) {
+    set_number(L, names[k], st.ms[k]);
+  }
+  set_number(L, "total_ms", st.total_ms);
+  set_number(L, "budget_ms", st.budget_ms);
+  lua_pushinteger(L, st.over_budget);
+  lua_setfield(L, -2, "over_budget");
+  lua_pushinteger(L, zb_tier_fire(tier) ? zb_fire_dormant_count(zb_tier_fire(tier)) : 0);
+  lua_setfield(L, -2, "dormant_fires");
+  return 1;
+}
+
 void zb_script_open_sim(zb_script *s) {
   static const luaL_Reg registry_fns[] = {{"keys", r_keys}, {"get", r_get}, {NULL, NULL}};
   static const luaL_Reg sim_fns[] = {{"material", s_material},
@@ -584,6 +611,7 @@ void zb_script_open_sim(zb_script *s) {
                                      {"gas_at", s_gas_at},
                                      {"emit", s_emit},
                                      {"air_stats", s_air_stats},
+                                     {"tier_stats", s_tier_stats},
                                      {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, registry_fns, 0);

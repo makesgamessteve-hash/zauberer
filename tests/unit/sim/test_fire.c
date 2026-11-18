@@ -304,6 +304,47 @@ static void test_heat(void) {
   scene_close(&s);
 }
 
+/* spec: simulation-tiers: Fires catch up when their chunk returns */
+static void test_catch_up(void) {
+  scene s;
+  scene_open(&s, FLAT, 0.0, 0.0);
+  zb_fire_ignite(s.fire, &s.centre, 3.0);
+  run(&s, 5.0);
+  zb_planet_pos away = s.centre;
+  away.chunk.x += 40;
+  /* Gone and back within minutes: the fire goes on. */
+  zb_fire_update(s.fire, &away, 1, 1.0);
+  TEST_ASSERT_EQUAL_INT(1, zb_fire_dormant_count(s.fire));
+  zb_fire_update(s.fire, &s.centre, 1, 1.0);
+  TEST_ASSERT_EQUAL_INT(0, zb_fire_dormant_count(s.fire));
+  zb_fire_stats st;
+  zb_fire_get_stats(s.fire, &st);
+  TEST_ASSERT_TRUE(st.burning > 0);
+  /* Gone for a month: the meadow has burnt, scarred as of when we left. */
+  run(&s, 2.0);
+  zb_fire_update(s.fire, &away, 1, 1.0);
+  double left = zb_world_time(s.world);
+  zb_world_set_time(s.world, left + 30.0 * 86400.0);
+  zb_fire_update(s.fire, &s.centre, 1, 1.0);
+  zb_fire_cell c;
+  zb_planet_pos far = s.centre;
+  far.lx += 80.0f;
+  zb_fire_cell_at(s.fire, &far, &c);
+  TEST_ASSERT_TRUE_MESSAGE(c.burnt, "the fire spread while we were away");
+  size_t n;
+  const zb_edit *e = zb_deltas_get(zb_world_deltas(s.world), s.centre.chunk, &n);
+  TEST_ASSERT_TRUE(n > 1000);
+  TEST_ASSERT_UINT32_WITHIN(2, (uint32_t)(left / 60.0), e[n - 1].index);
+  /* A month on, the grass is back: no ash on the meadow. */
+  const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(s.world), s.centre.chunk);
+  TEST_ASSERT_EQUAL_UINT8(ZB_MAT_SOIL, ct->material[128 * ZB_SURFACE_RES + 208]);
+  /* A fire remembered in another world is forgotten. */
+  zb_fire_update(s.fire, &away, 1, 1.0);
+  zb_fire_set_world(s.fire, s.world);
+  TEST_ASSERT_EQUAL_INT(0, zb_fire_dormant_count(s.fire));
+  scene_close(&s);
+}
+
 static void calm(void *ctx, zb_chunk c, double *east, double *north) {
   (void)c;
   (*(int *)ctx)++;
@@ -365,6 +406,7 @@ int main(void) {
   RUN_TEST(test_embers);
   RUN_TEST(test_heat);
   RUN_TEST(test_local_wind);
+  RUN_TEST(test_catch_up);
   RUN_TEST(test_deterministic);
   int failures = UNITY_END();
   if (g_materials) {

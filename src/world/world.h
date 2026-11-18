@@ -49,9 +49,9 @@ struct zb_deltas *zb_world_deltas(zb_world *w);
 int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius);
 /* Sets the surface material of the 1 m cell at pos (zb_material). */
 zb_result zb_world_set_material(zb_world *w, const zb_planet_pos *pos, int material);
-/* Records burnt 2 m cells of a chunk (index y * ZB_BURN_RES + x) at the
- * current game time, and applies them if the chunk is loaded. */
-zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count);
+/* Records burnt 2 m cells of a chunk (index y * ZB_BURN_RES + x), burnt at
+ * game time `when`, and applies them if the chunk is loaded. */
+zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count, double when);
 /* World time (game seconds since the world began) and its calendar; the axial
  * tilt comes from a created world. */
 const zb_calendar_config *zb_world_calendar(const zb_world *w);

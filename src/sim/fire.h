@@ -69,10 +69,16 @@ void zb_fire_update(zb_fire *f, const zb_planet_pos *focus, int focus_count, dou
 /* Sets fire to the fuel within radius metres (lightning, a spell, a torch);
  * returns the cells that caught. */
 int zb_fire_ignite(zb_fire *f, const zb_planet_pos *pos, double radius);
+/* Standing water on a place: a fire there goes out and its fuel is soaked. */
+void zb_fire_soak(zb_fire *f, const zb_planet_pos *pos);
 /* Adds heat (J) spread over radius metres. */
 void zb_fire_add_heat(zb_fire *f, const zb_planet_pos *pos, double radius, double joules);
 void zb_fire_cell_at(const zb_fire *f, const zb_planet_pos *pos, zb_fire_cell *out);
 void zb_fire_get_stats(const zb_fire *f, zb_fire_stats *out);
+/* Fires remembered in chunks that left the active tier while burning; when
+ * such a chunk returns, the fire goes on (soon after) or has burnt the dry
+ * fuel around it (days later), its scars dated when the chunk left. */
+int zb_fire_dormant_count(const zb_fire *f);
 /* A hash of the whole state, for determinism checks. */
 uint64_t zb_fire_hash(const zb_fire *f);
 

@@ -122,8 +122,8 @@ int zb_world_remove_plants(zb_world *w, const zb_planet_pos *pos, double radius)
   return removed;
 }
 
-zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count) {
-  zb_edit e = {ZB_EDIT_BURNT, 0, 0, 0, (uint32_t)(w->time / 60.0)};
+zb_result zb_world_burn(zb_world *w, zb_chunk c, const uint16_t *cells, int count, double when) {
+  zb_edit e = {ZB_EDIT_BURNT, 0, 0, 0, (uint32_t)((when > 0.0 ? when : 0.0) / 60.0)};
   for (int i = 0; i < count; ++i) {
     e.x = (uint16_t)(cells[i] % ZB_BURN_RES);
     e.y = (uint16_t)(cells[i] / ZB_BURN_RES);
