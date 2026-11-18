@@ -882,6 +882,31 @@ void zb_render_draw_model(zb_render *r, uint32_t model, zb_mat4 transform) {
   }
 }
 
+void zb_render_draw_mesh(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
+                         float radius) {
+  zb_vec3 c = zb_m4_transform_point(transform, center);
+  float rad = radius * max_scale(transform);
+  for (int v = 0; v < r->frame.view_count; ++v) {
+    if (!zb_frustum_sphere_visible(&r->frustums[v], c, rad)) {
+      r->stats.culled++;
+      continue;
+    }
+    zb_draw_item it;
+    memset(&it, 0, sizeof it);
+    it.kind = ZB_DRAW_MODEL;
+    it.view = (uint8_t)v;
+    it.mesh = mesh;
+    it.texture = r->white_tex;
+    it.first = 0;
+    it.count = index_count;
+    it.model = transform;
+    it.sort_key = ((uint64_t)v << 60) | ((uint64_t)it.texture << 32) | ((uint64_t)mesh << 8) | (r->items.len & 0xFF);
+    if (zb_array_push(&r->items, &it)) {
+      r->stats.model_items++;
+    }
+  }
+}
+
 uint64_t zb_render_sprite_frame_number(const zb_render *r, uint32_t sprite, double time_s) {
   const asset *as = asset_at(r, sprite);
   if (!as || as->kind != ASSET_SPRITE || as->state != ZB_ASSET_READY || as->fps <= 0 || time_s < 0.0) {

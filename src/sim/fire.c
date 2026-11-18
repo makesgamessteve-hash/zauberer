@@ -10,6 +10,7 @@
 #include "core/hash.h"
 #include "core/log.h"
 #include "world/calendar.h"
+#include "world/delta.h"
 #include "world/dvec.h"
 #include "world/flora.h"
 #include "world/stream.h"
@@ -371,6 +372,16 @@ static void *take_in(void *ctx, const zb_active_chunk *ac, const zb_chunk_terrai
     return NULL;
   }
   lean_weights(f, c);
+  /* Scars kept in the world: burnt until the trees have grown back. */
+  size_t ne;
+  const zb_edit *e = zb_deltas_get(zb_world_deltas(f->grid.world), c->chunk, &ne);
+  double now = zb_world_time(f->grid.world);
+  for (size_t k = 0; k < ne; ++k) {
+    if (e[k].kind == ZB_EDIT_BURNT && e[k].x < N && e[k].y < N &&
+        now - e[k].index * 60.0 < zb_regrowth_seconds(ZB_PLANT_TREE)) {
+      c->state[e[k].y * N + e[k].x] |= BURNT | SCARRED;
+    }
+  }
   for (int k = 0; k < f->dormant_count; ++k) {
     if (zb_chunk_equal(f->dormant[k].chunk, c->chunk)) {
       catch_up(f, c, &f->dormant[k]);

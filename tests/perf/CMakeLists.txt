@@ -19,3 +19,5 @@ zb_add_unit_test(perf_surface_water SOURCES perf/perf_surface_water.c LIBS zb_si
 set_tests_properties(perf_surface_water PROPERTIES LABELS perf RUN_SERIAL TRUE TIMEOUT 300)
 zb_add_unit_test(perf_air SOURCES perf/perf_air.c LIBS zb_sim)
 set_tests_properties(perf_air PROPERTIES LABELS perf RUN_SERIAL TRUE TIMEOUT 300)
+zb_add_unit_test(perf_bodies SOURCES perf/perf_bodies.c LIBS zb_sim)
+set_tests_properties(perf_bodies PROPERTIES LABELS perf RUN_SERIAL TRUE TIMEOUT 300)

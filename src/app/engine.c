@@ -4,6 +4,7 @@
 #include "app/daylight.h"
 #include "world/bundle.h"
 
+#include "app/body_view.h"
 #include "app/water_view.h"
 #include "core/hash.h"
 #include "core/log.h"
@@ -577,7 +578,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   zb_tier_config tc = {a, e->world, e->materials, active, e->seed, world_clock, e->platform};
   e->tier = zb_tier_create(&tc);
   e->water_view = zb_water_view_create(a, e->render);
-  if (!e->tier || !e->water_view) {
+  e->body_view = e->materials ? zb_body_view_create(a, e->render, e->materials) : NULL;
+  if (!e->tier || !e->water_view || (e->materials && !e->body_view)) {
     return ZB_HOST_FAILURE;
   }
   e->fire = zb_tier_fire(e->tier);
@@ -776,6 +778,7 @@ static void apply_daylight(zb_engine *e, zb_vec3 eye) {
 }
 
 #define FLAME_RANGE 400.0f /* metres: flames and smoke drawn around the camera */
+#define BODY_RANGE 600.0f  /* metres: rigid bodies drawn around the camera */
 
 /* Smoke puffs over the smokiest cells near the camera. */
 #define PUFFS 256
@@ -901,6 +904,7 @@ static void draw_world(zb_engine *e) {
     if (e->fire) {
       draw_flames(e, eye);
     }
+    zb_body_view_draw(e->body_view, zb_tier_bodies(e->tier), e->world, eye, BODY_RANGE);
     zb_water_view_draw(e->water_view, e->water, e->world, (double)e->ticks / (double)ZB_TICK_HZ);
     draw_smoke(e, eye);
     draw_precipitation(e, eye);
@@ -1076,6 +1080,7 @@ void zb_engine_destroy(zb_engine *e) {
   zb_terrain_view_destroy(e->terrain_view);
   zb_net_destroy(e->net);
   zb_water_view_destroy(e->water_view);
+  zb_body_view_destroy(e->body_view);
   zb_tier_destroy(e->tier);
   zb_world_destroy(e->world);
   if (e->materials) {

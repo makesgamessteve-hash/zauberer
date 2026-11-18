@@ -630,6 +630,18 @@ zb_chunk_terrain *zb_stream_edit(zb_stream *s, zb_chunk c) {
   return &e->data;
 }
 
+bool zb_stream_regenerate(zb_stream *s, zb_chunk c, int stage) {
+  entry *e = lookup(s, c);
+  if (!e || e->job || stage < 1 || e->data.stage < stage) {
+    return false;
+  }
+  s->bytes -= zb_chunk_terrain_bytes(&e->data);
+  zb_chunk_terrain_trim(e->chunk_alloc, &e->data, stage - 1);
+  s->bytes += zb_chunk_terrain_bytes(&e->data);
+  e->version++;
+  return true;
+}
+
 int zb_stream_target(const zb_stream *s, zb_chunk c) {
   const entry *e = lookup(s, c);
   return e ? e->target : ZB_STAGE_NONE;

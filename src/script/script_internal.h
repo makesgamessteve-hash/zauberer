@@ -87,6 +87,11 @@ void zb_script_open_world(zb_script *s);
 void zb_script_open_create(zb_script *s);
 void zb_script_open_save(zb_script *s);
 void zb_script_open_sim(zb_script *s);
+void zb_script_open_bodies(zb_script *s); /* after zb_script_open_sim */
+/* The world's bodies as a list of tables sim.spawn takes (pushed), and back:
+ * replaces the bodies with those of the list at idx; returns how many. */
+void zb_script_push_bodies(lua_State *L);
+int zb_script_restore_bodies(lua_State *L, int idx);
 /* World names: letters, digits, - and _ (at most 64). */
 bool zb_script_valid_name(const char *name);
 /* Plays in a bundle (owned from then on), NULL for the noise world. */

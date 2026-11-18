@@ -338,6 +338,17 @@ static void test_catch_up(void) {
   /* A month on, the grass is back: no ash on the meadow. */
   const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(s.world), s.centre.chunk);
   TEST_ASSERT_EQUAL_UINT8(ZB_MAT_SOIL, ct->material[128 * ZB_SURFACE_RES + 208]);
+  /* Away and back again with nothing burning: the scar is remembered ... */
+  zb_fire_update(s.fire, &away, 1, 1.0);
+  zb_fire_update(s.fire, &s.centre, 1, 1.0);
+  zb_fire_cell_at(s.fire, &far, &c);
+  TEST_ASSERT_TRUE_MESSAGE(c.burnt, "the scar is remembered");
+  /* ... until the trees have grown back. */
+  zb_fire_update(s.fire, &away, 1, 1.0);
+  zb_world_set_time(s.world, left + 300.0 * 86400.0);
+  zb_fire_update(s.fire, &s.centre, 1, 1.0);
+  zb_fire_cell_at(s.fire, &far, &c);
+  TEST_ASSERT_FALSE_MESSAGE(c.burnt, "healed");
   /* A fire remembered in another world is forgotten. */
   zb_fire_update(s.fire, &away, 1, 1.0);
   zb_fire_set_world(s.fire, s.world);

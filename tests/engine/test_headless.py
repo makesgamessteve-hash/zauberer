@@ -205,9 +205,15 @@ class ScenarioTests(EngineTestCase):
         world = (self.user_dir / "saves" / "default" / "world.lua").read_text(encoding="utf-8")
         self.assertIn("format = 1", world)
         self.assertTrue(any((self.user_dir / "saves" / "default" / "regions").glob("*.bin")))
+        bodies = self.user_dir / "saves" / "default" / "bodies.lua"
+        text = bodies.read_text(encoding="utf-8")
+        self.assertIn('["shape"]="box"', text)
+        # A damaged entry is left out with a warning; the crate still comes back.
+        bodies.write_text(text.rstrip()[:-1] + '[2]={["shape"]="cone",},}\n', encoding="utf-8")
         result = self.scenario("persistence_load")
         self.assert_ok(result)
-        self.assertIn("loaded the game default (1 region(s) of edits)", result.stdout)
+        self.assertIn("saved body 2 left out", result.stdout)
+        self.assertIn("loaded the game default (1 region(s) of edits, 1 body)", result.stdout)
 
     # spec: world-persistence: Saves of an earlier version still load
     def test_load_saved_fixture(self):
@@ -215,7 +221,7 @@ class ScenarioTests(EngineTestCase):
         shutil.copytree(SOURCE_DIR / "tests" / "fixtures" / "saves" / "v1", self.user_dir, dirs_exist_ok=True)
         result = self.scenario("persistence_load")
         self.assert_ok(result)
-        self.assertIn("loaded the game default (1 region(s) of edits)", result.stdout)
+        self.assertIn("loaded the game default (1 region(s) of edits, 0 bodies)", result.stdout)
 
     # spec: materials: Materials from Lua and mods
     def test_materials(self):
@@ -245,6 +251,13 @@ class ScenarioTests(EngineTestCase):
 
     def test_deform(self):
         self.assert_ok(self.scenario("deform"))
+
+    def test_bodies(self):
+        self.assert_ok(self.scenario("bodies"))
+
+    # spec: simulation-tiers: The M3 exit demo
+    def test_living_physics(self):
+        self.assert_ok(self.scenario("living_physics"))
 
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))

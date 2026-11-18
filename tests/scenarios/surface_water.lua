@@ -25,7 +25,7 @@ end
 expect(spot, "dry land near the carpet")
 local function balanced()
   local s = sim.water_stats()
-  local held = s.on_ground + s.soaked + s.drained
+  local held = s.on_ground + s.soaked + s.drained + s.left
   local given = s.rained + s.added
   return math.abs(held - given) <= 1e-3 * math.max(given, 1)
 end

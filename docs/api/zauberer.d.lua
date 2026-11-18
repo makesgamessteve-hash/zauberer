@@ -159,6 +159,8 @@
 ---@field rotation number[]? Euler angles in degrees (applied Y, X, Z)
 ---@field scale number[]|number? Scale per axis or uniform
 
+---@class Vector
+
 ---@class WorldInfo
 ---@field created boolean A created world (false: the noise world)
 ---@field seed integer
@@ -950,6 +952,21 @@ function sim.add_water(pos, radius, cubic_metres) end
 ---@return AirStats
 function sim.air_stats() end
 
+---Ids of the bodies whose centre is within radius metres (up to 256).
+---@param pos PlanetPos
+---@param radius number
+---@return integer[]
+function sim.bodies_near(pos, radius) end
+
+---A body as it is now, or nil when there is no such body.
+---@param id integer
+---@return Body?
+function sim.body(id) end
+
+---
+---@return BodyStats
+function sim.body_stats() end
+
 ---Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
 ---@param pos PlanetPos
 ---@param gas string
@@ -976,6 +993,14 @@ function sim.gas_at(pos) end
 ---@return integer
 function sim.ignite(pos, radius) end
 
+---Throws a projectile (a stone, an arrow, a bolt of magic) from pos: a small sphere of radius metres (default 0.05, up to 0.5) and mass kg (default 0.5, up to 100) under gravity. It never passes through anything; a hit stops it and pushes the body it struck. Returns its id; errors when out of range.
+---@param pos PlanetPos
+---@param velocity Vector
+---@param radius? number
+---@param mass? number
+---@return integer
+function sim.launch(pos, velocity, radius, mass) end
+
 ---Lightning strikes a place in the active tier: a flash, and fire in the dry fuel there. Returns the cells that caught.
 ---@param pos PlanetPos
 ---@return integer
@@ -995,9 +1020,37 @@ function sim.material_at(ref, temperature) end
 ---Returns to the world's own weather (from the next second).
 function sim.natural_weather() end
 
+---A projectile in flight or stopped in the last 10 seconds, else nil.
+---@param id integer
+---@return Projectile?
+function sim.projectile(id) end
+
+---Gives a body a push at its centre (N s { east, north, up }) and wakes it; false when there is no such body.
+---@param id integer
+---@param impulse Vector
+---@return boolean
+function sim.push(id, impulse) end
+
+---Takes a body out of the world; false when there was no such body.
+---@param id integer
+---@return boolean
+function sim.remove_body(id) end
+
 ---Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 ---@param weather Weather
 function sim.set_weather(weather) end
+
+---Puts a rigid body into the world: a boulder, a log, a crate. It falls, rolls, collides, floats or sinks in the active tier, and waits where it is outside it. Returns its id; errors for a description that does not work (sizes 1 cm .. 50 m, a solid or powder material).
+---@param body BodyDesc
+---@return integer
+function sim.spawn(body) end
+
+---Sweeps a sphere of radius metres (default 0: a ray) from one place to another: the first body or ground it touches, or nil.
+---@param from PlanetPos
+---@param to PlanetPos
+---@param radius? number
+---@return Hit?
+function sim.sweep(from, to, radius) end
 
 ---What the active tier costs: milliseconds per tick for each simulation, averaged over the last second, against the budget.
 ---@return TierStats
@@ -1008,7 +1061,7 @@ function sim.tier_stats() end
 ---@return WaterCell
 function sim.water_at(pos) end
 
----Where the water of the active tier is, in m^3: on_ground + soaked + drained equals rained + added.
+---Where the water of the active tier is, in m^3: on_ground + soaked + drained + left equals rained + added.
 ---@return WaterStats
 function sim.water_stats() end
 

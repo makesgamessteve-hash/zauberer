@@ -7,13 +7,16 @@
  *   second, unless the scripts set one) drives them all, and storms send
  *   lightning;
  * - fire smokes into the air and leans with the air's local wind;
- * - standing water puts fire out and soaks its fuel.
+ * - standing water puts fire out and soaks its fuel;
+ * - rigid bodies float in the water and wake when the ground under them
+ *   changes.
  *
  * It times every simulation against the budget for the whole tier. */
 #ifndef ZB_SIM_TIER_H
 #define ZB_SIM_TIER_H
 
 #include "sim/air.h"
+#include "sim/bodies.h"
 #include "sim/fire.h"
 #include "sim/water.h"
 #include "world/weather.h"
@@ -25,13 +28,14 @@ typedef enum zb_tier_system {
   ZB_TIER_WATER,
   ZB_TIER_AIR,
   ZB_TIER_WEATHER,
+  ZB_TIER_BODIES,
   ZB_TIER_SYSTEMS
 } zb_tier_system;
 
 typedef struct zb_tier_config {
   const zb_allocator *a;
   zb_world *world;
-  const zb_materials *materials;   /* NULL: no fire */
+  const zb_materials *materials;   /* NULL: no fire and no bodies */
   double radius;                   /* metres around each focus point */
   uint64_t seed;                   /* lightning */
   uint64_t (*clock_ns)(void *ctx); /* for timing; NULL: not timed */
@@ -53,6 +57,7 @@ void zb_tier_set_world(zb_tier *t, zb_world *world);
 zb_fire *zb_tier_fire(const zb_tier *t);
 zb_surface_water *zb_tier_water(const zb_tier *t);
 zb_air *zb_tier_air(const zb_tier *t);
+zb_bodies *zb_tier_bodies(const zb_tier *t); /* NULL without materials */
 zb_weather_control *zb_tier_weather(zb_tier *t);
 /* Advances everything by one tick of seconds around the world's focus points. */
 void zb_tier_update(zb_tier *t, double seconds);

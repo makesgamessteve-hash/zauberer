@@ -88,6 +88,10 @@ zb_layout zb_render_compute_layout(int drawable_w, int drawable_h, int internal_
  * target is set). */
 void zb_render_begin(zb_render *r, int drawable_w, int drawable_h);
 void zb_render_draw_model(zb_render *r, uint32_t model, zb_mat4 transform);
+/* An opaque, untextured mesh (from zb_render_upload_mesh; vertex colours) like
+ * a model, with its bounding sphere in mesh coordinates. */
+void zb_render_draw_mesh(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
+                         float radius);
 /* A terrain mesh (from zb_render_upload_mesh) with its bounding sphere in mesh
  * coordinates, and how much snow (0 .. 1) lies on its flat ground. */
 void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,

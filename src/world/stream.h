@@ -76,6 +76,10 @@ void zb_stream_update(zb_stream *s, const zb_stream_focus *focus, int count);
 /* A loaded chunk's data to change on the main thread (NULL if not loaded or
  * while a job works on it); its version advances so views rebuild it. */
 zb_chunk_terrain *zb_stream_edit(zb_stream *s, zb_chunk c);
+/* Drops a loaded chunk's stages from stage up, so that they are generated
+ * again (and the arrived hook applies what changed since); false when the
+ * chunk is not loaded that far or a job works on it. */
+bool zb_stream_regenerate(zb_stream *s, zb_chunk c, int stage);
 const zb_chunk_terrain *zb_stream_find(const zb_stream *s, zb_chunk c);
 /* Stage the rings currently ask for (ZB_STAGE_NONE outside them). */
 int zb_stream_target(const zb_stream *s, zb_chunk c);

@@ -27,14 +27,16 @@ typedef struct zb_water_cell {
   double soaked;   /* metres of water held in the ground */
   double capacity; /* metres the ground can hold */
   double flow;     /* m^3/s leaving the cell */
+  double vx, vy;   /* m/s of the water along the chunk's x and y */
 } zb_water_cell;
 
-/* Where the water is, in m^3. on_ground + soaked + drained = rained + added
- * (up to float rounding) since the chunks were taken in. */
+/* Where the water is, in m^3. on_ground + soaked + drained + left = rained +
+ * added (up to float rounding). */
 typedef struct zb_water_stats {
   int chunks, awake;
   int wet; /* cells with more than a centimetre of water */
   double on_ground, soaked, drained, rained, added;
+  double left;      /* standing in chunks when they left the active tier */
   double max_depth; /* metres */
   double max_flow;  /* m^3/s out of the busiest cell */
 } zb_water_stats;

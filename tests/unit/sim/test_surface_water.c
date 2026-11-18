@@ -108,7 +108,7 @@ static zb_water_cell cell(const scene *s, float x, float y) {
 static void assert_balanced(const scene *s) {
   zb_water_stats st;
   zb_surface_water_get_stats(s->water, &st);
-  double in = st.rained + st.added, held = st.on_ground + st.soaked + st.drained;
+  double in = st.rained + st.added, held = st.on_ground + st.soaked + st.drained + st.left;
   TEST_ASSERT_DOUBLE_WITHIN(1e-3 * (in > 1.0 ? in : 1.0), in, held);
 }
 
@@ -123,7 +123,10 @@ static void test_downhill(void) {
   zb_planet_pos high = at(&s, 180.0f, 128.0f);
   TEST_ASSERT_TRUE(zb_surface_water_add(s.water, &high, 4.0, 40.0) > 0);
   TEST_ASSERT_TRUE(cell(&s, 180.0f, 128.0f).depth > 0.1);
-  run(&s, 40.0);
+  run(&s, 2.0);
+  zb_water_cell running = cell(&s, 172.0f, 128.0f);
+  TEST_ASSERT_TRUE_MESSAGE(running.vx < -0.05 && fabs(running.vy) < fabs(running.vx), "flowing downhill");
+  run(&s, 38.0);
   zb_water_cell top = cell(&s, 180.0f, 128.0f), bottom = cell(&s, 0.5f, 128.0f); /* against the tier's edge */
   TEST_ASSERT_TRUE_MESSAGE(top.depth < 0.01, "the source drained away");
   TEST_ASSERT_TRUE_MESSAGE(bottom.depth > 0.01, "it gathered at the foot of the slope");
@@ -154,6 +157,13 @@ static void test_basin(void) {
   zb_surface_water_get_stats(s.water, &st);
   TEST_ASSERT_EQUAL_INT_MESSAGE(0, st.awake, "still water sleeps");
   TEST_ASSERT_DOUBLE_WITHIN(1.0, 600.0, st.on_ground); /* rock: nothing soaks in */
+  assert_balanced(&s);
+  /* The chunk leaves the active tier with its pond. */
+  zb_planet_pos away = s.centre;
+  away.chunk.x += 40;
+  zb_surface_water_update(s.water, &away, 1, 1.0); /* the next survey */
+  zb_surface_water_get_stats(s.water, &st);
+  TEST_ASSERT_DOUBLE_WITHIN(1.0, 600.0, st.left);
   assert_balanced(&s);
   scene_close(&s);
 }

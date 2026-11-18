@@ -584,6 +584,18 @@ Pours water over the ground within radius metres (up to 64) of a place in the ac
 
 The air of the active tier.
 
+### `sim.bodies_near(pos: PlanetPos, radius: number): integer[]`
+
+Ids of the bodies whose centre is within radius metres (up to 256).
+
+### `sim.body(id: integer): Body?`
+
+A body as it is now, or nil when there is no such body.
+
+### `sim.body_stats(): BodyStats`
+
+
+
 ### `sim.emit(pos: PlanetPos, gas: string, kg: number)`
 
 Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
@@ -604,6 +616,10 @@ The gases in the air at a place, kg/m^3 of the lowest air layer.
 
 Sets fire to the fuel within radius metres (default 2, up to 64) of a place in the active tier: lightning, a spell, a torch. Returns the cells (about 2 m) that caught; wet or bare ground and water do not.
 
+### `sim.launch(pos: PlanetPos, velocity: Vector, radius?: number, mass?: number): integer`
+
+Throws a projectile (a stone, an arrow, a bolt of magic) from pos: a small sphere of radius metres (default 0.05, up to 0.5) and mass kg (default 0.5, up to 100) under gravity. It never passes through anything; a hit stops it and pushes the body it struck. Returns its id; errors when out of range.
+
 ### `sim.lightning(pos: PlanetPos): integer`
 
 Lightning strikes a place in the active tier: a flash, and fire in the dry fuel there. Returns the cells that caught.
@@ -620,9 +636,29 @@ The material ref becomes at a temperature (deg C) through its phase changes: wat
 
 Returns to the world's own weather (from the next second).
 
+### `sim.projectile(id: integer): Projectile?`
+
+A projectile in flight or stopped in the last 10 seconds, else nil.
+
+### `sim.push(id: integer, impulse: Vector): boolean`
+
+Gives a body a push at its centre (N s { east, north, up }) and wakes it; false when there is no such body.
+
+### `sim.remove_body(id: integer): boolean`
+
+Takes a body out of the world; false when there was no such body.
+
 ### `sim.set_weather(weather: Weather)`
 
 Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
+
+### `sim.spawn(body: BodyDesc): integer`
+
+Puts a rigid body into the world: a boulder, a log, a crate. It falls, rolls, collides, floats or sinks in the active tier, and waits where it is outside it. Returns its id; errors for a description that does not work (sizes 1 cm .. 50 m, a solid or powder material).
+
+### `sim.sweep(from: PlanetPos, to: PlanetPos, radius?: number): Hit?`
+
+Sweeps a sphere of radius metres (default 0: a ray) from one place to another: the first body or ground it touches, or nil.
 
 ### `sim.tier_stats(): TierStats`
 
@@ -634,7 +670,7 @@ The 2 m cell of the surface-water simulation at a place.
 
 ### `sim.water_stats(): WaterStats`
 
-Where the water of the active tier is, in m^3: on_ground + soaked + drained equals rained + added.
+Where the water of the active tier is, in m^3: on_ground + soaked + drained + left equals rained + added.
 
 ### `sim.weather(): Weather`
 
@@ -859,6 +895,11 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `position` | `number[]?` | Translation {x, y, z} |
 | `rotation` | `number[]?` | Euler angles in degrees (applied Y, X, Z) |
 | `scale` | `number[] or number?` | Scale per axis or uniform |
+
+### Vector
+
+| Field | Type | Description |
+| --- | --- | --- |
 
 ### WorldInfo
 

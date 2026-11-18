@@ -152,6 +152,31 @@ const zb_edit *zb_deltas_get(const zb_deltas *d, zb_chunk c, size_t *count) {
 
 size_t zb_deltas_chunks(const zb_deltas *d) { return d->lists.len; }
 
+void zb_deltas_each_chunk(const zb_deltas *d, void (*fn)(void *ctx, zb_chunk c), void *ctx) {
+  for (size_t i = 0; i < d->lists.len; ++i) {
+    fn(ctx, ((const chunk_edits *)zb_array_at(&d->lists, i))->chunk);
+  }
+}
+
+bool zb_deltas_burn_due(const zb_deltas *d, zb_chunk c, double from, double to) {
+  size_t n;
+  const zb_edit *e = zb_deltas_get(d, c, &n);
+  double turns[1 + ZB_PLANT_LAYERS];
+  turns[0] = ZB_ASH_SECONDS;
+  for (int l = 0; l < ZB_PLANT_LAYERS; ++l) {
+    turns[1 + l] = zb_regrowth_seconds(l);
+  }
+  for (size_t i = 0; i < n; ++i) {
+    for (int k = 0; e[i].kind == ZB_EDIT_BURNT && k < 1 + ZB_PLANT_LAYERS; ++k) {
+      double at = e[i].index * 60.0 + turns[k];
+      if (at > from && at <= to) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /* Burnt cells: ash on the ground for a while, and plants that have not grown
  * back yet removed (looked up per plant in the chunk's targets). */
 static bool apply_burnt(const zb_deltas *d, zb_chunk_terrain *ct, double now) {

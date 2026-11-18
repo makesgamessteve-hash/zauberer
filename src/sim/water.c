@@ -392,7 +392,8 @@ void zb_surface_water_cell_at(const zb_surface_water *w, const zb_planet_pos *po
   if (cell < 0) {
     return;
   }
-  const water_chunk *c = zb_active_chunk_of(&w->grid, cell)->data;
+  const zb_active_chunk *ac = zb_active_chunk_of(&w->grid, cell);
+  const water_chunk *c = ac->data;
   int i = cell % CELLS;
   out->loaded = true;
   out->fixed = (c->state[i] & FIXED) != 0;
@@ -403,6 +404,17 @@ void zb_surface_water_cell_at(const zb_surface_water *w, const zb_planet_pos *po
   out->capacity = c->capacity[i];
   const float *o = &c->out[4 * i];
   out->flow = (double)o[0] + o[1] + o[2] + o[3];
+  if (c->depth[i] > 1e-3) {
+    /* Through the faces: what leaves on one side and comes in on the other. */
+    int x = i % N, y = i / N;
+    double east = (double)o[1] - o[0], north = (double)o[3] - o[2];
+    east += x > 0 ? (double)c->out[4 * (i - 1) + 1] : 0.0;
+    east -= x < N - 1 ? (double)c->out[4 * (i + 1) + 0] : 0.0;
+    north += y > 0 ? (double)c->out[4 * (i - N) + 3] : 0.0;
+    north -= y < N - 1 ? (double)c->out[4 * (i + N) + 2] : 0.0;
+    out->vx = 0.5 * east / (ac->ch * c->depth[i]);
+    out->vy = 0.5 * north / (ac->cw * c->depth[i]);
+  }
 }
 
 void zb_surface_water_get_stats(const zb_surface_water *w, zb_water_stats *out) {
@@ -422,6 +434,7 @@ void zb_surface_water_get_stats(const zb_surface_water *w, zb_water_stats *out) 
   }
   out->soaked = w->absorbed;
   out->drained = w->drained;
+  out->left = w->left;
   out->rained = w->rained;
   out->added = w->added;
 }

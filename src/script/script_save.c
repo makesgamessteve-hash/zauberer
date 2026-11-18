@@ -4,6 +4,7 @@
  *   saves/<name>/world.lua      format, kind, seed, radius, generator, time
  *   saves/<name>/bundle.zbw     the created world (world creation writes it)
  *   saves/<name>/player.lua     whatever the scripts keep about the player
+ *   saves/<name>/bodies.lua     the rigid bodies (as sim.spawn takes them)
  *   saves/<name>/regions/     the players' edits, a .bin file per 16 x 16 chunks
  *
  * Every file is written atomically. Saves of older formats are migrated when
@@ -105,6 +106,19 @@ static zb_result save_game(lua_State *L, const char *name, int player_idx, int *
     const char *t = lua_tolstring(L, -1, &len);
     r = write_text(s, name, "player.lua", t, len);
     lua_pop(L, 1);
+  }
+  if (r == ZB_OK) { /* the rigid bodies, as sim.spawn takes them */
+    zb_script_push_bodies(L);
+    luaL_Buffer buf;
+    luaL_buffinit(L, &buf);
+    luaL_addstring(&buf, "-- The rigid bodies of a saved world of Zauberer.\nreturn ");
+    zb_script_write_luon(L, lua_gettop(L) - 1, &buf, 0);
+    luaL_addstring(&buf, "\n");
+    luaL_pushresult(&buf);
+    size_t len;
+    const char *t = lua_tolstring(L, -1, &len);
+    r = write_text(s, name, "bodies.lua", t, len);
+    lua_pop(L, 2);
   }
   region_save rs = {s, name, zb_world_deltas(w), ZB_OK, 0};
   if (r == ZB_OK) {
@@ -268,7 +282,19 @@ static int w_load_game(lua_State *L) {
   save_path(s, name, "regions/", dir, sizeof dir);
   region_load rl = {s, dir, 0, 0};
   s->cfg.fs->list(s->cfg.fs->ctx, dir, load_region, &rl);
-  zb_info("loaded the game %s (%d region(s) of edits%s)", name, rl.read, rl.damaged ? ", some damaged" : "");
+  int bodies = 0;
+  if (read_doc(s, name, "bodies.lua", &doc, err, sizeof err)) {
+    zb_script_push_luon(L, &doc.root);
+    zb_luon_free(&doc);
+    bodies = zb_script_restore_bodies(L, -1);
+    lua_pop(L, 1);
+  } else {
+    lua_pushnil(L);
+    zb_script_restore_bodies(L, -1); /* a save without bodies: none */
+    lua_pop(L, 1);
+  }
+  zb_info("loaded the game %s (%d region(s) of edits%s, %d bod%s)", name, rl.read, rl.damaged ? ", some damaged" : "",
+          bodies, bodies == 1 ? "y" : "ies");
   if (read_doc(s, name, "player.lua", &doc, err, sizeof err)) {
     zb_script_push_luon(L, &doc.root);
     zb_luon_free(&doc);

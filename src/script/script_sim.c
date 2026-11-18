@@ -427,13 +427,14 @@ static int s_water_at(lua_State *L) {
 
 /* @lua sim.water_stats(): WaterStats
  * Where the water of the active tier is, in m^3: on_ground + soaked + drained
- * equals rained + added.
+ * + left equals rained + added.
  * @field chunks integer Chunks in the active tier
  * @field awake integer Of those, chunks with moving water
  * @field wet integer Cells with more than a centimetre of water
  * @field on_ground number m^3 standing or running
  * @field soaked number m^3 soaked into the ground
  * @field drained number m^3 drained into seas, lakes and rivers
+ * @field left number m^3 standing in chunks when they left the active tier
  * @field rained number m^3 of rain
  * @field added number m^3 poured in
  * @field max_depth number Metres
@@ -452,6 +453,7 @@ static int s_water_stats(lua_State *L) {
   set_number(L, "on_ground", st.on_ground);
   set_number(L, "soaked", st.soaked);
   set_number(L, "drained", st.drained);
+  set_number(L, "left", st.left);
   set_number(L, "rained", st.rained);
   set_number(L, "added", st.added);
   set_number(L, "max_depth", st.max_depth);
@@ -566,6 +568,7 @@ static int s_air_stats(lua_State *L) {
  * @field water_ms number
  * @field air_ms number
  * @field weather_ms number Weather, lightning and water putting fire out
+ * @field bodies_ms number Rigid bodies and projectiles
  * @field total_ms number
  * @field budget_ms number
  * @field over_budget integer Seconds over the budget so far
@@ -579,7 +582,7 @@ static int s_tier_stats(lua_State *L) {
   zb_tier_stats st;
   zb_tier_get_stats(tier, &st);
   lua_createtable(L, 0, 8);
-  static const char *const names[ZB_TIER_SYSTEMS] = {"fire_ms", "water_ms", "air_ms", "weather_ms"};
+  static const char *const names[ZB_TIER_SYSTEMS] = {"fire_ms", "water_ms", "air_ms", "weather_ms", "bodies_ms"};
   for (int k = 0; k < ZB_TIER_SYSTEMS; ++k) {
     set_number(L, names[k], st.ms[k]);
   }

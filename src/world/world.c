@@ -20,7 +20,8 @@ struct zb_world {
   zb_origin origin;
   uint32_t origin_version;
   zb_calendar_config calendar;
-  double time; /* game seconds */
+  double time;      /* game seconds */
+  double healed_at; /* when burnt chunks were last looked at (game seconds; < 0: not yet) */
   zb_deltas *deltas;
 };
 
@@ -55,6 +56,7 @@ zb_world *zb_world_create(const zb_world_desc *desc, char *err, size_t err_len) 
     w->calendar.axial_tilt = desc->bundle->options.axial_tilt;
   }
   w->time = w->calendar.start;
+  w->healed_at = -1.0;
   zb_chunk start = {ZB_FACE_PX, w->planet.n / 2, w->planet.n / 2};
   zb_origin_init(&w->origin, &w->planet, start);
   zb_stream_config cfg;
@@ -240,7 +242,34 @@ void zb_world_set_origin(zb_world *w, zb_chunk anchor) {
   w->origin_version++;
 }
 
+#define HEAL_CHECK 3600.0 /* game seconds between looks at burnt chunks */
+
+typedef struct heal_span {
+  zb_world *w;
+  double from, to;
+} heal_span;
+
+/* A loaded chunk whose burn turned a corner (ash gone, plants back) is
+ * generated again from its surface up, with the edits applied anew. */
+static void heal_chunk(void *ctx, zb_chunk c) {
+  heal_span *h = ctx;
+  if (zb_deltas_burn_due(h->w->deltas, c, h->from, h->to)) {
+    zb_stream_regenerate(h->w->stream, c, ZB_STAGE_SURFACE);
+  }
+}
+
+static void heal(zb_world *w) {
+  if (w->healed_at < 0.0 || w->time < w->healed_at) {
+    w->healed_at = w->time;
+  } else if (w->time - w->healed_at >= HEAL_CHECK) {
+    heal_span h = {w, w->healed_at, w->time};
+    zb_deltas_each_chunk(w->deltas, heal_chunk, &h);
+    w->healed_at = w->time;
+  }
+}
+
 void zb_world_update(zb_world *w) {
+  heal(w);
   if (w->active[0]) {
     zb_vec3 l = zb_origin_to_local(&w->origin, &w->planet, &w->focus[0].pos);
     l.y = 0.0f; /* altitude alone never moves the origin */

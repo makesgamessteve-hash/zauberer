@@ -42,6 +42,11 @@ zb_result zb_deltas_add(zb_deltas *d, zb_chunk c, const zb_edit *e);
 /* The edits of a chunk (NULL and 0 when it has none). */
 const zb_edit *zb_deltas_get(const zb_deltas *d, zb_chunk c, size_t *count);
 size_t zb_deltas_chunks(const zb_deltas *d);
+/* Calls fn for every chunk with edits. */
+void zb_deltas_each_chunk(const zb_deltas *d, void (*fn)(void *ctx, zb_chunk c), void *ctx);
+/* Whether a burn in chunk c reaches a turning point in (from, to]: its ash
+ * goes, or a layer of its plants has grown back. */
+bool zb_deltas_burn_due(const zb_deltas *d, zb_chunk c, double from, double to);
 /* Applies a chunk's edits to whatever stages it has at the game time now
  * (burnt ground heals); true if anything changed. */
 bool zb_deltas_apply(const zb_deltas *d, zb_chunk_terrain *ct, double now);
