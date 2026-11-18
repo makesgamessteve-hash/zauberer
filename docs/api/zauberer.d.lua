@@ -1160,6 +1160,12 @@ function sim.remove_creature(id) end
 ---@return number
 function sim.remove_water(pos, radius, cubic_metres) end
 
+---Sets a creature's needs, each 0 .. 1 and left as it is when omitted: { hunger = .., thirst = .., energy = .. }; it reconsiders what to do at once. Returns whether the creature exists.
+---@param id integer
+---@param needs table
+---@return boolean
+function sim.set_needs(id, needs) end
+
 ---Where the player is for the creatures (nil: nowhere), and whether on foot.
 ---@param pos PlanetPos|nil
 ---@param on_foot? boolean

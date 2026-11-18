@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 /* Creature budget (release builds on Linux): 200 creatures of three kinds,
- * packs among them, around a mage on foot over a whole desktop active tier. */
+ * herds and packs among them, the wolves hunting the deer, all of them thirsty
+ * and leaving scent, around a mage on foot over a whole desktop active tier. */
 #define _POSIX_C_SOURCE 199309L
 #include "core/dmath.h"
 #include "sim/tier.h"
@@ -67,6 +68,7 @@ static zb_animal kind(const char *id, double run, zb_diet diet, bool pack, bool 
   a.fear_of_fire = 1.0;
   a.fear_of_player = 0.6;
   a.mana_color = -1;
+  a.thirst = 0.002;
   return a;
 }
 
@@ -123,6 +125,8 @@ static void test_creature_budget(void) {
   zb_animal kinds[3] = {kind("wolf", 10.0, ZB_DIET_CARNIVORE, true, false),
                         kind("deer", 12.0, ZB_DIET_HERBIVORE, true, false),
                         kind("bird", 18.0, ZB_DIET_CARNIVORE, false, true)};
+  snprintf(kinds[0].eats[0], sizeof kinds[0].eats[0], "%s", "deer");
+  kinds[0].eats_count = 1;
   for (int k = 0; k < 3; ++k) {
     TEST_ASSERT_EQUAL_INT(k, zb_creatures_define(c, &kinds[k]));
   }

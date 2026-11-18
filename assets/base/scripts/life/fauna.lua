@@ -7,6 +7,8 @@
 local fauna = {}
 
 local NEWS_TIME = 4 -- seconds a line of news stays on the HUD
+fauna.SCENT = 3e-5 -- kg of scent a second the mage leaves on the ground
+fauna.SCENT_REACH = 5 -- metres above the ground within which the carpet leaves scent
 local RECENT = 32 -- events kept for whoever asks later
 
 -- Who lives near the start: species, how many, metres away, bearing (radians
@@ -74,7 +76,12 @@ local function say(f, text)
 end
 
 local TOLD = {
-  died = function(ev) return "The " .. name_of(ev.species):lower() .. " died (" .. ev.cause .. ")" end,
+  died = function(ev)
+    if ev.by_species then
+      return "A " .. name_of(ev.by_species):lower() .. " killed a " .. name_of(ev.species):lower()
+    end
+    return "The " .. name_of(ev.species):lower() .. " died (" .. ev.cause .. ")"
+  end,
   fled = function(ev) return "A " .. name_of(ev.species):lower() .. " flees" end,
   attacked = function(ev) return "A " .. name_of(ev.species):lower() .. " attacks you" end,
 }
@@ -84,6 +91,10 @@ local TOLD = {
 function fauna.tick(f, dt, player_pos, on_foot)
   f.time = f.time + dt
   sim.set_player(player_pos, on_foot)
+  -- The mage's scent on the ground, for noses downwind.
+  if on_foot or player_pos.alt - world.ground_height(player_pos) < fauna.SCENT_REACH then
+    sim.emit(player_pos, "scent", fauna.SCENT * dt)
+  end
   local events = sim.creature_events()
   for _, ev in ipairs(events) do
     say(f, TOLD[ev.kind](ev))

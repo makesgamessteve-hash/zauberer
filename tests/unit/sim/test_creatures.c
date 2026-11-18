@@ -150,6 +150,7 @@ static void scene_open(scene *s, ground g) {
   bird.mana_color = ZB_MANA_STORM;
   bird.motes = 30.0;
   bird.resist[ZB_HARM_SMOKE] = 0.5;
+  bird.smell = 0.0; /* birds hunt by sight */
   s->wolf = zb_creatures_define(s->cr, &wolf);
   s->deer = zb_creatures_define(s->cr, &deer);
   s->bird = zb_creatures_define(s->cr, &bird);
@@ -400,6 +401,187 @@ static void test_harm(void) {
   scene_close(&s);
 }
 
+/* Metres between two creatures. */
+static double between(const scene *s, uint32_t a, uint32_t b) {
+  zb_creature_state x = state(s, a), y = state(s, b);
+  return apart(s, &x.pos, &y.pos);
+}
+
+static uint32_t spawn_at(scene *s, int species, float x, float y) {
+  zb_planet_pos p = at(s, x, y);
+  uint32_t id = zb_creatures_spawn(s->cr, species, &p);
+  TEST_ASSERT_TRUE(id > 0);
+  return id;
+}
+
+/* The scene's wolf hunting deer (and a slower deer to catch). */
+static void wolf_hunts_deer(scene *s, double deer_run) {
+  zb_animal wolf = *zb_creatures_species(s->cr, s->wolf);
+  snprintf(wolf.eats[0], sizeof wolf.eats[0], "%s", "deer");
+  wolf.eats_count = 1;
+  TEST_ASSERT_EQUAL_INT(s->wolf, zb_creatures_define(s->cr, &wolf));
+  zb_animal deer = *zb_creatures_species(s->cr, s->deer);
+  deer.run = deer_run;
+  TEST_ASSERT_EQUAL_INT(s->deer, zb_creatures_define(s->cr, &deer));
+}
+
+/* spec: fauna-behaviour: Hunting prey */
+static void test_hunting(void) {
+  scene s;
+  scene_open(&s, MEADOW);
+  wolf_hunts_deer(&s, 4.0);
+  uint32_t wolf = spawn_at(&s, s.wolf, 90.0f, 128.0f), deer = spawn_at(&s, s.deer, 140.0f, 128.0f);
+  TEST_ASSERT_TRUE(zb_creatures_set_needs(s.cr, wolf, 0.9, -1.0, -1.0));
+  /* The wolf stalks, the deer takes fright, the wolf gives chase and kills. */
+  bool stalked = false, chased = false, alerted = false;
+  zb_creature_event died = {0};
+  for (int k = 0; k < 400 && !died.id; ++k) {
+    run(&s, 0.1);
+    zb_creature_state w = state(&s, wolf), d = state(&s, deer);
+    stalked |= w.action == ZB_ACT_HUNT && w.target == deer && w.speed > 0.5 && w.speed < 2.0;
+    chased |= w.action == ZB_ACT_HUNT && w.speed > 5.0;
+    alerted |= d.action == ZB_ACT_ALERT || d.action == ZB_ACT_FLEE;
+    zb_creature_event ev[16];
+    int n = zb_creatures_events(s.cr, ev, 16);
+    for (int i = 0; i < n; ++i) {
+      died = ev[i].kind == ZB_CREATURE_DIED && ev[i].id == deer ? ev[i] : died;
+    }
+  }
+  TEST_ASSERT_TRUE_MESSAGE(stalked, "stalked");
+  TEST_ASSERT_TRUE_MESSAGE(chased, "chased");
+  TEST_ASSERT_TRUE_MESSAGE(alerted, "the deer saw it coming");
+  TEST_ASSERT_EQUAL_UINT32_MESSAGE(deer, died.id, "the deer was killed");
+  TEST_ASSERT_EQUAL_UINT32(wolf, died.by);
+  TEST_ASSERT_EQUAL_INT(ZB_HARM_IMPACT, died.cause);
+  /* Then it eats. */
+  double hunger = state(&s, wolf).hunger;
+  run(&s, 6.0);
+  zb_creature_state w = state(&s, wolf);
+  TEST_ASSERT_EQUAL_STRING("feed", zb_action_name(w.action));
+  TEST_ASSERT_TRUE(w.hunger < hunger && state(&s, deer).eaten > 0.0);
+  /* Spent, a hunter gives up and leaves prey alone for a while. */
+  TEST_ASSERT_TRUE(zb_creatures_remove(s.cr, deer)); /* no carcass to go back to */
+  TEST_ASSERT_TRUE(zb_creatures_remove(s.cr, wolf));
+  wolf_hunts_deer(&s, 11.0); /* this one is too fast to catch */
+  uint32_t fresh = spawn_at(&s, s.deer, 130.0f, 60.0f), tired = spawn_at(&s, s.wolf, 120.0f, 60.0f);
+  zb_creatures_set_needs(s.cr, tired, 1.0, -1.0, 0.32);
+  bool gave_up = false;
+  for (int k = 0; k < 100 && !gave_up; ++k) {
+    run(&s, 0.1);
+    zb_creature_state t = state(&s, tired);
+    gave_up = t.energy < 0.2 && t.target == 0;
+  }
+  TEST_ASSERT_TRUE_MESSAGE(gave_up, "the spent wolf gave up");
+  zb_creatures_set_needs(s.cr, tired, -1.0, -1.0, 1.0);
+  run(&s, 1.0);
+  TEST_ASSERT_TRUE_MESSAGE(state(&s, tired).target != fresh, "and leaves it alone for a while");
+  scene_close(&s);
+}
+
+/* spec: fauna-behaviour: Thirst and the time of day */
+static void test_thirst_and_day(void) {
+  scene s;
+  scene_open(&s, POND);
+  zb_planet_pos middle = at(&s, 200.0f, 128.0f);
+  zb_surface_water_add(zb_tier_water(s.tier), &middle, 25.0, 9000.0);
+  run(&s, 2.0);
+  uint32_t deer = spawn_at(&s, s.deer, 140.0f, 128.0f);
+  TEST_ASSERT_TRUE(zb_creatures_set_needs(s.cr, deer, 0.0, 0.95, 1.0));
+  TEST_ASSERT_FALSE(zb_creatures_set_needs(s.cr, 999, 0.0, 0.0, 0.0));
+  bool drank = false;
+  for (int k = 0; k < 40 && !drank; ++k) {
+    run(&s, 1.0);
+    drank = state(&s, deer).thirst < 0.4;
+  }
+  TEST_ASSERT_TRUE_MESSAGE(drank, "it went to the water and drank");
+  zb_water_cell wc;
+  zb_creature_state at_water = state(&s, deer);
+  zb_surface_water_cell_at(zb_tier_water(s.tier), &at_water.pos, &wc);
+  TEST_ASSERT_TRUE_MESSAGE(wc.depth < 0.5, "from the shore");
+  /* A night animal rests in the day and is about at night. */
+  zb_animal owl = *zb_creatures_species(s.cr, s.deer);
+  snprintf(owl.id, sizeof owl.id, "%s", "night_deer");
+  owl.activity = ZB_ACTIVE_NIGHT;
+  int night = zb_creatures_define(s.cr, &owl);
+  uint32_t sleeper = spawn_at(&s, night, 100.0f, 60.0f);
+  zb_creatures_set_needs(s.cr, sleeper, 0.2, 0.0, 1.0);
+  double t0 = zb_world_time(s.world), day = 86400.0;
+  double noon = t0 - fmod(t0, day) + 0.5 * day, midnight = noon + 0.5 * day;
+  zb_world_set_time(s.world, noon);
+  run(&s, 1.0);
+  TEST_ASSERT_EQUAL_STRING("rest", zb_action_name(state(&s, sleeper).action));
+  zb_world_set_time(s.world, midnight);
+  run(&s, 1.0);
+  TEST_ASSERT_TRUE_MESSAGE(state(&s, sleeper).action != ZB_ACT_REST, "awake at night");
+  scene_close(&s);
+}
+
+/* spec: fauna-behaviour: Herds and stampedes */
+static void test_herd(void) {
+  scene s;
+  scene_open(&s, MEADOW);
+  zb_animal deer = *zb_creatures_species(s.cr, s.deer);
+  deer.pack = true;
+  zb_creatures_define(s.cr, &deer);
+  uint32_t herd[6];
+  for (int k = 0; k < 6; ++k) {
+    herd[k] = spawn_at(&s, s.deer, 128.0f + 0.3f * (float)k, 128.0f);
+    zb_creatures_set_needs(s.cr, herd[k], 0.0, 0.0, 1.0); /* not hungry: they move about */
+  }
+  run(&s, 12.0);
+  double closest = 1e9, farthest = 0.0;
+  for (int i = 0; i < 6; ++i) {
+    for (int j = i + 1; j < 6; ++j) {
+      zb_creature_state a = state(&s, herd[i]), b = state(&s, herd[j]);
+      double d = apart(&s, &a.pos, &b.pos);
+      closest = d < closest ? d : closest;
+      farthest = d > farthest ? d : farthest;
+    }
+  }
+  TEST_ASSERT_TRUE_MESSAGE(closest > 1.0, "they keep apart");
+  TEST_ASSERT_TRUE_MESSAGE(farthest < 40.0, "and together");
+  /* One is hurt: the whole herd runs. */
+  zb_creatures_hurt(s.cr, herd[0], ZB_HARM_MAGIC, 5.0);
+  run(&s, 0.6);
+  int fleeing = 0;
+  for (int k = 0; k < 6; ++k) {
+    fleeing += state(&s, herd[k]).action == ZB_ACT_FLEE ? 1 : 0;
+  }
+  TEST_ASSERT_EQUAL_INT_MESSAGE(6, fleeing, "a stampede");
+  scene_close(&s);
+}
+
+/* spec: fauna-behaviour: Following a scent upwind */
+static void test_scent_trail(void) {
+  scene s;
+  scene_open(&s, MEADOW);
+  wolf_hunts_deer(&s, 4.0);
+  uint32_t deer = spawn_at(&s, s.deer, 220.0f, 128.0f), wolf = spawn_at(&s, s.wolf, 40.0f, 128.0f);
+  /* A breeze from the deer to the wolf. */
+  const zb_planet *pl = zb_world_planet(s.world);
+  zb_planet_pos from = state(&s, deer).pos, to = state(&s, wolf).pos;
+  zb_dvec3 a = zb_planet_to_cart(pl, &from), b = zb_planet_to_cart(pl, &to), e, n, u;
+  zb_planet_frame(zb_dv_norm(a), &e, &n, &u);
+  zb_dvec3 d = zb_dv_sub(b, a);
+  double east = zb_dv_dot(d, e), north = zb_dv_dot(d, n), len = sqrt(east * east + north * north);
+  zb_weather breeze = {0.0, 0.0, 0.0, 0.0, 3.0 * east / len, 3.0 * north / len, 15.0};
+  zb_tier_weather(s.tier)->now = breeze;
+  zb_tier_apply_weather(s.tier, &breeze);
+  zb_creatures_set_needs(s.cr, deer, 0.0, 0.0, 1.0);
+  run(&s, 10.0); /* the deer's scent drifts downwind */
+  zb_creatures_set_needs(s.cr, wolf, 1.0, 0.0, 1.0);
+  double start = between(&s, wolf, deer);
+  bool tracked = false;
+  for (int k = 0; k < 80; ++k) {
+    run(&s, 0.5);
+    tracked |= state(&s, wolf).action == ZB_ACT_INVESTIGATE;
+  }
+  double end = between(&s, wolf, deer);
+  TEST_ASSERT_TRUE_MESSAGE(tracked, "the wolf picked up the scent");
+  TEST_ASSERT_TRUE_MESSAGE(end < start - 25.0, "and followed it upwind");
+  scene_close(&s);
+}
+
 static int counted;
 static void count_each(void *ctx, const zb_creature_state *st, double phase) {
   (void)ctx;
@@ -442,6 +624,10 @@ int main(void) {
   RUN_TEST(test_scent);
   RUN_TEST(test_harm);
   RUN_TEST(test_deterministic);
+  RUN_TEST(test_hunting);
+  RUN_TEST(test_thirst_and_day);
+  RUN_TEST(test_herd);
+  RUN_TEST(test_scent_trail);
   int failures = UNITY_END();
   if (g_materials) {
     zb_materials_free(g_materials);

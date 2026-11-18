@@ -55,6 +55,10 @@ static const char *const DIETS[ZB_DIETS] = {"herbivore", "carnivore", "omnivore"
  * @field mana string? The colour of a magical one's mana
  * @field motes number? Mana it releases when it dies
  * @field color number[]? { r, g, b } for drawing
+ * @field activity string? "day", "night", "twilight" (dusk to dawn) or "any" (default): when it is about
+ * @field thirst number? Thirst per second while about, 0 .. 0.1 (default 0.0015; 0: never drinks)
+ * @field eats table? The species it hunts: { [id] = how hard (for the ecology) } (up to 8)
+ * @field stamina number? Seconds it can run before it is spent (default 50)
  */
 static int s_define_species(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -106,6 +110,36 @@ static int s_define_species(lua_State *L) {
     lua_pop(L, 1);
   }
   lua_pop(L, 1);
+  static const char *const ACTIVE[ZB_ACTIVITIES] = {"any", "day", "night", "twilight"};
+  lua_getfield(L, 1, "activity");
+  const char *active = luaL_optstring(L, -1, "any");
+  a.activity = ZB_ACTIVITIES;
+  for (int k = 0; k < ZB_ACTIVITIES; ++k) {
+    a.activity = strcmp(active, ACTIVE[k]) ? a.activity : (zb_activity)k;
+  }
+  lua_pop(L, 1);
+  if (a.activity == ZB_ACTIVITIES) {
+    return luaL_error(L, "species %s: activity must be day, night, twilight or any", a.id);
+  }
+  a.thirst = num(L, 1, "thirst", 0.0015);
+  a.stamina = num(L, 1, "stamina", 50.0);
+  if (a.stamina < 1.0 || a.stamina > 3600.0) {
+    return luaL_error(L, "species %s: stamina must be 1 .. 3600 seconds", a.id);
+  }
+  if (a.thirst < 0.0 || a.thirst > 0.1) {
+    return luaL_error(L, "species %s: thirst must be 0 .. 0.1", a.id);
+  }
+  lua_getfield(L, 1, "eats");
+  if (lua_istable(L, -1)) {
+    lua_pushnil(L);
+    while (lua_next(L, -2)) {
+      lua_pop(L, 1);
+      if (lua_type(L, -1) == LUA_TSTRING && a.eats_count < ZB_PREY_MAX) {
+        snprintf(a.eats[a.eats_count++], sizeof a.eats[0], "%s", lua_tostring(L, -1));
+      }
+    }
+  }
+  lua_pop(L, 1);
   int index = zb_creatures_define(CR(L), &a);
   if (index < 0) {
     return luaL_error(L, "species %s cannot be defined (sizes, speeds, health or diet out of range, or too many)",
@@ -150,10 +184,13 @@ static void set_number(lua_State *L, const char *name, double v) {
  * @field hunger number 0 .. 1
  * @field fear number 0 .. 1
  * @field energy number 0 .. 1
- * @field action string "wander", "graze", "rest", "flee", "hunt" or "investigate"
+ * @field action string "wander", "graze", "rest", "flee", "hunt", "investigate", "drink", "feed" or "alert"
  * @field alive boolean
  * @field frozen boolean Outside the active tier
  * @field sees_player number? Metres to the player when it perceives the player
+ * @field thirst number 0 .. 1
+ * @field target integer? The creature it hunts or eats
+ * @field eaten number Of a carcass: 0 .. 1 eaten by predators
  */
 static int s_creature(lua_State *L) {
   zb_creature_state st;
@@ -183,6 +220,35 @@ static int s_creature(lua_State *L) {
   if (st.sees_player >= 0.0) {
     set_number(L, "sees_player", st.sees_player);
   }
+  set_number(L, "thirst", st.thirst);
+  set_number(L, "eaten", st.eaten);
+  if (st.target) {
+    lua_pushinteger(L, st.target);
+    lua_setfield(L, -2, "target");
+  }
+  return 1;
+}
+
+static double need(lua_State *L, const char *field) {
+  lua_getfield(L, 2, field);
+  double v = lua_isnil(L, -1) ? -1.0 : luaL_checknumber(L, -1);
+  lua_pop(L, 1);
+  if (v != -1.0 && (v < 0.0 || v > 1.0)) {
+    luaL_error(L, "%s must be 0 .. 1", field);
+  }
+  return v;
+}
+
+/* @lua sim.set_needs(id: integer, needs: table): boolean
+ * Sets a creature's needs, each 0 .. 1 and left as it is when omitted:
+ * { hunger = .., thirst = .., energy = .. }; it reconsiders what to do at
+ * once. Returns whether the creature exists.
+ */
+static int s_set_needs(lua_State *L) {
+  uint32_t id = (uint32_t)luaL_checkinteger(L, 1);
+  luaL_checktype(L, 2, LUA_TTABLE);
+  double hunger = need(L, "hunger"), thirst = need(L, "thirst"), energy = need(L, "energy");
+  lua_pushboolean(L, zb_creatures_set_needs(CR(L), id, hunger, thirst, energy));
   return 1;
 }
 
@@ -265,6 +331,8 @@ static int s_set_player(lua_State *L) {
  * @field species string
  * @field pos PlanetPos
  * @field cause string? For deaths: the harm that killed it
+ * @field by integer? For deaths: the creature that killed it
+ * @field by_species string? Its species
  * @field magical boolean? For deaths of magical creatures
  * @field mana string? Their colour
  * @field motes number? The mana they release
@@ -289,6 +357,13 @@ static int s_creature_events(lua_State *L) {
     if (ev[k].kind == ZB_CREATURE_DIED) {
       lua_pushstring(L, zb_harm_name(ev[k].cause));
       lua_setfield(L, -2, "cause");
+      zb_creature_state killer;
+      if (ev[k].by && zb_creatures_get(c, ev[k].by, &killer)) {
+        lua_pushinteger(L, ev[k].by);
+        lua_setfield(L, -2, "by");
+        lua_pushstring(L, zb_creatures_species(c, killer.species)->id);
+        lua_setfield(L, -2, "by_species");
+      }
       if (a->magical) {
         lua_pushboolean(L, true);
         lua_setfield(L, -2, "magical");
@@ -348,6 +423,7 @@ void zb_script_open_creatures(zb_script *s) {
                                  {"creature_events", s_creature_events},
                                  {"creature_stats", s_creature_stats},
                                  {"remove_creature", s_remove_creature},
+                                 {"set_needs", s_set_needs},
                                  {NULL, NULL}};
   lua_getglobal(s->L, "sim");
   luaL_setfuncs(s->L, fns, 0);

@@ -11,6 +11,10 @@ for _ = 1, 900 do
   sleep(5)
 end
 expect(sim.wind_at(here).loaded, "the carpet's air is in the active tier")
+-- Only the scent released here (animals leave theirs too).
+demo.ecology.pause(game.ecology, true)
+for _, id in ipairs(game.fauna.ids) do sim.remove_creature(id) end
+local released = sim.air_stats().emitted.scent
 sim.set_weather({ wind_east = 6, wind_north = 0, rain = 0, snow = 0, storm = 0 })
 local w = sim.wind_at(here)
 expect(w.east > 0 and w.speed > 1, "a wind from the west: " .. w.east .. ", " .. w.north)
@@ -25,7 +29,7 @@ local up = sim.gas_at(world.move(here, -math.pi / 2, 30, 0)).scent
 expect(down > 0 and down > 10 * up, "scent downwind: " .. down .. " upwind: " .. up)
 local st = sim.air_stats()
 expect(st.chunks > 0 and st.awake > 0)
-expect_near(st.emitted.scent, 50, 1e-9)
+expect_near(st.emitted.scent - released, 50, 1e-9)
 expect(st.mass.scent > 0)
 -- A fire's smoke goes into the air.
 local spot

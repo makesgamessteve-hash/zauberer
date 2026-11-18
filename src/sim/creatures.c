@@ -13,7 +13,8 @@
 #define TURN_RATE 3.0     /* rad/s */
 #define ACCEL 6.0         /* m/s^2 */
 #define HUNGER_RATE 0.002 /* per second */
-#define TIRE_RATE 0.02    /* energy per second running */
+#define STAMINA 50.0      /* seconds a runner lasts when its species does not say */
+#define EARSHOT 0.3       /* share of its hearing within which it notices other creatures in the dark */
 #define REST_RATE 0.05    /* energy per second resting */
 #define FEAR_FADE 0.9     /* fear kept per decision */
 #define WANDER_RANGE 30.0 /* metres */
@@ -29,6 +30,19 @@
 #define BURN 25.0         /* health per second in a burning cell */
 #define SMOKE_THICK 0.005 /* kg/m^3 that chokes */
 #define SCENT_FAINT 1e-7  /* kg/m^3 that a nose notices */
+#define SCENT_RATE 1e-6   /* kg of scent a creature leaves per kg of body and second */
+#define SCENT_EVERY 1.0   /* seconds between scent marks */
+#define SCENT_LOOK 12.0   /* metres ahead a tracker smells for the stronger trail */
+#define THIRST_DRINK 0.06 /* thirst quenched per second drinking */
+#define WATER_LOOK 60.0   /* metres: how far a thirsty creature looks for water */
+#define STALK_RANGE 25.0  /* metres: a hunter this close gives chase */
+#define GIVE_UP 0.15      /* energy below which a hunter gives up the chase */
+#define GIVE_UP_TIME 30.0 /* seconds it then leaves prey alone */
+#define BITE 0.4          /* health a bite takes per kg of the hunter */
+#define FEED_RATE 0.05    /* hunger eaten away per second at a kill */
+#define DANGER_RANGE 35.0 /* metres: a hunter this close is fled */
+#define CROWD 2.5         /* metres: herd mates keep this far apart */
+#define FLOCK_RANGE 15.0  /* metres: herd mates heading the same way */
 #define STIMULI_MAX 64
 #define EVENTS_MAX 256
 
@@ -40,9 +54,13 @@ typedef struct creature {
   double health, hunger, fear, energy;
   zb_action action;
   double decide_in, attack_cool, hit_cool, phase, sees_player;
-  double falling;                   /* m/s down: a dead flier dropping */
-  zb_planet_pos goal, threat, pack; /* the pack's centre, found when deciding */
-  bool has_goal, has_threat, has_pack, fled_told;
+  double falling;       /* m/s down: a dead flier dropping */
+  double thirst, eaten; /* eaten: of a carcass, 0 .. 1 */
+  double scent_wait, gave_up_until;
+  double flock;    /* the heading its herd mates pull it to */
+  uint32_t target; /* the creature it hunts or eats */
+  zb_planet_pos goal, threat, water;
+  bool has_goal, has_threat, has_water, has_flock, fled_told;
   bool alive, frozen;
 } creature;
 
@@ -58,7 +76,9 @@ struct zb_creatures {
   zb_creature_sources src;
   zb_animal species[ZB_SPECIES_MAX];
   int species_count;
-  zb_array list; /* creature, in id order */
+  uint32_t prey[ZB_SPECIES_MAX]; /* bit j: species i hunts species j */
+  zb_array list;                 /* creature, in id order */
+  zb_array cart;                 /* zb_dvec3 per creature: where they are this tick */
   uint32_t next_id;
   uint64_t rng;
   zb_planet_pos player;
@@ -122,12 +142,14 @@ zb_creatures *zb_creatures_create(const zb_allocator *a, zb_world *world, uint64
   c->rng = seed * 0x9E3779B97F4A7C15ull | 1;
   c->next_id = 1;
   zb_array_init(&c->list, a, sizeof(creature));
+  zb_array_init(&c->cart, a, sizeof(zb_dvec3));
   return c;
 }
 
 void zb_creatures_destroy(zb_creatures *c) {
   if (c) {
     zb_array_free(&c->list);
+    zb_array_free(&c->cart);
     zb_free(c->a, c);
   }
 }
@@ -156,6 +178,18 @@ int zb_creatures_define(zb_creatures *c, const zb_animal *s) {
   }
   c->species[k] = *s; /* a later definition of the same id replaces it */
   c->species[k].id[sizeof c->species[k].id - 1] = '\0';
+  if (c->species[k].activity < 0 || c->species[k].activity >= ZB_ACTIVITIES) {
+    c->species[k].activity = ZB_ACTIVE_ANY;
+  }
+  c->species[k].eats_count = s->eats_count < 0 ? 0 : (s->eats_count > ZB_PREY_MAX ? ZB_PREY_MAX : s->eats_count);
+  for (int i = 0; i < c->species_count; ++i) { /* prey may be defined before or after their hunters */
+    c->prey[i] = 0;
+    for (int e = 0; e < c->species[i].eats_count; ++e) {
+      c->species[i].eats[e][sizeof c->species[i].eats[e] - 1] = '\0';
+      int j = zb_creatures_find_species(c, c->species[i].eats[e]);
+      c->prey[i] |= j >= 0 ? 1u << j : 0u;
+    }
+  }
   return k;
 }
 
@@ -255,13 +289,18 @@ void zb_creatures_stimulus(zb_creatures *c, zb_stimulus_kind kind, const zb_plan
   c->stimuli[c->stimulus_count++] = (stimulus){kind, *pos, strength, c->time + (seconds > 0.0 ? seconds : 0.0)};
 }
 
-static void event(zb_creatures *c, zb_creature_event_kind kind, const creature *cr, zb_harm cause) {
+static void event_by(zb_creatures *c, zb_creature_event_kind kind, const creature *cr, zb_harm cause, uint32_t by) {
   if (c->event_count < EVENTS_MAX) {
-    c->events[c->event_count++] = (zb_creature_event){kind, cr->id, cr->species, cr->pos, cause};
+    c->events[c->event_count++] = (zb_creature_event){kind, cr->id, cr->species, cr->pos, cause, by};
   }
 }
 
-static void harm(zb_creatures *c, creature *cr, zb_harm h, double amount) {
+static void event(zb_creatures *c, zb_creature_event_kind kind, const creature *cr, zb_harm cause) {
+  event_by(c, kind, cr, cause, 0);
+}
+
+/* Hurts (or heals) a creature; by: the creature that dealt it, 0 for none. */
+static void harm_by(zb_creatures *c, creature *cr, zb_harm h, double amount, uint32_t by) {
   if (!cr->alive) {
     return;
   }
@@ -275,9 +314,11 @@ static void harm(zb_creatures *c, creature *cr, zb_harm h, double amount) {
     cr->health = 0.0;
     cr->alive = false;
     cr->speed = 0.0;
-    event(c, ZB_CREATURE_DIED, cr, h);
+    event_by(c, ZB_CREATURE_DIED, cr, h, by);
   }
 }
+
+static void harm(zb_creatures *c, creature *cr, zb_harm h, double amount) { harm_by(c, cr, h, amount, 0); }
 
 bool zb_creatures_hurt(zb_creatures *c, uint32_t id, zb_harm h, double amount) {
   int i = find(c, id);
@@ -290,6 +331,21 @@ bool zb_creatures_hurt(zb_creatures *c, uint32_t id, zb_harm h, double amount) {
     cr->fear = cr->fear > 0.8 ? cr->fear : 0.8;
   }
   return cr->alive;
+}
+
+static double unit(double v) { return v > 1.0 ? 1.0 : v; }
+
+bool zb_creatures_set_needs(zb_creatures *c, uint32_t id, double hunger, double thirst, double energy) {
+  int i = find(c, id);
+  if (i < 0) {
+    return false;
+  }
+  creature *cr = C(c, i);
+  cr->hunger = hunger >= 0.0 ? unit(hunger) : cr->hunger;
+  cr->thirst = thirst >= 0.0 ? unit(thirst) : cr->thirst;
+  cr->energy = energy >= 0.0 ? unit(energy) : cr->energy;
+  cr->decide_in = 0.0; /* it reconsiders at once */
+  return true;
 }
 
 /* ---- Perception and choice ---- */
@@ -374,22 +430,135 @@ static void pick_goal(zb_creatures *c, creature *cr, double range) {
   cr->has_goal = true;
 }
 
-/* The centre of the pack around a creature (its own kind within range). */
-static bool pack_centre(const zb_creatures *c, const creature *cr, zb_planet_pos *out) {
-  double n = 0.0;
-  zb_dvec3 sum = zb_dv(0, 0, 0);
+/* Whether a species is about at a daylight (0 night .. 1 day). */
+static bool about(const zb_animal *s, double light) {
+  switch (s->activity) {
+    case ZB_ACTIVE_DAY: return light > 0.3;
+    case ZB_ACTIVE_NIGHT: return light < 0.3;
+    case ZB_ACTIVE_TWILIGHT: return light < 0.7; /* dusk to dawn: it rests in full day */
+    default: return true;
+  }
+}
+
+static int index_of(const zb_creatures *c, const creature *cr) { return (int)(cr - C(c, 0)); }
+
+/* Distance between creatures i and j this tick (the chord: metres apart). */
+static double apart(const zb_creatures *c, int i, int j) {
+  const zb_dvec3 *x = (const zb_dvec3 *)c->cart.data;
+  return zb_dv_len(zb_dv_sub(x[i], x[j]));
+}
+
+/* What a creature makes of the creatures around it. */
+typedef struct neighbours {
+  int prey, danger, carcass; /* nearest of each, -1 for none */
+  double prey_d, danger_d, carcass_d;
+  double east, north; /* where its herd mates pull it (separation, alignment, cohesion) */
+  int mates;
+} neighbours;
+
+static void look_around(const zb_creatures *c, const creature *cr, double sight, neighbours *out) {
+  const zb_animal *s = &c->species[cr->species];
+  int me = index_of(c, cr);
+  out->prey = out->danger = out->carcass = -1;
+  out->prey_d = out->danger_d = out->carcass_d = 1e9;
+  out->east = out->north = 0.0;
+  out->mates = 0;
+  zb_dvec3 e, n, u, sum = zb_dv(0, 0, 0);
+  const zb_dvec3 *x = (const zb_dvec3 *)c->cart.data;
+  zb_planet_frame(zb_dv_norm(x[me]), &e, &n, &u);
+  double align_e = 0.0, align_n = 0.0, sep_e = 0.0, sep_n = 0.0;
   for (int i = 0; i < count(c); ++i) {
     const creature *o = C(c, i);
-    if (o != cr && o->alive && o->species == cr->species && dist(c, &o->pos, &cr->pos) < PACK_RANGE) {
-      sum = zb_dv_add(sum, zb_planet_to_cart(P(c), &o->pos));
-      n += 1.0;
+    if (i == me || o->frozen) {
+      continue;
+    }
+    double d = apart(c, me, i);
+    if (d > sight && d > PACK_RANGE) {
+      continue;
+    }
+    bool hunted = (c->prey[cr->species] >> o->species) & 1u;
+    if (hunted && o->alive && d <= sight && d < out->prey_d && c->time >= cr->gave_up_until) {
+      out->prey = i;
+      out->prey_d = d;
+    } else if (hunted && !o->alive && o->eaten < 1.0 && d <= sight && d < out->carcass_d) {
+      out->carcass = i;
+      out->carcass_d = d;
+    }
+    if (o->alive && ((c->prey[o->species] >> cr->species) & 1u) && d <= sight && d < out->danger_d) {
+      out->danger = i;
+      out->danger_d = d;
+    }
+    if (s->pack && o->alive && o->species == cr->species && d < PACK_RANGE) {
+      sum = zb_dv_add(sum, x[i]);
+      out->mates++;
+      if (d < FLOCK_RANGE) {
+        align_e += sin(o->heading);
+        align_n += cos(o->heading);
+      }
+      if (d < CROWD && d > 1e-6) {
+        zb_dvec3 away = zb_dv_scale(zb_dv_sub(x[me], x[i]), (CROWD - d) / (d * CROWD));
+        sep_e += zb_dv_dot(away, e);
+        sep_n += zb_dv_dot(away, n);
+      }
     }
   }
-  if (n == 0.0) {
+  if (out->mates > 0) {
+    zb_dvec3 to = zb_dv_sub(zb_dv_scale(sum, 1.0 / out->mates), x[me]);
+    double far = zb_dv_len(to) > PACK_KEEP ? 1.0 / zb_dv_len(to) : 0.0; /* drawn back only when it strays */
+    double align = sqrt(align_e * align_e + align_n * align_n);
+    out->east = zb_dv_dot(to, e) * far + (align > 0.0 ? align_e / align : 0.0) * 0.5 + sep_e * 2.0;
+    out->north = zb_dv_dot(to, n) * far + (align > 0.0 ? align_n / align : 0.0) * 0.5 + sep_n * 2.0;
+  }
+}
+
+/* Open water within reach of a thirsty creature: the nearest of a few rings. */
+static bool find_water(const zb_creatures *c, const creature *cr, zb_planet_pos *out) {
+  if (!c->src.water) {
     return false;
   }
-  *out = zb_planet_from_cart(P(c), zb_dv_scale(sum, 1.0 / n));
-  return true;
+  for (double r = 6.0; r <= WATER_LOOK; r *= 2.0) {
+    for (int k = 0; k < 16; ++k) {
+      zb_planet_pos p = ahead(c, &cr->pos, k * ZB_DPI / 8.0, r);
+      zb_water_cell w;
+      zb_surface_water_cell_at(c->src.water, &p, &w);
+      if (w.loaded && !w.frozen && w.depth > 0.05) {
+        *out = p;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* Where a scent leads: of three places ahead into the wind, the one that
+ * smells strongest. */
+static zb_planet_pos follow_scent(const zb_creatures *c, const creature *cr, double upwind) {
+  zb_planet_pos best = ahead(c, &cr->pos, upwind, SCENT_LOOK);
+  double most = -1.0;
+  for (int k = -1; k <= 1; ++k) {
+    zb_planet_pos p = ahead(c, &cr->pos, upwind + 0.6 * k, SCENT_LOOK);
+    zb_air_sample as;
+    zb_air_sample_at(c->src.air, &p, &as);
+    if (as.loaded && as.gas[ZB_GAS_SCENT] > most) {
+      most = as.gas[ZB_GAS_SCENT];
+      best = p;
+    }
+  }
+  return best;
+}
+
+/* A creature that takes fright frightens its herd mates near it. */
+static void stampede(zb_creatures *c, const creature *cr) {
+  int me = index_of(c, cr);
+  for (int i = 0; i < count(c); ++i) {
+    creature *o = C(c, i);
+    if (i != me && o->alive && o->species == cr->species && o->fear < cr->fear * 0.8 && apart(c, me, i) < PACK_RANGE) {
+      o->fear = cr->fear * 0.8;
+      o->threat = cr->threat;
+      o->has_threat = true;
+      o->decide_in = 0.0; /* it sees the others run at once */
+    }
+  }
 }
 
 static void decide(zb_creatures *c, creature *cr) {
@@ -397,13 +566,24 @@ static void decide(zb_creatures *c, creature *cr) {
   senses se;
   sense(c, cr, &se);
   cr->sees_player = se.player;
-  /* Fear: of fire, of the player close by, of threats and loud noises. */
+  double sight = s->sight * (0.3 + 0.7 * se.light), notice = s->hearing * EARSHOT;
+  neighbours nb;
+  look_around(c, cr, sight > notice ? sight : notice, &nb);
+  /* Fear: of fire, of hunters, of the player close by, of threats and loud noises. */
   double fear = cr->fear * FEAR_FADE;
   if (se.fire) {
     double f = s->fear_of_fire * (se.fire_distance < 12.0 ? 1.0 : 0.6);
     if (f > fear) {
       fear = f;
       cr->threat = se.fire_at;
+      cr->has_threat = true;
+    }
+  }
+  if (nb.danger >= 0 && nb.danger_d < DANGER_RANGE) {
+    double f = 1.0 - nb.danger_d / (DANGER_RANGE * 1.5);
+    if (f > fear) {
+      fear = f;
+      cr->threat = C(c, nb.danger)->pos;
       cr->has_threat = true;
     }
   }
@@ -428,13 +608,31 @@ static void decide(zb_creatures *c, creature *cr) {
   cr->fear = fear > 1.0 ? 1.0 : fear;
   double calm = 1.0 - cr->fear;
   bool eats_plants = s->diet != ZB_DIET_CARNIVORE, eats_meat = s->diet != ZB_DIET_HERBIVORE;
+  bool awake = about(s, se.light);
+  if (cr->thirst > 0.3 && !cr->has_water) {
+    cr->has_water = find_water(c, cr, &cr->water);
+  }
+  /* The chase is given up when the hunter is spent. */
+  if (cr->action == ZB_ACT_HUNT && cr->target && cr->energy < GIVE_UP) {
+    cr->gave_up_until = c->time + GIVE_UP_TIME;
+    cr->target = 0;
+    nb.prey = -1;
+  }
   double score[ZB_ACTIONS];
   score[ZB_ACT_FLEE] = cr->fear * 1.2;
-  score[ZB_ACT_HUNT] =
+  double hunt_player =
       eats_meat && se.player >= 0.0 ? s->aggression * (0.4 + cr->hunger) * (c->on_foot ? 1.0 : 0.1) * calm : 0.0;
-  score[ZB_ACT_INVESTIGATE] = ((se.scent && eats_meat ? 0.5 : 0.0) + (se.noise ? 0.2 : 0.0)) * calm;
-  score[ZB_ACT_GRAZE] = eats_plants && !s->flies ? cr->hunger * 0.8 * calm : 0.0;
-  score[ZB_ACT_REST] = (1.0 - cr->energy) * 0.7 * calm;
+  bool chasing = cr->action == ZB_ACT_HUNT && cr->target; /* a chase goes on until the hunter is spent */
+  double hunt_prey =
+      nb.prey >= 0 && cr->energy > (chasing ? GIVE_UP : GIVE_UP * 2.0) ? (0.2 + cr->hunger * 0.9) * calm : 0.0;
+  score[ZB_ACT_HUNT] = hunt_player > hunt_prey ? hunt_player : hunt_prey;
+  score[ZB_ACT_FEED] = nb.carcass >= 0 && cr->hunger > 0.05 ? (0.3 + cr->hunger) * calm : 0.0;
+  score[ZB_ACT_INVESTIGATE] =
+      ((se.scent && eats_meat ? 0.3 + 0.4 * cr->hunger : 0.0) + (se.noise ? 0.2 : 0.0)) * calm * (awake ? 1.0 : 0.3);
+  score[ZB_ACT_GRAZE] = eats_plants && !s->flies && awake ? cr->hunger * 0.8 * calm : 0.0;
+  score[ZB_ACT_DRINK] = cr->has_water ? cr->thirst * calm : 0.0;
+  score[ZB_ACT_REST] = ((1.0 - cr->energy) * 0.7 + (awake ? 0.0 : 0.6)) * calm * (nb.danger >= 0 ? 0.2 : 1.0);
+  score[ZB_ACT_ALERT] = nb.danger >= 0 && nb.danger_d >= DANGER_RANGE ? 0.35 * calm + 0.1 : 0.0;
   score[ZB_ACT_WANDER] = 0.25;
   score[cr->action] += COMMITMENT; /* no dithering between two close choices */
   zb_action best = ZB_ACT_WANDER;
@@ -445,17 +643,29 @@ static void decide(zb_creatures *c, creature *cr) {
     event(c, ZB_CREATURE_FLED, cr, ZB_HARM_HEAT);
     cr->fled_told = true;
   }
+  if (best == ZB_ACT_FLEE && s->pack) {
+    stampede(c, cr);
+  }
   if (best != ZB_ACT_FLEE) {
     cr->fled_told = cr->fear > 0.3 && cr->fled_told;
   }
-  if (best == ZB_ACT_INVESTIGATE) {
-    cr->goal = se.noise ? se.noise_at : ahead(c, &cr->pos, se.upwind, 25.0);
+  cr->target = 0;
+  if (best == ZB_ACT_HUNT && hunt_prey >= hunt_player) {
+    cr->target = C(c, nb.prey)->id;
+  } else if (best == ZB_ACT_FEED) {
+    cr->target = C(c, nb.carcass)->id;
+  } else if (best == ZB_ACT_ALERT) {
+    cr->threat = C(c, nb.danger)->pos;
+    cr->has_threat = true;
+  } else if (best == ZB_ACT_INVESTIGATE) {
+    cr->goal = se.noise ? se.noise_at : follow_scent(c, cr, se.upwind);
     cr->has_goal = true;
   } else if (best == ZB_ACT_WANDER && (!cr->has_goal || cr->action != ZB_ACT_WANDER)) {
     pick_goal(c, cr, WANDER_RANGE);
   }
   cr->action = best;
-  cr->has_pack = s->pack && pack_centre(c, cr, &cr->pack);
+  cr->has_flock = nb.mates > 0 && (nb.east != 0.0 || nb.north != 0.0);
+  cr->flock = cr->has_flock ? zb_datan2(nb.east, nb.north) : cr->heading;
 }
 
 /* ---- Moving ---- */
@@ -470,22 +680,67 @@ static bool walkable(const zb_creatures *c, const zb_planet_pos *pos) {
   return !w.loaded || w.frozen || (!w.fixed && w.depth < 0.5) || (w.fixed && w.depth < 0.3);
 }
 
+/* A bite: the hunter's weight tells how hard. */
+static void bite(zb_creatures *c, creature *cr, creature *prey) {
+  harm_by(c, prey, ZB_HARM_IMPACT, BITE * c->species[cr->species].mass, cr->id);
+  if (prey->alive) { /* pain is a reason to run */
+    prey->fear = 1.0;
+    prey->threat = cr->pos;
+    prey->has_threat = true;
+  }
+  cr->attack_cool = ATTACK_COOL;
+}
+
+/* How fast it can run now: spent, it slows to a trot. */
+static double top_speed(const zb_animal *s, const creature *cr) {
+  double fresh = cr->energy / 0.3;
+  return s->walk + (s->run - s->walk) * (fresh < 1.0 ? (fresh > 0.0 ? fresh : 0.0) : 1.0);
+}
+
 static void move(zb_creatures *c, creature *cr, double dt) {
   const zb_animal *s = &c->species[cr->species];
-  double want = 0.0, toward = cr->heading;
+  double want = 0.0, toward = cr->heading, run = top_speed(s, cr);
+  int t = cr->target ? find(c, cr->target) : -1;
+  creature *other = t >= 0 ? C(c, t) : NULL;
   switch (cr->action) {
     case ZB_ACT_FLEE:
-      want = s->run;
+      want = run;
       if (cr->has_threat) {
         toward = bearing(c, &cr->threat, &cr->pos); /* away from it */
       }
       break;
     case ZB_ACT_HUNT:
-      want = s->run;
-      toward = c->has_player ? bearing(c, &cr->pos, &c->player) : cr->heading;
-      if (c->has_player && c->on_foot && dist(c, &cr->pos, &c->player) < ATTACK_RANGE && cr->attack_cool <= 0.0) {
-        event(c, ZB_CREATURE_ATTACKED, cr, ZB_HARM_IMPACT);
-        cr->attack_cool = ATTACK_COOL;
+      if (other && other->alive) { /* stalk, then chase */
+        double d = dist(c, &cr->pos, &other->pos);
+        want = d > STALK_RANGE && other->action != ZB_ACT_FLEE ? s->walk : run; /* it bolts: the chase is on */
+        toward = bearing(c, &cr->pos, &other->pos);
+        if (d < ATTACK_RANGE + c->species[other->species].length * 0.5 && cr->attack_cool <= 0.0) {
+          bite(c, cr, other);
+        }
+      } else if (!cr->target) { /* the player */
+        want = run;
+        toward = c->has_player ? bearing(c, &cr->pos, &c->player) : cr->heading;
+        if (c->has_player && c->on_foot && dist(c, &cr->pos, &c->player) < ATTACK_RANGE && cr->attack_cool <= 0.0) {
+          event(c, ZB_CREATURE_ATTACKED, cr, ZB_HARM_IMPACT);
+          cr->attack_cool = ATTACK_COOL;
+        }
+      }
+      break;
+    case ZB_ACT_FEED:
+      if (other && dist(c, &cr->pos, &other->pos) > 2.0) {
+        want = s->walk;
+        toward = bearing(c, &cr->pos, &other->pos);
+      }
+      break;
+    case ZB_ACT_DRINK:
+      if (cr->has_water && dist(c, &cr->pos, &cr->water) > 3.0) {
+        want = s->walk;
+        toward = bearing(c, &cr->pos, &cr->water);
+      }
+      break;
+    case ZB_ACT_ALERT:
+      if (cr->has_threat) {
+        toward = bearing(c, &cr->pos, &cr->threat); /* watching it */
       }
       break;
     case ZB_ACT_INVESTIGATE:
@@ -501,8 +756,9 @@ static void move(zb_creatures *c, creature *cr, double dt) {
       break;
     default: break; /* grazing and resting stand still */
   }
-  if (cr->has_pack && want > 0.0 && cr->action != ZB_ACT_FLEE && dist(c, &cr->pos, &cr->pack) > PACK_KEEP) {
-    toward = bearing(c, &cr->pos, &cr->pack); /* back to the pack */
+  if (cr->has_flock && want > 0.0 && (cr->action == ZB_ACT_WANDER || cr->action == ZB_ACT_INVESTIGATE)) {
+    double with = cr->action == ZB_ACT_WANDER ? 1.0 : 0.4; /* the herd leads a wander, the trail a search */
+    toward = zb_datan2(sin(toward) + with * sin(cr->flock), cos(toward) + with * cos(cr->flock));
   }
   double turn = wrap(toward - cr->heading), most = TURN_RATE * dt;
   cr->heading = wrap(cr->heading + (turn > most ? most : (turn < -most ? -most : turn)));
@@ -514,6 +770,11 @@ static void move(zb_creatures *c, creature *cr, double dt) {
   double heading = cr->heading;
   zb_planet_pos next = zb_planet_move(P(c), &cr->pos, cr->heading, cr->speed * dt, 0.0, 0.0, &heading);
   if (!s->flies && !walkable(c, &next)) {
+    if (cr->action == ZB_ACT_DRINK) { /* at the water's edge: it drinks here */
+      cr->water = cr->pos;
+      cr->speed = 0.0;
+      return;
+    }
     cr->heading = wrap(cr->heading + ZB_DPI / 2.0 + rnd(c)); /* turns away from the water */
     cr->speed *= 0.5;
     cr->has_goal = false;
@@ -524,7 +785,38 @@ static void move(zb_creatures *c, creature *cr, double dt) {
   cr->pos = next;
   cr->heading = heading;
   cr->phase += cr->speed * dt / (s->length * 0.6);
-  cr->energy -= (cr->speed > s->walk ? TIRE_RATE : 0.0) * dt;
+  cr->energy -= (cr->speed > s->walk ? 1.0 / (s->stamina > 0.0 ? s->stamina : STAMINA) : 0.0) * dt;
+}
+
+/* Needs: hunger and thirst grow; grazing, eating a kill, drinking and rest
+ * meet them. */
+static void needs(zb_creatures *c, creature *cr, double dt) {
+  const zb_animal *s = &c->species[cr->species];
+  cr->hunger = cr->hunger + HUNGER_RATE * dt > 1.0 ? 1.0 : cr->hunger + HUNGER_RATE * dt;
+  cr->thirst = cr->thirst + s->thirst * dt > 1.0 ? 1.0 : cr->thirst + s->thirst * dt;
+  if (cr->action == ZB_ACT_GRAZE) {
+    cr->hunger = cr->hunger - 0.02 * dt > 0.0 ? cr->hunger - 0.02 * dt : 0.0;
+  }
+  if (cr->action == ZB_ACT_REST) {
+    cr->energy = cr->energy + REST_RATE * dt < 1.0 ? cr->energy + REST_RATE * dt : 1.0;
+  }
+  int t = cr->target ? find(c, cr->target) : -1;
+  if (cr->action == ZB_ACT_FEED && t >= 0 && dist(c, &cr->pos, &C(c, t)->pos) <= 2.5) {
+    creature *kill = C(c, t);
+    double bite_of = FEED_RATE * dt;
+    cr->hunger = cr->hunger - bite_of > 0.0 ? cr->hunger - bite_of : 0.0;
+    kill->eaten += bite_of * s->mass / c->species[kill->species].mass;
+    kill->eaten = kill->eaten > 1.0 ? 1.0 : kill->eaten;
+  }
+  if (cr->action == ZB_ACT_DRINK && cr->has_water && dist(c, &cr->pos, &cr->water) <= 3.5) {
+    cr->thirst = cr->thirst - THIRST_DRINK * dt > 0.0 ? cr->thirst - THIRST_DRINK * dt : 0.0;
+    cr->has_water = cr->thirst > 0.05;
+  }
+  cr->scent_wait -= dt;
+  if (cr->scent_wait <= 0.0 && c->src.air) {
+    zb_air_emit(c->src.air, &cr->pos, ZB_GAS_SCENT, s->mass * SCENT_RATE * SCENT_EVERY);
+    cr->scent_wait += SCENT_EVERY;
+  }
 }
 
 /* Heat and smoke. */
@@ -593,8 +885,24 @@ static bool active(const zb_creatures *c, const creature *cr) {
   return w.loaded;
 }
 
+/* Where every creature is this tick, for the distances between them. */
+static void place_all(zb_creatures *c) {
+  zb_array_clear(&c->cart);
+  if (zb_array_reserve(&c->cart, (size_t)count(c)) != ZB_OK) {
+    return;
+  }
+  for (int i = 0; i < count(c); ++i) {
+    zb_dvec3 x = zb_planet_to_cart(P(c), &C(c, i)->pos);
+    zb_array_push(&c->cart, &x);
+  }
+}
+
 void zb_creatures_update(zb_creatures *c, double seconds) {
   c->time += seconds;
+  place_all(c);
+  if (c->cart.len != c->list.len) {
+    return; /* out of memory: they wait */
+  }
   c->harm_wait += seconds;
   bool feel_now = c->harm_wait >= HARM_STEP;
   if (feel_now) {
@@ -622,13 +930,7 @@ void zb_creatures_update(zb_creatures *c, double seconds) {
     if (!cr->alive || cr->frozen) {
       continue;
     }
-    cr->hunger = cr->hunger + HUNGER_RATE * seconds > 1.0 ? 1.0 : cr->hunger + HUNGER_RATE * seconds;
-    if (cr->action == ZB_ACT_GRAZE) {
-      cr->hunger = cr->hunger - 0.02 * seconds > 0.0 ? cr->hunger - 0.02 * seconds : 0.0;
-    }
-    if (cr->action == ZB_ACT_REST) {
-      cr->energy = cr->energy + REST_RATE * seconds < 1.0 ? cr->energy + REST_RATE * seconds : 1.0;
-    }
+    needs(c, cr, seconds);
     cr->attack_cool -= seconds;
     cr->decide_in -= seconds;
     if (cr->decide_in <= 0.0) {
@@ -662,6 +964,9 @@ static void state_of(const creature *cr, zb_creature_state *out) {
   out->alive = cr->alive;
   out->frozen = cr->frozen;
   out->sees_player = cr->sees_player;
+  out->thirst = cr->thirst;
+  out->target = cr->target;
+  out->eaten = cr->eaten;
 }
 
 bool zb_creatures_get(const zb_creatures *c, uint32_t id, zb_creature_state *out) {
@@ -729,7 +1034,8 @@ void zb_creatures_each(const zb_creatures *c, zb_creature_fn fn, void *ctx) {
 }
 
 const char *zb_action_name(zb_action a) {
-  static const char *names[ZB_ACTIONS] = {"wander", "graze", "rest", "flee", "hunt", "investigate"};
+  static const char *names[ZB_ACTIONS] = {"wander",      "graze", "rest", "flee", "hunt",
+                                          "investigate", "drink", "feed", "alert"};
   return a >= 0 && a < ZB_ACTIONS ? names[a] : "?";
 }
 

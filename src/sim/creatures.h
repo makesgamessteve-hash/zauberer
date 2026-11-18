@@ -1,16 +1,22 @@
 /* SPDX-License-Identifier: MIT */
-/* Creatures in the active tier (concept 5.12, M4's first creatures).
+/* Creatures in the active tier (concept 5.12).
  *
  * Species are data (from the scripts): size, speed, whether they fly, diet,
- * senses, fears and a mana metabolism for magical ones. Each creature senses
- * the player (sight scaled by daylight), stimuli such as noises and lights,
- * the scent the wind carries, and fire nearby; five times a second, staggered,
- * a utility choice picks what it does: wander, graze, rest, flee, hunt the
- * player, or follow a scent upwind. Walkers keep to the ground and keep out of
- * open water (ice holds them); fliers keep their height above the ground.
- * Heat, smoke and fast bodies hurt them; magic hurts and heals them through
- * the scripts. When one dies an event tells the scripts (magical creatures
- * then release motes). Outside the active tier they wait where they are. */
+ * what they hunt, when in the day they are about, senses, fears and a mana
+ * metabolism for magical ones. Each creature senses the player (sight scaled
+ * by daylight), other creatures, stimuli such as noises and lights, the scent
+ * the wind carries, water and fire nearby. Five times a second, staggered, a
+ * utility choice picks what it does from its needs (hunger, thirst, rest,
+ * safety): wander, graze, rest, flee, hunt the player or its prey (stalking,
+ * then a chase it gives up when spent), eat a kill, drink, watch a danger
+ * far off, or follow a scent upwind. Herds and packs keep together, apart and
+ * heading the same way, and stampede when one of them takes fright. Every
+ * creature leaves its scent in the air. Walkers keep to the ground and keep
+ * out of open water (ice holds them); fliers keep their height above the
+ * ground. Heat, smoke, fast bodies and bites hurt them; magic hurts and heals
+ * them through the scripts. When one dies an event tells the scripts, with
+ * its killer (magical creatures then release motes); the dead fall to the
+ * ground. Outside the active tier they wait where they are. */
 #ifndef ZB_SIM_CREATURES_H
 #define ZB_SIM_CREATURES_H
 
@@ -22,6 +28,7 @@
 #define ZB_SPECIES_MAX 32
 #define ZB_CREATURES_MAX 512
 #define ZB_CREATURE_DECIDE_HZ 5
+#define ZB_PREY_MAX 8 /* species a predator hunts */
 
 typedef enum zb_diet { ZB_DIET_HERBIVORE, ZB_DIET_CARNIVORE, ZB_DIET_OMNIVORE, ZB_DIETS } zb_diet;
 
@@ -32,8 +39,21 @@ typedef enum zb_action {
   ZB_ACT_FLEE,
   ZB_ACT_HUNT,
   ZB_ACT_INVESTIGATE, /* follow a scent or a noise */
+  ZB_ACT_DRINK,       /* go to water and drink */
+  ZB_ACT_FEED,        /* eat a kill */
+  ZB_ACT_ALERT,       /* stand and watch a danger far off */
   ZB_ACTIONS
 } zb_action;
+
+/* When in the day a species is about (twilight: from dusk to dawn, resting in
+ * full day); the rest of the time it rests. */
+typedef enum zb_activity {
+  ZB_ACTIVE_ANY,
+  ZB_ACTIVE_DAY,
+  ZB_ACTIVE_NIGHT,
+  ZB_ACTIVE_TWILIGHT,
+  ZB_ACTIVITIES
+} zb_activity;
 
 typedef enum zb_harm {
   ZB_HARM_HEAT,
@@ -64,6 +84,11 @@ typedef struct zb_animal {
   int mana_color; /* zb_mana_color of a magical one, -1 */
   double motes;   /* mana it releases at death */
   float color[3]; /* body colour for drawing */
+  zb_activity activity;
+  double thirst;              /* per second while about (0: never drinks) */
+  double stamina;             /* seconds it can run before it is spent (0: 50) */
+  char eats[ZB_PREY_MAX][32]; /* ids of the species it hunts */
+  int eats_count;
 } zb_animal;
 
 typedef struct zb_creature_state {
@@ -72,10 +97,12 @@ typedef struct zb_creature_state {
   zb_planet_pos pos;
   double heading; /* radians clockwise from north */
   double speed;   /* m/s */
-  double health, hunger, fear, energy;
+  double health, hunger, thirst, fear, energy;
   zb_action action;
   bool alive, frozen;
   double sees_player; /* metres to the player when seen, else -1 */
+  uint32_t target;    /* the creature it hunts or eats, 0 for none */
+  double eaten;       /* of a carcass: 0 .. 1 eaten by predators */
 } zb_creature_state;
 
 typedef enum zb_creature_event_kind { ZB_CREATURE_DIED, ZB_CREATURE_FLED, ZB_CREATURE_ATTACKED } zb_creature_event_kind;
@@ -86,6 +113,7 @@ typedef struct zb_creature_event {
   int species;
   zb_planet_pos pos;
   zb_harm cause; /* for deaths */
+  uint32_t by;   /* for deaths: the creature that killed it, 0 for none */
 } zb_creature_event;
 
 typedef struct zb_creatures_stats {
@@ -97,7 +125,7 @@ typedef struct zb_creatures_stats {
 typedef struct zb_creature_sources {
   const zb_fire *fire;
   const zb_surface_water *water;
-  const zb_air *air;
+  zb_air *air; /* scent is left in it */
   const zb_bodies *bodies;
 } zb_creature_sources;
 
@@ -125,6 +153,9 @@ void zb_creatures_stimulus(zb_creatures *c, zb_stimulus_kind kind, const zb_plan
                            double seconds);
 /* Hurts (amount > 0) or heals (amount < 0) a creature; returns whether it lives. */
 bool zb_creatures_hurt(zb_creatures *c, uint32_t id, zb_harm harm, double amount);
+/* Sets a creature's needs, 0 .. 1 (a negative value leaves one as it is):
+ * hunger, thirst and energy. Returns whether it exists. */
+bool zb_creatures_set_needs(zb_creatures *c, uint32_t id, double hunger, double thirst, double energy);
 void zb_creatures_update(zb_creatures *c, double seconds);
 bool zb_creatures_get(const zb_creatures *c, uint32_t id, zb_creature_state *out);
 int zb_creatures_near(const zb_creatures *c, const zb_planet_pos *pos, double radius, uint32_t *ids, int max);

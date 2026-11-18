@@ -732,6 +732,10 @@ Takes a creature (alive or dead) out of the world.
 
 Takes up to cubic_metres (0 .. 1e7) of standing water from within radius metres (up to 64): drying magic. Returns how much it took.
 
+### `sim.set_needs(id: integer, needs: table): boolean`
+
+Sets a creature's needs, each 0 .. 1 and left as it is when omitted: { hunger = .., thirst = .., energy = .. }; it reconsiders what to do at once. Returns whether the creature exists.
+
 ### `sim.set_player(pos: PlanetPos|nil, on_foot?: boolean)`
 
 Where the player is for the creatures (nil: nowhere), and whether on foot.
