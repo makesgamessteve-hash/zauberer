@@ -78,7 +78,7 @@ Scripts SHALL read, for any position in a created world, its biome, monthly temp
 - **THEN** it is over land, has a biome, a rock record ending in the basement, a plausible climate that differs between January and July, a mineral list and a province with isolation between 0 and 1
 
 ### Requirement: Saved worlds
-A created world SHALL be stored under the user directory by name and load again later, refusing unknown names and names that could leave the worlds directory.
+A created world SHALL be stored in its save under saves/<name>/ in the user directory and load again later, refusing unknown names and names that could leave the saves directory.
 
 #### Scenario: Saved worlds come back
 - **WHEN** the saved world is loaded again, and then an unknown name and a name with a path are loaded
