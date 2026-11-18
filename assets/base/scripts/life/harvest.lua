@@ -82,11 +82,27 @@ local function water_near(pos)
   return nil
 end
 
+-- Water straight ahead within reach (facing it), or nil.
+local function water_ahead(pos, heading)
+  for _, d in ipairs({ 0.5, 1.5, 2.5, harvest.REACH }) do
+    local w = smalllife.water(world.move(pos, heading, d, 0))
+    if w then return w end
+  end
+  return nil
+end
+
+local function fill(p, w)
+  local item = WATER_ITEM[w.kind] or "pool_water"
+  return { what = "water", items = { [item] = pack.add(p, item, harvest.CUPS, 0) }, sources = {} }
+end
+
 -- Gathers what is within reach of pos into pack p; returns what was taken
 -- ({ what, items = { id = count }, sources = { Codex entry } }), or nil and why.
 -- life: { plants = plant state, smalllife = small-life state, method =
--- function(Codex entry) -> yield factor (optional) }
-function harvest.gather(p, life, pos, now)
+-- function(Codex entry) -> yield factor (optional) }; heading (optional):
+-- where the mage faces, so water straight ahead is taken before the plants
+-- about them.
+function harvest.gather(p, life, pos, now, heading)
   local method = life.method or function() return 1 end
   local carcass = nearest_carcass(pos)
   if carcass then
@@ -94,6 +110,8 @@ function harvest.gather(p, life, pos, now)
     local got = harvest.butcher(p, carcass, method(entry))
     if got then return { what = "carcass", items = got, sources = { entry } } end
   end
+  local ahead = heading and water_ahead(pos, heading)
+  if ahead then return fill(p, ahead) end
   local offer = nearest_offer(life.plants, pos, now)
   if offer then
     local item, n = plants.take(life.plants, offer.plant, offer.offer.item, now, offer.season)
@@ -109,10 +127,7 @@ function harvest.gather(p, life, pos, now)
     end
   end
   local w = water_near(pos)
-  if w then
-    local item = WATER_ITEM[w.kind] or "pool_water"
-    return { what = "water", items = { [item] = pack.add(p, item, harvest.CUPS, 0) }, sources = {} }
-  end
+  if w then return fill(p, w) end
   local picked, found = smalllife.pick(life.smalllife, pos, now) -- (anywhere in the patch)
   if picked then
     local got, sources = {}, {}

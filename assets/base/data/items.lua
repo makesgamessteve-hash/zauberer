@@ -35,6 +35,7 @@ return {
   { id = "hazel_rods", name = "Hazel rods", kind = "material", weight = 0.15, fuel = 0.15 },
   { id = "palm_fibre", name = "Palm fibre", kind = "material", weight = 0.05 },
   { id = "kapok_fibre", name = "Kapok fibre", kind = "material", weight = 0.01 },
+  { id = "kapok_bark", name = "Kapok bark", kind = "herb", weight = 0.05, brew = "bark_tea" },
   -- From shrubs and ground cover
   { id = "saltbush_leaves", name = "Saltbush leaves", kind = "food", weight = 0.01, kcal = 2, salty = true,
     spoils = "fresh" },
@@ -51,7 +52,7 @@ return {
     cooked = "roasted_reed_roots", spoils = "fresh" },
   { id = "roasted_reed_roots", name = "Roasted reed roots", kind = "food", weight = 0.05, kcal = 35,
     spoils = "cooked" },
-  { id = "reed_fibre", name = "Reed fibre", kind = "material", weight = 0.1 },
+  { id = "reed_fibre", name = "Reed fibre", kind = "material", weight = 0.1, fuel = 0.1 }, -- dry bundles burn
   -- Fungi
   { id = "chanterelles", name = "Chanterelles", kind = "food", weight = 0.02, kcal = 8, raw = 0.1,
     cooked = "fried_mushrooms", spoils = "fresh" },

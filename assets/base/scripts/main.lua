@@ -317,6 +317,7 @@ local function flight_tick(dt)
   end
   pack.spoil(game.pack, game_dt / 3600, body.air, false)
   pack.tick(game.pack, dt)
+  survival.tick_news(game.survival, dt)
   -- Gathering, fire and food (on foot), eating and drinking.
   local function said(list)
     local parts = {}
@@ -326,7 +327,7 @@ local function flight_tick(dt)
   end
   if w and input.state("gather").pressed then
     local got, why = harvest.gather(game.pack, { plants = game.plants, smalllife = game.smalllife,
-      method = function(id) return codex.method(game.codex, id) end }, w.pos, now)
+      method = function(id) return codex.method(game.codex, id) end }, w.pos, now, w.heading)
     pack.say(game.pack, got and ("Gathered " .. said(got.items)) or why)
     if got then codex.sampled(game.codex, got.sources) end
   end

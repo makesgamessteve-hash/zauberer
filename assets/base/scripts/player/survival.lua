@@ -5,6 +5,8 @@
 -- faster with exertion, heat, cold and sickness; when one runs out it hurts.
 -- A difficulty preset scales it all: wanderer (slow, no disease), survivor
 -- (the default) and hermit (harsh).
+local news = require("player.news")
+
 local survival = {}
 
 survival.DAY = 86400
@@ -31,7 +33,7 @@ function survival.new(saved, preset)
   local s = { food = saved.food or 80, water = saved.water or 80, rest = saved.rest or 90,
     core = saved.core or survival.CORE, wet = saved.wet or 0, sick = saved.sick or 0, poison = saved.poison or 0,
     peaked = saved.peaked, treated = saved.treated,
-    seed = saved.seed or 12345, preset = saved.preset or preset or "survivor", news = {}, time = 0 }
+    seed = saved.seed or 12345, preset = saved.preset or preset or "survivor", news = news.new() }
   return s
 end
 
@@ -49,13 +51,12 @@ local function roll(s)
 end
 
 local function say(s, text)
-  for _, n in ipairs(s.news) do
-    if n.text == text then
-      n.until_time = s.time + 4
-      return
-    end
-  end
-  s.news[#s.news + 1] = { text = text, until_time = s.time + 4 }
+  news.say(s.news, text)
+end
+
+-- Real time passes: old news goes.
+function survival.tick_news(s, dt)
+  news.tick(s.news, dt)
 end
 
 -- Catches a sickness with a chance (scaled by the preset).
@@ -91,7 +92,6 @@ end
 -- shelter, bites (mosquito bites a second). Returns the harms to deal:
 -- { { harm, amount } }.
 function survival.tick(s, seconds, ctx)
-  s.time = s.time + seconds
   local r = rules(s)
   local days = seconds / survival.DAY
   local effort = ctx.effort or 0
@@ -143,17 +143,13 @@ function survival.tick(s, seconds, ctx)
   if s.core < 34 then hurt("cold", 8) elseif cold then hurt("cold", 2) end
   if hot then hurt("heat", 3) end
   hurt("poison", s.sick * 1.5 + s.poison * 6)
-  local kept = {}
-  for _, n in ipairs(s.news) do
-    if n.until_time > s.time then kept[#kept + 1] = n end
-  end
-  s.news = kept
   return harms
 end
 
 -- What the body feels at pos: the air, wind and rain, its height above the
 -- ground, effort (from walker w, on foot, or the carpet), a fire within a
--- few metres, the water it stands in, and bites (a second).
+-- few metres, the water it stands in, and bites (a second; the smoke of a
+-- fire close by keeps the mosquitoes off).
 function survival.sense(pos, w, bites)
   local weather = sim.weather()
   local wind = sim.wind_at(pos)
@@ -167,7 +163,7 @@ function survival.sense(pos, w, bites)
   local speed = w and math.abs(w.speed) or 0
   return { air = weather.temperature, wind = wind.speed or 0, rain = weather.rain, height = w and 0 or pos.alt - ground,
     effort = speed > 3 and 2 or (speed > 0.5 and 1 or 0), fire = fire,
-    in_water = water and water.loaded and not water.frozen and water.depth or 0, bites = bites or 0 }
+    in_water = water and water.loaded and not water.frozen and water.depth or 0, bites = fire and 0 or bites or 0 }
 end
 
 -- Eats or drinks an item (its definition from data/items.lua) with its
@@ -227,7 +223,7 @@ function survival.hud_lines(s)
   if s.core < survival.CHILL then conditions[#conditions + 1] = "freezing" end
   if s.core > survival.FEVERISH then conditions[#conditions + 1] = "overheated" end
   if #conditions > 0 then lines[#lines + 1] = "You are " .. table.concat(conditions, ", ") end
-  for _, n in ipairs(s.news) do lines[#lines + 1] = n.text end
+  for _, text in ipairs(news.lines(s.news)) do lines[#lines + 1] = text end
   return lines
 end
 

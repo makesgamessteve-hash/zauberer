@@ -75,6 +75,7 @@ test.case("parts by season and size, again after they regrow", function()
   local autumn = plants.available(state, oak, now, 2.3)
   test.expect(has(autumn, "acorns") and has(autumn, "oak_bark") and has(autumn, "wood"))
   test.expect(not has(plants.available(state, oak, now, 0.9), "acorns"), "no acorns in summer")
+  test.expect(has(plants.available(state, oak, now, 0.9), "deadwood"), "fallen branches all year")
   local big = has(autumn, "acorns").count
   local small = has(plants.available(state, { id = 77, species = "oak", variant = 128, size = 0 }, now, 2.3), "acorns")
   test.expect(big > small.count and big >= 90 and small.count <= 30, big .. " vs " .. small.count)

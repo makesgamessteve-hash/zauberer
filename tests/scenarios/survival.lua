@@ -39,6 +39,7 @@ expect(not survival.sense(me, game.walker, 0).fire, "no fire yet")
 sim.add_heat(world.move(me, 0, 2, 0), 1, 5e7)
 step(2)
 expect(survival.sense(me, game.walker, 0).fire, "a fire close by is felt")
+expect(survival.sense(me, game.walker, 0.7).bites == 0, "its smoke keeps the mosquitoes off")
 sim.cool(me, 10, 1e12)
 -- Sleep on foot: the world's time moves on, the body rests.
 s.rest = 10

@@ -9,7 +9,8 @@ test.case("food values, what things become, and broken entries", function()
   test.expect(all.swamp_water.boiled == "boiled_water" and all.swamp_water.dirty > all.river_water.dirty)
   test.expect(all.healing_herbs.brew == "herbal_tea" and all.herbal_tea.cures.sick > 0)
   test.expect(all.sea_water.salty and all.fly_agaric.poison > 0)
-  test.expect(all.wood.fuel > 0 and all.deadwood.fuel > 0)
+  test.expect(all.wood.fuel > 0 and all.deadwood.fuel > 0 and all.reed_fibre.fuel > 0)
+  test.expect(all.kapok_bark.brew == "bark_tea" and all.bark_tea.cures.sick > 0)
   local base = { id = "x", name = "X", kind = "food", weight = 1 }
   local function with(k, v)
     local t = {}

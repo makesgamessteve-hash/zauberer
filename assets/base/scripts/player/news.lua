@@ -8,8 +8,16 @@ function news.new()
   return { lines = {}, clock = 0 }
 end
 
+-- Says a line; said again while it shows, it stays longer.
 function news.say(n, text, seconds)
-  n.lines[#n.lines + 1] = { text = text, until_time = n.clock + (seconds or news.TIME) }
+  local until_time = n.clock + (seconds or news.TIME)
+  for _, l in ipairs(n.lines) do
+    if l.text == text then
+      l.until_time = math.max(l.until_time, until_time)
+      return
+    end
+  end
+  n.lines[#n.lines + 1] = { text = text, until_time = until_time }
 end
 
 -- Real time passes: old lines go.

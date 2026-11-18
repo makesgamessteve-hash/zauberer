@@ -18,29 +18,35 @@ return {
     { item = "acorns", when = "fruit", yield = { 20, 120 }, regrow = 40 },
     { item = "oak_bark", yield = { 1, 3 }, regrow = 12 },
     { item = "wood", yield = { 40, 200 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   beech = { leaves = { 0.3, 2.8 }, flowers = { 0.3, 0.5 }, fruit = { 2.0, 2.6 }, parts = {
     { item = "beechnuts", when = "fruit", yield = { 20, 90 }, regrow = 40 },
     { item = "wood", yield = { 40, 200 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   spruce = { leaves = { 0, 4 }, flowers = { 0.4, 0.7 }, fruit = { 1.8, 2.8 }, parts = {
     { item = "resin", yield = { 1, 3 }, regrow = 8 },
     { item = "spruce_tips", when = "flowers", yield = { 5, 20 }, regrow = 40 },
     { item = "wood", yield = { 40, 220 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   fir = { leaves = { 0, 4 }, flowers = { 0.4, 0.7 }, fruit = { 1.8, 2.8 }, parts = {
     { item = "resin", yield = { 1, 3 }, regrow = 8 },
     { item = "wood", yield = { 40, 240 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   pine = { leaves = { 0, 4 }, flowers = { 0.4, 0.7 }, fruit = { 1.9, 3.0 }, parts = {
     { item = "pine_nuts", when = "fruit", yield = { 10, 60 }, regrow = 40 },
     { item = "resin", yield = { 1, 4 }, regrow = 8 },
     { item = "wood", yield = { 30, 180 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   birch = { leaves = { 0.2, 2.7 }, flowers = { 0.2, 0.4 }, fruit = { 1.4, 2.4 }, parts = {
     { item = "birch_bark", yield = { 1, 3 }, regrow = 12 },
     { item = "birch_sap", when = "flowers", yield = { 1, 4 }, regrow = 40 },
     { item = "wood", yield = { 20, 100 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   palm = { leaves = { 0, 4 }, flowers = { 0, 4 }, fruit = { 0, 4 }, parts = {
     { item = "coconut", when = "fruit", yield = { 2, 10 }, regrow = 6 },
@@ -53,14 +59,18 @@ return {
   acacia = { leaves = { 0, 4 }, flowers = { 0.8, 1.4 }, fruit = { 1.6, 2.6 }, parts = {
     { item = "acacia_gum", yield = { 1, 3 }, regrow = 8 },
     { item = "wood", yield = { 20, 100 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   cypress = { leaves = { 0, 4 }, flowers = { 0.1, 0.4 }, fruit = { 1.6, 2.8 }, parts = {
     { item = "resin", yield = { 1, 2 }, regrow = 8 },
     { item = "wood", yield = { 30, 160 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   kapok = { leaves = { 0, 4 }, flowers = { 3.2, 3.8 }, fruit = { 0.0, 0.6 }, parts = {
     { item = "kapok_fibre", when = "fruit", yield = { 4, 20 }, regrow = 40 },
+    { item = "kapok_bark", yield = { 1, 3 }, regrow = 12 }, -- steeped, a remedy for fever
     { item = "wood", yield = { 80, 400 }, whole = true },
+    { item = "deadwood", yield = { 1, 3 }, regrow = 4 }, -- fallen branches beneath it
   } },
   snag = { parts = { -- a dead tree: dry wood, and the fungi that live on it
     { item = "deadwood", yield = { 10, 60 }, whole = true },
