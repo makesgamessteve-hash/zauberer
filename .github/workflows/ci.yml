@@ -218,9 +218,14 @@ jobs:
         run: |
           gh release download --repo pal1000/mesa-dist-win --pattern '*release-msvc.7z' --dir "$RUNNER_TEMP"
           7z x -y -o"$RUNNER_TEMP/mesa" "$RUNNER_TEMP"/*release-msvc.7z > /dev/null
-          # Newer releases keep the OpenGL driver under modules/ rather than x64/.
-          gl="$(find "$RUNNER_TEMP/mesa" -iname opengl32.dll | grep -i 'x64' | head -n 1)"
-          test -n "$gl" || { find "$RUNNER_TEMP/mesa" -iname '*.dll' | head -n 50; exit 1; }
+          # The archive layout changes between releases: list it, then prefer a
+          # 64-bit opengl32.dll wherever it is.
+          find "$RUNNER_TEMP/mesa" -maxdepth 3 | head -n 80 || true
+          all="$(find "$RUNNER_TEMP/mesa" -iname opengl32.dll || true)"
+          echo "opengl32.dll candidates:"; echo "$all"
+          gl="$(echo "$all" | grep -i '64' | head -n 1 || true)"
+          if [ -z "$gl" ]; then gl="$(echo "$all" | grep -iv 'x86\|32bit\|win32' | head -n 1 || true)"; fi
+          test -n "$gl" || { echo "no 64-bit opengl32.dll in the Mesa archive"; exit 1; }
           echo "Mesa OpenGL: $gl"
           ls "$(dirname "$gl")"
           cp "$(dirname "$gl")"/*.dll bin/
@@ -262,11 +267,16 @@ jobs:
         run: |
           source "$EMSDK/emsdk_env.sh"
           ctest --preset web-node
+      - name: Native host for the browser co-op test
+        run: |
+          cmake -S . -B build/host -G Ninja -DCMAKE_BUILD_TYPE=Release -DZB_HEADLESS_ONLY=ON -DZB_TESTS=OFF
+          cmake --build build/host --target zauberer
       - name: Browser tests (Playwright, Chromium)
         working-directory: tests/web
         env:
           ZB_WEB_ST_DIR: ${{ github.workspace }}/build/web-st/bin
           ZB_WEB_MT_DIR: ${{ github.workspace }}/build/web/bin
+          ZB_NATIVE_BIN: ${{ github.workspace }}/build/host/bin/zauberer
         run: |
           npm install --no-audit --no-fund
           npx playwright install --with-deps chromium

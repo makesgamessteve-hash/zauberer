@@ -8,6 +8,7 @@
 #include "audio/audio.h"
 #include "core/fs.h"
 #include "input/input.h"
+#include "net/session.h"
 #include "render/render.h"
 #include "vfs/vfs.h"
 #include "world/world.h"
@@ -38,6 +39,8 @@ typedef struct zb_script_host {
   void (*user_data_changed)(void *ctx);
   /* Test API: resizes the window (no-op without one). */
   void (*set_window_size)(void *ctx, int w, int h);
+  /* Test API: waits in real time (two-process tests). */
+  void (*sleep_ms)(void *ctx, unsigned ms);
 } zb_script_host;
 
 typedef struct zb_script_config {
@@ -55,6 +58,7 @@ typedef struct zb_script_config {
   uint64_t instruction_budget; /* per hook invocation; 0 = unlimited */
   const char *coverage_path;   /* LuaCov-compatible stats file, or NULL */
   zb_world *world;             /* NULL: a private world (inline generation) */
+  zb_net *net;                 /* co-op session; NULL: networking unavailable */
   double planet_radius;        /* private world only; 0 = ZB_PLANET_DEFAULT_RADIUS */
 } zb_script_config;
 

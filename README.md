@@ -62,6 +62,10 @@ Useful options: `--assets <dir>`, `--user-dir <dir>`, `--headless`, `--ticks <n>
 (`zauberer --help` lists all). Player data lives in `%APPDATA%/Zauberer`,
 `$XDG_DATA_HOME/zauberer`, `~/Library/Application Support/Zauberer` or IndexedDB on the web.
 
+Co-op: `zauberer --host 7777` hosts a session on a desktop and `zauberer --join
+ws://<host>:7777` joins it, natively or in a browser (`?args=--join%20ws://localhost:7777`).
+Up to four heirs fly together; every game generates the same world from the seed.
+
 ## Testing
 
 ```sh

@@ -240,6 +240,15 @@ uint64_t zb_platform_now_ns(zb_platform *p) {
   return SDL_GetTicksNS();
 }
 
+void zb_platform_sleep_ms(zb_platform *p, unsigned ms) {
+  (void)p;
+#ifndef __EMSCRIPTEN__
+  SDL_Delay(ms);
+#else
+  (void)ms;
+#endif
+}
+
 const char *zb_platform_base_path(zb_platform *p) {
   (void)p;
 #ifdef __EMSCRIPTEN__

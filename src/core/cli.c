@@ -10,6 +10,7 @@ void zb_options_defaults(zb_options *o) {
   memset(o, 0, sizeof(*o));
   o->ticks = -1;
   o->debug_views = 1;
+  o->host_port = -1;
 }
 
 static bool parse_i64(const char *s, int64_t *out) {
@@ -40,7 +41,7 @@ static bool parse_u64(const char *s, uint64_t *out) {
   return true;
 }
 
-typedef enum opt_kind { OPT_FLAG, OPT_PATH, OPT_TICKS, OPT_VIEWS, OPT_SEED } opt_kind;
+typedef enum opt_kind { OPT_FLAG, OPT_PATH, OPT_TICKS, OPT_VIEWS, OPT_SEED, OPT_PORT } opt_kind;
 
 typedef struct opt_def {
   const char *name;
@@ -63,6 +64,8 @@ static const opt_def k_opts[] = {
     {"--debug-views", OPT_VIEWS, OFF(debug_views)},
     {"--lua-coverage", OPT_PATH, OFF(lua_coverage_path)},
     {"--seed", OPT_SEED, OFF(seed)},
+    {"--host", OPT_PORT, OFF(host_port)},
+    {"--join", OPT_PATH, OFF(join_url)},
     {"--help", OPT_FLAG, OFF(help)},
     {"--version", OPT_FLAG, OFF(version)},
 };
@@ -119,6 +122,15 @@ zb_result zb_options_parse(zb_options *o, int argc, char **argv, char *err, size
         }
         o->seed_set = true;
         break;
+      case OPT_PORT: {
+        int64_t v;
+        if (!parse_i64(value, &v) || v < 0 || v > 65535) {
+          snprintf(err, err_len, "invalid port '%s' (0-65535)", value);
+          return ZB_ERR_INVALID;
+        }
+        o->host_port = (int)v;
+        break;
+      }
       case OPT_FLAG: break;
     }
   }
@@ -139,6 +151,8 @@ const char *zb_options_usage(void) {
          "  --debug-views <n>     render 1 or 2 (side-by-side stereo) views\n"
          "  --lua-coverage <file> collect Lua line coverage into <file>\n"
          "  --seed <n>            world and script random seed\n"
+         "  --host <port>         host a co-op session on <port> (0 = any free port)\n"
+         "  --join <url>          join a co-op session, e.g. ws://192.168.1.5:7300\n"
          "  --version             print the version and exit\n"
          "  --help                print this help and exit\n";
 }

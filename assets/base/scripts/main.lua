@@ -11,12 +11,13 @@ local camera = require("flight.camera")
 local controls = require("flight.controls")
 local flight_hud = require("flight.hud")
 local spawn = require("flight.spawn")
+local coop = require("flight.coop")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true }
 local assets = {}
 
 local SHOWCASE_ACTIONS = { "turn", "look", "zoom", "spin", "chime", "credits", "fullscreen", "quit" }
-local WORLD = { move = world.move, height = world.height }
+local WORLD = { move = world.move, height = world.height, chunk_hash = world.chunk_hash }
 local SUN = { 0.45, 0.6, -0.66 }
 
 local function setup_flight()
@@ -25,6 +26,7 @@ local function setup_flight()
   pos.alt = math.max(world.height(pos), 0) + 60
   game.carpet = carpet.new(pos, 0)
   game.chase = camera.new()
+  game.coop = coop.new()
   game.last_frame_time = nil
   render.light({ direction = { -SUN[1], -SUN[2], -SUN[3] }, color = { 1, 0.95, 0.85 }, ambient = { 0.38, 0.4, 0.48 } })
   render.atmosphere({ zenith = { 0.2, 0.4, 0.78 }, horizon = { 0.72, 0.8, 0.88 }, sun = SUN,
@@ -94,10 +96,20 @@ end
 
 local function flight_tick(dt)
   local st = controls.read()
-  local c = game.carpet
-  carpet.update(c, controls.flight_input(st), dt, WORLD)
+  local co = game.coop
+  local c = coop.tick(co, game.carpet, controls.flight_input(st), dt, WORLD, net)
+  game.carpet = c
   camera.update(game.chase, st.look, dt, input.mode() ~= "touch")
   world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
+  -- The host streams around every heir (one focus each).
+  for p = 1, 3 do
+    local other = co.role == "host" and co.carpets[p]
+    if other then
+      world.set_focus(p + 1, other.pos, carpet.velocity(other), carpet.forward(other))
+    else
+      world.clear_focus(p + 1)
+    end
+  end
   -- The shared buttons keep their showcase meaning (chime, credits, fullscreen, quit).
   for _, name in ipairs({ "chime", "fullscreen", "quit" }) do
     if st[name] and st[name].pressed then
@@ -144,6 +156,11 @@ local function flight_frame()
     render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
   end
   render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
+  for _, other in pairs(game.coop.carpets) do
+    if other ~= c then
+      render.draw_model(assets.carpet, { position = world.to_local(other.pos), rotation = carpet.rotation(other) })
+    end
+  end
   draw_hud(flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info()))
 end
 
@@ -192,4 +209,6 @@ engine.on("event", function(name, args)
 end)
 
 -- Exposed for scenario tests.
-_G.demo = { game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls }
+_G.demo = {
+  game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
+}

@@ -11,3 +11,6 @@ __pycache__/
 /tests/web/test-results/
 luacov.stats.out
 luacov.report.out
+
+# Agent worktrees (local tooling)
+.claude/worktrees/

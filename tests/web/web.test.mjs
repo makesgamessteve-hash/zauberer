@@ -4,7 +4,10 @@
 // Environment:
 //   ZB_WEB_ST_DIR  build/web-st/bin (single-threaded build, page, loader, staged assets)
 //   ZB_WEB_MT_DIR  build/web/bin (threaded build; the isolation test is skipped without it)
+//   ZB_NATIVE_BIN  a native zauberer binary to host co-op sessions (default build/dev/bin;
+//                  the co-op test is skipped without one)
 import { test, before, after } from 'node:test';
+import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
@@ -22,6 +25,8 @@ const REPO = path.resolve(HERE, '..', '..');
 const ST_DIR = process.env.ZB_WEB_ST_DIR || path.join(REPO, 'build', 'web-st', 'bin');
 const MT_DIR = process.env.ZB_WEB_MT_DIR || path.join(REPO, 'build', 'web', 'bin');
 const HAS_MT = fs.existsSync(path.join(MT_DIR, 'zauberer.wasm'));
+const NATIVE_BIN = process.env.ZB_NATIVE_BIN || path.join(REPO, 'build', 'dev', 'bin', 'zauberer');
+const HAS_NATIVE = fs.existsSync(NATIVE_BIN) || fs.existsSync(`${NATIVE_BIN}.exe`);
 const LAUNCH = { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=user-gesture-required'] };
 
 let browser;
@@ -281,5 +286,34 @@ test('missing content shows a page message', async () => {
   } finally {
     await g.close();
     fs.rmSync(dist, { recursive: true, force: true });
+  }
+});
+
+// spec: netcode: Desktop host and browser client
+test('a browser client flies with a native host', { skip: !HAS_NATIVE && `no native build at ${NATIVE_BIN}` }, async () => {
+  const user = fs.mkdtempSync(path.join(os.tmpdir(), 'zb-host-'));
+  const host = spawn(NATIVE_BIN, ['--headless', '--assets', path.join(REPO, 'assets'), '--user-dir', user,
+    '--host', '0', '--scenario', 'tests/scenarios/coop_host.lua'], {
+    cwd: REPO, env: { ...process.env, ZB_NO_DIALOGS: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let hostOut = '';
+  host.stdout.on('data', (d) => { hostOut += d; });
+  host.stderr.on('data', (d) => { hostOut += d; });
+  const exited = new Promise((resolve) => host.on('exit', (code) => resolve(code)));
+  let g;
+  try {
+    const port = await waitFor(async () => (hostOut.match(/hosting a co-op session on port (\d+)/) || [])[1],
+      'the host to listen', 30000);
+    const args = encodeURIComponent(`--join ws://127.0.0.1:${port} --scenario tests/scenarios/coop_client.lua`);
+    g = await open({ query: `args=${args}&files=tests/scenarios/coop_client.lua` });
+    const line = await waitForLog(g, /scenario 'co-op client': (passed|\d+ failure)|FAILED/, 180000);
+    assert.match(line, /passed/, g.logs.join('\n'));
+    const code = await Promise.race([exited, new Promise((r) => setTimeout(() => r('timeout'), 60000))]);
+    assert.equal(code, 0, hostOut);
+    assert.match(hostOut, /scenario 'co-op host': passed/);
+  } finally {
+    if (host.exitCode === null) host.kill();
+    await g?.close();
+    fs.rmSync(user, { recursive: true, force: true });
   }
 });

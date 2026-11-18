@@ -34,6 +34,8 @@ const zb_fs_api *zb_platform_fs(zb_platform *p);
 const zb_thread_api *zb_platform_threads(zb_platform *p);
 unsigned zb_platform_cpu_count(zb_platform *p);
 uint64_t zb_platform_now_ns(zb_platform *p);
+/* Blocks the calling thread (not on the web's main thread, where it returns at once). */
+void zb_platform_sleep_ms(zb_platform *p, unsigned ms);
 /* Directory containing the executable (with trailing '/'), or "" on the web. */
 const char *zb_platform_base_path(zb_platform *p);
 /* Writes the per-user data directory into out and creates it. */

@@ -52,6 +52,21 @@
 ---@field color number[]? Light colour
 ---@field ambient number[]|number? Ambient colour
 
+---@class NetMessage
+---@field event string "data", "joined", "left", "welcome" or "ended"
+---@field player integer The sender (data) or the player concerned
+---@field channel string? Channel name (data)
+---@field value any? The value sent (data)
+
+---@class NetStatus
+---@field role string "none", "host", "joining" or "client"
+---@field player integer This game's player index (0 = host), -1 when not in a session
+---@field players integer[] Player indices in the session
+---@field error string Why the last session ended or failed ("" if it did not)
+---@field rtt_ms integer[] Last round trip per player in milliseconds
+---@field sent integer Bytes sent
+---@field received integer Bytes received
+
 ---@class PackageInfo
 ---@field id string Package id
 ---@field name string Display name
@@ -450,6 +465,12 @@ function save.set(key, value) end
 
 world = {}
 
+---Generates the position's chunk to a stage (default 1) and returns the hash of its data as 16 hex digits: peers compare it to check that they generate the same world.
+---@param pos PlanetPos
+---@param stage? integer
+---@return string
+function world.chunk_hash(pos, stage) end
+
 ---The chunk's stable 64-bit key.
 ---@param pos PlanetPos
 ---@return integer
@@ -563,6 +584,39 @@ function world.up_at(pos) end
 ---@return number
 function world.view_distance(near, far) end
 
+net = {}
+
+---Hosts a co-op session (desktop only); returns the port in use (port 0 or omitted picks a free one), or nil and why it failed.
+---@param port? integer
+---@return integer?
+---@return string?
+function net.host(port) end
+
+---Starts joining the session at a ws:// address; net.receive reports "welcome" or "ended".
+---@param url string
+---@return boolean
+---@return string?
+function net.join(url) end
+
+---Leaves the session (a host ends it for everyone).
+function net.leave() end
+
+---Messages and session events since the last call, in arrival order.
+---@return NetMessage[]
+function net.receive() end
+
+---Sends a value (nil, booleans, numbers, strings and tables of them) on a channel to a player, or to everyone when to is omitted (clients' messages travel through the host).
+---@param channel string
+---@param value any
+---@param to? integer
+---@return boolean
+---@return string?
+function net.send(channel, value, to) end
+
+---The session's state.
+---@return NetStatus
+function net.status() end
+
 test = {}
 
 ---Lua tests (--test): registers a test case.
@@ -628,6 +682,10 @@ function require(name) end
 ---Scenarios (--scenario): names the scenario in reports.
 ---@param info { name: string }
 function scenario(info) end
+
+---Scenarios: waits ms milliseconds of real time (for tests with several processes; the web build does not block).
+---@param ms integer
+function sleep(ms) end
 
 ---Scenarios: runs ticks simulation ticks (default 1) before continuing.
 ---@param ticks? integer

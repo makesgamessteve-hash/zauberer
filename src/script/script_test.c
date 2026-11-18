@@ -294,6 +294,20 @@ static int sc_step(lua_State *L) {
   return lua_yield(L, 1);
 }
 
+/* @lua sleep(ms: integer)
+ * Scenarios: waits ms milliseconds of real time (for tests with several processes; the web
+ * build does not block).
+ */
+static int sc_sleep(lua_State *L) {
+  zb_script *s = zb_script_from(L);
+  lua_Integer ms = luaL_checkinteger(L, 1);
+  luaL_argcheck(L, ms >= 0 && ms <= 10000, 1, "0-10000 milliseconds");
+  if (s->cfg.host.sleep_ms) {
+    s->cfg.host.sleep_ms(s->cfg.host.ctx, (unsigned)ms);
+  }
+  return 0;
+}
+
 static zb_result capture_into_registry(lua_State *L, bool internal) {
   zb_script *s = zb_script_from(L);
   zb_image img;
@@ -457,6 +471,7 @@ zb_result zb_script_scenario_start(zb_script *s, const char *path) {
   int env = lua_gettop(L);
   static const luaL_Reg fns[] = {{"scenario", sc_scenario},
                                  {"step", sc_step},
+                                 {"sleep", sc_sleep},
                                  {"expect", t_expect},
                                  {"expect_eq", t_expect_eq},
                                  {"expect_near", t_expect_near},

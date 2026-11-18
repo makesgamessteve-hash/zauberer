@@ -262,6 +262,10 @@ Stores a value (nested tables of plain values) in the save data.
 
 ## world: planet coordinates and terrain
 
+### `world.chunk_hash(pos: PlanetPos, stage?: integer): string`
+
+Generates the position's chunk to a stage (default 1) and returns the hash of its data as 16 hex digits: peers compare it to check that they generate the same world.
+
 ### `world.chunk_key(pos: PlanetPos): integer`
 
 The chunk's stable 64-bit key.
@@ -338,6 +342,32 @@ The local up direction at a position, in render coordinates (it tilts with the p
 
 Gets or sets the streaming rings: chunks get full detail within near metres and coarse detail within far metres (growing with altitude up to twice far).
 
+## net: co-op sessions
+
+### `net.host(port?: integer): integer?, string?`
+
+Hosts a co-op session (desktop only); returns the port in use (port 0 or omitted picks a free one), or nil and why it failed.
+
+### `net.join(url: string): boolean, string?`
+
+Starts joining the session at a ws:// address; net.receive reports "welcome" or "ended".
+
+### `net.leave()`
+
+Leaves the session (a host ends it for everyone).
+
+### `net.receive(): NetMessage[]`
+
+Messages and session events since the last call, in arrival order.
+
+### `net.send(channel: string, value: any, to?: integer): boolean, string?`
+
+Sends a value (nil, booleans, numbers, strings and tables of them) on a channel to a player, or to everyone when to is omitted (clients' messages travel through the host).
+
+### `net.status(): NetStatus`
+
+The session's state.
+
 ## test: Lua tests
 
 ### `test.case(name: string, fn: function)`
@@ -391,6 +421,10 @@ Loads scripts/<name with dots as slashes>.lua through the package overlay, once.
 ### `scenario(info: { name: string })`
 
 Scenarios (--scenario): names the scenario in reports.
+
+### `sleep(ms: integer)`
+
+Scenarios: waits ms milliseconds of real time (for tests with several processes; the web build does not block).
 
 ### `step(ticks?: integer)`
 
@@ -468,6 +502,27 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `direction` | `number[]?` | Direction the light travels |
 | `color` | `number[]?` | Light colour |
 | `ambient` | `number[] or number?` | Ambient colour |
+
+### NetMessage
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `event` | `string` | "data", "joined", "left", "welcome" or "ended" |
+| `player` | `integer` | The sender (data) or the player concerned |
+| `channel` | `string?` | Channel name (data) |
+| `value` | `any?` | The value sent (data) |
+
+### NetStatus
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `role` | `string` | "none", "host", "joining" or "client" |
+| `player` | `integer` | This game's player index (0 = host), -1 when not in a session |
+| `players` | `integer[]` | Player indices in the session |
+| `error` | `string` | Why the last session ended or failed ("" if it did not) |
+| `rtt_ms` | `integer[]` | Last round trip per player in milliseconds |
+| `sent` | `integer` | Bytes sent |
+| `received` | `integer` | Bytes received |
 
 ### PackageInfo
 

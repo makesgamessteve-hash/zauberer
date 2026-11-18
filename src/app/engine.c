@@ -133,6 +133,11 @@ static void audio_fill(void *user, float *out, int frames) { zb_audio_mix(user, 
 
 static uint64_t world_clock(void *ctx) { return zb_platform_now_ns(ctx); }
 
+static void host_sleep(void *ctx, unsigned ms) {
+  zb_engine *e = ctx;
+  zb_platform_sleep_ms(e->platform, ms);
+}
+
 static zb_gl_fn gl_loader(void *ctx, const char *name) { return (zb_gl_fn)zb_platform_gl_proc(ctx, name); }
 
 /* Reads "<tick> <16 hex digits>" lines of <replay>.hashes, if present. */
@@ -465,6 +470,35 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
     return ZB_HOST_FAILURE;
   }
 
+  /* Co-op session: the same world (seed) and package set on every peer. */
+  zb_net_config nc;
+  memset(&nc, 0, sizeof nc);
+  nc.a = a;
+  nc.world_seed = e->seed;
+  nc.package_hash = zb_vfs_package_set_hash(e->vfs);
+  nc.clock_ns = world_clock;
+  nc.clock_ctx = e->platform;
+  e->net = zb_net_create(&nc);
+  if (!e->net) {
+    return ZB_HOST_FAILURE;
+  }
+  if (opt.host_port >= 0 || opt.join_url) {
+    uint16_t bound = 0;
+    zb_transport *t = opt.join_url ? zb_ws_client_create(a, opt.join_url, err, sizeof err)
+                                   : zb_ws_server_create(a, (uint16_t)opt.host_port, &bound, err, sizeof err);
+    if (!t) {
+      fail(e, err);
+      return ZB_HOST_FAILURE;
+    }
+    if (opt.join_url) {
+      zb_net_join(e->net, t);
+      zb_info("joining %s", opt.join_url);
+    } else {
+      zb_net_host(e->net, t);
+      zb_info("hosting a co-op session on port %u", (unsigned)bound);
+    }
+  }
+
   /* Scripts. */
   zb_script_config sc;
   memset(&sc, 0, sizeof sc);
@@ -485,9 +519,11 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.host.set_fullscreen = host_fullscreen;
   sc.host.save_bindings = host_save_bindings;
   sc.host.set_window_size = host_window_size;
+  sc.host.sleep_ms = host_sleep;
   sc.host.user_data_changed = host_user_data_changed;
   sc.seed = e->seed;
   sc.world = e->world;
+  sc.net = e->net;
   sc.test_api = e->mode != ZB_MODE_GAME;
 #if defined(ZB_DEV)
   sc.dev = true;
@@ -549,6 +585,7 @@ static void tick(zb_engine *e) {
   }
   zb_audio_tick(e->audio, zb_loop_tick_seconds());
   e->ticks++;
+  zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
 }
@@ -735,6 +772,7 @@ void zb_engine_destroy(zb_engine *e) {
   }
   zb_script_destroy(e->script);
   zb_terrain_view_destroy(e->terrain_view);
+  zb_net_destroy(e->net);
   zb_world_destroy(e->world);
   zb_input_recorder_destroy(e->recorder);
   zb_input_replay_close(e->replay);

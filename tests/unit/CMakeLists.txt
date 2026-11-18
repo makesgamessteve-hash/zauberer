@@ -7,6 +7,7 @@ foreach(t base alloc array hash log math dmath jobs luon cli loop support keys m
   zb_add_unit_test(test_core_${t} SOURCES core/test_${t}.c LIBS zb_core)
 endforeach()
 zb_add_unit_test(test_vfs SOURCES vfs/test_vfs.c LIBS zb_vfs)
+zb_add_unit_test(test_net SOURCES net/test_net.c LIBS zb_net)
 zb_add_unit_test(test_world_planet SOURCES world/test_planet.c LIBS zb_world)
 zb_add_unit_test(test_world_terrain SOURCES world/test_terrain.c LIBS zb_world)
 zb_add_unit_test(test_world_stream SOURCES world/test_stream.c LIBS zb_world)

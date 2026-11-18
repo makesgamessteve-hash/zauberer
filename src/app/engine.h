@@ -32,6 +32,7 @@ typedef struct zb_engine {
   zb_script *script;
   zb_world *world;
   zb_terrain_view *terrain_view;
+  zb_net *net;
   zb_loop loop;
   bool headless;
   bool quit;

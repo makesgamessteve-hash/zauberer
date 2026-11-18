@@ -341,6 +341,28 @@ static int w_move(lua_State *L) {
   return 2;
 }
 
+/* @lua world.chunk_hash(pos: PlanetPos, stage?: integer): string
+ * Generates the position's chunk to a stage (default 1) and returns the hash of its data as
+ * 16 hex digits: peers compare it to check that they generate the same world.
+ */
+static int w_chunk_hash(lua_State *L) {
+  zb_planet_pos pos = check_pos(L, 1);
+  lua_Integer stage = luaL_optinteger(L, 2, ZB_STAGE_TERRAIN);
+  luaL_argcheck(L, stage >= ZB_STAGE_COARSE && stage <= ZB_STAGE_SURFACE, 2, "stage 0-2");
+  zb_script *s = zb_script_from(L);
+  zb_chunk_terrain ct;
+  zb_chunk_terrain_init(&ct, pos.chunk);
+  if (zb_terrain_generate(T(L), s->cfg.a, &ct, (int)stage) != ZB_OK) {
+    zb_chunk_terrain_release(s->cfg.a, &ct);
+    return luaL_error(L, "out of memory");
+  }
+  char hex[17];
+  zb_hash_hex(zb_chunk_terrain_hash(&ct), hex);
+  zb_chunk_terrain_release(s->cfg.a, &ct);
+  lua_pushstring(L, hex);
+  return 1;
+}
+
 /* @lua world.chunk_stage(pos: PlanetPos): integer
  * Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
  */
@@ -408,6 +430,7 @@ void zb_script_open_world(zb_script *s) {
                                        {"up_at", w_up_at},
                                        {"view_distance", w_view_distance},
                                        {"move", w_move},
+                                       {"chunk_hash", w_chunk_hash},
                                        {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, world_fns, 0);

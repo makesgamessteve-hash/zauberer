@@ -175,6 +175,16 @@ unsigned zb_platform_cpu_count(zb_platform *p) {
   return 1;
 }
 
+void zb_platform_sleep_ms(zb_platform *p, unsigned ms) {
+  (void)p;
+#ifdef __EMSCRIPTEN__
+  (void)ms;
+#else
+  struct timespec ts = {(time_t)(ms / 1000u), (long)(ms % 1000u) * 1000000L};
+  nanosleep(&ts, NULL);
+#endif
+}
+
 uint64_t zb_platform_now_ns(zb_platform *p) {
   (void)p;
 #ifdef __EMSCRIPTEN__

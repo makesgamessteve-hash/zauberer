@@ -19,8 +19,10 @@ typedef struct zb_options {
   const char *lua_coverage_path; /* --lua-coverage <file> */
   uint64_t seed;                 /* --seed <n> */
   bool seed_set;
-  bool help;    /* --help */
-  bool version; /* --version */
+  int host_port;        /* --host <port>; -1 = not hosting (0 = any free port) */
+  const char *join_url; /* --join <ws://host:port> */
+  bool help;            /* --help */
+  bool version;         /* --version */
 } zb_options;
 
 void zb_options_defaults(zb_options *o);

@@ -34,6 +34,11 @@ if(EMSCRIPTEN AND ZB_HEADLESS_ONLY)
     -sSTACK_SIZE=1048576 "SHELL:--pre-js ${PROJECT_SOURCE_DIR}/cmake/node-env.js")
 endif()
 
+if(EMSCRIPTEN)
+  # The network transport's WebSocket (browser and Node.js) for every executable.
+  add_link_options("SHELL:--js-library ${PROJECT_SOURCE_DIR}/web/lib_net.js")
+endif()
+
 if(EMSCRIPTEN AND ZB_WEB_THREADS AND NOT ZB_HEADLESS_ONLY)
   add_compile_options(-pthread)
   add_link_options(-pthread)
@@ -65,7 +70,8 @@ function(zb_target_defaults target)
   if(EMSCRIPTEN)
     # Relink when the JavaScript linked into the executables changes.
     set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS
-      "${PROJECT_SOURCE_DIR}/cmake/node-env.js" "${PROJECT_SOURCE_DIR}/web/lib_zauberer.js")
+      "${PROJECT_SOURCE_DIR}/cmake/node-env.js" "${PROJECT_SOURCE_DIR}/web/lib_zauberer.js"
+      "${PROJECT_SOURCE_DIR}/web/lib_net.js")
   endif()
 endfunction()
 

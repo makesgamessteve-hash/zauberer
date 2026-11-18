@@ -143,6 +143,27 @@ class ScenarioTests(EngineTestCase):
     def test_stream_focus_scenario(self):
         self.assert_ok(self.scenario("stream_focus"))
 
+    def test_two_processes_fly_together(self):
+        if os.environ.get("ZB_RUNNER"):
+            self.skipTest("the host needs native sockets; the browser client runs in tests/web")
+        host = self.start_engine("--headless", "--host", "0", "--scenario", "tests/scenarios/coop_host.lua")
+        port = None
+        lines = []
+        for line in host.stdout:
+            lines.append(line)
+            m = re.search(r"hosting a co-op session on port (\d+)", line)
+            if m:
+                port = m.group(1)
+                break
+        self.assertIsNotNone(port, "".join(lines))
+        client = self.run_engine("--headless", "--join", f"ws://127.0.0.1:{port}", "--scenario",
+                                 "tests/scenarios/coop_client.lua")
+        rest, _ = host.communicate(timeout=120)
+        host_out = "".join(lines) + rest
+        self.assert_ok(client)
+        self.assertEqual(host.returncode, 0, host_out)
+        self.assertIn("scenario 'co-op host': passed", host_out)
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 

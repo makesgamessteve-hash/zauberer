@@ -70,6 +70,12 @@ zb_script *zb_script_from(lua_State *L);
 void zb_script_open_api(zb_script *s);
 /* Registers world (planet coordinates). */
 void zb_script_open_world(zb_script *s);
+/* Registers net (co-op sessions). */
+void zb_script_open_net(zb_script *s);
+/* The network codec: encodes the value at idx into out (NULL or an error
+ * message), and pushes a decoded value (false on malformed data). */
+const char *zb_script_net_encode(lua_State *L, int idx, zb_array *out);
+bool zb_script_net_decode(lua_State *L, const void *data, size_t len);
 /* Adds the test helpers (test.*) and scenario helpers to the global table. */
 void zb_script_open_test_api(zb_script *s);
 /* Canonical hash of a Lua value (sorted keys, IEEE bit patterns). */

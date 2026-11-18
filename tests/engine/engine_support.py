@@ -55,6 +55,21 @@ class EngineTestCase(unittest.TestCase):
         for name in names:
             shutil.copytree(FIXTURE_MODS / name, target / name)
 
+    def start_engine(self, *args: str, user_dir: Path | None = None) -> subprocess.Popen:
+        """Starts the engine in the background (output on .stdout, line by line)."""
+        cmd = runner_prefix() + [str(self.bin), "--assets", str(ASSETS), "--user-dir", str(user_dir or self.user_dir)]
+        coverage = os.environ.get("ZB_LUA_COVERAGE")
+        if coverage:
+            cmd += ["--lua-coverage", coverage]
+        cmd += list(args)
+        env = dict(os.environ)
+        env.setdefault("ZB_NO_DIALOGS", "1")
+        env.pop("ZB_TOUCH_PRIMARY", None)
+        proc = subprocess.Popen(cmd, cwd=str(SOURCE_DIR), env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True)
+        self.addCleanup(lambda: proc.poll() is None and proc.kill())
+        return proc
+
     def run_engine(self, *args: str, assets: Path | None = ASSETS, user_dir: Path | None = None,
                    env: dict[str, str] | None = None, binary: Path | None = None,
                    cwd: Path | None = None, timeout: float = 300) -> subprocess.CompletedProcess:

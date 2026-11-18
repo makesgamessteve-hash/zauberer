@@ -1368,4 +1368,5 @@ void zb_script_open_api(zb_script *s) {
   static const luaL_Reg save_fns[] = {{"get", s_get}, {"set", s_set}, {"flush", s_flush}, {NULL, NULL}};
   reg(L, "save", save_fns);
   zb_script_open_world(s);
+  zb_script_open_net(s);
 }

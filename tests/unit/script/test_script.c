@@ -1,8 +1,11 @@
 /* SPDX-License-Identifier: MIT */
 #include "core/log.h"
 #include "core/memfs.h"
+#include "net/session.h"
+#include "net/socket.h"
 #include "script/script_internal.h"
 #include "support/test_support.h"
+#include "support/test_threads.h"
 #include "unity.h"
 
 #include <stdio.h>
@@ -1121,6 +1124,233 @@ static void test_create_out_of_memory(void) {
   zb_script_destroy(NULL);
 }
 
+/* ---- net --------------------------------------------------------------------------- */
+
+/* Encodes the global `v`, decodes it into the global `back`. */
+static bool codec_round_trip(void) {
+  zb_array buf;
+  zb_array_init(&buf, zb_test_alloc(), 1);
+  lua_getglobal(LS(), "v");
+  const char *err = zb_script_net_encode(LS(), -1, &buf);
+  lua_pop(LS(), 1);
+  bool ok = !err && zb_script_net_decode(LS(), buf.data, buf.len);
+  if (ok) {
+    lua_setglobal(LS(), "back");
+  }
+  zb_array_free(&buf);
+  return ok;
+}
+
+static bool decodes(const void *data, size_t len) {
+  int top = lua_gettop(LS());
+  bool ok = zb_script_net_decode(LS(), data, len);
+  lua_settop(LS(), top);
+  return ok;
+}
+
+static const char *encode_error(const char *expr) {
+  char code[256];
+  snprintf(code, sizeof code, "v = %s", expr);
+  exec(code);
+  zb_array buf;
+  zb_array_init(&buf, zb_test_alloc(), 1);
+  lua_getglobal(LS(), "v");
+  const char *err = zb_script_net_encode(LS(), -1, &buf);
+  lua_pop(LS(), 1);
+  zb_array_free(&buf);
+  return err ? err : "";
+}
+
+/* spec: netcode: Values on channels */
+static void test_net_codec(void) {
+  package("assets/base", "base", NULL, "");
+  start();
+  exec(
+      "v = { 1, 2.5, -7, 'text', true, false, nested = { deep = { 'x' }, [3.25] = 'f', [true] = 1 },"
+      " big = math.maxinteger, small = math.mininteger, empty = {}, nan = 0/0, inf = 1/0 }");
+  TEST_ASSERT_TRUE(codec_round_trip());
+  exec(
+      "ok = back[1] == 1 and math.type(back[1]) == 'integer' and back[2] == 2.5 and back[3] == -7"
+      " and back[4] == 'text' and back[5] == true and back[6] == false and back.nested.deep[1] == 'x'"
+      " and back.nested[3.25] == 'f' and back.nested[true] == 1 and back.big == math.maxinteger"
+      " and back.small == math.mininteger and next(back.empty) == nil and back.nan ~= back.nan"
+      " and back.inf == 1/0");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  exec("v = nil");
+  TEST_ASSERT_TRUE(codec_round_trip());
+  exec("v = string.rep('z', 1000)");
+  TEST_ASSERT_TRUE(codec_round_trip());
+  TEST_ASSERT_EQUAL_STRING("only nil, booleans, numbers, strings and tables can be sent", encode_error("print"));
+  TEST_ASSERT_EQUAL_STRING("table keys must be strings, numbers or booleans", encode_error("{ [{}] = 1 }"));
+  TEST_ASSERT_EQUAL_STRING("tables nested too deeply",
+                           encode_error("(function() local t = {} for _ = 1, 20 do t = { t } end return t end)()"));
+  TEST_ASSERT_EQUAL_STRING("message too large", encode_error("string.rep('x', 300000)"));
+  TEST_ASSERT_EQUAL_STRING("message too large", encode_error("{ string.rep('x', 262140) }"));
+  TEST_ASSERT_EQUAL_STRING("message too large", encode_error("{ string.rep('x', 262114), {} }"));
+  /* Malformed input never decodes. */
+  static const uint8_t empty[1] = {0};
+  static const uint8_t bad_tag[] = {99};
+  static const uint8_t short_int[] = {3, 1, 2};
+  static const uint8_t short_float[] = {4, 1};
+  static const uint8_t short_string[] = {5, 9, 0, 0, 0, 'a'};
+  static const uint8_t short_len[] = {5, 1};
+  static const uint8_t huge_table[] = {6, 255, 255, 255, 255};
+  static const uint8_t nil_key[] = {6, 1, 0, 0, 0, 0, 1};
+  static const uint8_t table_key[] = {6, 1, 0, 0, 0, 6, 0, 0, 0, 0, 1};
+  static const uint8_t nan_key[] = {6, 1, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0xF8, 0x7F, 1};
+  static const uint8_t short_value[] = {6, 1, 0, 0, 0, 1};
+  static const uint8_t short_key[] = {6, 1, 0, 0, 0};
+  static const uint8_t trailing[] = {1, 1};
+  static const uint8_t ok_table[] = {6, 1, 0, 0, 0, 2, 3, 5, 0, 0, 0, 0, 0, 0, 0};
+  TEST_ASSERT_FALSE(decodes(empty, 0));
+  TEST_ASSERT_FALSE(decodes(bad_tag, sizeof bad_tag));
+  TEST_ASSERT_FALSE(decodes(short_int, sizeof short_int));
+  TEST_ASSERT_FALSE(decodes(short_float, sizeof short_float));
+  TEST_ASSERT_FALSE(decodes(short_string, sizeof short_string));
+  TEST_ASSERT_FALSE(decodes(short_len, sizeof short_len));
+  TEST_ASSERT_FALSE(decodes(huge_table, sizeof huge_table));
+  TEST_ASSERT_FALSE(decodes(nil_key, sizeof nil_key));
+  TEST_ASSERT_FALSE(decodes(table_key, sizeof table_key));
+  TEST_ASSERT_FALSE(decodes(nan_key, sizeof nan_key));
+  TEST_ASSERT_FALSE(decodes(short_value, sizeof short_value));
+  TEST_ASSERT_FALSE(decodes(short_key, sizeof short_key));
+  TEST_ASSERT_FALSE(decodes(trailing, sizeof trailing));
+  TEST_ASSERT_TRUE(decodes(ok_table, sizeof ok_table));
+  uint8_t deep[40];
+  for (size_t i = 0; i < sizeof deep; i += 5) {
+    const uint8_t level[] = {6, 1, 0, 0, 0}; /* { [{...}] ... } never finishes: depth limit first */
+    memcpy(deep + i, level, 5);
+  }
+  TEST_ASSERT_FALSE(decodes(deep, sizeof deep));
+}
+
+static void test_net_unavailable(void) {
+  package("assets/base", "base", NULL, "");
+  start();
+  exec(
+      "p, perr = net.host(0); j, jerr = net.join('ws://127.0.0.1:1'); s, serr = net.send('c', 1);"
+      " st = net.status(); n = #net.receive(); net.leave()");
+  TEST_ASSERT_EQUAL_STRING("networking is not available", gstr("perr"));
+  TEST_ASSERT_EQUAL_STRING("networking is not available", gstr("jerr"));
+  TEST_ASSERT_EQUAL_STRING("networking is not available", gstr("serr"));
+  exec("ok = st.role == 'none' and st.player == -1 and #st.players == 0 and n == 0");
+  TEST_ASSERT_TRUE(gbool("ok"));
+}
+
+static zb_net *test_net_create(void) {
+  zb_net_config nc;
+  memset(&nc, 0, sizeof nc);
+  nc.a = zb_test_alloc();
+  nc.world_seed = 3;
+  return zb_net_create(&nc);
+}
+
+/* spec: netcode: Scripts host and join */
+static void test_net_api(void) {
+  package("assets/base", "base", NULL, "");
+  configure();
+  zb_net *host = test_net_create();
+  F.cfg.net = host;
+  start_with(&F.cfg);
+  exec("j, jerr = net.join('http://nowhere')");
+  TEST_ASSERT_EQUAL_STRING("not a ws:// address: http://nowhere", gstr("jerr"));
+  exec("ok, err = pcall(net.host, 70000)");
+  TEST_ASSERT_FALSE(gbool("ok"));
+  if (!zb_sock_supported()) {
+    exec("p, perr = net.host(0)");
+    TEST_ASSERT_EQUAL_INT(0, (int)gnum("p"));
+    stop();
+    zb_net_destroy(host);
+    TEST_IGNORE_MESSAGE("no sockets in this build");
+  }
+  exec("port = net.host(0)");
+  int port = (int)gnum("port");
+  TEST_ASSERT_TRUE(port > 0);
+  char again[64];
+  snprintf(again, sizeof again, "p2, perr = net.host(%d)", port);
+  exec(again);
+  TEST_ASSERT_EQUAL_INT(0, (int)gnum("p2"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("perr"), "cannot listen"));
+  char url[64], err[128];
+  snprintf(url, sizeof url, "ws://127.0.0.1:%d", port);
+  zb_net *client = test_net_create();
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_net_join(client, zb_ws_client_create(zb_test_alloc(), url, err, sizeof err)));
+  for (int i = 0; i < 3000 && zb_net_role_of(client) != ZB_NET_CLIENT; ++i) {
+    zb_net_update(host);
+    zb_net_update(client);
+    zb_test_sleep_ms(1);
+  }
+  TEST_ASSERT_EQUAL_INT(ZB_NET_CLIENT, zb_net_role_of(client));
+  exec("msgs = net.receive(); st = net.status()");
+  exec(
+      "ok = msgs[1].event == 'joined' and msgs[1].player == 1 and st.role == 'host' and st.player == 0"
+      " and #st.players == 2 and st.players[2] == 1 and st.error == '' and #st.rtt_ms == 4");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  /* Host to client: a table arrives intact. */
+  exec("sent = net.send('hello', { a = 1, b = { 2.5, 'x' } }, 1)");
+  TEST_ASSERT_TRUE(gbool("sent"));
+  exec("bad, why = net.send('hello', print)");
+  TEST_ASSERT_EQUAL_STRING("only nil, booleans, numbers, strings and tables can be sent", gstr("why"));
+  exec("nobody, why = net.send('hello', 1, 3)");
+  TEST_ASSERT_EQUAL_STRING(zb_result_str(ZB_ERR_NOT_FOUND), gstr("why"));
+  zb_net_event ev;
+  bool got = false;
+  for (int i = 0; i < 3000 && !got; ++i) {
+    zb_net_update(host);
+    zb_net_update(client);
+    while (zb_net_next(client, &ev)) {
+      if (ev.kind == ZB_NET_EV_DATA) {
+        TEST_ASSERT_EQUAL_STRING("hello", ev.channel);
+        TEST_ASSERT_TRUE(zb_script_net_decode(LS(), ev.data, ev.len));
+        lua_setglobal(LS(), "arrived");
+        got = true;
+      }
+    }
+    zb_test_sleep_ms(1);
+  }
+  TEST_ASSERT_TRUE(got);
+  exec("ok = arrived.a == 1 and arrived.b[1] == 2.5 and arrived.b[2] == 'x'");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  /* Client to host: a malformed value arrives without a value. */
+  static const uint8_t junk[] = {99};
+  zb_net_send(client, 0, "junk", junk, sizeof junk);
+  for (int i = 0; i < 3000; ++i) {
+    zb_net_update(client);
+    zb_net_update(host);
+    exec("msgs = net.receive(); if #msgs > 0 then got_junk = msgs[1] end");
+    if (gbool("got_junk")) {
+      break;
+    }
+    zb_test_sleep_ms(1);
+  }
+  exec(
+      "ok = got_junk.event == 'data' and got_junk.channel == 'junk' and got_junk.player == 1"
+      " and got_junk.value == nil");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  exec("net.leave(); st = net.status()");
+  exec("ok = st.role == 'none' and st.sent > 0 and st.received > 0");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  /* Joining from a script: a host in C, the script as its client. */
+  zb_net *other = test_net_create();
+  uint16_t other_port = 0;
+  TEST_ASSERT_EQUAL_INT(ZB_OK,
+                        zb_net_host(other, zb_ws_server_create(zb_test_alloc(), 0, &other_port, err, sizeof err)));
+  snprintf(url, sizeof url, "joined = net.join('ws://127.0.0.1:%u')", (unsigned)other_port);
+  exec(url);
+  TEST_ASSERT_TRUE(gbool("joined"));
+  for (int i = 0; i < 3000 && zb_net_role_of(host) != ZB_NET_CLIENT; ++i) {
+    zb_net_update(other);
+    zb_net_update(host);
+    zb_test_sleep_ms(1);
+  }
+  exec("st = net.status(); ok = st.role == 'client' and st.player == 1");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  zb_net_destroy(other);
+  zb_net_destroy(client);
+  stop();
+  zb_net_destroy(host);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_entry_scripts_and_require);
@@ -1151,5 +1381,8 @@ int main(void) {
   RUN_TEST(test_coverage);
   RUN_TEST(test_error_ring);
   RUN_TEST(test_create_out_of_memory);
+  RUN_TEST(test_net_codec);
+  RUN_TEST(test_net_unavailable);
+  RUN_TEST(test_net_api);
   return UNITY_END();
 }

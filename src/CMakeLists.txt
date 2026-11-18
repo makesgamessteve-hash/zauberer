@@ -17,12 +17,16 @@ endfunction()
 
 zb_module(zb_core SOURCES
   core/alloc.c core/array.c core/base.c core/cli.c core/hash.c core/jobs.c core/keys.c
-  core/dmath.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c)
+  core/dmath.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c core/sha1.c)
 if(UNIX)
   target_link_libraries(zb_core PUBLIC m)
 endif()
 
 zb_module(zb_vfs SOURCES vfs/vfs.c DEPS zb_core)
+zb_module(zb_net SOURCES net/session.c net/socket.c net/transport.c net/ws.c DEPS zb_core)
+if(WIN32)
+  target_link_libraries(zb_net PUBLIC ws2_32)
+endif()
 zb_module(zb_world SOURCES world/noise.c world/planet.c world/stream.c world/terrain.c world/world.c
   DEPS zb_core)
 zb_module(zb_input SOURCES input/input.c DEPS zb_core)
@@ -33,8 +37,8 @@ target_include_directories(zb_render SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/third
 zb_module(zb_audio SOURCES audio/audio.c DEPS zb_core zb_vfs PRIVATE_DEPS zb_thirdparty_impl)
 target_include_directories(zb_audio SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/third_party/stb")
 zb_module(zb_script SOURCES script/script.c script/script_api.c script/script_test.c
-  script/script_world.c
-  DEPS zb_core zb_vfs zb_input zb_render zb_audio zb_world zb_lua)
+  script/script_world.c script/script_net.c
+  DEPS zb_core zb_vfs zb_input zb_render zb_audio zb_world zb_net zb_lua)
 
 if(ZB_HEADLESS_ONLY)
   zb_module(zb_platform SOURCES platform/platform_headless.c DEPS zb_core)
