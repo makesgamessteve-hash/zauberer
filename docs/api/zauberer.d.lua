@@ -91,6 +91,19 @@
 ---@field frames integer Frames rendered so far
 ---@field backend string "gl" or "null"
 
+---@class StreamStats
+---@field stage0 integer Loaded chunks at stage 0 (coarse)
+---@field stage1 integer Loaded chunks at stage 1 (heightfield)
+---@field stage2 integer Loaded chunks at stage 2 (surface)
+---@field wanted integer Chunks inside the rings
+---@field cached integer Loaded chunks outside the rings
+---@field bytes integer Chunk memory
+---@field jobs integer Generation jobs in flight
+---@field queued integer Chunks waiting for a job
+---@field generated integer Chunks generated so far
+---@field evicted integer Chunks evicted so far
+---@field cancelled integer Jobs cancelled so far
+
 ---@class Transform
 ---@field position number[]? Translation {x, y, z}
 ---@field rotation number[]? Euler angles in degrees (applied Y, X, Z)
@@ -419,6 +432,15 @@ world = {}
 ---@return integer
 function world.chunk_key(pos) end
 
+---Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
+---@param pos PlanetPos
+---@return integer
+function world.chunk_stage(pos) end
+
+---Removes a focus point; its chunks are released as memory requires.
+---@param index integer
+function world.clear_focus(index) end
+
 ---Great-circle distance at sea level in metres.
 ---@param a PlanetPos
 ---@param b PlanetPos
@@ -431,6 +453,11 @@ function world.distance(a, b) end
 ---@param z number
 ---@return PlanetPos
 function world.from_cartesian(x, y, z) end
+
+---Ground height in metres above sea level from the loaded heightfield (the analytic terrain where the chunk is not loaded at stage 1 or more).
+---@param pos PlanetPos
+---@return number
+function world.ground_height(pos) end
 
 ---Terrain height above sea level in metres at the position (the analytic terrain, within 0.5 m of the generated heightfield).
 ---@param pos PlanetPos
@@ -455,6 +482,17 @@ function world.planet() end
 ---@param alt? number
 ---@return PlanetPos
 function world.position(face, x, y, lx, ly, alt) end
+
+---Streams terrain around a focus point (1..4, one per player camera). velocity (m/s) and view are {x, y, z} in the local frame at pos (x east, y up, z south).
+---@param index integer
+---@param pos PlanetPos
+---@param velocity? number[]
+---@param view? number[]
+function world.set_focus(index, pos, velocity, view) end
+
+---Chunk streaming statistics.
+---@return StreamStats
+function world.stream_stats() end
 
 ---Surface material at the position: "soil", "sand", "rock", "gravel", "snow", "ice" or "mud".
 ---@param pos PlanetPos

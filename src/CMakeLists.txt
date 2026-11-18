@@ -23,7 +23,8 @@ if(UNIX)
 endif()
 
 zb_module(zb_vfs SOURCES vfs/vfs.c DEPS zb_core)
-zb_module(zb_world SOURCES world/noise.c world/planet.c world/terrain.c DEPS zb_core)
+zb_module(zb_world SOURCES world/noise.c world/planet.c world/stream.c world/terrain.c world/world.c
+  DEPS zb_core)
 zb_module(zb_input SOURCES input/input.c DEPS zb_core)
 zb_module(zb_render SOURCES render/render.c render/image.c render/mesh.c render/backend_null.c
   render/backend_gl.c DEPS zb_core zb_vfs PRIVATE_DEPS zb_thirdparty_impl)

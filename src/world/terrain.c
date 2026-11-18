@@ -162,6 +162,34 @@ void zb_chunk_terrain_release(const zb_allocator *a, zb_chunk_terrain *ct) {
   zb_chunk_terrain_init(ct, ct->chunk);
 }
 
+static void update_range(zb_chunk_terrain *ct, const float *v, int n);
+
+static void coarse_range(zb_chunk_terrain *ct) {
+  ct->min_height = ct->max_height = ct->macro[MACRO_RES + 1];
+  for (int y = 0; y < ZB_COARSE_RES; ++y) {
+    update_range(ct, &ct->macro[(y + 1) * MACRO_RES + 1], ZB_COARSE_RES);
+  }
+}
+
+void zb_chunk_terrain_trim(const zb_allocator *a, zb_chunk_terrain *ct, int stage) {
+  if (stage < ZB_STAGE_COARSE) {
+    zb_chunk_terrain_release(a, ct);
+    return;
+  }
+  if (stage < ZB_STAGE_SURFACE && ct->material) {
+    zb_free(a, ct->material);
+    ct->material = NULL;
+  }
+  if (stage < ZB_STAGE_TERRAIN && ct->height) {
+    zb_free(a, ct->height);
+    ct->height = NULL;
+    coarse_range(ct);
+  }
+  if (ct->stage > stage) {
+    ct->stage = stage;
+  }
+}
+
 size_t zb_chunk_terrain_bytes(const zb_chunk_terrain *ct) {
   size_t n = sizeof *ct;
   if (ct->height) {
@@ -234,10 +262,9 @@ static void generate_coarse(const zb_terrain *t, zb_chunk_terrain *ct) {
   zb_planet_chunk_size(&t->planet, ct->chunk, &w, &h);
   double sx = 2.0 * COARSE_STEP * w / ZB_CHUNK_SIZE, sy = 2.0 * COARSE_STEP * h / ZB_CHUNK_SIZE;
   double sin_lat = zb_planet_chunk_dir(&t->planet, ct->chunk).z;
-  ct->min_height = ct->max_height = ct->macro[MACRO_RES + 1];
+  coarse_range(ct);
   for (int y = 0; y < ZB_COARSE_RES; ++y) {
     const float *row = &ct->macro[(y + 1) * MACRO_RES + 1];
-    update_range(ct, row, ZB_COARSE_RES);
     for (int x = 0; x < ZB_COARSE_RES; ++x) {
       double gx = (row[x + 1] - row[x - 1]) / sx;
       double gy = (row[x + MACRO_RES] - row[x - MACRO_RES]) / sy;

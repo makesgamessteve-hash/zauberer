@@ -644,19 +644,26 @@ size_t zb_script_poll_reload(zb_script *s, uint64_t now_ns) {
 /* ---- Lifecycle ------------------------------------------------------------------ */
 
 zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_len) {
-  zb_planet planet;
-  if (!zb_planet_init(&planet, cfg->planet_radius > 0.0 ? cfg->planet_radius : ZB_PLANET_DEFAULT_RADIUS, err,
-                      err_len)) {
-    return NULL;
+  zb_world *world = cfg->world;
+  if (!world) {
+    /* Unit tests and tools: a private world that generates inline. */
+    zb_world_desc wd = {cfg->a, NULL, cfg->planet_radius, cfg->seed, ZB_STREAM_DESKTOP, NULL, NULL};
+    world = zb_world_create(&wd, err, err_len);
+    if (!world) {
+      return NULL;
+    }
   }
   zb_script *s = zb_calloc(cfg->a, sizeof(*s));
   if (!s) {
     snprintf(err, err_len, "out of memory");
+    if (!cfg->world) {
+      zb_world_destroy(world);
+    }
     return NULL;
   }
   s->cfg = *cfg;
-  s->planet = planet;
-  zb_terrain_init(&s->terrain, &s->planet, cfg->seed, NULL);
+  s->world = world;
+  s->own_world = cfg->world == NULL;
   s->current_pkg = -1;
   s->co_ref = LUA_NOREF;
   s->rng = zb_rng_make(cfg->seed, 0x72616e64);
@@ -798,6 +805,9 @@ void zb_script_destroy(zb_script *s) {
   zb_map_free(&s->cov_index);
   zb_free(s->cfg.a, s->env_refs);
   zb_free(s->cfg.a, s->pkg_failed);
+  if (s->own_world) {
+    zb_world_destroy(s->world);
+  }
   zb_free(s->cfg.a, s);
 }
 

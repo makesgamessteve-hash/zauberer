@@ -258,6 +258,14 @@ Stores a value (nested tables of plain values) in the save data.
 
 The chunk's stable 64-bit key.
 
+### `world.chunk_stage(pos: PlanetPos): integer`
+
+Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
+
+### `world.clear_focus(index: integer)`
+
+Removes a focus point; its chunks are released as memory requires.
+
 ### `world.distance(a: PlanetPos, b: PlanetPos): number`
 
 Great-circle distance at sea level in metres.
@@ -265,6 +273,10 @@ Great-circle distance at sea level in metres.
 ### `world.from_cartesian(x: number, y: number, z: number): PlanetPos`
 
 The position of planet-centred coordinates in metres.
+
+### `world.ground_height(pos: PlanetPos): number`
+
+Ground height in metres above sea level from the loaded heightfield (the analytic terrain where the chunk is not loaded at stage 1 or more).
 
 ### `world.height(pos: PlanetPos): number`
 
@@ -281,6 +293,14 @@ Describes the planet.
 ### `world.position(face: integer, x: integer, y: integer, lx?: number, ly?: number, alt?: number): PlanetPos`
 
 Makes a position; the offsets default to 0. Errors when the chunk is not on the planet.
+
+### `world.set_focus(index: integer, pos: PlanetPos, velocity?: number[], view?: number[])`
+
+Streams terrain around a focus point (1..4, one per player camera). velocity (m/s) and view are {x, y, z} in the local frame at pos (x east, y up, z south).
+
+### `world.stream_stats(): StreamStats`
+
+Chunk streaming statistics.
 
 ### `world.surface(pos: PlanetPos): string`
 
@@ -471,6 +491,22 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `culled` | `integer` | Items culled by the view frustum |
 | `frames` | `integer` | Frames rendered so far |
 | `backend` | `string` | "gl" or "null" |
+
+### StreamStats
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `stage0` | `integer` | Loaded chunks at stage 0 (coarse) |
+| `stage1` | `integer` | Loaded chunks at stage 1 (heightfield) |
+| `stage2` | `integer` | Loaded chunks at stage 2 (surface) |
+| `wanted` | `integer` | Chunks inside the rings |
+| `cached` | `integer` | Loaded chunks outside the rings |
+| `bytes` | `integer` | Chunk memory |
+| `jobs` | `integer` | Generation jobs in flight |
+| `queued` | `integer` | Chunks waiting for a job |
+| `generated` | `integer` | Chunks generated so far |
+| `evicted` | `integer` | Chunks evicted so far |
+| `cancelled` | `integer` | Jobs cancelled so far |
 
 ### Transform
 

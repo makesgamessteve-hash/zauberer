@@ -140,6 +140,9 @@ class ScenarioTests(EngineTestCase):
     def test_input_scenario(self):
         self.assert_ok(self.scenario("input"))
 
+    def test_stream_focus_scenario(self):
+        self.assert_ok(self.scenario("stream_focus"))
+
     # spec: game-loop: Paused game keeps rendering
     def test_pause_scenario(self):
         self.assert_ok(self.scenario("pause"))

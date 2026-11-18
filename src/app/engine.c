@@ -130,6 +130,8 @@ static void load_user_config(zb_engine *e) {
 
 static void audio_fill(void *user, float *out, int frames) { zb_audio_mix(user, out, frames); }
 
+static uint64_t world_clock(void *ctx) { return zb_platform_now_ns(ctx); }
+
 static zb_gl_fn gl_loader(void *ctx, const char *name) { return (zb_gl_fn)zb_platform_gl_proc(ctx, name); }
 
 /* Reads "<tick> <16 hex digits>" lines of <replay>.hashes, if present. */
@@ -439,6 +441,25 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
     return ZB_HOST_FAILURE;
   }
 
+  /* World: planet, terrain and chunk streaming around the scripts' focus points. */
+  zb_world_desc wd;
+  memset(&wd, 0, sizeof wd);
+  wd.a = a;
+  wd.jobs = e->jobs;
+  wd.seed = e->seed;
+#ifdef __EMSCRIPTEN__
+  wd.profile = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? ZB_STREAM_MOBILE : ZB_STREAM_WEB;
+#else
+  wd.profile = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? ZB_STREAM_MOBILE : ZB_STREAM_DESKTOP;
+#endif
+  wd.clock_ns = world_clock;
+  wd.clock_ctx = e->platform;
+  e->world = zb_world_create(&wd, err, sizeof err);
+  if (!e->world) {
+    fail(e, err);
+    return ZB_HOST_FAILURE;
+  }
+
   /* Scripts. */
   zb_script_config sc;
   memset(&sc, 0, sizeof sc);
@@ -461,6 +482,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.host.set_window_size = host_window_size;
   sc.host.user_data_changed = host_user_data_changed;
   sc.seed = e->seed;
+  sc.world = e->world;
   sc.test_api = e->mode != ZB_MODE_GAME;
 #if defined(ZB_DEV)
   sc.dev = true;
@@ -540,6 +562,7 @@ static void step(zb_engine *e) {
 }
 
 static void frame(zb_engine *e, double alpha) {
+  zb_world_update(e->world);
   zb_render_begin(e->render, e->drawable_w, e->drawable_h);
   zb_script_frame(e->script, alpha);
 #ifdef ZB_DEV
@@ -683,6 +706,7 @@ void zb_engine_destroy(zb_engine *e) {
     }
   }
   zb_script_destroy(e->script);
+  zb_world_destroy(e->world);
   zb_input_recorder_destroy(e->recorder);
   zb_input_replay_close(e->replay);
   zb_free(e->a, e->replay_data);

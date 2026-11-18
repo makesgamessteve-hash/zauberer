@@ -29,6 +29,7 @@ typedef struct zb_engine {
   zb_render *render;
   zb_audio *audio;
   zb_script *script;
+  zb_world *world;
   zb_loop loop;
   bool headless;
   bool quit;

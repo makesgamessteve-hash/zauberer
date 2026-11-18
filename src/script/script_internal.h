@@ -6,8 +6,7 @@
 #include "core/array.h"
 #include "core/hash.h"
 #include "script/script.h"
-#include "world/planet.h"
-#include "world/terrain.h"
+#include "world/world.h"
 
 #include "lauxlib.h"
 #include "lua.h"
@@ -35,8 +34,8 @@ struct zb_script {
   zb_script_config cfg;
   lua_State *L;
   zb_rng rng;
-  zb_planet planet;
-  zb_terrain terrain; /* world seed = cfg.seed */
+  zb_world *world; /* the engine's, or a private one (own_world) */
+  bool own_world;
   size_t pkg_count;
   int *env_refs;
   bool *pkg_failed;

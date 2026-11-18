@@ -72,6 +72,8 @@ void zb_chunk_terrain_init(zb_chunk_terrain *ct, zb_chunk c);
 /* Advances the chunk to the stage (running the earlier stages first).
  * Thread-safe for different chunks: the terrain is read-only. */
 zb_result zb_terrain_generate(const zb_terrain *t, const zb_allocator *a, zb_chunk_terrain *ct, int stage);
+/* Drops the data above a stage (stage 0 keeps the coarse grid). */
+void zb_chunk_terrain_trim(const zb_allocator *a, zb_chunk_terrain *ct, int stage);
 /* Frees the stage 1 and 2 arrays and resets the chunk to no stage. */
 void zb_chunk_terrain_release(const zb_allocator *a, zb_chunk_terrain *ct);
 /* Heap and inline bytes held by the chunk at its current stage. */
