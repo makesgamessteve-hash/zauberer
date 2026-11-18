@@ -13,6 +13,8 @@ local pack = require("player.pack")
 
 local bag = {}
 
+local NEED = { food = 1, water = 2, material = 3, herb = 4 }
+
 bag.FOLDS = 12           -- folds at the start
 bag.STACK = 50           -- items of one kind a fold holds
 bag.SLOW = 0.1           -- time in the bag (and the vault) passes at this rate
@@ -136,6 +138,50 @@ function bag.from_vault(b, id, count)
   return n
 end
 
+-- In the vault: everything carried (the pack and the folds) onto the shelves;
+-- returns { id = count }.
+function bag.shelve_all(b, p)
+  local moved = {}
+  for _, stacks in ipairs({ p.stacks, b.stacks }) do
+    local ids = {}
+    for id in pairs(stacks) do ids[#ids + 1] = id end
+    for _, id in ipairs(ids) do
+      local n, load = remove(stacks, id, stacks[id].count)
+      add(b.vault, id, n, load)
+      moved[id] = (moved[id] or 0) + n
+    end
+  end
+  return moved
+end
+
+-- In the vault: the road's needs off the shelves into the pack, as far as
+-- it carries (food and drink first), freely; returns { id = count }.
+function bag.take_from_shelves(b, p)
+  local list = {}
+  for id, st in pairs(b.vault) do
+    local it = items.get(id)
+    local rank = NEED[it.kind] or 5
+    if it.kind == "material" and not it.fuel then rank = 5 end
+    list[#list + 1] = { id = id, rank = rank, load = st.load }
+  end
+  table.sort(list, function(x, y)
+    if x.rank ~= y.rank then return x.rank < y.rank end
+    if x.load ~= y.load then return x.load < y.load end
+    return x.id < y.id
+  end)
+  local moved = {}
+  for _, e in ipairs(list) do
+    local room = math.max(math.floor((pack.CARRY - pack.weight(p)) / items.get(e.id).weight + 1e-9), 0)
+    local n = math.min(b.vault[e.id].count, room)
+    if n > 0 and e.rank < 5 then
+      local _, load = remove(b.vault, e.id, n)
+      pack.add(p, e.id, n, load)
+      moved[e.id] = n
+    end
+  end
+  return moved
+end
+
 -- Everything in the pack goes into the bag, as far as the folds go; returns
 -- { id = count } stowed.
 function bag.stow(b, p)
@@ -153,8 +199,6 @@ function bag.stow(b, p)
   end
   return moved
 end
-
-local NEED = { food = 1, water = 2, material = 3, herb = 4 }
 
 -- What is needed on the road comes out into the pack, as far as it can carry:
 -- food (the best kept first), drink, firewood, herbs, the rest; with a mage

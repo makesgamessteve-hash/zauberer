@@ -29,6 +29,8 @@ local pack = require("player.pack")
 local bag = require("player.bag")
 local condition = require("flight.condition")
 local cloak = require("flight.cloak")
+local tent = require("flight.tent")
+local home = require("player.home")
 local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
@@ -75,6 +77,8 @@ local function setup_flight()
   game.bag = bag.new(back and back.bag)
   game.condition = condition.new(back and back.condition)
   game.cloak = cloak.new(back and back.cloak)
+  game.tent = tent.new(back and back.tent)
+  game.home_place = home.new(back and back.home)
   game.codex = codex.new(back and back.codex)
   game.survival_at = nil
   if game.fauna then
@@ -151,7 +155,8 @@ function game.save()
     health = game.health and health.snapshot(game.health),
     survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
     bag = game.bag and bag.snapshot(game.bag), condition = game.condition and condition.snapshot(game.condition),
-    cloak = game.cloak and cloak.snapshot(game.cloak),
+    cloak = game.cloak and cloak.snapshot(game.cloak), tent = tent.snapshot(game.tent),
+    home = game.home_place and home.snapshot(game.home_place),
     codex = game.codex and codex.snapshot(game.codex),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
@@ -190,6 +195,8 @@ end
 
 engine.on("init", function()
   assets.carpet = render.model("models/carpet.glb")
+  assets.tent = render.model("models/tent.glb")
+  assets.room = render.model("models/room.glb")
   assets.mote = render.sprite("sprites/mote.lua")
   assets.flame = render.sprite("sprites/flame.lua")
   for _, kind in ipairs({ "bee", "mosquito", "firefly", "butterfly" }) do
@@ -238,12 +245,102 @@ local function showcase_tick(dt)
   end
 end
 
+-- Inside the tent: the pocket home. The world outside goes on around the
+-- tent (the mage is not in it); the body, the pack and the bag go on inside
+-- in the warm.
+local function home_tick(dt, st)
+  local t, h = game.tent, game.home_place
+  local now = world.time().time
+  home.tick(h, dt)
+  game.codex.focus = nil -- (nothing of the world is in sight)
+  ecology.tick(game.ecology, dt, t.pos, now)
+  fauna.tick(game.fauna, dt, t.pos, false, { visibility = 0, presence = 0 })
+  smalllife.tick(game.smalllife, dt, t.pos, now)
+  local game_dt = math.min(math.max(now - (game.survival_at or now), 0), 300)
+  game.survival_at = now
+  local body = home.body(h)
+  for _, harm in ipairs(survival.tick(game.survival, game_dt, body)) do health.hurt(game.health, harm[1], harm[2]) end
+  survival.tick_news(game.survival, dt)
+  health.heal(game.health, health.REGEN * dt)
+  pack.spoil(game.pack, game_dt / 3600, body.air, false)
+  pack.tick(game.pack, dt)
+  bag.tick(game.bag, dt)
+  bag.spoil(game.bag, game_dt / 3600, body.air)
+  -- The tent outside: rain falls on it and flames can reach it.
+  local cell = sim.fire_at(t.pos)
+  condition.tick(game.condition, dt, game_dt / 3600, { exposed = true, height = 0,
+    burning = cell.loaded and cell.burning,
+    rain = sim.weather().rain, air = sim.weather().temperature })
+  -- Walking between the rooms; going out.
+  local x = (st.steer and st.steer.x) or 0
+  if math.abs(x) > 0.5 and not h.latched then home.walk(h, x > 0 and 1 or -1) end
+  h.latched = math.abs(x) > 0.5
+  local function said(list)
+    local parts = {}
+    for id, n in pairs(list) do parts[#parts + 1] = items.name(id):lower() .. " " .. n end
+    table.sort(parts)
+    return table.concat(parts, ", ")
+  end
+  if input.state("mount").pressed then
+    t.inside = false
+    game.walker.pos = tent.door(t)
+    return
+  end
+  if input.state("cook").pressed then
+    local made, why = cooking.cook(game.pack, t.pos, home.offers(h, "cook"))
+    home.say(h, made and ("Cooked " .. said(made)) or (home.offers(h, "cook") and why or "no fire in this room"))
+  end
+  for action, fn in pairs({ eat = cooking.eat, drink = cooking.drink }) do
+    if input.state(action).pressed then
+      local name, why = fn(game.pack, game.survival, function(item) return codex.warned(game.codex, item) end)
+      home.say(h, name and ("You " .. action .. " " .. name:lower()) or why)
+    end
+  end
+  if input.state("sleep").pressed then
+    if home.offers(h, "sleep") then
+      local hours, harms = survival.sleep(game.survival, 10, body)
+      for _, harm in ipairs(harms) do health.hurt(game.health, harm[1], harm[2]) end
+      health.heal(game.health, hours * 10) -- (rest mends)
+      world.set_time(now + hours * 3600)
+      game.survival_at = now + hours * 3600
+      game.slept = hours
+    else
+      home.say(h, "The bed is in the bedchamber")
+    end
+  end
+  if home.offers(h, "vault") then
+    if input.state("stow").pressed then
+      local moved = bag.shelve_all(game.bag, game.pack)
+      home.say(h, next(moved) and ("Shelved " .. said(moved)) or "Nothing to shelve")
+    end
+    if input.state("unstow").pressed then
+      local moved = bag.take_from_shelves(game.bag, game.pack)
+      home.say(h, next(moved) and ("Taken off the shelves " .. said(moved)) or "Nothing taken")
+    end
+  else
+    if input.state("stow").pressed then
+      local moved = bag.stow(game.bag, game.pack)
+      bag.say(game.bag, next(moved) and ("Stowed " .. said(moved)) or "Nothing to stow")
+    end
+    if input.state("unstow").pressed then
+      local moved = bag.unstow(game.bag, game.pack, game.magic.caster.mage)
+      bag.say(game.bag, next(moved) and ("Taken out " .. said(moved)) or "Nothing taken out")
+    end
+  end
+  if input.state("codex").pressed then codex.browse(game.codex) end
+  world.set_focus(1, t.pos, { 0, 0, 0 }, { 0, 0, -1 })
+end
+
 local function flight_tick(dt)
   game.flight_ticks = (game.flight_ticks or 0) + 1
   if game.flight_ticks % AUTOSAVE_TICKS == 0 then
     game.save()
   end
   local st = controls.read()
+  if game.tent and game.tent.inside and game.walker then
+    home_tick(dt, st)
+    return
+  end
   local co = game.coop
   local down = game.health.down ~= nil -- a defeated player lies still
   local still = { turn = 0, throttle = 0, climb = 0, boost = false }
@@ -276,7 +373,31 @@ local function flight_tick(dt)
   if k.worn then -- (the carpet goes where the mage goes)
     game.carpet.pos, game.carpet.speed = world.move(w.pos, 0, 0, 0), 0
   end
-  if not down and not k.worn and input.state("mount").pressed then
+  -- The tent: pitched from the carpet beside the mage, entered at its door,
+  -- packed up (the carpet laid out again).
+  local t = game.tent
+  if not down and w and input.state("tent").pressed then
+    if t and tent.near(t, w.pos) then
+      game.tent, t = nil, nil
+      game.carpet.pos, game.carpet.speed = world.move(game.carpet.pos, 0, 0, 0), 0
+      game.carpet.pos.alt = world.ground_height(game.carpet.pos) + carpet.CLEARANCE
+    elseif not t and not k.worn and walker.near_carpet(w, game.carpet) then
+      local pitched, why = tent.pitch(w.pos, w.heading)
+      if pitched then
+        game.tent, t = pitched, pitched
+        game.carpet.pos, game.carpet.speed = world.move(pitched.pos, 0, 0, 0), 0
+      else
+        condition.say(game.condition, why)
+      end
+    end
+  end
+  if t and not t.inside then game.carpet.pos, game.carpet.speed = world.move(t.pos, 0, 0, 0), 0 end
+  if not down and w and t and input.state("mount").pressed and tent.near(t, w.pos) then
+    t.inside = true
+    game.home_place.room = "hearth"
+    return
+  end
+  if not down and not k.worn and not t and input.state("mount").pressed then
     if w and walker.near_carpet(w, game.carpet) then
       game.walker, w = nil, nil
     elseif not w and walker.can_step_off(game.carpet, FOOT) then
@@ -504,7 +625,36 @@ local function flight_lines()
   return lines
 end
 
+local function home_frame()
+  local t, h = game.tent, game.home_place
+  local floor = world.move(t.pos, 0, 0, 0, 400)
+  local o = world.to_local(floor)
+  local _, i = 0, 1
+  for n, r in ipairs(home.rooms()) do
+    if r.id == h.room then i = n end
+  end
+  local turn = (i - 1) * math.pi / 2
+  local eye = { o[1] - math.sin(turn) * 2.5, o[2] + 1.6, o[3] + math.cos(turn) * 2.5 }
+  render.camera({ eye = eye, target = { o[1] + math.sin(turn) * 3, o[2] + 1.4, o[3] - math.cos(turn) * 3 },
+    up = { 0, 1, 0 }, fov = 70, near = 0.1, far = 2000 })
+  render.draw_model(assets.room, { position = o, rotation = { 0, 0, 0 } })
+  render.draw_model(assets.carpet, { position = { o[1], o[2] + 0.02, o[3] }, rotation = { 0, 90 - math.deg(turn), 0 } })
+  if home.offers(h, "cook") then
+    render.draw_sprite(assets.flame, { o[1] + math.sin(turn) * 2.6, o[2] + 0.5, o[3] - math.cos(turn) * 2.6 }, 0.7)
+  end
+  local lines = home.hud_lines(h)
+  for _, more in ipairs({ health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
+    bag.hud_lines(game.bag), condition.hud_lines(game.condition), codex.hud_lines(game.codex) }) do
+    for _, line in ipairs(more) do lines[#lines + 1] = line end
+  end
+  draw_hud(lines)
+end
+
 local function flight_frame()
+  if game.tent and game.tent.inside then
+    home_frame()
+    return
+  end
   local c = game.carpet
   local now = engine.time()
   local dt = game.last_frame_time and (now - game.last_frame_time) or nil
@@ -520,7 +670,12 @@ local function flight_frame()
     local eye, target = camera.view(game.chase, p, c.heading, up, dt)
     render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
   end
-  if not game.cloak.worn then render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) }) end
+  if game.tent then
+    local tp = world.to_local(game.tent.pos)
+    render.draw_model(assets.tent, { position = tp, rotation = { 0, 180 - math.deg(game.tent.heading), 0 } })
+  elseif not game.cloak.worn then
+    render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
+  end
   local sights = magic.sights(game.magic)
   for _, l in ipairs(sights.lights) do render.draw_sprite(assets.mote, world.to_local(l), 2) end
   for _, mote in ipairs(game.motes.list) do render.draw_sprite(assets.mote, world.to_local(mote.pos), 0.7) end
@@ -600,5 +755,6 @@ _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
-  pack = pack, bag = bag, condition = condition, cloak = cloak, harvest = harvest, cooking = cooking, codex = codex,
+  pack = pack, bag = bag, condition = condition, cloak = cloak, tent = tent, home = home, harvest = harvest,
+  cooking = cooking, codex = codex,
 }

@@ -52,6 +52,9 @@ class RenderTests(EngineTestCase):
     def test_puddle_view(self):
         self.assert_ok(self.windowed("puddle_view"))
 
+    def test_home_view(self):
+        self.assert_ok(self.windowed("home_view"))
+
     def test_night_sky(self):
         self.assert_ok(self.windowed("night_sky"))
 

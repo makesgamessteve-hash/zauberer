@@ -313,6 +313,12 @@ class ScenarioTests(EngineTestCase):
     def test_cloak(self):
         self.assert_ok(self.scenario("cloak"))
 
+    def test_tent(self):
+        self.assert_ok(self.scenario("tent"))
+
+    def test_carpet_and_home(self):
+        self.assert_ok(self.scenario("carpet_and_home"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))
