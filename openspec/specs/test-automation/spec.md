@@ -66,7 +66,7 @@ Every scenario in `openspec/specs/` and in active changes SHALL be referenced by
 - **THEN** the spec-coverage check fails and prints the capability and scenario name
 
 ### Requirement: Cross-platform CI
-Every push and pull request SHALL run lint, Linux coverage, Linux sanitizer, Windows, macOS and web jobs. A determinism job SHALL fail if state or generation hashes differ between platforms.
+CI SHALL run, when started (for now by hand, to save build minutes), lint, Linux coverage, Linux sanitizer, Windows, macOS and web jobs, and the full gates SHALL run locally at least once per milestone. A determinism job SHALL fail if state or generation hashes differ between platforms.
 
 #### Scenario: Platform-specific failure
 - **WHEN** a change passes on Linux but fails a unit test on Windows
