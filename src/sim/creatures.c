@@ -20,11 +20,12 @@
 #define PACK_RANGE 60.0
 #define PACK_KEEP 15.0
 #define ATTACK_RANGE 1.6
-#define ATTACK_COOL 1.5   /* seconds */
-#define HIT_COOL 0.5      /* seconds between blows from bodies */
-#define FAST_BODY 4.0     /* m/s: slower bodies only nudge */
-#define COMMITMENT 0.05   /* utility kept for what it is doing already */
-#define HARM_STEP 0.25    /* seconds between looks at heat and smoke */
+#define ATTACK_COOL 1.5 /* seconds */
+#define HIT_COOL 0.5    /* seconds between blows from bodies */
+#define FAST_BODY 4.0   /* m/s: slower bodies only nudge */
+#define COMMITMENT 0.05 /* utility kept for what it is doing already */
+#define HARM_STEP 0.25  /* seconds between looks at heat and smoke */
+#define GRAVITY 9.81
 #define BURN 25.0         /* health per second in a burning cell */
 #define SMOKE_THICK 0.005 /* kg/m^3 that chokes */
 #define SCENT_FAINT 1e-7  /* kg/m^3 that a nose notices */
@@ -39,6 +40,7 @@ typedef struct creature {
   double health, hunger, fear, energy;
   zb_action action;
   double decide_in, attack_cool, hit_cool, phase, sees_player;
+  double falling;                   /* m/s down: a dead flier dropping */
   zb_planet_pos goal, threat, pack; /* the pack's centre, found when deciding */
   bool has_goal, has_threat, has_pack, fled_told;
   bool alive, frozen;
@@ -562,6 +564,22 @@ static void struck(zb_creatures *c, creature *cr) {
   }
 }
 
+/* The dead fall to the ground (a flier struck down drops out of the sky). */
+static void drop(const zb_creatures *c, creature *cr, double dt) {
+  const zb_animal *s = &c->species[cr->species];
+  float floor = height_for(c, s, &cr->pos) - (s->flies ? (float)s->cruise : 0.0f);
+  if (cr->pos.alt <= floor) {
+    cr->falling = 0.0;
+    return;
+  }
+  cr->falling += GRAVITY * dt;
+  cr->pos.alt -= (float)(cr->falling * dt);
+  if (cr->pos.alt <= floor) {
+    cr->pos.alt = floor;
+    cr->falling = 0.0;
+  }
+}
+
 static bool active(const zb_creatures *c, const creature *cr) {
   const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(c->world), cr->pos.chunk);
   if (!ct || ct->stage < ZB_STAGE_TERRAIN) {
@@ -598,6 +616,9 @@ void zb_creatures_update(zb_creatures *c, double seconds) {
   for (int i = 0; i < count(c); ++i) {
     creature *cr = C(c, i);
     cr->frozen = !active(c, cr);
+    if (!cr->alive && !cr->frozen) {
+      drop(c, cr, seconds);
+    }
     if (!cr->alive || cr->frozen) {
       continue;
     }

@@ -9,7 +9,7 @@ local weave = require("magic.weave")
 local effects = {}
 
 local BOLT_SPEED = 40 -- m/s
-local BOLT_REACH = 1.5 -- metres: a bolt this close to a creature strikes it
+local BOLT_REACH = 2.0 -- metres: a bolt this close to a creature strikes it
 -- What a bolt does to a creature it strikes, per mana: fire burns, water and
 -- stone strike.
 local BOLT_HARM = { fire = { "heat", 6 }, water = { "impact", 2 }, earth = { "impact", 8 } }

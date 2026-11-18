@@ -276,6 +276,10 @@ class ScenarioTests(EngineTestCase):
     def test_walking(self):
         self.assert_ok(self.scenario("walking"))
 
+    # spec: vertical-slice: Vertical Slice A
+    def test_slice_a(self):
+        self.assert_ok(self.scenario("slice_a"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))

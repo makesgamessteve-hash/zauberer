@@ -366,8 +366,12 @@ static void test_harm(void) {
   TEST_ASSERT_TRUE(zb_creatures_species(s.cr, ev[n - 1].species)->magical);
   zb_creatures_hurt(s.cr, bird, ZB_HARM_MAGIC, 5.0); /* the dead feel nothing */
   TEST_ASSERT_FALSE(state(&s, bird).alive);
+  run(&s, 3.0); /* and fall out of the sky */
+  zb_creature_state fallen = state(&s, bird);
+  TEST_ASSERT_DOUBLE_WITHIN(0.05, zb_world_ground_height(s.world, &fallen.pos), fallen.pos.alt);
   /* A deer in the flames burns. */
-  zb_fire_ignite(zb_tier_fire(s.tier), &p, 8.0);
+  zb_creature_state where = state(&s, deer);
+  zb_fire_ignite(zb_tier_fire(s.tier), &where.pos, 8.0);
   for (int k = 0; k < 40 && state(&s, deer).alive; ++k) {
     run(&s, 0.25);
   }
