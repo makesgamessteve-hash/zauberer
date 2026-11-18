@@ -8,7 +8,7 @@ continue where the player left off, and the migration of saves from earlier vers
 ## Requirements
 
 ### Requirement: Edits per chunk
-The world SHALL keep the players' edits per chunk (removed plants, painted surface materials and burnt cells dated in game time), let a later edit of the same plant or cell replace an earlier one, refuse invalid edits, and apply a chunk's edits at the world's time whenever the chunk reaches a stage, so that regenerated chunks come back as they were left and burnt ground heals.
+The world SHALL keep the players' edits per chunk (removed plants, painted surface materials, burnt cells dated in game time and changed ground heights), let a later edit of the same plant or cell replace an earlier one, refuse invalid edits, and apply a chunk's edits at the world's time whenever the chunk reaches a stage, so that regenerated chunks come back as they were left and burnt ground heals.
 
 #### Scenario: Edits are kept per chunk
 - **WHEN** edits are recorded for chunks in several regions and applied to a chunk before and after its stages are generated
