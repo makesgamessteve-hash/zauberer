@@ -17,6 +17,7 @@ local coop = require("flight.coop")
 local creation = require("create.screen")
 local magic = require("magic.play")
 local fauna = require("life.fauna")
+local motes = require("magic.motes")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -53,6 +54,8 @@ local function setup_flight()
     fauna.clear(game.fauna)
   end
   game.fauna = fauna.new(pos, heading)
+  game.motes = motes.new(engine.info().seed)
+  game.channeling = false
   game.chase = camera.new()
   game.coop = coop.new()
   game.last_frame_time = nil
@@ -199,7 +202,16 @@ local function flight_tick(dt)
   game.last_cast = magic.tick(game.magic, spell, dt, c, { heading = c.heading, pitch = -0.12 },
     here.loaded and here.stored or nil) or game.last_cast
   camera.update(game.chase, not spell.draw.held and st.look or nil, dt, input.mode() ~= "touch")
-  fauna.tick(game.fauna, dt, c.pos, false)
+  -- Creatures, and the motes of the magical ones that die.
+  for _, ev in ipairs(fauna.tick(game.fauna, dt, c.pos, false)) do
+    if ev.kind == "died" and ev.magical and ev.mana and (ev.motes or 0) > 0 then
+      motes.release(game.motes, ev.pos, ev.mana, ev.motes, 8)
+    end
+  end
+  local m = game.magic.caster.mage
+  motes.tick(game.motes, dt, { { pos = c.pos, mage = m } })
+  motes.bloom(game.motes, c.pos, dt)
+  game.channeling = input.state("channel").held and motes.channel(m, c.pos, dt, c.speed) > 0
   world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
   -- The host streams around every heir (one focus each).
   for p = 1, 3 do
@@ -272,6 +284,7 @@ local function flight_frame()
   render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
   local sights = magic.sights(game.magic)
   for _, l in ipairs(sights.lights) do render.draw_sprite(assets.mote, world.to_local(l), 2) end
+  for _, mote in ipairs(game.motes.list) do render.draw_sprite(assets.mote, world.to_local(mote.pos), 0.7) end
   for _, b in ipairs(sights.bolts) do
     render.draw_sprite(b.color == "water" and assets.mote or assets.flame, world.to_local(b.pos), 1.2)
   end
@@ -283,6 +296,8 @@ local function flight_frame()
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   for _, line in ipairs(magic.hud_lines(game.magic)) do lines[#lines + 1] = line end
   for _, line in ipairs(fauna.hud_lines(game.fauna)) do lines[#lines + 1] = line end
+  for _, line in ipairs(motes.hud_lines(game.motes)) do lines[#lines + 1] = line end
+  if game.channeling then lines[#lines + 1] = "Channeling" end
   draw_hud(lines)
   for _, t in ipairs(sights.trail) do -- the gesture being drawn
     render.draw_text(assets.font, "o", 80 + t[1], 160 + t[2], 1, { 1, 0.9, 0.5, 1 })
@@ -348,5 +363,5 @@ end)
 -- Exposed for scenario tests.
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
-  creation = creation, magic = magic, fauna = fauna,
+  creation = creation, magic = magic, fauna = fauna, motes = motes,
 }

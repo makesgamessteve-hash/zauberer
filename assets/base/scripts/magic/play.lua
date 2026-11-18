@@ -49,7 +49,7 @@ end
 function play.new(saved)
   saved = type(saved) == "table" and saved or {}
   local m = mage.new(saved.mage or { capacity = 100, channel = 10,
-    mana = { fire = 40, storm = 15, light = 20, life = 10, water = 25 } })
+    mana = { fire = 35, storm = 10, light = 20, life = 10, water = 25 } }) -- a full reservoir
   if saved.mage then
     m.strain = saved.mage.strain or 0
   end

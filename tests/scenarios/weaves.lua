@@ -115,8 +115,15 @@ expect(r.ok and r.name == "Condense" and r.effect.water > 0)
 r = weave_at(pond, "shape", { "water" }, "circle", 20)
 expect(r.ok and r.name == "Freeze" and r.effect.frozen > 0, "frozen: " .. tostring(r.effect.frozen))
 expect(sim.water_at(pond).frozen, "ice")
-r = weave_at(pond, "shape", { "water" }, "circle", 20)
-expect(r.effect.thawed > 0 and not sim.water_at(pond).frozen, "thawed")
+-- Shaping ice thaws it. (A retried misfire may have thawed it already and the
+-- retry frozen it again: cast until the pond is open.)
+local thawed = 0
+for _ = 1, 8 do
+  if not sim.water_at(pond).frozen then break end
+  r = weave_at(pond, "shape", { "water" }, "circle", 20)
+  thawed = thawed + total(r, "thawed")
+end
+expect(thawed > 0 and not sim.water_at(pond).frozen, "thawed")
 r = weave_at(pond, "unmake", { "water" }, "circle", 50, { "wide" })
 expect(r.ok and r.name == "Dry" and r.effect.dried > 0)
 expect(sim.water_stats().removed > 0)
