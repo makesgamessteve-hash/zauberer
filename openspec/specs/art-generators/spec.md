@@ -114,3 +114,10 @@ The palette, lookup table, dither matrix, terrain atlas and ornaments SHALL toge
 #### Scenario: Art fits the budget
 - **WHEN** width × height × 4 bytes is summed over these images
 - **THEN** the total is at most 524,288 bytes
+
+### Requirement: Insect sprites
+The generators SHALL make small sprites for bees, mosquitoes, fireflies and butterflies, credited like the other generated art.
+
+#### Scenario: Insect sprites
+- **WHEN** the generators run and the credits are checked
+- **THEN** the four insect sprites exist with their descriptors and each has a credits entry
