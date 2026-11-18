@@ -110,7 +110,12 @@ zb_socket zb_sock_listen(uint16_t port, uint16_t *bound_port) {
     return ZB_SOCKET_NONE;
   }
   int on = 1;
-  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof on);
+#ifdef _WIN32
+  /* On Windows SO_REUSEADDR would let a second server take the port; exclusive use refuses it. */
+  setsockopt(s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (const char *)&on, sizeof on);
+#else
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof on); /* quick restarts */
+#endif
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof addr);
   addr.sin_family = AF_INET;
