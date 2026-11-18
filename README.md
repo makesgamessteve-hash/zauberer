@@ -9,10 +9,17 @@ from words, gestures, ingredients and eight colors of mana, and it acts through 
 world's simulation of heat, fire, water, air and life. Play alone, or in online co-op
 with up to three friends as the father's children, the heirs of the carpet.
 
-> **Status: M0, engine foundation.** The engine core runs on Linux, Windows, macOS and the
-> web (threaded and single-threaded builds): packages and a virtual file system, the Lua 5.4
-> host, input with touch controls, retro rendering, audio, replays and the full test
-> machinery. The M0 demo is a flying carpet with mana motes, text, sound and a credits list.
+> **Status: M4, first magic (Vertical Slice A).** M0–M4 are done.
+>
+> - The engine runs on Linux, Windows, macOS and the web, with co-op flight over WebSockets
+>   and a WebXR spike.
+> - Worlds come from deep-time geology, climate, biomes, water bodies, vegetation, sky and
+>   seasons, and are saved and continued.
+> - The active tier simulates heat and fire, surface water, air, weather, rigid bodies and
+>   mana fields.
+> - Magic: an open weave grammar (words, gestures, colours, forms, modifiers, power) with a
+>   spellbook, motes and channeling.
+> - The first creatures (wolves, deer, storm birds), a damage model, and walking on foot.
 
 ## Documents
 
@@ -20,7 +27,7 @@ with up to three friends as the father's children, the heirs of the carpet.
 | --- | --- |
 | [Game concept](docs/concept/README.md) | Vision, pillars, story, carpet, magic, world generation, simulation, settlements, gameplay, presentation, modding |
 | [Implementation plan](docs/implementation-plan.md) | Architecture, technology stack, repository layout, quality strategy, milestone roadmap M0–M11, decisions, risks, open questions |
-| [OpenSpec change: engine foundation](openspec/changes/add-engine-foundation/proposal.md) | The first change (M0): proposal, design, nine capability specs, tasks |
+| [OpenSpec specs](openspec/specs/) | The capability specs as they stand; every change that made them is in `openspec/changes/archive/` |
 | [Lua API reference](docs/api/README.md) | Every function scripts can call (generated from the C bindings; type stubs in `docs/api/zauberer.d.lua`) |
 | [Creating packages](docs/modding/packages.md) | Package layout, `package.lua`, scripts, hooks, data, credits and testing a mod |
 
@@ -32,6 +39,26 @@ with up to three friends as the father's children, the heirs of the carpet.
 | Game layer | Lua 5.4 scripts and data, loaded from package folders next to the binary |
 | Platforms | Windows, Linux, macOS, Web (Emscripten), WebXR; touch controls on mobile web; cross-play co-op for up to four players |
 | Quality | Spec-driven development with [OpenSpec](https://github.com/Fission-AI/OpenSpec), ≥ 95 % line coverage (C and Lua), automated headless game tests, CI on all platforms |
+
+## Playing
+
+The game starts on the carpet over a new world. Default bindings (keyboard and mouse;
+gamepad and touch bindings are in `assets/base/data/input.lua`):
+
+| Action | Keys |
+| --- | --- |
+| Fly | W/S speed, A/D turn, R/F climb and sink, Shift boost, mouse looks around |
+| Cast | hold the left or right mouse button to charge the hand's weave, let go to cast |
+| Draw a gesture | hold G and draw with the mouse (while charging: better control) |
+| Free weaving | Q picks the verb, Z the colour, X a second colour, then draw a form and cast with the left hand |
+| Quick wheel | 1–8 put a prepared weave in the right hand |
+| Channel mana | hold V while still |
+| On foot | E steps off a carpet resting low and slow (and back on); Space jumps; Shift runs |
+| Other | N new world, F1 or Tab credits, F11 fullscreen, Esc quit |
+
+Vertical Slice A, the M4 demo: scare the wolves near the start with fire, put out the
+grass fire with Unmake Fire, bring down the storm bird with a Fireball and collect its
+motes, then freeze deep water and walk out onto the ice.
 
 ## Building and running
 
