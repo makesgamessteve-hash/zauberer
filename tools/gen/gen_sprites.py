@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # REUSE-IgnoreStart
-"""Generates the mana-mote, flame, smoke, rain and snow sprites (sprites/mote.*, flame.*, smoke.*, ...)."""
+"""Generates the mana-mote, flame, smoke, rain, snow and insect sprites (sprites/mote.*, flame.*, smoke.*, ...)."""
 import math
 import os
 import sys
@@ -38,6 +38,7 @@ def main(out_dir):
     flame(out_dir)
     smoke(out_dir)
     precipitation(out_dir)
+    insects(out_dir)
 
 
 FLAME_W, FLAME_H, FLAME_FRAMES = 16, 24, 6
@@ -145,6 +146,41 @@ def precipitation(out_dir):
     flake = {(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)}
     _single(out_dir, "snow", lambda x, y: (240, 244, 250, 255) if (x, y) in flake else None, 3, 3, (0.12, 0.12),
             "A snowflake.")
+
+
+def _from_rows(rows, colours):
+    """Pixels from rows of characters, each a key of colours ('.' is clear)."""
+    return lambda x, y: colours.get(rows[y][x]) if rows[y][x] != "." else None
+
+
+def insects(out_dir):
+    """Bees, mosquitoes, fireflies and butterflies for the swarms (sprites/bee.*, ...)."""
+    bee = ["..w.w..",
+           ".kykyk.",
+           "kykykyk",
+           ".kykyk."]
+    _single(out_dir, "bee", _from_rows(bee, {"w": (230, 240, 255, 200), "k": (40, 30, 20, 255),
+                                             "y": (240, 190, 40, 255)}), 7, 4, (0.07, 0.04), "A bee.")
+    mosquito = ["w...w",
+                ".w.w.",
+                "..k..",
+                ".k.k."]
+    _single(out_dir, "mosquito", _from_rows(mosquito, {"w": (200, 205, 210, 150), "k": (50, 45, 45, 255)}),
+            5, 4, (0.04, 0.03), "A mosquito.")
+    firefly = [".ggg.",
+               "gGYGg",
+               "gYWYg",
+               "gGYGg",
+               ".ggg."]
+    _single(out_dir, "firefly", _from_rows(firefly, {"g": (120, 200, 60, 90), "G": (170, 240, 90, 170),
+                                                     "Y": (230, 255, 120, 230), "W": (255, 255, 220, 255)}),
+            5, 5, (0.14, 0.14), "A firefly's glow.")
+    butterfly = ["oo.k.oo",
+                 "ooo.ooo",
+                 ".ookoo.",
+                 ".oo.oo."]
+    _single(out_dir, "butterfly", _from_rows(butterfly, {"o": (240, 140, 40, 255), "k": (30, 25, 25, 255)}),
+            7, 4, (0.1, 0.06), "A butterfly.")
 
 
 if __name__ == "__main__":

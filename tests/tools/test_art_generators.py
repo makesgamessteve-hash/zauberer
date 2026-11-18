@@ -32,6 +32,7 @@ NEW_ART = [
     "textures/ornaments/star8.png", "textures/ornaments/arabesque.png",
     "textures/ornaments/carpet_border.png", "textures/ornaments/kilim.png",
 ]
+INSECTS = ["bee", "mosquito", "firefly", "butterfly"]  # (like the M0 sprites, checked by regenerating in CI)
 GENERATORS = {
     "palettes/": "tools/gen/gen_palette.py",
     "textures/terrain/": "tools/gen/gen_terrain.py",
@@ -150,6 +151,19 @@ class RegenerationTest(unittest.TestCase):
                     self.assertTrue(written.is_file(), "gen_all.py did not write %s" % rel)
                     self.assertEqual(written.read_bytes(), committed_bytes(rel),
                                      "%s differs from the committed file; run tools/gen/gen_all.py" % rel)
+
+
+class InsectSpriteTest(unittest.TestCase):
+    def test_insect_sprites(self):
+        # spec: art-generators: Insect sprites
+        credits = (BASE / "credits.lua").read_text(encoding="utf-8")
+        for name in INSECTS:
+            with self.subTest(sprite=name):
+                width, height, rows = read_png(BASE / "sprites" / (name + ".png"))
+                self.assertTrue(2 <= width <= 8 and 2 <= height <= 8, "a small sprite")
+                self.assertTrue(any(px[3] > 0 for row in rows for px in row), "something drawn")
+                self.assertIn('frames = 1', (BASE / "sprites" / (name + ".lua")).read_text(encoding="utf-8"))
+                self.assertIn('"sprites/%s.png"' % name, credits)
 
 
 class PaletteTest(ArtTestCase):

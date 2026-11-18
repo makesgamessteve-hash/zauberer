@@ -30,4 +30,10 @@ return {
   { id = "healing_herbs", name = "Healing herbs", kind = "herb", weight = 0.01 },
   { id = "reed_roots", name = "Reed roots", kind = "food", weight = 0.05 },
   { id = "reed_fibre", name = "Reed fibre", kind = "material", weight = 0.1 },
+  -- Fungi
+  { id = "chanterelles", name = "Chanterelles", kind = "food", weight = 0.02 },
+  { id = "porcini", name = "Porcini", kind = "food", weight = 0.06 },
+  { id = "fly_agaric", name = "Fly agaric", kind = "food", weight = 0.05 },
+  { id = "meadow_mushrooms", name = "Meadow mushrooms", kind = "food", weight = 0.02 },
+  { id = "tinder_fungus", name = "Tinder fungus", kind = "material", weight = 0.05 },
 }
