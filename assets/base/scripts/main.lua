@@ -29,6 +29,7 @@ local pack = require("player.pack")
 local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
+local codex = require("life.codex")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -68,6 +69,7 @@ local function setup_flight()
   game.health = health.new(back and back.health)
   game.survival = survival.new(back and back.survival, save.get("difficulty"))
   game.pack = pack.new(back and back.pack)
+  game.codex = codex.new(back and back.codex)
   game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
@@ -142,6 +144,7 @@ function game.save()
   local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
     health = game.health and health.snapshot(game.health),
     survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
+    codex = game.codex and codex.snapshot(game.codex),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
       plants = plants.snapshot(game.plants, world.time().time),
@@ -282,6 +285,16 @@ local function flight_tick(dt)
     if ev.kind == "died" then smalllife.died(game.smalllife, ev.id, now) end -- carcasses rot away
   end
   smalllife.tick(game.smalllife, dt, me, now) -- mushrooms, microbes, insects
+  -- The Codex: what is in sight is seen, what is looked at is observed.
+  local view
+  if w then
+    local cp = math.cos(w.pitch)
+    view = { eye = world.move(w.pos, 0, 0, 0, walker.EYE), feet = w.pos,
+      dir = { math.sin(w.heading) * cp, math.sin(w.pitch), -math.cos(w.heading) * cp } }
+  else
+    view = { eye = c.pos, dir = camera.direction(game.chase, c.heading) }
+  end
+  codex.look(game.codex, dt, view, { smalllife = game.smalllife }, now)
   -- Harm and healing; a defeated player gets up again where the carpet set out.
   local fx = game.magic.caster.effects
   local fate = health.tick(game.health, dt, { pos = me, on_foot = w ~= nil, landing = w and w.landing,
@@ -303,6 +316,7 @@ local function flight_tick(dt)
     health.hurt(game.health, h[1], h[2], function(kind) return effects.warded(fx, kind) end)
   end
   pack.spoil(game.pack, game_dt / 3600, body.air, false)
+  pack.tick(game.pack, dt)
   -- Gathering, fire and food (on foot), eating and drinking.
   local function said(list)
     local parts = {}
@@ -311,8 +325,10 @@ local function flight_tick(dt)
     return table.concat(parts, ", ")
   end
   if w and input.state("gather").pressed then
-    local got, why = harvest.gather(game.pack, { plants = game.plants, smalllife = game.smalllife }, w.pos, now)
+    local got, why = harvest.gather(game.pack, { plants = game.plants, smalllife = game.smalllife,
+      method = function(id) return codex.method(game.codex, id) end }, w.pos, now)
     pack.say(game.pack, got and ("Gathered " .. said(got.items)) or why)
+    if got then codex.sampled(game.codex, got.sources) end
   end
   if w and input.state("campfire").pressed then
     local kg, why = cooking.campfire(game.pack, world.move(w.pos, w.heading, 0.6, 0))
@@ -324,10 +340,11 @@ local function flight_tick(dt)
   end
   for action, fn in pairs({ eat = cooking.eat, drink = cooking.drink }) do
     if input.state(action).pressed then
-      local name, why = fn(game.pack, game.survival)
+      local name, why = fn(game.pack, game.survival, function(item) return codex.warned(game.codex, item) end)
       pack.say(game.pack, name and ("You " .. action .. " " .. name:lower()) or why)
     end
   end
+  if input.state("codex").pressed then codex.browse(game.codex) end
   if w and input.state("sleep").pressed and not game.health.down then
     local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
     for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
@@ -404,6 +421,7 @@ local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
+    codex.hud_lines(game.codex),
     magic.hud_lines(game.magic), fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
     for _, line in ipairs(more) do lines[#lines + 1] = line end
@@ -514,5 +532,5 @@ _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
-  pack = pack, harvest = harvest, cooking = cooking,
+  pack = pack, harvest = harvest, cooking = cooking, codex = codex,
 }

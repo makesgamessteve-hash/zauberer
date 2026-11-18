@@ -4,13 +4,14 @@
 -- game time passes, faster when warm and wet.
 local items = require("life.items")
 local smalllife = require("life.smalllife")
+local news = require("player.news")
 
 local pack = {}
 
 pack.CARRY = 12 -- kg
 
 function pack.new(saved)
-  local p = { stacks = {}, news = {}, time = 0 }
+  local p = { stacks = {}, news = news.new() }
   for id, st in pairs(type(saved) == "table" and saved.stacks or {}) do
     if items.get(id) and (st.count or 0) > 0 then p.stacks[id] = { count = st.count, load = st.load or 0 } end
   end
@@ -38,7 +39,12 @@ function pack.load(p, id)
 end
 
 function pack.say(p, text)
-  p.news[#p.news + 1] = { text = text, until_time = p.time + 4 }
+  news.say(p.news, text)
+end
+
+-- Real time passes: old news goes.
+function pack.tick(p, dt)
+  news.tick(p.news, dt)
 end
 
 -- Adds up to count items with a microbe load (0 fresh); returns how many fit.
@@ -69,16 +75,10 @@ end
 
 -- Time passes in the pack: hours of game time at a temperature, wet or dry.
 function pack.spoil(p, hours, temperature, wet)
-  p.time = p.time + hours * 3600
   for id, st in pairs(p.stacks) do
     local kept = items.KEPT[items.get(id).spoils or ""]
     if kept then st.load = smalllife.spoil(st.load, hours, temperature, wet, kept) end
   end
-  local kept = {}
-  for _, n in ipairs(p.news) do
-    if n.until_time > p.time then kept[#kept + 1] = n end
-  end
-  p.news = kept
 end
 
 -- The stacks, heaviest first: { id, name, count, load }.
@@ -103,7 +103,7 @@ function pack.hud_lines(p)
   if #parts > 0 then
     lines[1] = string.format("Pack %.1f/%d kg: %s", pack.weight(p), pack.CARRY, table.concat(parts, ", "))
   end
-  for _, n in ipairs(p.news) do lines[#lines + 1] = n.text end
+  for _, text in ipairs(news.lines(p.news)) do lines[#lines + 1] = text end
   return lines
 end
 

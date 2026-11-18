@@ -45,6 +45,14 @@ function M.view(cam, p, heading, up, dt)
   return add(p, offset, 1), add(p, fwd, M.LOOK_AHEAD)
 end
 
+-- The direction looked in (render axes) for a carpet with heading h: from
+-- the eye behind it to the point ahead (the smoothing aside).
+function M.direction(cam, heading)
+  local h = heading + cam.orbit
+  return { math.sin(heading) * M.LOOK_AHEAD + math.sin(h) * M.DISTANCE, -M.HEIGHT,
+    -math.cos(heading) * M.LOOK_AHEAD - math.cos(h) * M.DISTANCE }
+end
+
 -- Forgets the smoothing (after a teleport).
 function M.reset(cam)
   cam.eye = nil

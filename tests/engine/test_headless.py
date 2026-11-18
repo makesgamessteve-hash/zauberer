@@ -298,6 +298,9 @@ class ScenarioTests(EngineTestCase):
     def test_harvest(self):
         self.assert_ok(self.scenario("harvest"))
 
+    def test_codex(self):
+        self.assert_ok(self.scenario("codex"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))

@@ -37,6 +37,8 @@ return {
   cook = { type = "button", bind = { "key:k", "touch:button:cook" } },
   eat = { type = "button", bind = { "key:y", "touch:button:eat" } },
   drink = { type = "button", bind = { "key:u", "touch:button:drink" } },
+  -- The Codex: open it at the entry last learned, turn the page, close it.
+  codex = { type = "button", bind = { "key:j", "touch:button:codex" } },
   -- Showcase (the carpet seen from an orbiting camera)
   turn = { type = "axis2", bind = { "keys:w,s,a,d", "keys:up,down,left,right", "gamepad:left_stick", "touch:stick:move" } },
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },

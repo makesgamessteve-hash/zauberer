@@ -3,6 +3,8 @@
 -- a carcass to butcher (its products, less what was eaten of it), a part of
 -- a plant (by its life cycle; trees are not felled by hand), water from the
 -- edge (four cups, of a kind by where it is), or the mushrooms of the patch.
+-- What is taken is a sample of its kind for the Codex, and the right method
+-- (life.method) gives more.
 local fauna = require("life.fauna")
 local items = require("life.items")
 local plants = require("life.plants")
@@ -23,15 +25,16 @@ local function on_ground(pos)
   return p
 end
 
--- Butchers a carcass into the pack; returns { item = count }.
-function harvest.butcher(p, id)
+-- Butchers a carcass into the pack (factor: of the right method, default 1);
+-- returns { item = count }.
+function harvest.butcher(p, id, factor)
   local c = sim.creature(id)
   local sp = c and fauna.species()[c.species]
   if not c or c.alive or not sp or not sp.products then return nil end
   local got = {}
   for item, n in pairs(sp.products) do
     local share = item == "raw_meat" and (1 - (c.eaten or 0)) or 1
-    local count = math.floor(n * share + 0.5)
+    local count = math.floor(n * share * (factor or 1) + 0.5)
     if count > 0 then got[item] = pack.add(p, item, count, 0) end
   end
   sim.remove_creature(id)
@@ -80,35 +83,46 @@ local function water_near(pos)
 end
 
 -- Gathers what is within reach of pos into pack p; returns what was taken
--- ({ what, items = { id = count } }), or nil and why.
--- life: { plants = plant state, smalllife = small-life state }
+-- ({ what, items = { id = count }, sources = { Codex entry } }), or nil and why.
+-- life: { plants = plant state, smalllife = small-life state, method =
+-- function(Codex entry) -> yield factor (optional) }
 function harvest.gather(p, life, pos, now)
+  local method = life.method or function() return 1 end
   local carcass = nearest_carcass(pos)
   if carcass then
-    local got = harvest.butcher(p, carcass)
-    if got then return { what = "carcass", items = got } end
+    local entry = "animal:" .. sim.creature(carcass).species
+    local got = harvest.butcher(p, carcass, method(entry))
+    if got then return { what = "carcass", items = got, sources = { entry } } end
   end
   local offer = nearest_offer(life.plants, pos, now)
   if offer then
     local item, n = plants.take(life.plants, offer.plant, offer.offer.item, now, offer.season)
     if item then
-      local count = n
+      local entry = "plant:" .. offer.plant.species
+      local factor = method(entry)
       if smalllife.pollination(life.smalllife, pos) > 0 and items.get(item).kind == "food" then
-        count = math.floor(n * 1.2 + 0.5) -- the bees did their work
+        factor = factor * 1.2 -- the bees did their work
       end
-      return { what = "plant", items = { [item] = pack.add(p, item, count, 0) }, species = offer.plant.species }
+      local count = math.floor(n * factor + 0.5)
+      return { what = "plant", items = { [item] = pack.add(p, item, count, 0) }, species = offer.plant.species,
+        sources = { entry } }
     end
   end
   local w = water_near(pos)
   if w then
     local item = WATER_ITEM[w.kind] or "pool_water"
-    return { what = "water", items = { [item] = pack.add(p, item, harvest.CUPS, 0) } }
+    return { what = "water", items = { [item] = pack.add(p, item, harvest.CUPS, 0) }, sources = {} }
   end
-  local mushrooms = smalllife.pick(life.smalllife, pos, now) -- (anywhere in the patch)
-  if mushrooms then
-    local got = {}
-    for item, n in pairs(mushrooms) do got[item] = pack.add(p, item, n, 0) end
-    return { what = "mushrooms", items = got }
+  local picked, found = smalllife.pick(life.smalllife, pos, now) -- (anywhere in the patch)
+  if picked then
+    local got, sources = {}, {}
+    for _, m in ipairs(found) do
+      local entry = "fungus:" .. m.fungus
+      local n = math.floor(m.count * method(entry) + 0.5)
+      got[m.item] = (got[m.item] or 0) + pack.add(p, m.item, n, 0)
+      sources[#sources + 1] = entry
+    end
+    return { what = "mushrooms", items = got, sources = sources }
   end
   return nil, "nothing to gather here"
 end

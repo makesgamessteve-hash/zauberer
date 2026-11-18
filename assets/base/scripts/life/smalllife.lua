@@ -115,14 +115,15 @@ function smalllife.mushrooms(state, pos, now)
   return out, key
 end
 
--- Picks the mushrooms of the patch at pos: { item = count }, or nil.
+-- Picks the mushrooms of the patch at pos: { item = count } and what was
+-- found ({ fungus, item, count }), or nil.
 function smalllife.pick(state, pos, now)
   local found, key = smalllife.mushrooms(state, pos, now)
   if #found == 0 then return nil end
   state.picked[key] = math.floor(now / smalllife.DAY)
   local out = {}
   for _, m in ipairs(found) do out[m.item] = (out[m.item] or 0) + m.count end
-  return out
+  return out, found
 end
 
 -- Microbes on food: load 0 (fresh) .. 1 (rotten) after hours at a

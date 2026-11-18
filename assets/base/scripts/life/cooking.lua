@@ -84,15 +84,16 @@ local function best(p, choose)
 end
 
 -- Eats the best food in the pack into survival s; returns its name, or nil
--- and why.
-function cooking.eat(p, s)
+-- and why. warned(item): whether its dangers are known (default: all are);
+-- an unknown poison is eaten like any food.
+function cooking.eat(p, s, warned)
   local id = best(p, function(it, st)
     if it.kind ~= "food" and not (it.kind == "herb" and s.sick > 0 and it.cures) then return nil end
     if st.load >= smalllife.ROTTEN then return nil end
     local value = (it.kcal or 0) / 100
     if not it.raw then value = value + 2 end -- cooked or safe as it is
     if st.load >= smalllife.SPOILT then value = value - 5 end
-    if (it.poison or 0) > 0 then value = value - 10 end
+    if (it.poison or 0) > 0 and (not warned or warned(it.id)) then value = value - 10 end
     if s.sick > 0 and it.cures and it.cures.sick then value = value + 5 end
     return value
   end)
