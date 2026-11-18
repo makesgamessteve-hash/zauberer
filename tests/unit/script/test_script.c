@@ -588,6 +588,111 @@ static void test_engine_controls(void) {
   TEST_ASSERT_EQUAL_INT(1, g_warnings);
 }
 
+/* ---- xr ------------------------------------------------------------------------- */
+
+static zb_xr_state g_xr;
+static zb_xr_pose g_emulated;
+static int g_emulate_calls, g_emulate_ends;
+static int g_button[3];
+
+static void h_xr_state(void *ctx, zb_xr_state *out) {
+  (void)ctx;
+  *out = g_xr;
+}
+
+static void h_xr_emulate(void *ctx, const zb_xr_pose *head) {
+  (void)ctx;
+  g_emulate_calls++;
+  if (head) {
+    g_emulated = *head;
+  } else {
+    g_emulate_ends++;
+  }
+}
+
+static void h_xr_button(void *ctx, int hand, int button, bool down) {
+  (void)ctx;
+  g_button[0] = hand;
+  g_button[1] = button;
+  g_button[2] = down;
+}
+
+static void test_xr_api(void) {
+  package("assets/base", "base", NULL, NULL);
+  start();
+  run();
+  /* Without an XR host: never a session; the test helpers do nothing. */
+  exec(
+      "local s = xr.state()\n"
+      "no_xr = not s.available and not s.active and not s.emulated and s.views == 0 and s.frames == 0\n"
+      "  and s.size[1] == 0 and s.head.position[3] == 0 and s.head.orientation[4] == 1\n"
+      "xr.emulate({ position = { 1, 2, 3 } }); xr.emulate(false); xr.emulate_button('left', 'select', true)\n");
+  TEST_ASSERT_TRUE(gbool("no_xr"));
+  stop();
+
+  configure();
+  F.cfg.host.xr_state = h_xr_state;
+  F.cfg.host.xr_emulate = h_xr_emulate;
+  F.cfg.host.xr_button = h_xr_button;
+  start_with(&F.cfg);
+  run();
+  memset(&g_xr, 0, sizeof g_xr);
+  g_xr.available = g_xr.active = true;
+  g_xr.frames = 12;
+  g_xr.frame.view_count = 2;
+  g_xr.frame.width = 800;
+  g_xr.frame.height = 400;
+  g_xr.frame.head.position = zb_v3(0.1f, 0.2f, -0.3f);
+  g_xr.frame.head.orientation = zb_quat_axis_angle(zb_v3(0, 1, 0), ZB_PI / 6.0f);
+  exec(
+      "local s = xr.state()\n"
+      "xr_ok = s.available and s.active and not s.emulated and s.views == 2 and s.frames == 12\n"
+      "  and s.size[1] == 800 and s.size[2] == 400\n"
+      "  and math.abs(s.head.position[1] - 0.1) < 1e-6 and math.abs(s.head.position[3] + 0.3) < 1e-6\n"
+      "  and math.abs(s.head.orientation[2] - math.sin(math.pi / 12)) < 1e-6\n");
+  TEST_ASSERT_TRUE(gbool("xr_ok"));
+  g_emulate_calls = g_emulate_ends = 0;
+  exec("xr.emulate({ position = { 1, 2, 3 }, orientation = { 0, 0, 0, 2 } })");
+  TEST_ASSERT_EQUAL_INT(1, g_emulate_calls);
+  TEST_ASSERT_EQUAL_FLOAT(3.0f, g_emulated.position.z);
+  TEST_ASSERT_EQUAL_FLOAT(2.0f, g_emulated.orientation.w);
+  exec("xr.emulate()");
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, g_emulated.position.z);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, g_emulated.orientation.w);
+  exec("xr.emulate({})");
+  exec("xr.emulate(false)");
+  TEST_ASSERT_EQUAL_INT(4, g_emulate_calls);
+  TEST_ASSERT_EQUAL_INT(1, g_emulate_ends);
+  exec("xr.emulate_button('right', 'squeeze', true)");
+  TEST_ASSERT_EQUAL_INT(ZB_XR_HAND_RIGHT, g_button[0]);
+  TEST_ASSERT_EQUAL_INT(ZB_XR_SQUEEZE, g_button[1]);
+  TEST_ASSERT_EQUAL_INT(1, g_button[2]);
+  exec("xr.emulate_button('none', 'select', false)");
+  TEST_ASSERT_EQUAL_INT(ZB_XR_HAND_NONE, g_button[0]);
+  TEST_ASSERT_EQUAL_INT(0, g_button[2]);
+  exec(
+      "e1 = select(2, pcall(xr.emulate, { position = { 1, 2 } }))\n"
+      "e2 = select(2, pcall(xr.emulate, { orientation = 'up' }))\n"
+      "e3 = select(2, pcall(xr.emulate, 5))\n"
+      "e4 = select(2, pcall(xr.emulate_button, 'middle', 'select', true))\n"
+      "e5 = select(2, pcall(xr.emulate_button, 'left', 'select'))\n");
+  TEST_ASSERT_NOT_NULL(strstr(gstr("e1"), "head.position needs 3 numbers"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("e2"), "head.orientation must be a table of 4 numbers"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("e3"), "table expected"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("e4"), "invalid option 'middle'"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("e5"), "boolean expected"));
+  TEST_ASSERT_EQUAL_INT(4, g_emulate_calls);
+  stop();
+
+  /* Outside tests and scenarios only xr.state exists. */
+  configure();
+  F.cfg.test_api = false;
+  start_with(&F.cfg);
+  run();
+  exec("helpers = xr.emulate == nil and xr.emulate_button == nil and type(xr.state) == 'function'");
+  TEST_ASSERT_TRUE(gbool("helpers"));
+}
+
 static void test_hash_state(void) {
   package("assets/base", "base", NULL, NULL);
   start();
@@ -1366,6 +1471,7 @@ int main(void) {
   RUN_TEST(test_engine_info);
   RUN_TEST(test_engine_info_without_host);
   RUN_TEST(test_engine_controls);
+  RUN_TEST(test_xr_api);
   RUN_TEST(test_hash_state);
   RUN_TEST(test_packages_and_credits);
   RUN_TEST(test_vfs_api);

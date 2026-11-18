@@ -175,6 +175,133 @@ static void test_two_views(void) {
   free_world(&w);
 }
 
+static void assert_m4(zb_mat4 e, zb_mat4 a) {
+  for (int k = 0; k < 16; ++k) {
+    TEST_ASSERT_FLOAT_WITHIN(1e-4f, e.m[k], a.m[k]);
+  }
+}
+
+static size_t model_items_in_view(const zb_frame *f, int view) {
+  size_t n = 0;
+  for (size_t i = 0; i < f->item_count; ++i) {
+    n += f->items[i].kind == ZB_DRAW_MODEL && f->items[i].view == view;
+  }
+  return n;
+}
+
+/* spec: webxr-session: Views from the headset */
+static void test_explicit_views(void) {
+  world w = make_world();
+  uint32_t carpet = zb_render_load_model(w.r, "models/carpet.glb");
+  settle(&w);
+  zb_render_set_camera(w.r, zb_v3(0, 1.5f, 4), zb_v3(0, 1.5f, 0), zb_v3(0, 1, 0), 60, 0.2f, 300);
+  zb_mat4 camera = zb_m4_look_at(zb_v3(0, 1.5f, 4), zb_v3(0, 1.5f, 0), zb_v3(0, 1, 0));
+  /* An emulated left eye and a second view turned around (looking backwards),
+   * in 400 x 400 viewports of an 820 x 420 framebuffer. */
+  zb_xr_frame rig;
+  zb_xr_emulate((zb_xr_pose){zb_v3(0, 0, 0), zb_quat_identity()}, 800, 400, 0.064f, &rig);
+  zb_xr_view views[2] = {rig.views[0], rig.views[1]};
+  views[0].x = 10;
+  views[0].y = 10;
+  views[0].width = 400;
+  views[0].height = 400;
+  views[1].x = 410;
+  views[1].y = 10;
+  views[1].width = 400;
+  views[1].height = 400;
+  views[1].view = zb_m4_from_quat(zb_quat_axis_angle(zb_v3(0, 1, 0), ZB_PI));
+  zb_render_set_views(w.r, views, 2);
+  zb_render_set_target(w.r, 7, 820, 420);
+  zb_render_begin(w.r, 1280, 720);                                       /* the window size does not matter now */
+  zb_render_draw_model(w.r, carpet, zb_m4_translate(zb_v3(0, 1.5f, 0))); /* ahead of the camera */
+  zb_render_draw_model(w.r, carpet, zb_m4_translate(zb_v3(0, 1.5f, 8))); /* behind it */
+  zb_render_end(w.r);
+  const zb_frame *f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_TRUE(f->explicit_views);
+  TEST_ASSERT_EQUAL_UINT32(7, f->target);
+  TEST_ASSERT_EQUAL_INT(2, f->view_count);
+  TEST_ASSERT_EQUAL_INT(820, f->layout.drawable_w);
+  TEST_ASSERT_EQUAL_INT(420, f->layout.drawable_h);
+  /* Each eye at the internal height with its viewport's aspect, side by side. */
+  TEST_ASSERT_EQUAL_INT(360, f->layout.internal_h);
+  TEST_ASSERT_EQUAL_INT(720, f->layout.internal_w);
+  TEST_ASSERT_EQUAL_INT(0, f->layout.scale);
+  for (int v = 0; v < 2; ++v) {
+    const zb_view *vw = &f->views[v];
+    TEST_ASSERT_EQUAL_INT(v * 360, vw->x);
+    TEST_ASSERT_EQUAL_INT(0, vw->y);
+    TEST_ASSERT_EQUAL_INT(360, vw->width);
+    TEST_ASSERT_EQUAL_INT(360, vw->height);
+    TEST_ASSERT_EQUAL_INT(views[v].x, vw->out_x);
+    TEST_ASSERT_EQUAL_INT(views[v].y, vw->out_y);
+    TEST_ASSERT_EQUAL_INT(400, vw->out_w);
+    TEST_ASSERT_EQUAL_INT(400, vw->out_h);
+    /* The headset's view relative to the camera. */
+    assert_m4(zb_m4_mul(views[v].view, camera), vw->view);
+    /* The headset's field of view with the camera's depth range. */
+    TEST_ASSERT_EQUAL_FLOAT(views[v].proj.m[0], vw->proj.m[0]);
+    TEST_ASSERT_EQUAL_FLOAT(views[v].proj.m[5], vw->proj.m[5]);
+    TEST_ASSERT_EQUAL_FLOAT(views[v].proj.m[8], vw->proj.m[8]);
+    TEST_ASSERT_EQUAL_FLOAT(views[v].proj.m[9], vw->proj.m[9]);
+    zb_mat4 cam_proj = zb_m4_perspective(1.0f, 1.0f, 0.2f, 300.0f);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6f, cam_proj.m[10], vw->proj.m[10]);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4f, cam_proj.m[14], vw->proj.m[14]);
+    assert_m4(zb_m4_mul(vw->proj, vw->view), vw->view_proj);
+  }
+  /* Eyes, axes and culling follow the composed matrices. */
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, -0.032f, f->views[0].eye.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 1.5f, f->views[0].eye.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 4.0f, f->views[0].eye.z);
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 1.0f, f->views[0].right.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 1.0f, f->views[0].up.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, -1.0f, f->views[1].right.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 4.0f, f->views[1].eye.z);
+  TEST_ASSERT_TRUE(model_items_in_view(f, 0) > 0);
+  TEST_ASSERT_TRUE(model_items_in_view(f, 1) > 0);
+  TEST_ASSERT_EQUAL_size_t(2, zb_render_get_stats(w.r)->culled); /* each carpet in one view only */
+  TEST_ASSERT_EQUAL_INT(2, zb_render_get_stats(w.r)->views);
+
+  /* Viewports twice the internal height: an integer upscale. Orthographic
+   * projections keep their depth terms; viewless sizes stay drawable. */
+  views[0].width = views[0].height = 720;
+  views[1].width = views[1].height = 0;
+  views[1].proj = zb_m4_ortho(-1, 1, -1, 1, 0.5f, 2.0f);
+  zb_render_set_views(w.r, views, 5); /* clamped to two */
+  zb_render_begin(w.r, 1280, 720);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_EQUAL_INT(2, f->view_count);
+  TEST_ASSERT_EQUAL_INT(360, f->views[0].width);
+  TEST_ASSERT_EQUAL_INT(360, f->views[1].width); /* 0 x 0 counts as square */
+  TEST_ASSERT_EQUAL_INT(0, f->layout.scale);
+  assert_m4(views[1].proj, f->views[1].proj);
+  zb_render_set_views(w.r, views, 1);
+  zb_render_begin(w.r, 1280, 720);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_EQUAL_INT(1, f->view_count);
+  TEST_ASSERT_EQUAL_INT(2, f->layout.scale);
+
+  /* Cleared: camera views again; a target alone takes the target's size. */
+  zb_render_set_views(w.r, NULL, 2);
+  zb_render_begin(w.r, 1280, 720);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_FALSE(f->explicit_views);
+  TEST_ASSERT_EQUAL_INT(1, f->view_count);
+  TEST_ASSERT_EQUAL_UINT32(7, f->target);
+  TEST_ASSERT_EQUAL_INT(820, f->layout.drawable_w);
+  zb_render_set_target(w.r, 7, 0, 420);
+  zb_render_set_views(w.r, views, -1);
+  zb_render_begin(w.r, 1280, 720);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_EQUAL_UINT32(0, f->target);
+  TEST_ASSERT_EQUAL_INT(1280, f->layout.drawable_w);
+  TEST_ASSERT_EQUAL_INT(640, f->layout.internal_w);
+  free_world(&w);
+}
+
 /* spec: rendering-core: Corrupt model */
 static void test_corrupt_and_missing_model(void) {
   world w = make_world();
@@ -471,6 +598,7 @@ int main(void) {
   RUN_TEST(test_layout);
   RUN_TEST(test_draw_list_and_culling);
   RUN_TEST(test_two_views);
+  RUN_TEST(test_explicit_views);
   RUN_TEST(test_corrupt_and_missing_model);
   RUN_TEST(test_missing_texture_placeholder);
   RUN_TEST(test_sprites);

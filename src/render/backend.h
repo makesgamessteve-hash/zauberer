@@ -29,7 +29,8 @@ typedef struct zb_draw_item {
 } zb_draw_item;
 
 typedef struct zb_view {
-  int x, y, width, height; /* viewport inside the internal framebuffer */
+  int x, y, width, height;        /* viewport inside the internal framebuffer */
+  int out_x, out_y, out_w, out_h; /* destination in the target (explicit views only) */
   zb_mat4 view;
   zb_mat4 proj;
   zb_mat4 view_proj;
@@ -62,6 +63,10 @@ typedef struct zb_frame {
   float clear[4];
   zb_view views[ZB_RENDER_MAX_VIEWS];
   int view_count;
+  /* Explicit views (WebXR): each view is presented into its own destination
+   * rectangle of the target framebuffer, which is left alone elsewhere. */
+  bool explicit_views;
+  uint32_t target;   /* framebuffer presented into (0 = the window) */
   zb_vec3 light_dir; /* direction the light travels */
   zb_vec3 light_color;
   zb_vec3 ambient;
@@ -98,6 +103,9 @@ size_t zb_render_null_item_count(const zb_render_backend *b, zb_draw_kind kind);
 size_t zb_render_null_frames(const zb_render_backend *b);
 /* Meshes created and not yet destroyed. */
 size_t zb_render_null_meshes(const zb_render_backend *b);
+/* A copy of the last frame (its item and text pointers are only valid until
+ * the next frame begins). */
+const zb_frame *zb_render_null_last_frame(const zb_render_backend *b);
 
 /* The OpenGL backend. load_proc resolves GL entry points; shader sources are
  * read from packages (shaders/<name>.vert|frag). Fails (with a message naming

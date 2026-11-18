@@ -3,6 +3,7 @@
 #include "platform/platform.h"
 
 #include "core/keys.h"
+#include "core/log.h"
 
 #include <SDL3/SDL.h>
 
@@ -32,6 +33,8 @@ struct zb_platform {
   SDL_Gamepad *pads[ZB_MAX_PADS];
   zb_state_fn state_fn;
   void *state_user;
+  zb_xr_handler xr;
+  int xr_status; /* last zb_xr_status the page reported, -1 = none yet */
 };
 
 /* SDL user event that carries the browser's audio unlock (first gesture). */
@@ -167,6 +170,9 @@ static const zb_thread_api k_threads = {th_create, th_join,   mx_create,  mx_des
 
 #ifdef __EMSCRIPTEN__
 static zb_platform *g_web_platform; /* the web build has exactly one platform */
+/* Implemented in web/lib_zauberer.js. */
+extern void zb_js_xr_init(void);
+static void xr_report_status(zb_platform *p);
 #endif
 
 zb_platform *zb_platform_create(const zb_allocator *a) {
@@ -182,6 +188,7 @@ zb_platform *zb_platform_create(const zb_allocator *a) {
   p->fs.stat = sdl_fs_stat;
   p->fs.mkdirs = sdl_fs_mkdirs;
   p->fs.remove = sdl_fs_remove;
+  p->xr_status = -1;
   /* Touches must not turn into mouse events and vice versa (input-actions). */
   SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
   SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
@@ -349,6 +356,9 @@ zb_result zb_platform_open_window(zb_platform *p, const zb_window_desc *desc, ch
   SDL_GL_MakeCurrent(p->window, p->gl);
   SDL_GL_SetSwapInterval(1);
   p->fullscreen = desc->fullscreen;
+#ifdef __EMSCRIPTEN__
+  zb_js_xr_init(); /* the WebXR bridge looks for an immersive VR device */
+#endif
   return ZB_OK;
 }
 
@@ -708,6 +718,78 @@ void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user) 
   p->state_fn = fn;
   p->state_user = user;
 }
+
+void zb_platform_set_xr_handler(zb_platform *p, const zb_xr_handler *h) {
+  memset(&p->xr, 0, sizeof p->xr);
+  if (h) {
+    p->xr = *h;
+  }
+#ifdef __EMSCRIPTEN__
+  xr_report_status(p);
+#endif
+}
+
+#ifdef __EMSCRIPTEN__
+/* ---- WebXR bridge (called from web/lib_zauberer.js) --------------------------- */
+
+static float g_xr_frame_data[ZB_XR_MAX_FLOATS];
+
+static void xr_report_status(zb_platform *p) {
+  if (p->xr.event && p->xr_status >= 0) {
+    zb_event ev;
+    memset(&ev, 0, sizeof ev);
+    ev.type = ZB_EV_XR_STATUS;
+    ev.u.xr_status.status = (uint8_t)p->xr_status;
+    p->xr.event(p->xr.user, &ev);
+  }
+}
+
+/* The buffer the bridge writes each frame into (layout: core/xr.h). */
+EMSCRIPTEN_KEEPALIVE float *zb_web_xr_buffer(void);
+EMSCRIPTEN_KEEPALIVE float *zb_web_xr_buffer(void) { return g_xr_frame_data; }
+
+/* status: zb_xr_status (unsupported, supported, running). */
+EMSCRIPTEN_KEEPALIVE void zb_web_xr_status(int status);
+EMSCRIPTEN_KEEPALIVE void zb_web_xr_status(int status) {
+  if (g_web_platform && status >= ZB_XR_UNSUPPORTED && status <= ZB_XR_RUNNING) {
+    g_web_platform->xr_status = status;
+    xr_report_status(g_web_platform);
+  }
+}
+
+/* One XR frame of `floats` values in the buffer, presented into the layer's
+ * framebuffer. Returns 0 when the session should end. */
+EMSCRIPTEN_KEEPALIVE int zb_web_xr_frame(int framebuffer, int floats);
+EMSCRIPTEN_KEEPALIVE int zb_web_xr_frame(int framebuffer, int floats) {
+  zb_platform *p = g_web_platform;
+  if (!p || !p->xr.frame) {
+    return 0;
+  }
+  zb_xr_frame f;
+  if (framebuffer < 0 || floats < 0 || floats > ZB_XR_MAX_FLOATS ||
+      !zb_xr_frame_decode(g_xr_frame_data, (size_t)floats, (uint32_t)framebuffer, &f)) {
+    zb_log_once(ZB_LOG_WARN, "xr-frame", "WebXR: invalid frame data from the page; frame skipped");
+    return 1;
+  }
+  return p->xr.frame(p->xr.user, &f) ? 1 : 0;
+}
+
+/* hand: zb_xr_hand, button: zb_xr_button. */
+EMSCRIPTEN_KEEPALIVE void zb_web_xr_button(int hand, int button, int down);
+EMSCRIPTEN_KEEPALIVE void zb_web_xr_button(int hand, int button, int down) {
+  zb_platform *p = g_web_platform;
+  if (p && p->xr.event && hand >= 0 && hand < ZB_XR_HAND_COUNT && button >= 0 && button < ZB_XR_BUTTON_COUNT) {
+    zb_event ev;
+    memset(&ev, 0, sizeof ev);
+    ev.type = ZB_EV_XR_BUTTON;
+    ev.time_ns = SDL_GetTicksNS();
+    ev.u.xr_button.hand = (uint8_t)hand;
+    ev.u.xr_button.button = (uint8_t)button;
+    ev.u.xr_button.down = down != 0;
+    p->xr.event(p->xr.user, &ev);
+  }
+}
+#endif
 
 typedef struct fetch_box {
   zb_fetch_done_fn done;

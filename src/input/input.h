@@ -41,7 +41,8 @@ size_t zb_input_action_count(const zb_input *in);
 /* Adds a binding such as "key:space", "mouse:left", "mouse:motion",
  * "gamepad:a", "gamepad:left_x", "gamepad:left_stick", "keys:a,d"
  * (axis1: negative, positive), "keys:w,s,a,d" (axis2: up, down, left,
- * right), "touch:stick:<name>", "touch:button:<name>". */
+ * right), "touch:stick:<name>", "touch:button:<name>", "xr:select",
+ * "xr:squeeze" (any hand), "xr:left_select", "xr:right_squeeze" etc. */
 zb_result zb_input_bind(zb_input *in, int action, const char *binding);
 void zb_input_clear_bindings(zb_input *in, int action);
 size_t zb_input_binding_count(const zb_input *in, int action);

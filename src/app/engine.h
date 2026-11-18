@@ -5,6 +5,7 @@
 #define ZB_APP_ENGINE_H
 
 #include "app/terrain_view.h"
+#include "app/xr.h"
 #include "audio/audio.h"
 #include "core/array.h"
 #include "core/cli.h"
@@ -55,6 +56,7 @@ typedef struct zb_engine {
   size_t next_expected;
   bool replay_diverged;
   zb_array recorded_hashes; /* zb_tick_hash */
+  zb_engine_xr xr;          /* WebXR session (app/xr.c) */
 } zb_engine;
 
 typedef struct zb_tick_hash {

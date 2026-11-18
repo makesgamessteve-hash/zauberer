@@ -139,6 +139,19 @@
 ---@field rotation number[]? Euler angles in degrees (applied Y, X, Z)
 ---@field scale number[]|number? Scale per axis or uniform
 
+---@class XrPose
+---@field position number[] {x, y, z} in metres, relative to the session origin
+---@field orientation number[] Rotation quaternion {x, y, z, w}
+
+---@class XrState
+---@field available boolean An immersive VR session can be started (web build with a headset)
+---@field active boolean A session is running
+---@field emulated boolean The running session is emulated (test API)
+---@field views integer Views of the last XR frame (0 without a session)
+---@field frames integer XR frames rendered in the running session
+---@field size integer[] Width and height of the XR framebuffer in pixels
+---@field head XrPose Viewer (head) pose relative to the session origin
+
 engine = {}
 
 ---The scripting API version packages declare in package.lua ("api").
@@ -251,7 +264,7 @@ function input.add_button(name, x, y, w, h) end
 ---@param radius number
 function input.add_stick(name, x, y, radius) end
 
----Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_stick", "touch:button:spin".
+---Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_stick", "touch:button:spin", "xr:select" or "xr:right_squeeze" (WebXR controllers; "xr:select" and "xr:squeeze" accept either hand).
 ---@param action string
 ---@param binding string
 function input.bind(action, binding) end
@@ -616,6 +629,22 @@ function net.send(channel, value, to) end
 ---The session's state.
 ---@return NetStatus
 function net.status() end
+
+xr = {}
+
+---Test API: starts or moves an emulated headset at the head pose (default: the session origin). Its two views render side by side into the window, eyes 64 mm apart, through the same path as a real session. false ends the session.
+---@param head? XrPose|false
+function xr.emulate(head) end
+
+---Test API: a controller button event, as a headset reports it ("none" for sources without a hand).
+---@param hand "left"|"right"|"none"
+---@param button "select"|"squeeze"
+---@param down boolean
+function xr.emulate_button(hand, button, down) end
+
+---The WebXR session. While it runs, the camera set with render.camera is the session origin (the seat on the carpet): every eye sees the scene from the head pose relative to it, with the headset's field of view. The head pose is updated before the frame hooks of every XR frame; it is presentation data and not part of replays. A session start or end reaches the event hook as "xr_session" (value "started" or "ended"); controller buttons are bindings such as "xr:select" (see input.bind).
+---@return XrState
+function xr.state() end
 
 test = {}
 

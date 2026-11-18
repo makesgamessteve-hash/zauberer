@@ -17,7 +17,7 @@ endfunction()
 
 zb_module(zb_core SOURCES
   core/alloc.c core/array.c core/base.c core/cli.c core/hash.c core/jobs.c core/keys.c
-  core/dmath.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c core/sha1.c)
+  core/dmath.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c core/sha1.c core/xr.c)
 if(UNIX)
   target_link_libraries(zb_core PUBLIC m)
 endif()
@@ -37,7 +37,7 @@ target_include_directories(zb_render SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/third
 zb_module(zb_audio SOURCES audio/audio.c DEPS zb_core zb_vfs PRIVATE_DEPS zb_thirdparty_impl)
 target_include_directories(zb_audio SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/third_party/stb")
 zb_module(zb_script SOURCES script/script.c script/script_api.c script/script_test.c
-  script/script_world.c script/script_net.c
+  script/script_world.c script/script_net.c script/script_xr.c
   DEPS zb_core zb_vfs zb_input zb_render zb_audio zb_world zb_net zb_lua)
 
 if(ZB_HEADLESS_ONLY)
@@ -52,7 +52,7 @@ else()
   endif()
 endif()
 
-zb_module(zb_app SOURCES app/engine.c app/host.c app/terrain_view.c
+zb_module(zb_app SOURCES app/engine.c app/host.c app/terrain_view.c app/xr.c
   DEPS zb_core zb_platform zb_vfs zb_input zb_render zb_audio zb_script)
 
 add_executable(zauberer ${ZB_ENTRY})
@@ -94,7 +94,7 @@ if(EMSCRIPTEN)
   else()
     list(APPEND ZB_WEB_LINK -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sGL_ENABLE_GET_PROC_ADDRESS=1
       -lidbfs.js "-sEXPORTED_RUNTIME_METHODS=['FS','IDBFS','UTF8ToString','ccall']"
-      "-sEXPORTED_FUNCTIONS=['_main','_zb_web_fetch_done','_zb_web_audio_unlocked','_zb_web_state']"
+      "-sEXPORTED_FUNCTIONS=['_main','_zb_web_fetch_done','_zb_web_audio_unlocked','_zb_web_state','_zb_web_xr_buffer','_zb_web_xr_status','_zb_web_xr_frame','_zb_web_xr_button']"
       --js-library "${PROJECT_SOURCE_DIR}/web/lib_zauberer.js" -sMODULARIZE=0)
     if(ZB_WEB_THREADS)
       # Memory growth with threads costs some JS-side speed; accepted (design §web).

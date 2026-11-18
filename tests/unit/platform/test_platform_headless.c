@@ -76,6 +76,9 @@ static void test_basics(void) {
   TEST_ASSERT_EQUAL_INT(ZB_ERR_UNSUPPORTED, zb_platform_fetch(g_p, "x", NULL, NULL));
   zb_platform_set_state_provider(g_p, NULL, NULL);
   zb_platform_push_audio_unlock();
+  zb_xr_handler xr = {NULL, NULL, NULL};
+  zb_platform_set_xr_handler(g_p, &xr);
+  zb_platform_set_xr_handler(g_p, NULL);
   zb_platform_destroy(NULL);
   zb_failing_allocator fa;
   TEST_ASSERT_NULL(zb_platform_create(zb_failing_init(&fa, zb_test_alloc(), 0)));

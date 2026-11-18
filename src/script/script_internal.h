@@ -76,6 +76,8 @@ void zb_script_open_net(zb_script *s);
  * message), and pushes a decoded value (false on malformed data). */
 const char *zb_script_net_encode(lua_State *L, int idx, zb_array *out);
 bool zb_script_net_decode(lua_State *L, const void *data, size_t len);
+/* Registers xr (WebXR session and head tracking; test helpers with the test API). */
+void zb_script_open_xr(zb_script *s);
 /* Adds the test helpers (test.*) and scenario helpers to the global table. */
 void zb_script_open_test_api(zb_script *s);
 /* Canonical hash of a Lua value (sorted keys, IEEE bit patterns). */

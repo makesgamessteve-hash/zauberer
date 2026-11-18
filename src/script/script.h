@@ -7,6 +7,7 @@
 
 #include "audio/audio.h"
 #include "core/fs.h"
+#include "core/xr.h"
 #include "input/input.h"
 #include "net/session.h"
 #include "render/render.h"
@@ -41,6 +42,12 @@ typedef struct zb_script_host {
   void (*set_window_size)(void *ctx, int w, int h);
   /* Test API: waits in real time (two-process tests). */
   void (*sleep_ms)(void *ctx, unsigned ms);
+  /* The WebXR session as scripts see it (NULL: never a session). */
+  void (*xr_state)(void *ctx, zb_xr_state *out);
+  /* Test API: starts or moves an emulated headset with the head pose; NULL ends it. */
+  void (*xr_emulate)(void *ctx, const zb_xr_pose *head);
+  /* Test API: a controller button event (zb_xr_hand, zb_xr_button). */
+  void (*xr_button)(void *ctx, int hand, int button, bool down);
 } zb_script_host;
 
 typedef struct zb_script_config {
@@ -81,7 +88,8 @@ void zb_script_shutdown(zb_script *s);
 /* Canonical simulation state hash: tick, input snapshot, random-number
  * counter and the values returned by the packages' "hash" hooks. */
 uint64_t zb_script_state_hash(zb_script *s);
-/* Named events: "resize" (w, h), "input_mode" (mode), "audio_unlocked". */
+/* Named events: "resize" (w, h), "input_mode" (mode), "audio_unlocked",
+ * "xr_session" ("started" or "ended"). */
 void zb_script_event(zb_script *s, const char *name, int a, int b, const char *text);
 
 /* Development: checks script files for changes (at most every 250 ms) and

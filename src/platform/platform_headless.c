@@ -322,3 +322,9 @@ void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user) 
 }
 
 void zb_platform_push_audio_unlock(void) {}
+
+/* No WebXR device without a browser: the handler is never called. */
+void zb_platform_set_xr_handler(zb_platform *p, const zb_xr_handler *h) {
+  (void)p;
+  (void)h;
+}
