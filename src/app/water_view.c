@@ -50,7 +50,7 @@ zb_result zb_standing_water_mesh(const zb_allocator *a, const zb_planet *p, cons
   memset(out, 0, sizeof *out);
   size_t wet = 0;
   for (int i = 0; i < N * N; ++i) {
-    wet += c->depth[i] > MIN_DEPTH ? 1 : 0;
+    wet += c->depth[i] > MIN_DEPTH || (c->ice && c->ice[i]) ? 1 : 0;
   }
   if (wet == 0) {
     return ZB_OK;
@@ -72,12 +72,15 @@ zb_result zb_standing_water_mesh(const zb_allocator *a, const zb_planet *p, cons
     for (int x = 0; x < N; ++x) {
       int i = y * N + x;
       double d = c->depth[i];
-      if (d <= MIN_DEPTH) {
+      bool ice = c->ice && c->ice[i];
+      if (d <= MIN_DEPTH && !ice) {
         continue;
       }
-      float level = (float)(c->ground[i] + d);
-      float alpha = (float)(0.35 + d);
-      alpha = alpha > 0.85f ? 0.85f : alpha;
+      /* Ice: pale and nearly opaque, on the water's surface (a lake's too). */
+      float level = (float)(d > 0.0 || !c->level ? c->ground[i] + d : c->level[i]);
+      level += ice ? 0.05f : 0.0f;
+      float alpha = ice ? 0.95f : (float)(0.35 + d);
+      alpha = alpha > 0.85f && !ice ? 0.85f : alpha;
       static const int corner[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
       for (int k = 0; k < 4; ++k) {
         zb_planet_pos wp = {c->chunk, (float)(x + corner[k][0]) * step, (float)(y + corner[k][1]) * step, level};
@@ -85,7 +88,8 @@ zb_result zb_standing_water_mesh(const zb_allocator *a, const zb_planet *p, cons
         zb_vertex *vx = &out->vertices[q * 4 + (size_t)k];
         memcpy(vx->pos, &l, sizeof vx->pos);
         memcpy(vx->normal, &up, sizeof vx->normal);
-        const float tint[4] = {0.14f, 0.33f, 0.40f, alpha};
+        const float water[4] = {0.14f, 0.33f, 0.40f, alpha}, frost[4] = {0.78f, 0.88f, 0.95f, alpha};
+        const float *tint = ice ? frost : water;
         memcpy(vx->color, tint, sizeof vx->color);
         vx->uv[0] = wp.lx;
         vx->uv[1] = wp.ly;

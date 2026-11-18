@@ -788,6 +788,51 @@ void zb_fire_add_heat(zb_fire *f, const zb_planet_pos *pos, double radius, doubl
   }
 }
 
+#define QUENCH 50000.0 /* J/m^2 taken from a burning cell that put it out */
+
+typedef struct cool_ctx {
+  zb_fire *f;
+  double joules_per_cell; /* 0: counting */
+  int put_out;
+} cool_ctx;
+
+static bool cool_fn(void *ctx, int32_t cell) {
+  cool_ctx *k = ctx;
+  fire_chunk *c = chunk_of(k->f, cell);
+  int i = cell % CELLS;
+  if (c->state[i] & WATER) {
+    return false;
+  }
+  if (k->joules_per_cell <= 0.0) {
+    return true;
+  }
+  double per_m2 = k->joules_per_cell / (c->cw * c->ch);
+  wake(c);
+  if (c->state[i] & BURNING) {
+    if (per_m2 >= QUENCH) {
+      c->state[i] &= (uint8_t)~BURNING;
+      c->t[i] = c->t[i] < 20.0f ? c->t[i] : 20.0f;
+      c->next[i] = c->t[i];
+      k->put_out++;
+    }
+    return true;
+  }
+  float t = (float)(c->t[i] - per_m2 / heat_capacity(k->f, c, i));
+  c->t[i] = t > -30.0f ? t : -30.0f;
+  return true;
+}
+
+int zb_fire_cool(zb_fire *f, const zb_planet_pos *pos, double radius, double joules) {
+  cool_ctx count = {f, 0.0, 0};
+  int n = zb_active_around(&f->grid, pos, radius, cool_fn, &count);
+  if (n <= 0 || !(joules > 0.0)) {
+    return 0;
+  }
+  cool_ctx k = {f, joules / n, 0};
+  zb_active_around(&f->grid, pos, radius, cool_fn, &k);
+  return k.put_out;
+}
+
 void zb_fire_cell_at(const zb_fire *f, const zb_planet_pos *pos, zb_fire_cell *out) {
   memset(out, 0, sizeof *out);
   out->material = -1;

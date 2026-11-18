@@ -16,6 +16,7 @@ static uint64_t frozen_clock(void *ctx) {
 }
 
 /* spec: shallow-water: Water from Lua */
+/* spec: shallow-water: Water for magic */
 static void test_standing_water(void) {
   zb_world_desc d;
   memset(&d, 0, sizeof d);
@@ -63,6 +64,18 @@ static void test_standing_water(void) {
   TEST_ASSERT_TRUE(md.index_count > 0 && md.index_count % 6 == 0);
   TEST_ASSERT_TRUE(md.vertices[0].color[3] > 0.3f);
   zb_mesh_free(zb_test_alloc(), &md);
+  /* Frozen: ice, pale and nearly opaque. */
+  TEST_ASSERT_TRUE(zb_surface_water_freeze(water, &f.pos, 4.0, 60.0) > 0);
+  zb_surface_water_chunk(water, 0, &c);
+  TEST_ASSERT_NOT_NULL(c.ice);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_standing_water_mesh(zb_test_alloc(), p, &c, &md));
+  bool icy = false;
+  for (size_t k = 0; k < md.vertex_count; ++k) {
+    icy = icy || (md.vertices[k].color[3] > 0.9f && md.vertices[k].color[0] > 0.7f);
+  }
+  TEST_ASSERT_TRUE(icy);
+  zb_mesh_free(zb_test_alloc(), &md);
+  TEST_ASSERT_TRUE(zb_surface_water_thaw(water, &f.pos, 4.0) > 0);
   for (int k = 0; k < 4; ++k) {
     zb_surface_water_update(water, &f.pos, 1, 0.25);
     zb_render_begin(r, 640, 360);

@@ -108,7 +108,7 @@ static zb_water_cell cell(const scene *s, float x, float y) {
 static void assert_balanced(const scene *s) {
   zb_water_stats st;
   zb_surface_water_get_stats(s->water, &st);
-  double in = st.rained + st.added, held = st.on_ground + st.soaked + st.drained + st.left;
+  double in = st.rained + st.added, held = st.on_ground + st.soaked + st.drained + st.left + st.removed;
   TEST_ASSERT_DOUBLE_WITHIN(1e-3 * (in > 1.0 ? in : 1.0), in, held);
 }
 
@@ -212,6 +212,54 @@ static void count_wet(void *ctx, const zb_planet_pos *pos, double depth) {
   (*(int *)ctx)++;
 }
 
+/* spec: shallow-water: Water for magic */
+static void test_magic(void) {
+  scene s;
+  scene_open(&s, FLAT_ROCK);
+  zb_planet_pos c = at(&s, 128.0f, 128.0f);
+  zb_surface_water_add(s.water, &c, 8.0, 200.0);
+  run(&s, 5.0);
+  /* Drying: some, then more than there is. */
+  TEST_ASSERT_DOUBLE_WITHIN(1e-9, 50.0, zb_surface_water_remove(s.water, &c, 30.0, 50.0));
+  zb_water_stats st;
+  zb_surface_water_get_stats(s.water, &st);
+  TEST_ASSERT_DOUBLE_WITHIN(1e-9, 50.0, st.removed);
+  assert_balanced(&s);
+  double rest = zb_surface_water_remove(s.water, &c, 60.0, 1e6);
+  TEST_ASSERT_TRUE(rest > 100.0 && rest < 150.0 + 1e-6);
+  TEST_ASSERT_EQUAL_DOUBLE(0.0, zb_surface_water_remove(s.water, &c, 60.0, 10.0));
+  assert_balanced(&s);
+  /* Freezing a pool: it stops, keeps its water and can be walked on; it
+   * melts when its time is up. */
+  zb_surface_water_add(s.water, &c, 6.0, 120.0);
+  run(&s, 0.5);
+  TEST_ASSERT_EQUAL_INT(0, zb_surface_water_freeze(s.water, &(zb_planet_pos){s.centre.chunk, 20.0f, 20.0f, 0.0f}, 2.0,
+                                                   60.0)); /* dry ground: nothing to freeze */
+  int cells = zb_surface_water_freeze(s.water, &c, 6.0, 30.0);
+  TEST_ASSERT_TRUE(cells > 10);
+  zb_water_cell ice = cell(&s, 128.0f, 128.0f);
+  TEST_ASSERT_TRUE(ice.frozen && ice.depth > 0.3);
+  run(&s, 10.0);
+  zb_water_cell still = cell(&s, 128.0f, 128.0f);
+  TEST_ASSERT_TRUE(still.frozen);
+  TEST_ASSERT_DOUBLE_WITHIN(1e-9, ice.depth, still.depth); /* frozen: it does not flow */
+  run(&s, 25.0);
+  TEST_ASSERT_FALSE_MESSAGE(cell(&s, 128.0f, 128.0f).frozen, "melted");
+  TEST_ASSERT_TRUE(zb_surface_water_freeze(s.water, &c, 6.0, 30.0) > 0);
+  TEST_ASSERT_TRUE(zb_surface_water_thaw(s.water, &c, 6.0) > 0);
+  TEST_ASSERT_FALSE(cell(&s, 128.0f, 128.0f).frozen);
+  TEST_ASSERT_EQUAL_INT(0, zb_surface_water_thaw(s.water, &c, 6.0));
+  assert_balanced(&s);
+  scene_close(&s);
+  /* The sea freezes too, at its level. */
+  scene_open(&s, SEA_EDGE);
+  zb_planet_pos sea = at(&s, 30.0f, 128.0f);
+  TEST_ASSERT_TRUE(zb_surface_water_freeze(s.water, &sea, 8.0, 60.0) > 0);
+  zb_water_cell floe = cell(&s, 30.0f, 128.0f);
+  TEST_ASSERT_TRUE(floe.fixed && floe.frozen && floe.depth > 1.0);
+  scene_close(&s);
+}
+
 /* spec: shallow-water: Deterministic water */
 static void test_deterministic(void) {
   uint64_t h[2];
@@ -272,6 +320,7 @@ int main(void) {
   RUN_TEST(test_drains);
   RUN_TEST(test_rain);
   RUN_TEST(test_dam_breach);
+  RUN_TEST(test_magic);
   RUN_TEST(test_deterministic);
   return UNITY_END();
 }

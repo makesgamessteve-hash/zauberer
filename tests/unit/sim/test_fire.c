@@ -275,6 +275,7 @@ static void test_embers(void) {
 }
 
 /* spec: thermal-and-fire: Heat without fire */
+/* spec: thermal-and-fire: Heat sinks for magic */
 static void test_heat(void) {
   scene s;
   scene_open(&s, FLAT, 0.0, 0.0);
@@ -294,6 +295,23 @@ static void test_heat(void) {
   run(&s, 1.0);
   zb_fire_cell_at(s.fire, &p, &c);
   TEST_ASSERT_TRUE(c.burning);
+  /* Unmaking fire: a gentle sink chills, a strong one puts the fire out. */
+  zb_planet_pos cold = offset(&s, 60.0f, 0.0f);
+  zb_fire_cell_at(s.fire, &cold, &before);
+  TEST_ASSERT_EQUAL_INT(0, zb_fire_cool(s.fire, &cold, 2.0, 1e5));
+  zb_fire_cell_at(s.fire, &cold, &c);
+  TEST_ASSERT_TRUE(c.temperature < before.temperature - 1.0);
+  zb_fire_cool(s.fire, &cold, 2.0, 1e12);
+  zb_fire_cell_at(s.fire, &cold, &c);
+  TEST_ASSERT_TRUE(c.temperature >= before.temperature - 30.5); /* never colder than that */
+  zb_fire_stats burning;
+  zb_fire_get_stats(s.fire, &burning);
+  TEST_ASSERT_EQUAL_INT(0, zb_fire_cool(s.fire, &p, 3.0, 1.0)); /* too weak to quench */
+  int out = zb_fire_cool(s.fire, &p, 3.0, 5e7);
+  TEST_ASSERT_TRUE(out > 0);
+  zb_fire_cell_at(s.fire, &p, &c);
+  TEST_ASSERT_FALSE(c.burning);
+  TEST_ASSERT_EQUAL_INT(0, zb_fire_cool(s.fire, &p, 3.0, -5.0));
   /* Outside the simulation nothing happens. */
   zb_planet_pos away = s.centre;
   away.chunk.x += 40;

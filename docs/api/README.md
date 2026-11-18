@@ -636,6 +636,10 @@ A body as it is now, or nil when there is no such body.
 
 
 
+### `sim.cool(pos: PlanetPos, radius: number, joules: number): integer`
+
+Takes heat from within radius metres (up to 64): a heat sink, magic unmaking fire. Burning cells that lose more than 50 kJ/m^2 go out; returns how many did.
+
 ### `sim.emit(pos: PlanetPos, gas: string, kg: number)`
 
 Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
@@ -647,6 +651,10 @@ The 2 m cell of the heat and fire simulation at a place.
 ### `sim.fire_stats(): FireStats`
 
 The heat and fire simulation as a whole.
+
+### `sim.freeze(pos: PlanetPos, radius: number, seconds: number): integer`
+
+Freezes the water within radius metres (up to 64), standing water and the sea, lakes and rivers alike, for seconds (0 .. 86400) of simulated time: ice that does not flow and can be walked on. Returns the cells frozen.
 
 ### `sim.gas_at(pos: PlanetPos): Gases`
 
@@ -688,6 +696,10 @@ Gives a body a push at its centre (N s { east, north, up }) and wakes it; false 
 
 Takes a body out of the world; false when there was no such body.
 
+### `sim.remove_water(pos: PlanetPos, radius: number, cubic_metres: number): number`
+
+Takes up to cubic_metres (0 .. 1e7) of standing water from within radius metres (up to 64): drying magic. Returns how much it took.
+
 ### `sim.set_weather(weather: Weather)`
 
 Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
@@ -700,6 +712,10 @@ Puts a rigid body into the world: a boulder, a log, a crate. It falls, rolls, co
 
 Sweeps a sphere of radius metres (default 0: a ray) from one place to another: the first body or ground it touches, or nil.
 
+### `sim.thaw(pos: PlanetPos, radius: number): integer`
+
+Melts the ice within radius metres (up to 64); returns the cells thawed.
+
 ### `sim.tier_stats(): TierStats`
 
 What the active tier costs: milliseconds per tick for each simulation, averaged over the last second, against the budget.
@@ -710,7 +726,7 @@ The 2 m cell of the surface-water simulation at a place.
 
 ### `sim.water_stats(): WaterStats`
 
-Where the water of the active tier is, in m^3: on_ground + soaked + drained + left equals rained + added.
+Where the water of the active tier is, in m^3: on_ground + soaked + drained + left + removed equals rained + added.
 
 ### `sim.weather(): Weather`
 

@@ -396,6 +396,58 @@ static int s_add_water(lua_State *L) {
   return 1;
 }
 
+/* @lua sim.remove_water(pos: PlanetPos, radius: number, cubic_metres: number): number
+ * Takes up to cubic_metres (0 .. 1e7) of standing water from within radius
+ * metres (up to 64): drying magic. Returns how much it took.
+ */
+static int s_remove_water(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2), volume = luaL_checknumber(L, 3);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 64.0, 2, "radius must be 0..64 metres");
+  luaL_argcheck(L, volume >= 0.0 && volume <= 1e7, 3, "cubic_metres must be 0..1e7");
+  lua_pushnumber(L, zb_surface_water_remove(WT(L), &pos, radius, volume));
+  return 1;
+}
+
+/* @lua sim.freeze(pos: PlanetPos, radius: number, seconds: number): integer
+ * Freezes the water within radius metres (up to 64), standing water and the
+ * sea, lakes and rivers alike, for seconds (0 .. 86400) of simulated time:
+ * ice that does not flow and can be walked on. Returns the cells frozen.
+ */
+static int s_freeze(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2), seconds = luaL_checknumber(L, 3);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 64.0, 2, "radius must be 0..64 metres");
+  luaL_argcheck(L, seconds >= 0.0 && seconds <= 86400.0, 3, "seconds must be 0..86400");
+  lua_pushinteger(L, zb_surface_water_freeze(WT(L), &pos, radius, seconds));
+  return 1;
+}
+
+/* @lua sim.thaw(pos: PlanetPos, radius: number): integer
+ * Melts the ice within radius metres (up to 64); returns the cells thawed.
+ */
+static int s_thaw(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 64.0, 2, "radius must be 0..64 metres");
+  lua_pushinteger(L, zb_surface_water_thaw(WT(L), &pos, radius));
+  return 1;
+}
+
+/* @lua sim.cool(pos: PlanetPos, radius: number, joules: number): integer
+ * Takes heat from within radius metres (up to 64): a heat sink, magic
+ * unmaking fire. Burning cells that lose more than 50 kJ/m^2 go out; returns
+ * how many did.
+ */
+static int s_cool(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2), joules = luaL_checknumber(L, 3);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 64.0, 2, "radius must be 0..64 metres");
+  luaL_argcheck(L, joules >= 0.0 && joules <= 1e12, 3, "joules must be 0..1e12");
+  lua_pushinteger(L, zb_fire_cool(F(L), &pos, radius, joules));
+  return 1;
+}
+
 /* @lua sim.water_at(pos: PlanetPos): WaterCell
  * The 2 m cell of the surface-water simulation at a place.
  * @field loaded boolean In the active tier
@@ -406,6 +458,7 @@ static int s_add_water(lua_State *L) {
  * @field soaked number Metres of water held in the ground
  * @field capacity number Metres the ground can hold
  * @field flow number m^3/s leaving the cell
+ * @field frozen boolean Ice
  */
 static int s_water_at(lua_State *L) {
   zb_planet_pos pos = zb_script_check_pos(L, 1);
@@ -422,12 +475,14 @@ static int s_water_at(lua_State *L) {
   set_number(L, "soaked", c.soaked);
   set_number(L, "capacity", c.capacity);
   set_number(L, "flow", c.flow);
+  lua_pushboolean(L, c.frozen);
+  lua_setfield(L, -2, "frozen");
   return 1;
 }
 
 /* @lua sim.water_stats(): WaterStats
  * Where the water of the active tier is, in m^3: on_ground + soaked + drained
- * + left equals rained + added.
+ * + left + removed equals rained + added.
  * @field chunks integer Chunks in the active tier
  * @field awake integer Of those, chunks with moving water
  * @field wet integer Cells with more than a centimetre of water
@@ -435,6 +490,7 @@ static int s_water_at(lua_State *L) {
  * @field soaked number m^3 soaked into the ground
  * @field drained number m^3 drained into seas, lakes and rivers
  * @field left number m^3 standing in chunks when they left the active tier
+ * @field removed number m^3 taken away by magic
  * @field rained number m^3 of rain
  * @field added number m^3 poured in
  * @field max_depth number Metres
@@ -454,6 +510,7 @@ static int s_water_stats(lua_State *L) {
   set_number(L, "soaked", st.soaked);
   set_number(L, "drained", st.drained);
   set_number(L, "left", st.left);
+  set_number(L, "removed", st.removed);
   set_number(L, "rained", st.rained);
   set_number(L, "added", st.added);
   set_number(L, "max_depth", st.max_depth);
@@ -610,6 +667,10 @@ void zb_script_open_sim(zb_script *s) {
                                      {"natural_weather", s_natural_weather},
                                      {"lightning", s_lightning},
                                      {"add_water", s_add_water},
+                                     {"remove_water", s_remove_water},
+                                     {"freeze", s_freeze},
+                                     {"thaw", s_thaw},
+                                     {"cool", s_cool},
                                      {"water_at", s_water_at},
                                      {"water_stats", s_water_stats},
                                      {"wind_at", s_wind_at},

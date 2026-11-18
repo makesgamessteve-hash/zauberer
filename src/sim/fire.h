@@ -75,6 +75,10 @@ void zb_fire_ground_changed(zb_fire *f, const zb_chunk_terrain *ct);
 void zb_fire_soak(zb_fire *f, const zb_planet_pos *pos);
 /* Adds heat (J) spread over radius metres. */
 void zb_fire_add_heat(zb_fire *f, const zb_planet_pos *pos, double radius, double joules);
+/* Takes joules of heat from the cells within radius (a heat sink: magic
+ * unmaking fire); a burning cell that loses more than 50 kJ/m^2 goes out.
+ * Returns how many fires it put out. */
+int zb_fire_cool(zb_fire *f, const zb_planet_pos *pos, double radius, double joules);
 void zb_fire_cell_at(const zb_fire *f, const zb_planet_pos *pos, zb_fire_cell *out);
 void zb_fire_get_stats(const zb_fire *f, zb_fire_stats *out);
 /* Fires remembered in chunks that left the active tier while burning; when

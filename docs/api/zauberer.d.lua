@@ -1029,6 +1029,13 @@ function sim.body(id) end
 ---@return BodyStats
 function sim.body_stats() end
 
+---Takes heat from within radius metres (up to 64): a heat sink, magic unmaking fire. Burning cells that lose more than 50 kJ/m^2 go out; returns how many did.
+---@param pos PlanetPos
+---@param radius number
+---@param joules number
+---@return integer
+function sim.cool(pos, radius, joules) end
+
 ---Releases kg of a gas ("smoke", "steam", "scent" or "fumes") into the air above a place in the active tier: a creature's scent, a potion's fumes.
 ---@param pos PlanetPos
 ---@param gas string
@@ -1043,6 +1050,13 @@ function sim.fire_at(pos) end
 ---The heat and fire simulation as a whole.
 ---@return FireStats
 function sim.fire_stats() end
+
+---Freezes the water within radius metres (up to 64), standing water and the sea, lakes and rivers alike, for seconds (0 .. 86400) of simulated time: ice that does not flow and can be walked on. Returns the cells frozen.
+---@param pos PlanetPos
+---@param radius number
+---@param seconds number
+---@return integer
+function sim.freeze(pos, radius, seconds) end
 
 ---The gases in the air at a place, kg/m^3 of the lowest air layer.
 ---@param pos PlanetPos
@@ -1098,6 +1112,13 @@ function sim.push(id, impulse) end
 ---@return boolean
 function sim.remove_body(id) end
 
+---Takes up to cubic_metres (0 .. 1e7) of standing water from within radius metres (up to 64): drying magic. Returns how much it took.
+---@param pos PlanetPos
+---@param radius number
+---@param cubic_metres number
+---@return number
+function sim.remove_water(pos, radius, cubic_metres) end
+
 ---Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 ---@param weather Weather
 function sim.set_weather(weather) end
@@ -1114,6 +1135,12 @@ function sim.spawn(body) end
 ---@return Hit?
 function sim.sweep(from, to, radius) end
 
+---Melts the ice within radius metres (up to 64); returns the cells thawed.
+---@param pos PlanetPos
+---@param radius number
+---@return integer
+function sim.thaw(pos, radius) end
+
 ---What the active tier costs: milliseconds per tick for each simulation, averaged over the last second, against the budget.
 ---@return TierStats
 function sim.tier_stats() end
@@ -1123,7 +1150,7 @@ function sim.tier_stats() end
 ---@return WaterCell
 function sim.water_at(pos) end
 
----Where the water of the active tier is, in m^3: on_ground + soaked + drained + left equals rained + added.
+---Where the water of the active tier is, in m^3: on_ground + soaked + drained + left + removed equals rained + added.
 ---@return WaterStats
 function sim.water_stats() end
 

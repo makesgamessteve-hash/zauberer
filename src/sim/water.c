@@ -43,6 +43,8 @@ typedef struct water_chunk {
   bool awake;
   int still;        /* steps without flow */
   uint32_t version; /* changes whenever the water moved */
+  uint8_t *ice;     /* frozen cells (allocated when a cell first freezes) */
+  float *thaw_at;   /* when each frozen cell melts (the simulation's clock) */
   double area;      /* m^2 of a cell */
   double width[4];  /* metres of each side */
 } water_chunk;
@@ -53,7 +55,9 @@ struct zb_surface_water {
   double rain; /* mm/h */
   double pending, since_survey, rain_wait;
   uint64_t steps;
-  double drained, rained, added, absorbed, left;
+  double drained, rained, added, absorbed, left, removed;
+  double clock; /* seconds simulated */
+  double since_melt;
 };
 
 static water_chunk *WC(const zb_surface_water *w, int s) { return w->grid.slot[s]->data; }
@@ -129,6 +133,8 @@ static void let_go(void *ctx, void *data) {
   }
   zb_free(w->a, c->block);
   zb_free(w->a, c->depth);
+  zb_free(w->a, c->ice);
+  zb_free(w->a, c->thaw_at);
   zb_free(w->a, c);
 }
 
@@ -165,7 +171,12 @@ static void wake(water_chunk *c) {
 }
 
 /* The water surface of a cell as its neighbours see it. */
+static bool frozen(const water_chunk *c, int i) { return c->ice && c->ice[i]; }
+
 static double surface_of(const water_chunk *c, int i) {
+  if (frozen(c, i)) {
+    return 1e30; /* ice takes no water in */
+  }
   return (c->state[i] & FIXED) ? c->level[i] : (double)c->ground[i] + c->depth[i];
 }
 
@@ -197,7 +208,7 @@ static bool rain_on(zb_surface_water *w, water_chunk *c, int i, double seconds) 
 static double outflows(zb_surface_water *w, int s, int i) {
   water_chunk *c = WC(w, s);
   float *out = &c->out[4 * i];
-  if (c->depth[i] <= 0.0) {
+  if (c->depth[i] <= 0.0 || frozen(c, i)) {
     out[0] = out[1] = out[2] = out[3] = 0.0f;
     return 0.0;
   }
@@ -329,7 +340,31 @@ static void rain_on_sleepers(zb_surface_water *w, double seconds) {
   }
 }
 
+/* Frozen cells whose time is up melt. */
+static void melt(zb_surface_water *w) {
+  for (int s = 0; s < w->grid.count; ++s) {
+    water_chunk *c = WC(w, s);
+    bool changed = false;
+    for (int i = 0; c->ice && i < CELLS; ++i) {
+      if (c->ice[i] && c->thaw_at[i] <= w->clock) {
+        c->ice[i] = 0;
+        changed = true;
+      }
+    }
+    if (changed) {
+      c->version++;
+      wake(c);
+    }
+  }
+}
+
 void zb_surface_water_update(zb_surface_water *w, const zb_planet_pos *focus, int focus_count, double seconds) {
+  w->clock += seconds;
+  w->since_melt += seconds;
+  if (w->since_melt >= 1.0) {
+    w->since_melt = 0.0;
+    melt(w);
+  }
   w->since_survey += seconds;
   if (w->since_survey >= 1.0 || w->grid.count == 0) {
     w->since_survey = 0.0;
@@ -376,6 +411,94 @@ static bool pour_fn(void *ctx, int32_t cell) {
   return true;
 }
 
+typedef struct take {
+  zb_surface_water *w;
+  double share; /* of each cell's water (0: counting) */
+  double total;
+} take;
+
+static bool take_fn(void *ctx, int32_t cell) {
+  take *t = ctx;
+  water_chunk *c = zb_active_chunk_of(&t->w->grid, cell)->data;
+  int i = cell % CELLS;
+  if ((c->state[i] & FIXED) || frozen(c, i) || c->depth[i] <= 0.0) {
+    return false;
+  }
+  double v = c->depth[i] * c->area;
+  if (t->share > 0.0) {
+    c->depth[i] -= c->depth[i] * t->share;
+    wake(c);
+  }
+  t->total += v;
+  return true;
+}
+
+double zb_surface_water_remove(zb_surface_water *w, const zb_planet_pos *pos, double radius, double cubic_metres) {
+  take count = {w, 0.0, 0.0};
+  zb_active_around(&w->grid, pos, radius, take_fn, &count);
+  if (count.total <= 0.0 || !(cubic_metres > 0.0)) {
+    return 0.0;
+  }
+  double got = cubic_metres < count.total ? cubic_metres : count.total;
+  take t = {w, got / count.total, 0.0};
+  zb_active_around(&w->grid, pos, radius, take_fn, &t);
+  w->removed += got;
+  return got;
+}
+
+typedef struct freeze_ctx {
+  zb_surface_water *w;
+  double until; /* < 0: thaw */
+  int cells;
+} freeze_ctx;
+
+static bool freeze_fn(void *ctx, int32_t cell) {
+  freeze_ctx *f = ctx;
+  water_chunk *c = zb_active_chunk_of(&f->w->grid, cell)->data;
+  int i = cell % CELLS;
+  if (f->until < 0.0) {
+    if (frozen(c, i)) {
+      c->ice[i] = 0;
+      c->version++;
+      wake(c);
+      f->cells++;
+    }
+    return true;
+  }
+  if (!(c->state[i] & FIXED) && c->depth[i] <= WET) {
+    return false; /* nothing to freeze */
+  }
+  if (!c->ice) {
+    c->ice = zb_calloc(f->w->a, CELLS);
+    c->thaw_at = zb_calloc(f->w->a, sizeof(float) * CELLS);
+    if (!c->ice || !c->thaw_at) {
+      zb_free(f->w->a, c->ice);
+      zb_free(f->w->a, c->thaw_at);
+      c->ice = NULL;
+      c->thaw_at = NULL;
+      return false;
+    }
+  }
+  c->ice[i] = 1;
+  c->thaw_at[i] = (float)f->until;
+  memset(&c->out[4 * i], 0, sizeof(float) * 4);
+  c->version++;
+  f->cells++;
+  return true;
+}
+
+int zb_surface_water_freeze(zb_surface_water *w, const zb_planet_pos *pos, double radius, double seconds) {
+  freeze_ctx f = {w, w->clock + (seconds > 0.0 ? seconds : 0.0), 0};
+  zb_active_around(&w->grid, pos, radius, freeze_fn, &f);
+  return f.cells;
+}
+
+int zb_surface_water_thaw(zb_surface_water *w, const zb_planet_pos *pos, double radius) {
+  freeze_ctx f = {w, -1.0, 0};
+  zb_active_around(&w->grid, pos, radius, freeze_fn, &f);
+  return f.cells;
+}
+
 int zb_surface_water_add(zb_surface_water *w, const zb_planet_pos *pos, double radius, double cubic_metres) {
   pour count = {w, 0.0};
   int n = zb_active_around(&w->grid, pos, radius, pour_fn, &count);
@@ -397,6 +520,7 @@ void zb_surface_water_cell_at(const zb_surface_water *w, const zb_planet_pos *po
   int i = cell % CELLS;
   out->loaded = true;
   out->fixed = (c->state[i] & FIXED) != 0;
+  out->frozen = frozen(c, i);
   out->ground = c->ground[i];
   out->depth = out->fixed ? (c->level[i] > c->ground[i] ? c->level[i] - c->ground[i] : 0.0) : c->depth[i];
   out->level = out->ground + out->depth;
@@ -435,6 +559,7 @@ void zb_surface_water_get_stats(const zb_surface_water *w, zb_water_stats *out) 
   out->soaked = w->absorbed;
   out->drained = w->drained;
   out->left = w->left;
+  out->removed = w->removed;
   out->rained = w->rained;
   out->added = w->added;
 }
@@ -447,6 +572,9 @@ uint64_t zb_surface_water_hash(const zb_surface_water *w) {
     h = zb_hash64(c->depth, sizeof(double) * CELLS, h);
     h = zb_hash64(c->soaked, sizeof(float) * CELLS, h);
     h = zb_hash64(c->out, sizeof(float) * 4 * CELLS, h);
+    if (c->ice) {
+      h = zb_hash64(c->ice, CELLS, h);
+    }
   }
   return h;
 }
@@ -470,6 +598,8 @@ void zb_surface_water_chunk(const zb_surface_water *w, int index, zb_water_chunk
   out->chunk = w->grid.slot[index]->chunk;
   out->ground = c->ground;
   out->depth = c->depth;
+  out->level = c->level;
+  out->ice = c->ice;
   out->version = c->version;
 }
 

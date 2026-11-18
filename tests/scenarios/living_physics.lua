@@ -17,7 +17,7 @@ expect(sim.fire_at(here).loaded, "the carpet's ground is in the active tier")
 local function balanced()
   local s = sim.water_stats()
   local given = s.rained + s.added
-  return math.abs(s.on_ground + s.soaked + s.drained + s.left - given) <= 1e-3 * math.max(given, 1)
+  return math.abs(s.on_ground + s.soaked + s.drained + s.left + s.removed - given) <= 1e-3 * math.max(given, 1)
 end
 -- 1. The richest dry fuel near the carpet, and a dry storm from the west.
 local spot, best = nil, 0

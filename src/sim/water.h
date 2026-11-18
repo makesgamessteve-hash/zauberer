@@ -28,15 +28,17 @@ typedef struct zb_water_cell {
   double capacity; /* metres the ground can hold */
   double flow;     /* m^3/s leaving the cell */
   double vx, vy;   /* m/s of the water along the chunk's x and y */
+  bool frozen;     /* ice: it neither flows nor takes water in, and can be walked on */
 } zb_water_cell;
 
-/* Where the water is, in m^3. on_ground + soaked + drained + left = rained +
- * added (up to float rounding). */
+/* Where the water is, in m^3. on_ground + soaked + drained + left + removed
+ * = rained + added (up to float rounding). */
 typedef struct zb_water_stats {
   int chunks, awake;
   int wet; /* cells with more than a centimetre of water */
   double on_ground, soaked, drained, rained, added;
   double left;      /* standing in chunks when they left the active tier */
+  double removed;   /* taken away (magic drying it up) */
   double max_depth; /* metres */
   double max_flow;  /* m^3/s out of the busiest cell */
 } zb_water_stats;
@@ -54,6 +56,13 @@ void zb_surface_water_update(zb_surface_water *w, const zb_planet_pos *focus, in
  * a spring, a broken dam); returns the cells that got some. */
 int zb_surface_water_add(zb_surface_water *w, const zb_planet_pos *pos, double radius, double cubic_metres);
 void zb_surface_water_cell_at(const zb_surface_water *w, const zb_planet_pos *pos, zb_water_cell *out);
+/* Takes up to cubic_metres of standing water from the cells within radius
+ * (in proportion to what they hold); returns how much it took. */
+double zb_surface_water_remove(zb_surface_water *w, const zb_planet_pos *pos, double radius, double cubic_metres);
+/* Freezes the water (standing or a water body) within radius for seconds of
+ * simulated time, or thaws it; returns the cells changed. */
+int zb_surface_water_freeze(zb_surface_water *w, const zb_planet_pos *pos, double radius, double seconds);
+int zb_surface_water_thaw(zb_surface_water *w, const zb_planet_pos *pos, double radius);
 void zb_surface_water_get_stats(const zb_surface_water *w, zb_water_stats *out);
 uint64_t zb_surface_water_hash(const zb_surface_water *w);
 /* Calls fn for every cell with more than min_depth metres of water (not the
@@ -68,6 +77,8 @@ typedef struct zb_water_chunk_view {
   zb_chunk chunk;
   const float *ground;
   const double *depth;
+  const float *level; /* the water bodies' surface (ground where there is none) */
+  const uint8_t *ice; /* 1 for frozen cells; NULL when none is */
   uint32_t version;
 } zb_water_chunk_view;
 
