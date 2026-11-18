@@ -4,6 +4,7 @@
 #include "app/daylight.h"
 #include "world/bundle.h"
 
+#include "app/water_view.h"
 #include "core/hash.h"
 #include "core/log.h"
 #include "core/luon.h"
@@ -116,6 +117,7 @@ static bool host_use_bundle(void *ctx, zb_world_bundle *bundle, char *err, size_
   if (e->fire) {
     zb_fire_set_world(e->fire, w);
   }
+  zb_surface_water_set_world(e->water, w);
   if (bundle) {
     zb_info("playing a created world (seed %llu, %s quality)", (unsigned long long)bundle->options.seed,
             zb_world_quality_name(bundle->options.quality));
@@ -566,14 +568,20 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   if (!e->terrain_view) {
     return ZB_HOST_FAILURE;
   }
-  /* Heat and fire in the active tier (concept 5.15: 384 m desktop, 256 m web, 160 m touch). */
-  if (e->materials) {
+  /* The active tier (concept 5.15: 384 m desktop, 256 m web, 160 m touch): heat
+   * and fire (with the material registry), and surface water. */
 #ifdef __EMSCRIPTEN__
-    double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 256.0;
+  double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 256.0;
 #else
-    double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 384.0;
+  double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 384.0;
 #endif
+  if (e->materials) {
     e->fire = zb_fire_create(a, e->world, e->materials, active);
+  }
+  e->water = zb_surface_water_create(a, e->world, active);
+  e->water_view = zb_water_view_create(a, e->render);
+  if (!e->water || !e->water_view) {
+    return ZB_HOST_FAILURE;
   }
   e->flame_sprite = zb_render_load_sprite(e->render, "sprites/flame.lua");
 
@@ -634,6 +642,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.world = e->world;
   sc.materials = e->materials;
   sc.fire = e->fire;
+  sc.water = e->water;
   sc.net = e->net;
   sc.jobs = e->jobs;
   sc.test_api = e->mode != ZB_MODE_GAME;
@@ -703,6 +712,9 @@ static void tick(zb_engine *e) {
     int n = zb_world_focus(e->world, focus, ZB_STREAM_MAX_FOCUS);
     zb_fire_update(e->fire, focus, n, zb_loop_tick_seconds());
   }
+  zb_planet_pos wfocus[ZB_STREAM_MAX_FOCUS];
+  zb_surface_water_update(e->water, wfocus, zb_world_focus(e->world, wfocus, ZB_STREAM_MAX_FOCUS),
+                          zb_loop_tick_seconds());
   zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
@@ -799,6 +811,7 @@ static void draw_world(zb_engine *e) {
     if (e->fire) {
       draw_flames(e, eye);
     }
+    zb_water_view_draw(e->water_view, e->water, e->world, (double)e->ticks / (double)ZB_TICK_HZ);
   }
   const zb_atmosphere *cur = zb_render_atmosphere(e->render);
   if (!cur->enabled) {
@@ -971,6 +984,8 @@ void zb_engine_destroy(zb_engine *e) {
   zb_terrain_view_destroy(e->terrain_view);
   zb_net_destroy(e->net);
   zb_fire_destroy(e->fire);
+  zb_water_view_destroy(e->water_view);
+  zb_surface_water_destroy(e->water);
   zb_world_destroy(e->world);
   if (e->materials) {
     zb_materials_free(e->materials);

@@ -7,6 +7,7 @@
 
 #include "sim/fire.h"
 #include "sim/material.h"
+#include "sim/water.h"
 
 static const zb_materials *M(lua_State *L) { return zb_script_from(L)->cfg.materials; }
 
@@ -292,6 +293,9 @@ static int s_set_weather(lua_State *L) {
     lua_pop(L, 1);
   }
   zb_fire_set_weather(F(L), &w);
+  if (zb_script_from(L)->cfg.water) {
+    zb_surface_water_set_rain(zb_script_from(L)->cfg.water, w.rain);
+  }
   return 0;
 }
 
@@ -307,12 +311,100 @@ static int s_weather(lua_State *L) {
   return 1;
 }
 
+/* --------------------------------------------------------------- water */
+
+static zb_surface_water *WT(lua_State *L) {
+  zb_surface_water *w = zb_script_from(L)->cfg.water;
+  if (!w) {
+    luaL_error(L, "no surface water simulation");
+  }
+  return w;
+}
+
+/* @lua sim.add_water(pos: PlanetPos, radius: number, cubic_metres: number): integer
+ * Pours water over the ground within radius metres (up to 64) of a place in
+ * the active tier: a spell, a spring, a broken dam. Returns the cells (about
+ * 2 m) that got some; the sea, lakes and rivers take none.
+ */
+static int s_add_water(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double radius = luaL_checknumber(L, 2), volume = luaL_checknumber(L, 3);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 64.0, 2, "radius must be 0..64 metres");
+  luaL_argcheck(L, volume >= 0.0 && volume <= 1e7, 3, "cubic_metres must be 0..1e7");
+  lua_pushinteger(L, zb_surface_water_add(WT(L), &pos, radius, volume));
+  return 1;
+}
+
+/* @lua sim.water_at(pos: PlanetPos): WaterCell
+ * The 2 m cell of the surface-water simulation at a place.
+ * @field loaded boolean In the active tier
+ * @field fixed boolean Sea, lake or river (a water body of the terrain)
+ * @field ground number Metres above sea level
+ * @field depth number Metres of water on it
+ * @field level number The water's surface (the ground when dry)
+ * @field soaked number Metres of water held in the ground
+ * @field capacity number Metres the ground can hold
+ * @field flow number m^3/s leaving the cell
+ */
+static int s_water_at(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  zb_water_cell c;
+  zb_surface_water_cell_at(WT(L), &pos, &c);
+  lua_createtable(L, 0, 8);
+  lua_pushboolean(L, c.loaded);
+  lua_setfield(L, -2, "loaded");
+  lua_pushboolean(L, c.fixed);
+  lua_setfield(L, -2, "fixed");
+  set_number(L, "ground", c.ground);
+  set_number(L, "depth", c.depth);
+  set_number(L, "level", c.level);
+  set_number(L, "soaked", c.soaked);
+  set_number(L, "capacity", c.capacity);
+  set_number(L, "flow", c.flow);
+  return 1;
+}
+
+/* @lua sim.water_stats(): WaterStats
+ * Where the water of the active tier is, in m^3: on_ground + soaked + drained
+ * equals rained + added.
+ * @field chunks integer Chunks in the active tier
+ * @field awake integer Of those, chunks with moving water
+ * @field wet integer Cells with more than a centimetre of water
+ * @field on_ground number m^3 standing or running
+ * @field soaked number m^3 soaked into the ground
+ * @field drained number m^3 drained into seas, lakes and rivers
+ * @field rained number m^3 of rain
+ * @field added number m^3 poured in
+ * @field max_depth number Metres
+ * @field max_flow number m^3/s out of the busiest cell
+ */
+static int s_water_stats(lua_State *L) {
+  zb_water_stats st;
+  zb_surface_water_get_stats(WT(L), &st);
+  lua_createtable(L, 0, 10);
+  lua_pushinteger(L, st.chunks);
+  lua_setfield(L, -2, "chunks");
+  lua_pushinteger(L, st.awake);
+  lua_setfield(L, -2, "awake");
+  lua_pushinteger(L, st.wet);
+  lua_setfield(L, -2, "wet");
+  set_number(L, "on_ground", st.on_ground);
+  set_number(L, "soaked", st.soaked);
+  set_number(L, "drained", st.drained);
+  set_number(L, "rained", st.rained);
+  set_number(L, "added", st.added);
+  set_number(L, "max_depth", st.max_depth);
+  set_number(L, "max_flow", st.max_flow);
+  return 1;
+}
+
 void zb_script_open_sim(zb_script *s) {
   static const luaL_Reg registry_fns[] = {{"keys", r_keys}, {"get", r_get}, {NULL, NULL}};
   static const luaL_Reg sim_fns[] = {
       {"material", s_material},       {"material_at", s_material_at}, {"ignite", s_ignite},
       {"add_heat", s_add_heat},       {"fire_at", s_fire_at},         {"fire_stats", s_fire_stats},
-      {"set_weather", s_set_weather}, {"weather", s_weather},         {NULL, NULL}};
+      {"set_weather", s_set_weather}, {"weather", s_weather},         {"add_water", s_add_water},
+      {"water_at", s_water_at},       {"water_stats", s_water_stats}, {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, registry_fns, 0);
   lua_setglobal(s->L, "registry");

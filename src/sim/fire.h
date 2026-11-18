@@ -22,7 +22,7 @@
 #include "sim/material.h"
 #include "world/world.h"
 
-#define ZB_FIRE_RES 128       /* cells per chunk edge (about 2 m) */
+#define ZB_FIRE_RES 128       /* cells per chunk edge (about 2 m): the active grid's */
 #define ZB_FIRE_MAX_CHUNKS 64 /* chunks simulated at once */
 #define ZB_FIRE_STEP 0.05     /* seconds per step (20 Hz) */
 

@@ -568,6 +568,10 @@ The keys ("package:id") of a registry's entries in load order. Kinds: "materials
 
 Adds heat spread over radius metres (up to 64): enough of it dries and then ignites the fuel there.
 
+### `sim.add_water(pos: PlanetPos, radius: number, cubic_metres: number): integer`
+
+Pours water over the ground within radius metres (up to 64) of a place in the active tier: a spell, a spring, a broken dam. Returns the cells (about 2 m) that got some; the sea, lakes and rivers take none.
+
 ### `sim.fire_at(pos: PlanetPos): FireCell`
 
 The 2 m cell of the heat and fire simulation at a place.
@@ -591,6 +595,14 @@ The material ref becomes at a temperature (deg C) through its phase changes: wat
 ### `sim.set_weather(weather: Weather)`
 
 The wind and rain the fire sees (until the weather simulation drives them).
+
+### `sim.water_at(pos: PlanetPos): WaterCell`
+
+The 2 m cell of the surface-water simulation at a place.
+
+### `sim.water_stats(): WaterStats`
+
+Where the water of the active tier is, in m^3: on_ground + soaked + drained equals rained + added.
 
 ### `sim.weather(): Weather`
 

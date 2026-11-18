@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 #include "sim/fire.h"
 
+#include "sim/active.h"
+
 #include <math.h>
 #include <string.h>
 
@@ -55,12 +57,9 @@ typedef struct fire_chunk {
   double lean[8]; /* wind weight per neighbour direction */
   double dist[8]; /* metres to each neighbour */
   bool awake;
-  int32_t edge[4][N]; /* the cell beyond each edge (x-, x+, y-, y+), -1 for none */
-  int32_t corner[4];  /* beyond (-1,-1), (N,-1), (-1,N), (N,N) */
-  int32_t near[8];    /* neighbouring slots, -1 for none */
-  float *block;       /* one allocation for every array below */
-  float *t, *next;    /* temperature above ambient, deg C (swapped every step) */
-  float *gain;        /* W/m^2 received this step */
+  float *block;    /* one allocation for every array below */
+  float *t, *next; /* temperature above ambient, deg C (swapped every step) */
+  float *gain;     /* W/m^2 received this step */
   float *fuel, *fuel0, *moist, *height;
   uint8_t *kind, *state;
   uint16_t scars[CELLS]; /* cells burnt out and not yet in the world's deltas */
@@ -69,19 +68,19 @@ typedef struct fire_chunk {
 
 struct zb_fire {
   const zb_allocator *a;
-  zb_world *world;
+  zb_active grid;
   const zb_materials *materials;
-  double radius;
   zb_fire_weather weather;
   fuel_kind fuels[FUEL_KINDS];
   bool has_fuels;
-  fire_chunk *slot[ZB_FIRE_MAX_CHUNKS];
-  int count;
   double pending; /* seconds not yet stepped */
   uint64_t steps;
   double since_survey; /* seconds since chunks were last taken in */
   int burnt, spots, embers;
 };
+
+static fire_chunk *FC(const zb_fire *f, int s) { return f->grid.slot[s]->data; }
+static fire_chunk *chunk_of(const zb_fire *f, int32_t cell) { return zb_active_chunk_of(&f->grid, cell)->data; }
 
 /* exp(SLOPE_LEAN x rise) for rises of -1.5 .. 1.5 in steps of 1/128. */
 #define SLOPE_STEPS 384
@@ -107,6 +106,9 @@ static const int DY[8] = {0, 0, -1, 1, -1, -1, 1, 1};
 
 /* ---------------------------------------------------------------- set-up */
 
+static void *take_in(void *ctx, const zb_active_chunk *ac, const zb_chunk_terrain *ct);
+static void let_go(void *ctx, void *data);
+
 static void find_fuels(zb_fire *f) {
   static const char *const names[FUEL_KINDS] = {NULL, "grass", "leaves", "wood"};
   f->has_fuels = f->materials != NULL;
@@ -128,40 +130,31 @@ zb_fire *zb_fire_create(const zb_allocator *a, zb_world *world, const zb_materia
     return NULL;
   }
   f->a = a;
-  f->world = world;
   f->materials = materials;
-  f->radius = radius;
   slope_table();
   find_fuels(f);
+  zb_active_hooks hooks = {f, take_in, let_go};
+  zb_active_init(&f->grid, a, world, radius, ZB_STAGE_ECOLOGY, &hooks);
   return f;
 }
 
-static void free_chunk(zb_fire *f, fire_chunk *c) {
+static void free_chunk(const zb_fire *f, fire_chunk *c) {
   zb_free(f->a, c->block);
   zb_free(f->a, c);
 }
 
 void zb_fire_destroy(zb_fire *f) {
-  if (!f) {
-    return;
+  if (f) {
+    zb_active_clear(&f->grid, NULL);
+    zb_free(f->a, f);
   }
-  for (int i = 0; i < f->count; ++i) {
-    free_chunk(f, f->slot[i]);
-  }
-  zb_free(f->a, f);
 }
 
-void zb_fire_set_radius(zb_fire *f, double radius) { f->radius = radius; }
+void zb_fire_set_radius(zb_fire *f, double radius) { f->grid.radius = radius; }
 
-void zb_fire_set_world(zb_fire *f, zb_world *world) {
-  for (int i = 0; i < f->count; ++i) {
-    free_chunk(f, f->slot[i]);
-  }
-  f->count = 0;
-  f->world = world;
-}
+void zb_fire_set_world(zb_fire *f, zb_world *world) { zb_active_clear(&f->grid, world); }
 
-static const zb_planet *planet(const zb_fire *f) { return zb_world_planet(f->world); }
+static const zb_planet *planet(const zb_fire *f) { return zb_world_planet(f->grid.world); }
 
 /* The cell axes of a chunk as unit vectors, at its centre. */
 static void chunk_axes(const zb_planet *p, zb_chunk c, zb_dvec3 *ax, zb_dvec3 *ay, zb_dvec3 *centre) {
@@ -189,8 +182,8 @@ static void lean_weights(const zb_fire *f, fire_chunk *c) {
 
 void zb_fire_set_weather(zb_fire *f, const zb_fire_weather *w) {
   f->weather = *w;
-  for (int i = 0; i < f->count; ++i) {
-    lean_weights(f, f->slot[i]);
+  for (int i = 0; i < f->grid.count; ++i) {
+    lean_weights(f, FC(f, i));
   }
 }
 
@@ -200,9 +193,10 @@ const zb_fire_weather *zb_fire_weather_get(const zb_fire *f) { return &f->weathe
  * of day and its height. */
 static double ambient_of(const zb_fire *f, const fire_chunk *c, double mean_height) {
   double mean, coldest, warmest, rain;
-  zb_terrain_chunk_climate(zb_world_terrain(f->world), c->chunk, &mean, &coldest, &warmest, &rain);
+  zb_terrain_chunk_climate(zb_world_terrain(f->grid.world), c->chunk, &mean, &coldest, &warmest, &rain);
   zb_sky_place sky;
-  zb_calendar_sky(zb_world_calendar(f->world), zb_world_time(f->world), zb_planet_chunk_dir(planet(f), c->chunk), &sky);
+  zb_calendar_sky(zb_world_calendar(f->grid.world), zb_world_time(f->grid.world),
+                  zb_planet_chunk_dir(planet(f), c->chunk), &sky);
   double t = mean + 0.5 * (warmest - coldest) * zb_dsin(2.0 * ZB_DPI * (sky.season - 0.5) / 4.0);
   return t + 6.0 * (sky.daylight - 0.5) - 0.0065 * (mean_height > 0.0 ? mean_height : 0.0);
 }
@@ -210,18 +204,9 @@ static double ambient_of(const zb_fire *f, const fire_chunk *c, double mean_heig
 /* Fuel moisture in balance with a climate: deserts 0.05, rainforests 0.29. */
 static double equilibrium_moisture(const zb_fire *f, zb_chunk c) {
   double mean, coldest, warmest, rain;
-  zb_terrain_chunk_climate(zb_world_terrain(f->world), c, &mean, &coldest, &warmest, &rain);
+  zb_terrain_chunk_climate(zb_world_terrain(f->grid.world), c, &mean, &coldest, &warmest, &rain);
   double m = 0.04 + rain / 12000.0;
   return m < 0.05 ? 0.05 : (m > 0.29 ? 0.29 : m);
-}
-
-static int slot_of(const zb_fire *f, zb_chunk c) {
-  for (int i = 0; i < f->count; ++i) {
-    if (zb_chunk_equal(f->slot[i]->chunk, c)) {
-      return i;
-    }
-  }
-  return -1;
 }
 
 /* Adds fuel of a kind to a cell. */
@@ -237,7 +222,7 @@ static void add_fuel(fire_chunk *c, double *mass, int x, int y, int kind, double
 /* Fills a chunk's cells from its terrain: heights, water and the fuel of its
  * plants and litter. */
 static zb_result fill(zb_fire *f, fire_chunk *c, const zb_chunk_terrain *ct) {
-  const zb_terrain *t = zb_world_terrain(f->world);
+  const zb_terrain *t = zb_world_terrain(f->grid.world);
   uint8_t *wkind = zb_alloc(f->a, (N + 1) * (N + 1));
   float *wsurf = zb_alloc(f->a, sizeof(float) * (N + 1) * (N + 1));
   double *mass = zb_calloc(f->a, sizeof(double) * CELLS * FUEL_KINDS);
@@ -317,77 +302,18 @@ static zb_result fill(zb_fire *f, fire_chunk *c, const zb_chunk_terrain *ct) {
   return ZB_OK;
 }
 
-/* Where the cell (x, y) of a slot's chunk is, x and y up to one beyond. */
-static int32_t locate(const zb_fire *f, int s, int x, int y) {
-  const fire_chunk *c = f->slot[s];
-  bool in_x = x >= 0 && x < N, in_y = y >= 0 && y < N;
-  if (in_x && in_y) {
-    return s * CELLS + y * N + x;
-  }
-  if (in_y) {
-    return c->edge[x < 0 ? 0 : 1][y];
-  }
-  if (in_x) {
-    return c->edge[y < 0 ? 2 : 3][x];
-  }
-  return c->corner[(x < 0 ? 0 : 1) + (y < 0 ? 0 : 2)];
-}
-
-/* The cell of another chunk at the centre of (x, y) beyond this chunk's edge. */
-static int32_t find_cell(const zb_fire *f, zb_chunk c, int x, int y) {
-  zb_planet_pos p = {c, (float)((x + 0.5) * 256.0 / N), (float)((y + 0.5) * 256.0 / N), 0.0f};
-  zb_planet_pos q = zb_planet_from_cart(planet(f), zb_planet_to_cart(planet(f), &p));
-  int s = slot_of(f, q.chunk);
-  if (s < 0) {
-    return -1;
-  }
-  int cx = (int)(q.lx * N / 256.0f), cy = (int)(q.ly * N / 256.0f);
-  cx = cx < 0 ? 0 : (cx >= N ? N - 1 : cx);
-  cy = cy < 0 ? 0 : (cy >= N ? N - 1 : cy);
-  return s * CELLS + cy * N + cx;
-}
-
-/* The cells beyond a chunk's edges and corners. A neighbour on the same face
- * lines up cell for cell; across a cube-face seam the planet finds them. */
-static void link(zb_fire *f) {
-  for (int s = 0; s < f->count; ++s) {
-    fire_chunk *c = f->slot[s];
-    static const int side[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-    for (int e = 0; e < 4; ++e) {
-      zb_chunk nb;
-      bool same = zb_planet_neighbor(planet(f), c->chunk, side[e][0], side[e][1], &nb) && nb.face == c->chunk.face;
-      int t = same ? slot_of(f, nb) : -1;
-      for (int i = 0; i < N; ++i) {
-        int x = e == 0 ? -1 : (e == 1 ? N : i), y = e == 2 ? -1 : (e == 3 ? N : i);
-        if (same) {
-          c->edge[e][i] = t < 0 ? -1 : t * CELLS + ((y + N) % N) * N + (x + N) % N;
-        } else {
-          c->edge[e][i] = find_cell(f, c->chunk, x, y);
-        }
-      }
-    }
-    c->corner[0] = find_cell(f, c->chunk, -1, -1);
-    c->corner[1] = find_cell(f, c->chunk, N, -1);
-    c->corner[2] = find_cell(f, c->chunk, -1, N);
-    c->corner[3] = find_cell(f, c->chunk, N, N);
-    for (int k = 0; k < 8; ++k) {
-      int32_t cell = locate(f, s, DX[k] < 0 ? -1 : (DX[k] > 0 ? N : N / 2), DY[k] < 0 ? -1 : (DY[k] > 0 ? N : N / 2));
-      c->near[k] = cell < 0 ? -1 : cell / CELLS;
-    }
-  }
-}
-
-static zb_result take_in(zb_fire *f, const zb_chunk_terrain *ct) {
+static void *take_in(void *ctx, const zb_active_chunk *ac, const zb_chunk_terrain *ct) {
+  zb_fire *f = ctx;
   fire_chunk *c = zb_calloc(f->a, sizeof *c);
   if (!c) {
-    return ZB_ERR_NOMEM;
+    return NULL;
   }
   size_t floats = (size_t)CELLS * 7, bytes = (size_t)CELLS * 2;
   c->block = zb_calloc(f->a, sizeof(float) * floats + bytes);
   c->t = c->block;
   if (!c->t) {
     zb_free(f->a, c);
-    return ZB_ERR_NOMEM;
+    return NULL;
   }
   c->next = c->t + CELLS;
   c->gain = c->next + CELLS;
@@ -397,79 +323,21 @@ static zb_result take_in(zb_fire *f, const zb_chunk_terrain *ct) {
   c->height = c->moist + CELLS;
   c->kind = (uint8_t *)(c->height + CELLS);
   c->state = c->kind + CELLS;
-  c->chunk = ct->chunk;
-  zb_planet_chunk_size(planet(f), ct->chunk, &c->cw, &c->ch);
-  c->cw /= N;
-  c->ch /= N;
+  c->chunk = ac->chunk;
+  c->cw = ac->cw;
+  c->ch = ac->ch;
   c->emc = equilibrium_moisture(f, ct->chunk);
-  zb_result r = fill(f, c, ct);
-  if (r != ZB_OK) {
+  if (fill(f, c, ct) != ZB_OK) {
     free_chunk(f, c);
-    return r;
+    return NULL;
   }
   lean_weights(f, c);
-  f->slot[f->count++] = c;
-  return ZB_OK;
+  return c;
 }
 
-typedef struct survey {
-  zb_fire *f;
-  const zb_planet_pos *focus;
-  int focus_count;
-  zb_chunk want[ZB_FIRE_MAX_CHUNKS];
-  const zb_chunk_terrain *data[ZB_FIRE_MAX_CHUNKS];
-  int n;
-} survey;
-
-static void consider(void *ctx, const zb_chunk_terrain *ct, uint32_t version, int target) {
-  (void)version;
-  (void)target;
-  survey *sv = ctx;
-  if (ct->stage < ZB_STAGE_ECOLOGY || sv->n >= ZB_FIRE_MAX_CHUNKS) {
-    return;
-  }
-  zb_planet_pos centre = zb_planet_chunk_center(ct->chunk);
-  for (int i = 0; i < sv->focus_count; ++i) {
-    if (zb_planet_distance(planet(sv->f), &centre, &sv->focus[i]) <= sv->f->radius + 182.0) {
-      sv->want[sv->n] = ct->chunk;
-      sv->data[sv->n++] = ct;
-      return;
-    }
-  }
-}
-
-/* Lets go of chunks that are no longer wanted (or loaded) and takes in new ones. */
-static void survey_chunks(zb_fire *f, const zb_planet_pos *focus, int focus_count) {
-  survey sv = {.f = f, .focus = focus, .focus_count = focus_count};
-  zb_stream_each(zb_world_stream(f->world), consider, &sv);
-  bool changed = false;
-  for (int i = 0; i < f->count;) {
-    bool keep = false;
-    for (int k = 0; k < sv.n && !keep; ++k) {
-      keep = zb_chunk_equal(sv.want[k], f->slot[i]->chunk);
-    }
-    if (keep) {
-      ++i;
-      continue;
-    }
-    free_chunk(f, f->slot[i]);
-    memmove(&f->slot[i], &f->slot[i + 1], sizeof f->slot[0] * (size_t)(f->count - i - 1));
-    f->count--;
-    changed = true;
-  }
-  for (int k = 0; k < sv.n; ++k) {
-    if (slot_of(f, sv.want[k]) < 0 && take_in(f, sv.data[k]) == ZB_OK) {
-      changed = true;
-    }
-  }
-  if (changed) {
-    link(f);
-  }
-}
+static void let_go(void *ctx, void *data) { free_chunk(ctx, data); }
 
 /* ------------------------------------------------------------- one step */
-
-static fire_chunk *chunk_of(const zb_fire *f, int32_t cell) { return f->slot[cell / CELLS]; }
 
 static void wake(fire_chunk *c) {
   if (!c->awake) {
@@ -511,7 +379,7 @@ static bool ignite_cell(zb_fire *f, int32_t cell) {
 
 /* Embers from a crown fire, carried downwind. */
 static void embers(zb_fire *f, int s, int i, double power) {
-  fire_chunk *c = f->slot[s];
+  fire_chunk *c = FC(f, s);
   double wind = sqrt(c->wx * c->wx + c->wy * c->wy);
   if (c->kind[i] != FUEL_WOOD || wind < 2.0 || chance(c, i, f->steps, 1) >= EMBERS * ZB_FIRE_STEP * power / 2e5) {
     return;
@@ -520,17 +388,10 @@ static void embers(zb_fire *f, int s, int i, double power) {
   double d = wind * (2.0 + 6.0 * chance(c, i, f->steps, 2)), side = (chance(c, i, f->steps, 3) - 0.5) * 0.4 * d;
   double ux = c->wx / wind, uy = c->wy / wind;
   double mx = ux * d - uy * side, my = uy * d + ux * side;
-  zb_planet_pos p = {c->chunk, (float)(((i % N) + 0.5) * 256.0 / N + mx / c->cw * 256.0 / N),
-                     (float)(((i / N) + 0.5) * 256.0 / N + my / c->ch * 256.0 / N), 0.0f};
-  zb_planet_pos q = zb_planet_from_cart(planet(f), zb_planet_to_cart(planet(f), &p));
-  int t = slot_of(f, q.chunk);
-  if (t < 0) {
+  int32_t cell = zb_active_find(&f->grid, c->chunk, (i % N) + mx / c->cw, (i / N) + my / c->ch);
+  if (cell < 0) {
     return;
   }
-  int cx = (int)(q.lx * N / 256.0f), cy = (int)(q.ly * N / 256.0f);
-  cx = cx < 0 ? 0 : (cx >= N ? N - 1 : cx);
-  cy = cy < 0 ? 0 : (cy >= N ? N - 1 : cy);
-  int32_t cell = t * CELLS + cy * N + cx;
   fire_chunk *tc = chunk_of(f, cell);
   if (tc->moist[cell % CELLS] < 0.8 * EXTINCTION && chance(c, i, f->steps, 4) < 0.5 && ignite_cell(f, cell)) {
     f->spots++;
@@ -539,13 +400,13 @@ static void embers(zb_fire *f, int s, int i, double power) {
 
 /* A burning cell gives a share of its heat to its neighbours. */
 static void radiate(zb_fire *f, int s, int i) {
-  fire_chunk *c = f->slot[s];
+  fire_chunk *c = FC(f, s);
   int x = i % N, y = i / N;
   int32_t to[8];
   double w[8], sum = 0.0;
   bool inside = x > 0 && y > 0 && x < N - 1 && y < N - 1;
   for (int k = 0; k < 8; ++k) {
-    to[k] = inside ? s * CELLS + i + DY[k] * N + DX[k] : locate(f, s, x + DX[k], y + DY[k]);
+    to[k] = inside ? s * CELLS + i + DY[k] * N + DX[k] : zb_active_locate(&f->grid, s, x + DX[k], y + DY[k]);
     w[k] = 0.0;
     if (to[k] >= 0) {
       const fire_chunk *tc = chunk_of(f, to[k]);
@@ -567,13 +428,13 @@ static void radiate(zb_fire *f, int s, int i) {
 
 /* A neighbour's temperature above its ambient (0 beyond the simulation). */
 static float temp_at(const zb_fire *f, int s, int x, int y) {
-  int32_t cell = locate(f, s, x, y);
+  int32_t cell = zb_active_locate(&f->grid, s, x, y);
   return cell < 0 ? 0.0f : (chunk_of(f, cell)->awake ? chunk_of(f, cell)->t[cell % CELLS] : 0.0f);
 }
 
 /* Heat, moisture, ignition and burning of one cell. */
 static void update_cell(zb_fire *f, int s, int i, double rain_kg) {
-  fire_chunk *c = f->slot[s];
+  fire_chunk *c = FC(f, s);
   int x = i % N, y = i / N;
   float t = c->t[i];
   if (c->state[i] & WATER) {
@@ -646,22 +507,22 @@ static void update_cell(zb_fire *f, int s, int i, double rain_kg) {
 
 static void step(zb_fire *f) {
   double rain_kg = f->weather.rain / 3600.0 * ZB_FIRE_STEP;
-  for (int s = 0; s < f->count; ++s) {
-    fire_chunk *c = f->slot[s];
+  for (int s = 0; s < f->grid.count; ++s) {
+    fire_chunk *c = FC(f, s);
     if (c->awake) {
       memset(c->gain, 0, sizeof(float) * CELLS);
     }
   }
-  for (int s = 0; s < f->count; ++s) {
-    fire_chunk *c = f->slot[s];
+  for (int s = 0; s < f->grid.count; ++s) {
+    fire_chunk *c = FC(f, s);
     for (int i = 0; c->awake && i < CELLS; ++i) {
       if (c->state[i] & BURNING) {
         radiate(f, s, i);
       }
     }
   }
-  for (int s = 0; s < f->count; ++s) {
-    fire_chunk *c = f->slot[s];
+  for (int s = 0; s < f->grid.count; ++s) {
+    fire_chunk *c = FC(f, s);
     if (!c->awake) {
       continue;
     }
@@ -670,8 +531,8 @@ static void step(zb_fire *f) {
     }
   }
   /* Swap, and let chunks with nothing going on sleep (their heat is zero). */
-  for (int s = 0; s < f->count; ++s) {
-    fire_chunk *c = f->slot[s];
+  for (int s = 0; s < f->grid.count; ++s) {
+    fire_chunk *c = FC(f, s);
     if (!c->awake) {
       continue;
     }
@@ -691,8 +552,9 @@ static void step(zb_fire *f) {
       memset(c->t, 0, sizeof(float) * CELLS);
     }
     for (int k = 0; k < 8 && edge; ++k) { /* heat at an edge flows into the neighbours */
-      if (c->near[k] >= 0) {
-        wake(f->slot[c->near[k]]);
+      int nb = f->grid.slot[s]->near[k];
+      if (nb >= 0) {
+        wake(FC(f, nb));
       }
     }
   }
@@ -701,9 +563,9 @@ static void step(zb_fire *f) {
 
 /* Burnt-out cells go into the world's deltas, a chunk at a time. */
 static void flush_scars(zb_fire *f) {
-  for (int s = 0; s < f->count; ++s) {
-    fire_chunk *c = f->slot[s];
-    if (c->scar_count > 0 && zb_world_burn(f->world, c->chunk, c->scars, c->scar_count) == ZB_OK) {
+  for (int s = 0; s < f->grid.count; ++s) {
+    fire_chunk *c = FC(f, s);
+    if (c->scar_count > 0 && zb_world_burn(f->grid.world, c->chunk, c->scars, c->scar_count) == ZB_OK) {
       for (int k = 0; k < c->scar_count; ++k) {
         c->state[c->scars[k]] |= SCARRED;
       }
@@ -714,16 +576,16 @@ static void flush_scars(zb_fire *f) {
 
 void zb_fire_update(zb_fire *f, const zb_planet_pos *focus, int focus_count, double seconds) {
   f->since_survey += seconds;
-  if (f->since_survey >= 1.0 || f->count == 0) {
+  if (f->since_survey >= 1.0 || f->grid.count == 0) {
     f->since_survey = 0.0;
-    survey_chunks(f, focus, focus_count);
+    zb_active_survey(&f->grid, focus, focus_count);
     flush_scars(f);
-    for (int s = 0; s < f->count; ++s) {
+    for (int s = 0; s < f->grid.count; ++s) {
       double h = 0.0;
       for (int i = 0; i < CELLS; i += 97) {
-        h += f->slot[s]->height[i];
+        h += FC(f, s)->height[i];
       }
-      f->slot[s]->ambient = ambient_of(f, f->slot[s], h / ((CELLS + 96) / 97));
+      FC(f, s)->ambient = ambient_of(f, FC(f, s), h / ((CELLS + 96) / 97));
     }
   }
   f->pending += seconds;
@@ -740,58 +602,19 @@ void zb_fire_update(zb_fire *f, const zb_planet_pos *focus, int focus_count, dou
 
 /* ------------------------------------------------------- outside access */
 
-/* The cell at a position, or -1 when its chunk is not in the simulation. */
-static int32_t cell_at(const zb_fire *f, const zb_planet_pos *pos) {
-  int s = slot_of(f, pos->chunk);
-  if (s < 0) {
-    return -1;
-  }
-  int x = (int)(pos->lx * N / 256.0f), y = (int)(pos->ly * N / 256.0f);
-  x = x < 0 ? 0 : (x >= N ? N - 1 : x);
-  y = y < 0 ? 0 : (y >= N ? N - 1 : y);
-  return s * CELLS + y * N + x;
-}
-
-/* Calls fn for the cells within radius metres of pos; returns how many it accepted. */
-static int around(zb_fire *f, const zb_planet_pos *pos, double radius, bool (*fn)(zb_fire *, int32_t, void *),
-                  void *ctx) {
-  int s = slot_of(f, pos->chunk);
-  if (s < 0) {
-    return 0;
-  }
-  const fire_chunk *c = f->slot[s];
-  int cx = (int)(pos->lx * N / 256.0f), cy = (int)(pos->ly * N / 256.0f), hits = 0;
-  int rx = (int)(radius / c->cw) + 1, ry = (int)(radius / c->ch) + 1;
-  for (int dy = -ry; dy <= ry; ++dy) {
-    for (int dx = -rx; dx <= rx; ++dx) {
-      double mx = dx * c->cw, my = dy * c->ch;
-      if (mx * mx + my * my > radius * radius + 0.5 * c->cw * c->ch) {
-        continue;
-      }
-      int x = cx + dx, y = cy + dy;
-      int32_t cell = x >= 0 && y >= 0 && x < N && y < N ? s * CELLS + y * N + x : find_cell(f, c->chunk, x, y);
-      if (cell >= 0 && fn(f, cell, ctx)) {
-        hits++;
-      }
-    }
-  }
-  return hits;
-}
-
-static bool ignite_fn(zb_fire *f, int32_t cell, void *ctx) {
-  (void)ctx;
-  return ignite_cell(f, cell);
-}
+static bool ignite_fn(void *ctx, int32_t cell) { return ignite_cell(ctx, cell); }
 
 int zb_fire_ignite(zb_fire *f, const zb_planet_pos *pos, double radius) {
-  return around(f, pos, radius, ignite_fn, NULL);
+  return zb_active_around(&f->grid, pos, radius, ignite_fn, f);
 }
 
 typedef struct heat_ctx {
+  zb_fire *f;
   double joules_per_cell;
 } heat_ctx;
 
-static bool heat_fn(zb_fire *f, int32_t cell, void *ctx) {
+static bool heat_fn(void *ctx, int32_t cell) {
+  zb_fire *f = ((heat_ctx *)ctx)->f;
   fire_chunk *c = chunk_of(f, cell);
   int i = cell % CELLS;
   if (c->state[i] & (WATER | BURNING)) {
@@ -804,18 +627,18 @@ static bool heat_fn(zb_fire *f, int32_t cell, void *ctx) {
 }
 
 void zb_fire_add_heat(zb_fire *f, const zb_planet_pos *pos, double radius, double joules) {
-  heat_ctx count = {0.0};
-  int n = around(f, pos, radius, heat_fn, &count); /* zero joules: counts the cells */
+  heat_ctx count = {f, 0.0};
+  int n = zb_active_around(&f->grid, pos, radius, heat_fn, &count); /* zero joules: counts the cells */
   if (n > 0) {
-    heat_ctx h = {joules / n};
-    around(f, pos, radius, heat_fn, &h);
+    heat_ctx h = {f, joules / n};
+    zb_active_around(&f->grid, pos, radius, heat_fn, &h);
   }
 }
 
 void zb_fire_cell_at(const zb_fire *f, const zb_planet_pos *pos, zb_fire_cell *out) {
   memset(out, 0, sizeof *out);
   out->material = -1;
-  int32_t cell = cell_at(f, pos);
+  int32_t cell = zb_active_cell_at(&f->grid, pos);
   if (cell < 0) {
     return;
   }
@@ -833,13 +656,13 @@ void zb_fire_cell_at(const zb_fire *f, const zb_planet_pos *pos, zb_fire_cell *o
 
 void zb_fire_get_stats(const zb_fire *f, zb_fire_stats *out) {
   memset(out, 0, sizeof *out);
-  out->chunks = f->count;
+  out->chunks = f->grid.count;
   out->burnt = f->burnt;
   out->spots = f->spots;
   out->embers = f->embers;
   out->max_temperature = -273.15;
-  for (int s = 0; s < f->count; ++s) {
-    const fire_chunk *c = f->slot[s];
+  for (int s = 0; s < f->grid.count; ++s) {
+    const fire_chunk *c = FC(f, s);
     out->awake += c->awake ? 1 : 0;
     for (int i = 0; i < CELLS; ++i) {
       out->burning += (c->state[i] & BURNING) ? 1 : 0;
@@ -851,8 +674,8 @@ void zb_fire_get_stats(const zb_fire *f, zb_fire_stats *out) {
 
 uint64_t zb_fire_hash(const zb_fire *f) {
   uint64_t h = zb_hash64(&f->steps, sizeof f->steps, 0x66697265);
-  for (int s = 0; s < f->count; ++s) {
-    const fire_chunk *c = f->slot[s];
+  for (int s = 0; s < f->grid.count; ++s) {
+    const fire_chunk *c = FC(f, s);
     h = zb_hash64(&c->chunk, sizeof c->chunk, h);
     h = zb_hash64(c->t, sizeof(float) * CELLS, h);
     h = zb_hash64(c->fuel, sizeof(float) * CELLS, h);
@@ -863,8 +686,8 @@ uint64_t zb_fire_hash(const zb_fire *f) {
 }
 
 void zb_fire_each_burning(const zb_fire *f, zb_fire_cell_fn fn, void *ctx) {
-  for (int s = 0; s < f->count; ++s) {
-    const fire_chunk *c = f->slot[s];
+  for (int s = 0; s < f->grid.count; ++s) {
+    const fire_chunk *c = FC(f, s);
     for (int i = 0; c->awake && i < CELLS; ++i) {
       if (c->state[i] & BURNING) {
         zb_planet_pos p = {c->chunk, (float)(((i % N) + 0.5) * 256.0 / N), (float)(((i / N) + 0.5) * 256.0 / N),

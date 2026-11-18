@@ -927,6 +927,13 @@ sim = {}
 ---@param joules number
 function sim.add_heat(pos, radius, joules) end
 
+---Pours water over the ground within radius metres (up to 64) of a place in the active tier: a spell, a spring, a broken dam. Returns the cells (about 2 m) that got some; the sea, lakes and rivers take none.
+---@param pos PlanetPos
+---@param radius number
+---@param cubic_metres number
+---@return integer
+function sim.add_water(pos, radius, cubic_metres) end
+
 ---The 2 m cell of the heat and fire simulation at a place.
 ---@param pos PlanetPos
 ---@return FireCell
@@ -956,6 +963,15 @@ function sim.material_at(ref, temperature) end
 ---The wind and rain the fire sees (until the weather simulation drives them).
 ---@param weather Weather
 function sim.set_weather(weather) end
+
+---The 2 m cell of the surface-water simulation at a place.
+---@param pos PlanetPos
+---@return WaterCell
+function sim.water_at(pos) end
+
+---Where the water of the active tier is, in m^3: on_ground + soaked + drained equals rained + added.
+---@return WaterStats
+function sim.water_stats() end
 
 ---The wind and rain the fire sees.
 ---@return Weather
