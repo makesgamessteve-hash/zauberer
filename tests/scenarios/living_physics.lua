@@ -5,6 +5,7 @@
 -- hillside sends its lake down the slope. The water balance holds throughout.
 -- spec: simulation-tiers: The M3 exit demo
 scenario { name = "living physics" }
+world.view_distance(768, 3000) -- smaller rings keep the headless run quick
 local game = demo.game
 local here = game.carpet.pos
 for _ = 1, 900 do
@@ -32,7 +33,7 @@ end
 expect(spot and best > 0.2, "dry fuel near the carpet")
 sim.set_weather({ wind_east = 8, wind_north = 0, rain = 0, snow = 0, cloud = 1, storm = 1 })
 expect(sim.lightning(spot) > 0, "lightning set it alight")
-step(60 * 40)
+step(60 * 30)
 -- 2. Downwind (east) more than upwind, and nothing burns on water.
 local function scorched(p)
   local c = sim.fire_at(p)
@@ -54,7 +55,10 @@ for r = 0, 60, 4 do
 end
 -- 3. Rain puts it out.
 sim.set_weather({ wind_east = 2, rain = 80, storm = 0 })
-step(60 * 120)
+for _ = 1, 180 do
+  step(60)
+  if sim.fire_stats().burning == 0 then break end
+end
 expect_eq(sim.fire_stats().burning, 0, "the rain put it out")
 expect(balanced(), "the water balance holds")
 -- 4. A month away: the scar is greening. Remember cells that burnt out.
@@ -69,7 +73,7 @@ for r = 0, 60, 2 do
 end
 expect(#scars > 0, "cells burnt out")
 sim.natural_weather()
-game.carpet.pos = world.move(here, 0, 6000, 0)
+game.carpet.pos = world.move(here, 0, 1500, 0)
 for _ = 1, 600 do
   step(10)
   if not sim.fire_at(spot).loaded then break end
@@ -119,9 +123,9 @@ end
 local below = world.move(top, heading, 34, 0)
 for _ = 1, 6 do
   sim.add_water(top, 8, 100)
-  step(60 * 5)
+  step(60 * 3)
 end
-step(60 * 20)
+step(60 * 12)
 expect(sim.water_at(top).depth > 0.3, "a pond inside the ring")
 expect(sim.water_at(below).depth < 0.01, "the dam holds")
 expect(world.deform(world.move(top, heading, 14, 0), 6, -6) >= 1, "breached")

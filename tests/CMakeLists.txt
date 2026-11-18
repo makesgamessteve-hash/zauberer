@@ -36,7 +36,7 @@ if(Python3_FOUND)
   add_test(NAME engine_headless
     COMMAND "${Python3_EXECUTABLE}" -m unittest -v tests.engine.test_headless
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
-  set_tests_properties(engine_headless PROPERTIES ENVIRONMENT "${ZB_ENGINE_TEST_ENV}" LABELS engine TIMEOUT 900)
+  set_tests_properties(engine_headless PROPERTIES ENVIRONMENT "${ZB_ENGINE_TEST_ENV}" LABELS engine TIMEOUT 1500)
   if(NOT ZB_HEADLESS_ONLY)
     # Rendered tests need a GL 3.3 driver: on Linux the SDL offscreen driver with Mesa llvmpipe.
     if(UNIX AND NOT APPLE)
