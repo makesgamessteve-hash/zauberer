@@ -9,6 +9,7 @@
 - [x] 2.1 Starting world: plates grown from seeds, cratons, motions, hotspots, presets per target
 - [x] 2.2 Semi-Lagrangian advection with divergence, subduction and collision; welding; boundaries, trenches and arcs; verify "Plates drift", "Continental collision", "Subduction builds arcs" and "Spreading ridges"
 - [x] 2.3 Hotspots, rifting and the supercontinent cycle, accretion and margin growth; verify "Hotspot tracks" and "Rifting splits a continent"
+- [x] 2.4 Crust lineages and the time lineages last met; verify "Lineages remember meetings"
 
 ## 3. Surface processes and the rock record
 

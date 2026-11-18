@@ -4,6 +4,7 @@
 #define ZB_WORLD_GEOLOGY_INTERNAL_H
 
 #include "core/hash.h"
+#include "world/cubegrid.h"
 #include "world/geology.h"
 
 #define ZB_GEO_MAX_HOTSPOTS 16
@@ -29,6 +30,7 @@ typedef struct zb_geo_hotspot {
 /* The state that travels with the crust (double-buffered during advection). */
 typedef struct zb_geo_crust {
   uint8_t *plate, *continental, *basement;
+  uint8_t *lineage; /* the craton this continental crust grew from (0: ocean floor or unknown) */
   float *thickness, *born, *orogeny, *glacial;
   uint16_t *flags;
   zb_stratum *strata;
@@ -40,6 +42,8 @@ typedef struct zb_geo_snapshot {
   zb_geo_crust crust;
   float *elevation;
   zb_geo_plate plates[ZB_GEO_MAX_PLATES];
+  float contact[ZB_GEO_LINEAGES * ZB_GEO_LINEAGES];
+  int next_lineage;
   int step;
   float sea_level;
 } zb_geo_snapshot;
@@ -70,8 +74,10 @@ struct zb_geology {
   /* Scratch. */
   int32_t *scratch_a, *scratch_b;
   float *scratch_f;
-  double *hist;         /* ZB_GEO_HIST_BINS */
-  uint16_t *collisions; /* plate pair counts this step, MAX_PLATES^2 */
+  double *hist;                                     /* ZB_GEO_HIST_BINS */
+  uint16_t *collisions;                             /* plate pair counts this step, MAX_PLATES^2 */
+  float contact[ZB_GEO_LINEAGES * ZB_GEO_LINEAGES]; /* last collision of two lineages, Myr ago (< 0 never) */
+  int next_lineage; /* the next lineage for a new terrane (island arcs far from continents) */
   /* Final phase and steering. */
   int final_start;
   int attempt;
@@ -83,7 +89,7 @@ struct zb_geology {
   zb_geology_macro macro;
   int macro_rows_done; /* face rows amplified so far (6 * res in total) */
   int erosion_done;
-  int32_t *edge_nbr; /* cross-face neighbours of edge cells: 6 * 4 * res * 8 */
+  zb_cubegrid grid; /* the macro grid's cells, areas and neighbours */
   /* Ley network. */
   zb_ley_node *ley_nodes;
   zb_ley_edge *ley_edges;

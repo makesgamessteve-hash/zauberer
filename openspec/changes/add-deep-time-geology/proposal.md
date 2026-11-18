@@ -28,6 +28,9 @@ changes all build on this history.
     coal swamps after 360 Myr, chalk, pelagic clay and till.
   - A sea level fitted to the land target with eustatic cycles.
   - Global climate eras with ice ages and arid and humid periods.
+- **Crust lineages**: continental crust remembers the craton it grew from (new terranes
+  start lineages of their own), and the time when two lineages last collided is
+  recorded. Biogeography uses this: continents that met recently share their life.
 - **Rock record**: up to eight strata per point (rock, environment, thickness and age,
   youngest on top) above a basement. Fossils follow from a stratum's rock, setting and
   age, including mana fossils from the Age of Mana.

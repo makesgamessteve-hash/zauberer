@@ -17,6 +17,7 @@
 
 #define ZB_STRATA 8          /* strata kept per point, youngest first */
 #define ZB_GEO_MAX_PLATES 32 /* plates alive at once */
+#define ZB_GEO_LINEAGES 64   /* crust lineages: 0 (ocean floor), cratons, then new terranes */
 
 typedef enum zb_rock {
   ZB_ROCK_NONE,
@@ -147,6 +148,7 @@ typedef struct zb_geology_points {
   const uint32_t *minerals; /* after the final phase */
   const zb_stratum *strata; /* ZB_STRATA per point, youngest first */
   const uint8_t *basement;  /* zb_rock below the strata */
+  const uint8_t *lineage;   /* craton of origin of continental crust, 0 for ocean floor */
 } zb_geology_points;
 
 /* The global state at the end of a step (the time-lapse and the chronicle). */
@@ -240,15 +242,24 @@ void zb_geology_run(zb_geology *g);
 void zb_geology_get_progress(const zb_geology *g, zb_geology_progress *out);
 
 const zb_lattice *zb_geology_lattice(const zb_geology *g);
+/* The planet radius the world was made for (metres). */
+double zb_geology_radius(const zb_geology *g);
 void zb_geology_get_points(const zb_geology *g, zb_geology_points *out);
 /* Eras of the steps run so far (the accepted run once done). */
 const zb_geology_era *zb_geology_eras(const zb_geology *g, int *count);
 const zb_geology_metrics *zb_geology_get_metrics(const zb_geology *g);
 /* Valid once done. */
 const zb_geology_macro *zb_geology_get_macro(const zb_geology *g);
+/* The macro grid's geometry (cells, areas, neighbours); valid once done. */
+const struct zb_cubegrid *zb_geology_macro_grid(const zb_geology *g);
 void zb_geology_get_ley(const zb_geology *g, zb_ley_network *out);
 /* Macro height (metres above sea level) at a unit direction, bilinear; once done. */
 double zb_geology_height(const zb_geology *g, zb_dvec3 dir);
+/* When crust of two lineages last collided, in Myr before present; -1 if never
+ * (and for lineage 0). Continents that met recently share their life. */
+double zb_geology_lineage_contact(const zb_geology *g, int a, int b);
+/* The lineage contact matrix: ZB_GEO_LINEAGES x ZB_GEO_LINEAGES, Myr ago (< 0 never). */
+const float *zb_geology_contacts(const zb_geology *g);
 /* The nearest lattice point to a direction. */
 int zb_geology_point_at(const zb_geology *g, zb_dvec3 dir);
 /* A hash of the final state (golden tests on every platform). */

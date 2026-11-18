@@ -16,116 +16,30 @@
 #define FLOOD_STEP 0.01f    /* metres added along filled flats so water keeps flowing */
 #define LAKE_INFILL 0.4     /* share of a lake's depth filled by sediment per pass */
 
-static const int DX[8] = {1, -1, 0, 0, 1, -1, 1, -1};
-static const int DY[8] = {0, 0, 1, -1, 1, 1, -1, -1};
-
 static void fit_sea_level(zb_geology *g);
 
-static size_t cell_count(const zb_geology *g) { return (size_t)6 * (size_t)g->macro.res * (size_t)g->macro.res; }
+static size_t cell_count(const zb_geology *g) { return g->grid.cells; }
 
-static double cell_uv(int res, double i) { return -1.0 + (i + 0.5) * 2.0 / (double)res; }
+zb_dvec3 zb_geo_macro_dir(const zb_geology *g, int32_t cell) { return zb_cubegrid_dir(&g->grid, cell); }
 
-zb_dvec3 zb_geo_macro_dir(const zb_geology *g, int32_t cell) {
-  int res = g->macro.res;
-  int face = cell / (res * res), y = (cell / res) % res, x = cell % res;
-  return zb_planet_face_dir(face, cell_uv(res, (double)x), cell_uv(res, (double)y));
-}
-
-static int32_t cell_at(int res, int face, double u, double v) {
-  int x = (int)((u + 1.0) * 0.5 * (double)res), y = (int)((v + 1.0) * 0.5 * (double)res);
-  x = x < 0 ? 0 : (x >= res ? res - 1 : x);
-  y = y < 0 ? 0 : (y >= res ? res - 1 : y);
-  return (int32_t)((face * res + y) * res + x);
-}
-
-/* Perimeter slot of an edge cell, -1 for interior cells. */
-static int edge_slot(int res, int face, int x, int y) {
-  int side;
-  int t;
-  if (y == 0) {
-    side = 0;
-    t = x;
-  } else if (y == res - 1) {
-    side = 1;
-    t = x;
-  } else if (x == 0) {
-    side = 2;
-    t = y;
-  } else if (x == res - 1) {
-    side = 3;
-    t = y;
-  } else {
-    return -1;
-  }
-  return (face * 4 + side) * res + t;
-}
-
-static int32_t compute_nbr(int res, int face, int x, int y, int k) {
-  int nx = x + DX[k], ny = y + DY[k];
-  bool out_x = nx < 0 || nx >= res, out_y = ny < 0 || ny >= res;
-  if (!out_x && !out_y) {
-    return (int32_t)((face * res + ny) * res + nx);
-  }
-  if (out_x && out_y) {
-    return -1; /* the missing diagonal at a cube corner */
-  }
-  zb_dvec3 d = zb_planet_face_dir(face, cell_uv(res, (double)nx), cell_uv(res, (double)ny));
-  int f2 = zb_planet_dir_face(d);
-  double u, v;
-  zb_planet_dir_uv(f2, d, &u, &v);
-  return cell_at(res, f2, u, v);
-}
-
-int32_t zb_geo_macro_nbr(const zb_geology *g, int32_t cell, int k) {
-  int res = g->macro.res;
-  int face = cell / (res * res), y = (cell / res) % res, x = cell % res;
-  int slot = edge_slot(res, face, x, y);
-  if (slot < 0) {
-    return cell + DX[k] + DY[k] * res;
-  }
-  return g->edge_nbr[slot * 8 + k];
-}
+int32_t zb_geo_macro_nbr(const zb_geology *g, int32_t cell, int k) { return zb_cubegrid_nbr(&g->grid, cell, k); }
 
 zb_result zb_geo_macro_alloc(zb_geology *g) {
   int res = g->opt.macro_res;
   g->macro.res = res;
-  size_t cells = cell_count(g), rr = (size_t)res * (size_t)res;
+  if (zb_cubegrid_init(&g->grid, g->a, res, g->opt.radius / 1000.0) != ZB_OK) {
+    return ZB_ERR_NOMEM;
+  }
+  size_t cells = cell_count(g);
   g->macro.height = zb_alloc(g->a, sizeof(float) * cells);
   g->macro.lake = zb_calloc(g->a, sizeof(float) * cells);
   g->macro.drainage = zb_alloc(g->a, sizeof(float) * cells);
   g->macro.receiver = zb_alloc(g->a, sizeof(int32_t) * cells);
   g->macro.point = zb_alloc(g->a, sizeof(int32_t) * cells);
-  g->macro.area = zb_alloc(g->a, sizeof(float) * rr);
-  g->edge_nbr = zb_alloc(g->a, sizeof(int32_t) * (size_t)24 * (size_t)res * 8);
-  if (!g->macro.height || !g->macro.lake || !g->macro.drainage || !g->macro.receiver || !g->macro.point ||
-      !g->macro.area || !g->edge_nbr) {
+  g->macro.area = g->grid.area;
+  if (!g->macro.height || !g->macro.lake || !g->macro.drainage || !g->macro.receiver || !g->macro.point) {
     zb_geo_macro_free(g);
     return ZB_ERR_NOMEM;
-  }
-  /* Cell areas from the solid angle of the equi-angular mapping. */
-  double r_km = g->opt.radius / 1000.0, du = 2.0 / (double)res, q = ZB_GEO_PI / 4.0;
-  for (int y = 0; y < res; ++y) {
-    double b = zb_dtan(cell_uv(res, (double)y) * q);
-    for (int x = 0; x < res; ++x) {
-      double a = zb_dtan(cell_uv(res, (double)x) * q);
-      double s = 1.0 + a * a + b * b;
-      double omega = q * q * (1.0 + a * a) * (1.0 + b * b) / (s * sqrt(s)) * du * du;
-      g->macro.area[y * res + x] = (float)(omega * r_km * r_km);
-    }
-  }
-  for (int face = 0; face < 6; ++face) {
-    for (int y = 0; y < res; ++y) {
-      for (int x = 0; x < res; ++x) {
-        int slot = edge_slot(res, face, x, y);
-        if (slot < 0) {
-          x = res - 2; /* skip the interior of the row */
-          continue;
-        }
-        for (int k = 0; k < 8; ++k) {
-          g->edge_nbr[slot * 8 + k] = compute_nbr(res, face, x, y, k);
-        }
-      }
-    }
   }
   g->macro_rows_done = 0;
   return ZB_OK;
@@ -137,16 +51,11 @@ void zb_geo_macro_free(zb_geology *g) {
   zb_free(g->a, g->macro.drainage);
   zb_free(g->a, g->macro.receiver);
   zb_free(g->a, g->macro.point);
-  zb_free(g->a, g->macro.area);
-  zb_free(g->a, g->edge_nbr);
+  zb_cubegrid_free(&g->grid);
   memset(&g->macro, 0, sizeof g->macro);
-  g->edge_nbr = NULL;
 }
 
-static float cell_area(const zb_geology *g, int32_t cell) {
-  int res = g->macro.res;
-  return g->macro.area[cell % (res * res)];
-}
+static float cell_area(const zb_geology *g, int32_t cell) { return zb_cubegrid_area(&g->grid, cell); }
 
 /* ---- Amplification ------------------------------------------------------------------ */
 
@@ -443,18 +352,7 @@ double zb_geology_height(const zb_geology *g, zb_dvec3 dir) {
   if (!m) {
     return (double)g->elevation[zb_lattice_nearest(&g->lat, dir, -1)];
   }
-  int res = m->res;
-  int face = zb_planet_dir_face(dir);
-  double u, v;
-  zb_planet_dir_uv(face, dir, &u, &v);
-  double fx = (u + 1.0) * 0.5 * (double)res - 0.5, fy = (v + 1.0) * 0.5 * (double)res - 0.5;
-  fx = fx < 0.0 ? 0.0 : (fx > (double)(res - 1) ? (double)(res - 1) : fx);
-  fy = fy < 0.0 ? 0.0 : (fy > (double)(res - 1) ? (double)(res - 1) : fy);
-  int x0 = (int)fx, y0 = (int)fy;
-  int x1 = x0 + 1 < res ? x0 + 1 : x0, y1 = y0 + 1 < res ? y0 + 1 : y0;
-  double tx = fx - (double)x0, ty = fy - (double)y0;
-  const float *h = m->height + (size_t)face * (size_t)res * (size_t)res;
-  double a = (double)h[y0 * res + x0] * (1.0 - tx) + (double)h[y0 * res + x1] * tx;
-  double b = (double)h[y1 * res + x0] * (1.0 - tx) + (double)h[y1 * res + x1] * tx;
-  return a * (1.0 - ty) + b * ty;
+  return zb_cubegrid_sample(&g->grid, m->height, dir);
 }
+
+const zb_cubegrid *zb_geology_macro_grid(const zb_geology *g) { return zb_geology_get_macro(g) ? &g->grid : NULL; }

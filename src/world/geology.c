@@ -52,14 +52,15 @@ zb_result zb_geo_crust_alloc(const zb_allocator *a, zb_geo_crust *c, int n) {
   c->plate = zb_alloc(a, un);
   c->continental = zb_alloc(a, un);
   c->basement = zb_alloc(a, un);
+  c->lineage = zb_alloc(a, un);
   c->thickness = zb_alloc(a, sizeof(float) * un);
   c->born = zb_alloc(a, sizeof(float) * un);
   c->orogeny = zb_alloc(a, sizeof(float) * un);
   c->glacial = zb_alloc(a, sizeof(float) * un);
   c->flags = zb_alloc(a, sizeof(uint16_t) * un);
   c->strata = zb_calloc(a, sizeof(zb_stratum) * un * ZB_STRATA);
-  if (!c->plate || !c->continental || !c->basement || !c->thickness || !c->born || !c->orogeny || !c->glacial ||
-      !c->flags || !c->strata) {
+  if (!c->plate || !c->continental || !c->basement || !c->lineage || !c->thickness || !c->born || !c->orogeny ||
+      !c->glacial || !c->flags || !c->strata) {
     zb_geo_crust_free(a, c);
     return ZB_ERR_NOMEM;
   }
@@ -70,6 +71,7 @@ void zb_geo_crust_free(const zb_allocator *a, zb_geo_crust *c) {
   zb_free(a, c->plate);
   zb_free(a, c->continental);
   zb_free(a, c->basement);
+  zb_free(a, c->lineage);
   zb_free(a, c->thickness);
   zb_free(a, c->born);
   zb_free(a, c->orogeny);
@@ -84,6 +86,7 @@ void zb_geo_crust_copy(zb_geo_crust *dst, const zb_geo_crust *src, int n) {
   memcpy(dst->plate, src->plate, un);
   memcpy(dst->continental, src->continental, un);
   memcpy(dst->basement, src->basement, un);
+  memcpy(dst->lineage, src->lineage, un);
   memcpy(dst->thickness, src->thickness, sizeof(float) * un);
   memcpy(dst->born, src->born, sizeof(float) * un);
   memcpy(dst->orogeny, src->orogeny, sizeof(float) * un);
@@ -97,6 +100,7 @@ static void crust_move(zb_geo_crust *dst, int i, const zb_geo_crust *src, int j)
   dst->plate[i] = src->plate[j];
   dst->continental[i] = src->continental[j];
   dst->basement[i] = src->basement[j];
+  dst->lineage[i] = src->lineage[j];
   dst->thickness[i] = src->thickness[j];
   dst->born[i] = src->born[j];
   dst->orogeny[i] = src->orogeny[j];
@@ -308,9 +312,13 @@ void zb_geo_init_world(zb_geology *g) {
   grow_plates(g);
 
   /* Continental cores. */
-  zb_dvec3 centre[24];
-  double radius[24], wsum = 0.0, w[24];
+  zb_dvec3 centre[ZB_GEO_LINEAGES - 1];
+  double radius[ZB_GEO_LINEAGES - 1], wsum = 0.0, w[ZB_GEO_LINEAGES - 1];
   int cratons = pr->cratons;
+  for (int k = 0; k < ZB_GEO_LINEAGES * ZB_GEO_LINEAGES; ++k) {
+    g->contact[k] = -1.0f;
+  }
+  g->next_lineage = cratons + 1;
   for (int c = 0; c < cratons; ++c) {
     centre[c] = random_unit(&g->rng);
     w[c] = rand_range(&g->rng, 0.4, 1.6);
@@ -339,6 +347,7 @@ void zb_geo_init_world(zb_geology *g) {
     zb_stratum *col = column(&g->cur, i);
     memset(col, 0, sizeof(zb_stratum) * ZB_STRATA);
     g->cur.glacial[i] = -1.0f;
+    g->cur.lineage[i] = (uint8_t)(inside >= 0 ? inside + 1 : 0);
     if (inside >= 0) {
       g->cur.continental[i] = 1;
       g->cur.thickness[i] = (float)(36.0 + 3.0 * f2);
@@ -584,6 +593,7 @@ static void advect(zb_geology *g, double now, double after, int32_t *collided_wi
       next->plate[i] = cur->plate[i];
       next->continental[i] = 0;
       next->basement[i] = ZB_ROCK_BASALT;
+      next->lineage[i] = 0;
       next->thickness[i] = OCEANIC_THICKNESS;
       next->born[i] = (float)after;
       next->orogeny[i] = -1.0f;
@@ -620,6 +630,15 @@ static void advect(zb_geology *g, double now, double after, int32_t *collided_wi
         }
         collided_with[i] = cand_plate[c];
         g->collisions[cand_plate[w] * ZB_GEO_MAX_PLATES + cand_plate[c]]++;
+        if (next->lineage[i] == 0) { /* thick ocean crust turned continental joins its partner's lineage */
+          next->lineage[i] = cur->lineage[j] != 0                ? cur->lineage[j]
+                             : g->next_lineage < ZB_GEO_LINEAGES ? (uint8_t)g->next_lineage++
+                                                                 : 0;
+        }
+        int la = next->lineage[i], lb = cur->lineage[j];
+        if (la != 0 && lb != 0 && la != lb) { /* two continents meet */
+          g->contact[la * ZB_GEO_LINEAGES + lb] = g->contact[lb * ZB_GEO_LINEAGES + la] = (float)after;
+        }
       } else { /* subduction: a volcanic arc on the overriding plate */
         float cap_t = next->continental[i] ? MAX_CONTINENTAL_THICKNESS - 10.0f : MAX_OCEANIC_THICKNESS;
         float t = next->thickness[i] + (next->continental[i] ? 1.2f : 1.6f);
@@ -735,6 +754,16 @@ static void accrete(zb_geology *g, double after) {
     if (!g->cur.continental[i] && g->cur.thickness[i] > ACCRETION_THICKNESS) {
       g->cur.continental[i] = 1;
       g->cur.basement[i] = ZB_ROCK_ANDESITE;
+      for (int k = 0; k < 6; ++k) { /* the arc joins the continent beside it */
+        int j = zb_lattice_nbr(l, i, k);
+        if (j >= 0 && g->cur.lineage[j] != 0) {
+          g->cur.lineage[i] = g->cur.lineage[j];
+          break;
+        }
+      }
+      if (g->cur.lineage[i] == 0 && g->next_lineage < ZB_GEO_LINEAGES) {
+        g->cur.lineage[i] = (uint8_t)g->next_lineage++; /* a new terrane far from any continent */
+      }
     }
   }
   /* Margins grow by sedimentation and accreted terranes while collisions have
@@ -774,6 +803,13 @@ static void accrete(zb_geology *g, double after) {
     g->cur.continental[i] = 1;
     g->cur.thickness[i] = 30.0f;
     g->cur.basement[i] = ZB_ROCK_SCHIST;
+    for (int k = 0; k < 6; ++k) {
+      int j = zb_lattice_nbr(l, i, k);
+      if (j >= 0 && g->cur.continental[j] && g->cur.plate[j] == g->cur.plate[i]) {
+        g->cur.lineage[i] = g->cur.lineage[j];
+        break;
+      }
+    }
     zb_geo_add_stratum(column(&g->cur, i), ZB_ROCK_SANDSTONE, ZB_ENV_SHALLOW_SEA, 200.0, after);
   }
   for (int i = 0; i < g->n; ++i) {
@@ -791,6 +827,7 @@ static void accrete(zb_geology *g, double after) {
       g->cur.born[j] = (float)after;
       g->cur.orogeny[j] = (float)after;
       g->cur.basement[j] = ZB_ROCK_GNEISS;
+      g->cur.lineage[j] = g->cur.lineage[i];
       g->cur.flags[j] = (uint16_t)((g->cur.flags[j] & ~ZB_GEO_RIDGE) | ZB_GEO_COLLISION);
       memcpy(column(&g->cur, j), column(&g->cur, i), sizeof(zb_stratum) * ZB_STRATA);
       break;
@@ -1068,6 +1105,8 @@ static void snapshot_save(zb_geology *g, zb_geo_snapshot *s) {
   zb_geo_crust_copy(&s->crust, &g->cur, g->n);
   memcpy(s->elevation, g->elevation, sizeof(float) * (size_t)g->n);
   memcpy(s->plates, g->plates, sizeof g->plates);
+  memcpy(s->contact, g->contact, sizeof g->contact);
+  s->next_lineage = g->next_lineage;
   s->step = g->step;
   s->sea_level = g->sea_level;
   s->valid = true;
@@ -1077,6 +1116,8 @@ static void snapshot_restore(zb_geology *g, const zb_geo_snapshot *s) {
   zb_geo_crust_copy(&g->cur, &s->crust, g->n);
   memcpy(g->elevation, s->elevation, sizeof(float) * (size_t)g->n);
   memcpy(g->plates, s->plates, sizeof g->plates);
+  memcpy(g->contact, s->contact, sizeof g->contact);
+  g->next_lineage = s->next_lineage;
   g->step = s->step;
   g->sea_level = s->sea_level;
 }
@@ -1285,6 +1326,8 @@ void zb_geology_get_progress(const zb_geology *g, zb_geology_progress *out) {
 
 const zb_lattice *zb_geology_lattice(const zb_geology *g) { return &g->lat; }
 
+double zb_geology_radius(const zb_geology *g) { return g->opt.radius; }
+
 void zb_geology_get_points(const zb_geology *g, zb_geology_points *out) {
   out->n = g->n;
   out->plate = g->cur.plate;
@@ -1297,6 +1340,16 @@ void zb_geology_get_points(const zb_geology *g, zb_geology_points *out) {
   out->minerals = g->minerals;
   out->strata = g->cur.strata;
   out->basement = g->cur.basement;
+  out->lineage = g->cur.lineage;
+}
+
+const float *zb_geology_contacts(const zb_geology *g) { return g->contact; }
+
+double zb_geology_lineage_contact(const zb_geology *g, int a, int b) {
+  if (a <= 0 || b <= 0 || a >= ZB_GEO_LINEAGES || b >= ZB_GEO_LINEAGES) {
+    return -1.0;
+  }
+  return (double)g->contact[a * ZB_GEO_LINEAGES + b];
 }
 
 const zb_geology_era *zb_geology_eras(const zb_geology *g, int *count) {
@@ -1326,6 +1379,7 @@ uint64_t zb_geology_hash(const zb_geology *g) {
   size_t n = (size_t)g->n;
   zb_hasher_bytes(&h, g->cur.plate, n);
   zb_hasher_bytes(&h, g->cur.continental, n);
+  zb_hasher_bytes(&h, g->cur.lineage, n);
   zb_hasher_bytes(&h, g->cur.thickness, sizeof(float) * n);
   zb_hasher_bytes(&h, g->elevation, sizeof(float) * n);
   zb_hasher_bytes(&h, g->cur.flags, sizeof(uint16_t) * n);

@@ -5,6 +5,7 @@
 #define _POSIX_C_SOURCE 199309L
 #include "support/test_support.h"
 #include "unity.h"
+#include "world/climate.h"
 #include "world/geology.h"
 
 #include <stdio.h>
@@ -13,6 +14,7 @@
 ZB_TEST_LEAK_CHECKED
 
 #define BUDGET_S 60.0
+#define CLIMATE_BUDGET_S 15.0
 
 static double now_s(void) {
   struct timespec ts;
@@ -21,6 +23,7 @@ static double now_s(void) {
 }
 
 /* spec: deep-time-geology: Time budget */
+/* spec: climate-and-biomes: Climate time budget */
 static void test_default_world_budget(void) {
   zb_geology_options o;
   zb_geology_default_options(&o, ZB_PLANET_DEFAULT_RADIUS);
@@ -42,6 +45,22 @@ static void test_default_world_budget(void) {
          t_macro - t0, m->attempts, t1 - t_macro, BUDGET_S);
   TEST_ASSERT_TRUE(m->passed);
   TEST_ASSERT_TRUE_MESSAGE(t1 - t0 < BUDGET_S, "deep time took longer than the desktop budget");
+  /* The living planet: climate, rivers, biomes and provinces on the same world. */
+  zb_climate_input in;
+  zb_climate_link link;
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_climate_input_from_geology(&in, &link, zb_test_alloc(), g, 1));
+  double t2 = now_s();
+  zb_climate *c = zb_climate_create(zb_test_alloc(), &in, err, sizeof err);
+  TEST_ASSERT_NOT_NULL_MESSAGE(c, err);
+  zb_climate_run(c);
+  double t3 = now_s();
+  zb_climate_stats st;
+  zb_climate_get_stats(c, &st);
+  printf("climate: %.1f s (%d rivers, %d provinces); budget %.0f s\n", t3 - t2, st.rivers, st.provinces,
+         CLIMATE_BUDGET_S);
+  TEST_ASSERT_TRUE_MESSAGE(t3 - t2 < CLIMATE_BUDGET_S, "climate took longer than the desktop budget");
+  zb_climate_destroy(c);
+  zb_climate_link_free(&link);
   zb_geology_destroy(g);
 }
 

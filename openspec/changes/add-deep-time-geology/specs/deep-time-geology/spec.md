@@ -42,6 +42,13 @@ Each time step SHALL turn every plate about its Euler pole at an Earth-like angu
 - **WHEN** a continental plate is cut along the equator and its halves drift for four steps
 - **THEN** a new plate holds one half, the cut is marked as a rift, a young ocean opens along it, and a plate of one point or a full plate table refuses to split
 
+### Requirement: Crust lineages
+Continental crust SHALL carry the lineage of the craton it grew from (accreted arcs, margins and spread crust take their neighbour's), ocean floor none, and the time when crust of two lineages last collided SHALL be recorded for biogeography.
+
+#### Scenario: Lineages remember meetings
+- **WHEN** continents of two lineages collide, and a whole world runs
+- **THEN** the meeting time is recorded for both orders of the pair (never for a lineage with itself or for ocean floor), new ocean floor has no lineage, and over nine tenths of continental crust keeps one
+
 ### Requirement: Surface processes
 Land SHALL erode in proportion to its height above the sea, faster under ice, and the eroded rock SHALL settle downhill as strata chosen by environment and era; the sea level SHALL follow the land target with slow cycles and ice ages, and each step SHALL record its era (time, sea level, temperature, humidity, ice age, plates, land share).
 

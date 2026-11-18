@@ -184,11 +184,15 @@ static zb_geology *two_plates(bool cont0, bool cont1, double cm) {
     g->cur.glacial[i] = -1.0f;
     g->cur.flags[i] = 0;
     g->cur.basement[i] = cont ? ZB_ROCK_GRANITE : ZB_ROCK_BASALT;
+    g->cur.lineage[i] = (uint8_t)(cont ? p + 1 : 0);
     zb_stratum *col = &g->cur.strata[(size_t)i * ZB_STRATA];
     memset(col, 0, sizeof(zb_stratum) * ZB_STRATA);
     zb_geo_add_stratum(col, cont ? ZB_ROCK_LIMESTONE : ZB_ROCK_PELAGIC_CLAY, ZB_ENV_SHALLOW_SEA, 200.0, 520.0);
   }
   memset(g->plates, 0, sizeof g->plates);
+  for (int k = 0; k < ZB_GEO_LINEAGES * ZB_GEO_LINEAGES; ++k) {
+    g->contact[k] = -1.0f;
+  }
   g->plates[0] = (zb_geo_plate){true, zb_dv(0, 0, -1), rate(cm), 0};
   g->plates[1] = (zb_geo_plate){true, zb_dv(0, 0, 1), rate(cm), 0};
   zb_geo_update_elevation(g);
@@ -246,6 +250,7 @@ static void test_drift(void) {
 }
 
 /* spec: deep-time-geology: Continental collision */
+/* spec: deep-time-geology: Lineages remember meetings */
 static void test_collision(void) {
   zb_geology *g = two_plates(true, true, 6.0);
   float before = -1e9f;
@@ -266,6 +271,13 @@ static void test_collision(void) {
   }
   TEST_ASSERT_TRUE(collided > 10);
   TEST_ASSERT_TRUE(metamorphic > collided / 2);
+  /* The two continents' lineages remember when they met. */
+  double met = zb_geology_lineage_contact(g, 1, 2);
+  TEST_ASSERT_DOUBLE_WITHIN(1e-3, g->opt.span_myr - g->dt, met);
+  TEST_ASSERT_EQUAL_DOUBLE(met, zb_geology_lineage_contact(g, 2, 1));
+  TEST_ASSERT_EQUAL_DOUBLE(-1.0, zb_geology_lineage_contact(g, 1, 1));
+  TEST_ASSERT_EQUAL_DOUBLE(-1.0, zb_geology_lineage_contact(g, 0, 2));
+  TEST_ASSERT_EQUAL_DOUBLE(-1.0, zb_geology_lineage_contact(g, 1, ZB_GEO_LINEAGES));
   TEST_ASSERT_TRUE(top > before + 2000.0f);
   /* Sustained collision welds the plates; the seam is a suture. */
   steps(g, 4);
@@ -537,6 +549,18 @@ static void test_full_run(void) {
   }
   TEST_ASSERT_TRUE(coal > 0);
   TEST_ASSERT_TRUE(salt > 0);
+  int cont = 0, traced = 0;
+  for (int i = 0; i < pts.n; ++i) {
+    if (pts.continental[i]) {
+      cont++;
+      traced += pts.lineage[i] != 0;
+    } else if (pts.flags[i] & ZB_GEO_RIDGE) {
+      TEST_ASSERT_EQUAL_UINT8(0, pts.lineage[i]); /* new ocean floor has no lineage */
+    }
+  }
+  char msg[64];
+  snprintf(msg, sizeof msg, "%d of %d continental points traced", traced, cont);
+  TEST_ASSERT_TRUE_MESSAGE(traced > cont * 9 / 10, msg); /* continents remember where they came from */
   int count;
   const zb_geology_era *eras = zb_geology_eras(g, &count);
   TEST_ASSERT_EQUAL_INT(100, count);
@@ -791,7 +815,7 @@ static void test_determinism(void) {
   printf("geology golden hash: %s\n", hex);
   TEST_ASSERT_EQUAL_UINT64(zb_geology_hash(a), zb_geology_hash(b));
   TEST_ASSERT_NOT_EQUAL_UINT64(zb_geology_hash(a), zb_geology_hash(c));
-  TEST_ASSERT_EQUAL_STRING("1a2c5bce5152843b", hex); /* the same on every platform */
+  TEST_ASSERT_EQUAL_STRING("9edd690a29818df7", hex); /* the same on every platform */
   zb_geology_destroy(a);
   zb_geology_destroy(b);
   zb_geology_destroy(c);
