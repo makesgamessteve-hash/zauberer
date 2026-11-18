@@ -22,11 +22,11 @@ static void test_sha1_base64(void) {
   }
   TEST_ASSERT_EQUAL_STRING("a9993e364706816aba3e25717850c26c9cd0d89d", hex);
   zb_sha1("", 0, d);
-  TEST_ASSERT_EQUAL_HEX8(0xda, d[0]);
+  TEST_ASSERT_EQUAL_UINT8(0xda, d[0]);
   /* 56 bytes: the padding spills into a second block. */
   zb_sha1("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56, d);
-  TEST_ASSERT_EQUAL_HEX8(0x84, d[0]);
-  TEST_ASSERT_EQUAL_HEX8(0xf1, d[19]);
+  TEST_ASSERT_EQUAL_UINT8(0x84, d[0]);
+  TEST_ASSERT_EQUAL_UINT8(0xf1, d[19]);
   char b64[16];
   zb_base64((const uint8_t *)"Ma", 2, b64);
   TEST_ASSERT_EQUAL_STRING("TWE=", b64);
