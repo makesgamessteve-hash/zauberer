@@ -26,11 +26,10 @@ class CiWorkflowTest(unittest.TestCase):
         cls.workflow = yaml.safe_load(text)
         cls.jobs = cls.workflow["jobs"]
 
-    def test_runs_on_every_push_and_pull_request(self):
+    def test_starts_by_hand(self):
+        # For now CI is started by hand to save build minutes (update-ci-on-demand).
         triggers = self.workflow.get("on", self.workflow.get(True))
-        self.assertIn("push", triggers)
-        self.assertIn("pull_request", triggers)
-        self.assertIsNone(triggers["push"], "no branch filter: every push runs CI")
+        self.assertIn("workflow_dispatch", triggers)
 
     # spec: test-automation: Platform-specific failure
     def test_a_failure_on_any_platform_fails_the_run(self):
