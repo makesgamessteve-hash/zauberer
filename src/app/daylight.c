@@ -72,3 +72,21 @@ float zb_daylight_snow(double mean, double coldest, double warmest, double heigh
              0.0065 * (height > 0.0 ? height : 0.0);
   return clampf01((float)(-t / 4.0));
 }
+
+static zb_vec3 toward(zb_vec3 a, zb_vec3 b, float k) {
+  return zb_v3(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, a.z + (b.z - a.z) * k);
+}
+
+void zb_daylight_overcast(zb_daylight *d, double cloud) {
+  if (cloud <= 0.0) {
+    return;
+  }
+  float k = (float)(cloud > 1.0 ? 1.0 : cloud);
+  zb_atmosphere *a = &d->atmosphere;
+  float lz = (a->zenith.x + a->zenith.y + a->zenith.z) / 3.0f, lh = (a->horizon.x + a->horizon.y + a->horizon.z) / 3.0f;
+  a->zenith = toward(a->zenith, zb_v3(lz * 0.8f, lz * 0.82f, lz * 0.85f), k);
+  a->horizon = toward(a->horizon, zb_v3(lh, lh, lh * 1.02f), 0.8f * k);
+  a->sun_color = zb_v3_scale(a->sun_color, 1.0f - k);
+  d->light_color = zb_v3_scale(d->light_color, 1.0f - 0.7f * k);
+  d->ambient = zb_v3_scale(d->ambient, 1.0f - 0.15f * k);
+}

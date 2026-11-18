@@ -11,6 +11,7 @@
 #include "core/version.h"
 #include "sim/air.h"
 #include "sim/fire.h"
+#include "sim/tier.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -603,6 +604,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
     zb_fire_set_wind_source(e->fire, air_wind, e->air); /* fire leans with the local wind */
   }
   e->smoke_sprite = zb_render_load_sprite(e->render, "sprites/smoke.lua");
+  e->rain_sprite = zb_render_load_sprite(e->render, "sprites/rain.lua");
+  e->snow_sprite = zb_render_load_sprite(e->render, "sprites/snow.lua");
   e->flame_sprite = zb_render_load_sprite(e->render, "sprites/flame.lua");
 
   /* Co-op session: the same world (seed) and package set on every peer. */
@@ -664,6 +667,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.fire = e->fire;
   sc.water = e->water;
   sc.air = e->air;
+  sc.weather = &e->weather;
   sc.net = e->net;
   sc.jobs = e->jobs;
   sc.test_api = e->mode != ZB_MODE_GAME;
@@ -711,6 +715,64 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
 
 /* ---- Running ------------------------------------------------------------------------ */
 
+/* The world's weather at the player, once a second, unless the scripts set
+ * one; storms send lightning at the highest of a few places nearby. */
+static void update_weather(zb_engine *e, const zb_planet_pos *focus) {
+  zb_tier tier = {e->fire, e->water, e->air};
+  zb_weather *w = &e->weather.now;
+  if (!e->weather.overridden) {
+    zb_planet_pos ground = *focus;
+    ground.alt = (float)zb_world_ground_height(e->world, focus);
+    zb_weather_at(zb_world_terrain(e->world), zb_world_calendar(e->world), &ground, zb_world_time(e->world), w);
+    zb_tier_apply_weather(&tier, w);
+  }
+  uint64_t second = e->ticks / ZB_TICK_HZ;
+  double roll = (double)(zb_hash_combine(e->seed, second) >> 11) * (1.0 / 9007199254740992.0);
+  if (!e->fire || w->storm <= 0.0 || roll >= 0.03 * w->storm) {
+    return;
+  }
+  zb_planet_pos best = *focus;
+  double top = -1e9;
+  for (uint64_t k = 0; k < 6; ++k) {
+    double new_heading;
+    uint64_t h = zb_hash_combine(zb_hash_combine(e->seed, second), k + 1);
+    double heading = (double)(h & 0xffff) / 65536.0 * 2.0 * 3.14159265358979323846,
+           dist = 40.0 + (double)((h >> 16) & 0xff);
+    zb_planet_pos p = zb_planet_move(zb_world_planet(e->world), focus, heading, dist, 0.0, 0.0, &new_heading);
+    double hgt = zb_world_ground_height(e->world, &p);
+    if (hgt > top) {
+      top = hgt;
+      best = p;
+    }
+  }
+  best.alt = (float)top;
+  int lit = zb_fire_ignite(e->fire, &best, 3.0);
+  e->weather.strikes++;
+  zb_info("lightning struck %.0f m from the player (%d cell(s) caught)",
+          zb_planet_distance(zb_world_planet(e->world), focus, &best), lit);
+}
+
+/* Rain or snow falling around the camera. */
+#define DROPS 400
+
+static void draw_precipitation(zb_engine *e, zb_vec3 eye) {
+  const zb_weather *w = &e->weather.now;
+  bool snow = w->snow > w->rain;
+  double rate = snow ? w->snow : w->rain;
+  int n = (int)(rate * 80.0);
+  n = n > DROPS ? DROPS : n;
+  double t = (double)e->ticks / (double)ZB_TICK_HZ, fall = snow ? 1.2 : 9.0, wind = snow ? 0.6 : 0.15;
+  for (int i = 0; i < n; ++i) {
+    uint64_t h = zb_hash_combine(0x7261696eull, (uint64_t)i);
+    float dx = (float)((double)(h & 0xffff) / 65536.0 * 60.0 - 30.0);
+    float dz = (float)((double)((h >> 16) & 0xffff) / 65536.0 * 60.0 - 30.0);
+    double phase = (double)((h >> 32) & 0xffff) / 65536.0 * 30.0, y = fmod(t * fall + phase, 30.0);
+    zb_vec3 p = zb_v3(eye.x + dx + (float)(w->wind_east * wind * y / fall), eye.y + 15.0f - (float)y,
+                      eye.z + dz - (float)(w->wind_north * wind * y / fall));
+    zb_render_draw_sprite(e->render, snow ? e->snow_sprite : e->rain_sprite, p, 1.0f, t + i * 0.1);
+  }
+}
+
 static void tick(zb_engine *e) {
   zb_vfs_poll(e->vfs);
   if (e->replay) {
@@ -741,6 +803,9 @@ static void tick(zb_engine *e) {
     zb_fire_each_smoke(e->fire, emit_smoke, &smoke);
   }
   zb_air_update(e->air, wfocus, wn, zb_loop_tick_seconds());
+  if (e->ticks % ZB_TICK_HZ == 0 && wn > 0) {
+    update_weather(e, &wfocus[0]);
+  }
   zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
@@ -763,6 +828,15 @@ static void step(zb_engine *e) {
 static void apply_daylight(zb_engine *e, zb_vec3 eye) {
   zb_daylight d;
   zb_daylight_compute(zb_world_calendar(e->world), zb_world_time(e->world), zb_world_origin(e->world), eye, &d);
+  zb_daylight_overcast(&d, e->weather.now.cloud);
+  if (e->weather.strikes != e->strikes_seen) { /* lightning: a few frames of white light */
+    e->strikes_seen = e->weather.strikes;
+    e->flash = 4;
+  }
+  if (e->flash > 0) {
+    e->flash--;
+    d.ambient = zb_v3_add(d.ambient, zb_v3(1.2f, 1.2f, 1.3f));
+  }
   zb_atmosphere a = d.atmosphere;
   const zb_atmosphere *cur = zb_render_atmosphere(e->render);
   a.fog_density = cur->fog_density; /* the scripts' visibility stays */
@@ -899,6 +973,7 @@ static void draw_world(zb_engine *e) {
     }
     zb_water_view_draw(e->water_view, e->water, e->world, (double)e->ticks / (double)ZB_TICK_HZ);
     draw_smoke(e, eye);
+    draw_precipitation(e, eye);
   }
   const zb_atmosphere *cur = zb_render_atmosphere(e->render);
   if (!cur->enabled) {

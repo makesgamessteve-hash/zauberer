@@ -9,6 +9,7 @@
 #include "sim/air.h"
 #include "sim/fire.h"
 #include "sim/material.h"
+#include "sim/tier.h"
 #include "sim/water.h"
 
 static const zb_materials *M(lua_State *L) { return zb_script_from(L)->cfg.materials; }
@@ -268,21 +269,46 @@ static int s_fire_stats(lua_State *L) {
   return 1;
 }
 
+static zb_tier tier_of(lua_State *L) {
+  const zb_script_config *cfg = &zb_script_from(L)->cfg;
+  zb_tier t = {cfg->fire, cfg->water, cfg->air};
+  return t;
+}
+
+/* The weather in use (the fire's, without a weather control). */
+static zb_weather current_weather(lua_State *L) {
+  zb_weather_control *wc = zb_script_from(L)->cfg.weather;
+  if (wc) {
+    return wc->now;
+  }
+  const zb_fire_weather *fw = zb_fire_weather_get(F(L));
+  zb_weather w = {0.0, fw->rain, 0.0, 0.0, fw->wind_east, fw->wind_north, 0.0};
+  return w;
+}
+
 /* @lua sim.set_weather(weather: Weather)
- * The wind and rain the fire sees (until the weather simulation drives them).
- * @field wind_east number? m/s towards the east
- * @field wind_north number? m/s towards the north
- * @field rain number? mm/h
+ * Sets the weather the simulations see, instead of the world's own, until
+ * sim.natural_weather(): for tests, spells and story moments. Fields left
+ * out keep their current values.
+ * @field wind_east number? m/s towards the east (-60 .. 60)
+ * @field wind_north number? m/s towards the north (-60 .. 60)
+ * @field rain number? mm/h (0 .. 500)
+ * @field snow number? mm/h of water (0 .. 500)
+ * @field cloud number? 0 clear .. 1 overcast
+ * @field storm number? 0 .. 1: thunderstorms (lightning)
  */
 static int s_set_weather(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
-  zb_fire_weather w = *zb_fire_weather_get(F(L));
+  zb_weather w = current_weather(L);
   const struct {
     const char *name;
     double *value, lo, hi;
   } fields[] = {{"wind_east", &w.wind_east, -60.0, 60.0},
                 {"wind_north", &w.wind_north, -60.0, 60.0},
-                {"rain", &w.rain, 0.0, 500.0}};
+                {"rain", &w.rain, 0.0, 500.0},
+                {"snow", &w.snow, 0.0, 500.0},
+                {"cloud", &w.cloud, 0.0, 1.0},
+                {"storm", &w.storm, 0.0, 1.0}};
   for (size_t i = 0; i < sizeof fields / sizeof fields[0]; ++i) {
     lua_getfield(L, 1, fields[i].name);
     if (!lua_isnil(L, -1)) {
@@ -294,25 +320,61 @@ static int s_set_weather(lua_State *L) {
     }
     lua_pop(L, 1);
   }
-  zb_fire_set_weather(F(L), &w);
-  if (zb_script_from(L)->cfg.air) {
-    zb_air_set_wind(zb_script_from(L)->cfg.air, w.wind_east, w.wind_north);
+  zb_weather_control *wc = zb_script_from(L)->cfg.weather;
+  if (wc) {
+    wc->overridden = true;
+    wc->now = w;
   }
-  if (zb_script_from(L)->cfg.water) {
-    zb_surface_water_set_rain(zb_script_from(L)->cfg.water, w.rain);
+  zb_tier t = tier_of(L);
+  zb_tier_apply_weather(&t, &w);
+  return 0;
+}
+
+/* @lua sim.natural_weather()
+ * Returns to the world's own weather (from the next second).
+ */
+static int s_natural_weather(lua_State *L) {
+  zb_weather_control *wc = zb_script_from(L)->cfg.weather;
+  if (wc) {
+    wc->overridden = false;
   }
   return 0;
 }
 
 /* @lua sim.weather(): Weather
- * The wind and rain the fire sees.
+ * The weather the simulations see now, with natural (the world's own, not
+ * one the scripts set) and strikes (lightning so far).
  */
 static int s_weather(lua_State *L) {
-  const zb_fire_weather *w = zb_fire_weather_get(F(L));
-  lua_createtable(L, 0, 3);
-  set_number(L, "wind_east", w->wind_east);
-  set_number(L, "wind_north", w->wind_north);
-  set_number(L, "rain", w->rain);
+  zb_weather w = current_weather(L);
+  zb_weather_control *wc = zb_script_from(L)->cfg.weather;
+  lua_createtable(L, 0, 9);
+  set_number(L, "wind_east", w.wind_east);
+  set_number(L, "wind_north", w.wind_north);
+  set_number(L, "rain", w.rain);
+  set_number(L, "snow", w.snow);
+  set_number(L, "cloud", w.cloud);
+  set_number(L, "storm", w.storm);
+  set_number(L, "temperature", w.temperature);
+  lua_pushboolean(L, wc && !wc->overridden);
+  lua_setfield(L, -2, "natural");
+  lua_pushinteger(L, wc ? wc->strikes : 0);
+  lua_setfield(L, -2, "strikes");
+  return 1;
+}
+
+/* @lua sim.lightning(pos: PlanetPos): integer
+ * Lightning strikes a place in the active tier: a flash, and fire in the dry
+ * fuel there. Returns the cells that caught.
+ */
+static int s_lightning(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  int lit = zb_fire_ignite(F(L), &pos, 3.0);
+  zb_weather_control *wc = zb_script_from(L)->cfg.weather;
+  if (wc) {
+    wc->strikes++;
+  }
+  lua_pushinteger(L, lit);
   return 1;
 }
 
@@ -505,14 +567,24 @@ static int s_air_stats(lua_State *L) {
 
 void zb_script_open_sim(zb_script *s) {
   static const luaL_Reg registry_fns[] = {{"keys", r_keys}, {"get", r_get}, {NULL, NULL}};
-  static const luaL_Reg sim_fns[] = {{"material", s_material},       {"material_at", s_material_at},
-                                     {"ignite", s_ignite},           {"add_heat", s_add_heat},
-                                     {"fire_at", s_fire_at},         {"fire_stats", s_fire_stats},
-                                     {"set_weather", s_set_weather}, {"weather", s_weather},
-                                     {"add_water", s_add_water},     {"water_at", s_water_at},
-                                     {"water_stats", s_water_stats}, {"wind_at", s_wind_at},
-                                     {"gas_at", s_gas_at},           {"emit", s_emit},
-                                     {"air_stats", s_air_stats},     {NULL, NULL}};
+  static const luaL_Reg sim_fns[] = {{"material", s_material},
+                                     {"material_at", s_material_at},
+                                     {"ignite", s_ignite},
+                                     {"add_heat", s_add_heat},
+                                     {"fire_at", s_fire_at},
+                                     {"fire_stats", s_fire_stats},
+                                     {"set_weather", s_set_weather},
+                                     {"weather", s_weather},
+                                     {"natural_weather", s_natural_weather},
+                                     {"lightning", s_lightning},
+                                     {"add_water", s_add_water},
+                                     {"water_at", s_water_at},
+                                     {"water_stats", s_water_stats},
+                                     {"wind_at", s_wind_at},
+                                     {"gas_at", s_gas_at},
+                                     {"emit", s_emit},
+                                     {"air_stats", s_air_stats},
+                                     {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, registry_fns, 0);
   lua_setglobal(s->L, "registry");

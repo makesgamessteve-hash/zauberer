@@ -783,6 +783,11 @@ function world.view_distance(near, far) end
 ---@return number?
 function world.water(pos) end
 
+---The world's own weather at a place now (what the sky does there, whatever the scripts set for the simulations).
+---@param pos PlanetPos
+---@return NaturalWeather
+function world.weather(pos) end
+
 net = {}
 
 ---Hosts a co-op session (desktop only); returns the port in use (port 0 or omitted picks a free one), or nil and why it failed.
@@ -964,6 +969,11 @@ function sim.gas_at(pos) end
 ---@return integer
 function sim.ignite(pos, radius) end
 
+---Lightning strikes a place in the active tier: a flash, and fire in the dry fuel there. Returns the cells that caught.
+---@param pos PlanetPos
+---@return integer
+function sim.lightning(pos) end
+
 ---What the simulations use of a material (SI units, deg C); nil when there is no such material.
 ---@param ref string
 ---@return Material?
@@ -975,7 +985,10 @@ function sim.material(ref) end
 ---@return string
 function sim.material_at(ref, temperature) end
 
----The wind and rain the fire sees (until the weather simulation drives them).
+---Returns to the world's own weather (from the next second).
+function sim.natural_weather() end
+
+---Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 ---@param weather Weather
 function sim.set_weather(weather) end
 
@@ -988,7 +1001,7 @@ function sim.water_at(pos) end
 ---@return WaterStats
 function sim.water_stats() end
 
----The wind and rain the fire sees.
+---The weather the simulations see now, with natural (the world's own, not one the scripts set) and strikes (lightning so far).
 ---@return Weather
 function sim.weather() end
 

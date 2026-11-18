@@ -16,6 +16,7 @@ zb_add_unit_test(test_world_creation SOURCES world/test_creation.c LIBS zb_world
 zb_add_unit_test(test_water SOURCES world/test_water.c LIBS zb_world)
 zb_add_unit_test(test_flora SOURCES world/test_flora.c LIBS zb_world)
 zb_add_unit_test(test_calendar SOURCES world/test_calendar.c LIBS zb_world)
+zb_add_unit_test(test_weather SOURCES world/test_weather.c LIBS zb_world)
 zb_add_unit_test(test_delta SOURCES world/test_delta.c LIBS zb_world)
 zb_add_unit_test(test_world_stream SOURCES world/test_stream.c LIBS zb_world)
 zb_add_unit_test(test_material SOURCES sim/test_material.c LIBS zb_sim)

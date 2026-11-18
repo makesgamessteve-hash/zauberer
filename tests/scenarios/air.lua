@@ -11,7 +11,7 @@ for _ = 1, 900 do
   sleep(5)
 end
 expect(sim.wind_at(here).loaded, "the carpet's air is in the active tier")
-sim.set_weather({ wind_east = 6, wind_north = 0 })
+sim.set_weather({ wind_east = 6, wind_north = 0, rain = 0, snow = 0, storm = 0 })
 local w = sim.wind_at(here)
 expect(w.east > 0 and w.speed > 1, "a wind from the west: " .. w.east .. ", " .. w.north)
 expect_near(w.speed, math.sqrt(w.east * w.east + w.north * w.north), 1e-9)

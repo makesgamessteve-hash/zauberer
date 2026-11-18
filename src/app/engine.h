@@ -18,6 +18,7 @@
 #include "script/script.h"
 #include "sim/material.h"
 #include "vfs/vfs.h"
+#include "world/weather.h"
 
 typedef enum zb_engine_mode { ZB_MODE_GAME, ZB_MODE_TEST, ZB_MODE_SCENARIO } zb_engine_mode;
 
@@ -39,7 +40,11 @@ typedef struct zb_engine {
   struct zb_fire *fire;           /* heat and fire in the active tier (NULL without materials) */
   struct zb_surface_water *water; /* surface water in the active tier */
   struct zb_water_view *water_view;
-  struct zb_air *air; /* wind and gases in the active tier */
+  struct zb_air *air;         /* wind and gases in the active tier */
+  zb_weather_control weather; /* the weather in use: the world's own, or the scripts' */
+  int flash;                  /* frames of lightning flash left */
+  int strikes_seen;           /* lightning strikes already flashed */
+  uint32_t rain_sprite, snow_sprite;
   uint32_t smoke_sprite;
   uint32_t flame_sprite;
   zb_terrain_view *terrain_view;

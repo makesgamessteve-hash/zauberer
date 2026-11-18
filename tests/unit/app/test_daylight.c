@@ -81,9 +81,28 @@ static void test_snow(void) {
   TEST_ASSERT_EQUAL_FLOAT(1.0f, zb_daylight_snow(-30.0, -45.0, -10.0, 0.0, 3.5));
 }
 
+/* spec: weather: Clouds darken the sky */
+static void test_overcast(void) {
+  init();
+  zb_calendar_config c;
+  zb_calendar_default(&c);
+  zb_daylight clear, grey;
+  zb_daylight_compute(&c, 2.0 * ZB_DAY_SECONDS + 12.0 * 3600.0, &g_origin, zb_v3(0, 100, 0), &clear);
+  grey = clear;
+  zb_daylight_overcast(&grey, 0.0); /* no cloud: nothing changes */
+  TEST_ASSERT_EQUAL_MEMORY(&clear, &grey, sizeof clear);
+  zb_daylight_overcast(&grey, 1.5);                                     /* full cloud (clamped) */
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, brightness(grey.atmosphere.sun_color)); /* no sun disc */
+  TEST_ASSERT_TRUE(brightness(grey.light_color) < 0.4f * brightness(clear.light_color));
+  float spread_clear = clear.atmosphere.zenith.z - clear.atmosphere.zenith.x;
+  float spread_grey = grey.atmosphere.zenith.z - grey.atmosphere.zenith.x;
+  TEST_ASSERT_TRUE_MESSAGE(spread_grey < 0.5f * spread_clear, "a grey sky, not a blue one");
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_day_and_night);
   RUN_TEST(test_snow);
+  RUN_TEST(test_overcast);
   return UNITY_END();
 }

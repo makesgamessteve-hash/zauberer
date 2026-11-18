@@ -229,6 +229,11 @@ class ScenarioTests(EngineTestCase):
     def test_fire(self):
         self.assert_ok(self.scenario("fire"))
 
+    def test_weather(self):
+        result = self.scenario("weather")
+        self.assert_ok(result)
+        self.assertIn("lightning struck", result.stdout)
+
     def test_air(self):
         self.assert_ok(self.scenario("air"))
 

@@ -25,7 +25,7 @@ game.camera_override = function()
   local t = world.to_local(spot)
   return { eye = { t[1], t[2] + 40, t[3] + 60 }, target = t, up = { 0, 1, 0 }, fov = 60, near = 1, far = 5000 }
 end
-sim.set_weather({ wind_east = 0, wind_north = 0, rain = 0 })
+sim.set_weather({ wind_east = 0, wind_north = 0, rain = 0, snow = 0, storm = 0 })
 step(2)
 local before = render.stats().sprite_draws
 expect(sim.ignite(spot, 6) > 0)

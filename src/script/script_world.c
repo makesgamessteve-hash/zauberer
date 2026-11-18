@@ -16,6 +16,8 @@
  */
 #include "script/script_internal.h"
 
+#include "world/weather.h"
+
 #include <math.h>
 
 static zb_world *W(lua_State *L) { return zb_script_from(L)->world; }
@@ -605,6 +607,39 @@ static int w_stream_stats(lua_State *L) {
   return 1;
 }
 
+/* @lua world.weather(pos: PlanetPos): NaturalWeather
+ * The world's own weather at a place now (what the sky does there, whatever
+ * the scripts set for the simulations).
+ * @field cloud number 0 clear .. 1 overcast
+ * @field rain number mm/h
+ * @field snow number mm/h of water
+ * @field storm number 0 .. 1: thunderstorms
+ * @field wind_east number m/s towards the east
+ * @field wind_north number m/s towards the north
+ * @field temperature number deg C of the air at the place
+ */
+static int w_weather(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  zb_weather w;
+  zb_weather_at(T(L), zb_world_calendar(W(L)), &pos, zb_world_time(W(L)), &w);
+  lua_createtable(L, 0, 7);
+  const struct {
+    const char *name;
+    double value;
+  } fields[] = {{"cloud", w.cloud},
+                {"rain", w.rain},
+                {"snow", w.snow},
+                {"storm", w.storm},
+                {"wind_east", w.wind_east},
+                {"wind_north", w.wind_north},
+                {"temperature", w.temperature}};
+  for (size_t i = 0; i < sizeof fields / sizeof fields[0]; ++i) {
+    lua_pushnumber(L, fields[i].value);
+    lua_setfield(L, -2, fields[i].name);
+  }
+  return 1;
+}
+
 void zb_script_open_world(zb_script *s) {
   static const luaL_Reg world_fns[] = {{"planet", w_planet},
                                        {"position", w_position},
@@ -624,6 +659,7 @@ void zb_script_open_world(zb_script *s) {
                                        {"time", w_time},
                                        {"set_time", w_set_time},
                                        {"sky", w_sky},
+                                       {"weather", w_weather},
                                        {"plants", w_plants},
                                        {"stream_stats", w_stream_stats},
                                        {"chunk_stage", w_chunk_stage},

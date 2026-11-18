@@ -450,6 +450,10 @@ Gets or sets the streaming rings: chunks get full detail within near metres and 
 
 Water at a position: its kind ("ocean", "lake" or "river"; nil on dry land), the water surface in metres above sea level, its depth, and the current towards east and north in m/s.
 
+### `world.weather(pos: PlanetPos): NaturalWeather`
+
+The world's own weather at a place now (what the sky does there, whatever the scripts set for the simulations).
+
 ## net: co-op sessions
 
 ### `net.host(port?: integer): integer?, string?`
@@ -596,6 +600,10 @@ The gases in the air at a place, kg/m^3 of the lowest air layer.
 
 Sets fire to the fuel within radius metres (default 2, up to 64) of a place in the active tier: lightning, a spell, a torch. Returns the cells (about 2 m) that caught; wet or bare ground and water do not.
 
+### `sim.lightning(pos: PlanetPos): integer`
+
+Lightning strikes a place in the active tier: a flash, and fire in the dry fuel there. Returns the cells that caught.
+
 ### `sim.material(ref: string): Material?`
 
 What the simulations use of a material (SI units, deg C); nil when there is no such material.
@@ -604,9 +612,13 @@ What the simulations use of a material (SI units, deg C); nil when there is no s
 
 The material ref becomes at a temperature (deg C) through its phase changes: water at -5 is ice, ice at 150 is steam. Errors for an unknown material.
 
+### `sim.natural_weather()`
+
+Returns to the world's own weather (from the next second).
+
 ### `sim.set_weather(weather: Weather)`
 
-The wind and rain the fire sees (until the weather simulation drives them).
+Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 
 ### `sim.water_at(pos: PlanetPos): WaterCell`
 
@@ -618,7 +630,7 @@ Where the water of the active tier is, in m^3: on_ground + soaked + drained equa
 
 ### `sim.weather(): Weather`
 
-The wind and rain the fire sees.
+The weather the simulations see now, with natural (the world's own, not one the scripts set) and strikes (lightning so far).
 
 ### `sim.wind_at(pos: PlanetPos): Wind`
 

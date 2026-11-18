@@ -40,6 +40,9 @@ class RenderTests(EngineTestCase):
     def test_fire_view(self):
         self.assert_ok(self.windowed("fire_view"))
 
+    def test_weather_view(self):
+        self.assert_ok(self.windowed("weather_view"))
+
     def test_puddle_view(self):
         self.assert_ok(self.windowed("puddle_view"))
 
