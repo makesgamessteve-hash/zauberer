@@ -494,6 +494,31 @@ static void test_oom_create(void) {
   zb_input_destroy(NULL);
 }
 
+/* spec: touch-and-gamepad-controls: Inverted gamepad axis */
+static void test_inverted_axis(void) {
+  int climb = zb_input_define(in, "climb", ZB_ACTION_AXIS1);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_input_bind(in, climb, "gamepad:-right_y"));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_input_bind(in, climb, "gamepad:-nonsense"));
+  zb_event added;
+  memset(&added, 0, sizeof added);
+  added.type = ZB_EV_GAMEPAD_ADDED;
+  added.u.gamepad.id = 3;
+  zb_input_handle_event(in, &added);
+  zb_event ax;
+  memset(&ax, 0, sizeof ax);
+  ax.type = ZB_EV_GAMEPAD_AXIS;
+  ax.u.gamepad_axis.id = 3;
+  ax.u.gamepad_axis.axis = ZB_AXIS_RIGHT_Y;
+  ax.u.gamepad_axis.value = -0.8f; /* pushed up (SDL: up is negative) */
+  zb_input_handle_event(in, &ax);
+  zb_input_sample(in, 0);
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, 0.8f, zb_input_state(in, climb)->x);
+  ax.u.gamepad_axis.value = 0.1f; /* resting noise: inside the dead zone */
+  zb_input_handle_event(in, &ax);
+  zb_input_sample(in, 0);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, zb_input_state(in, climb)->x);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_button_held_across_ticks);
@@ -507,6 +532,7 @@ int main(void) {
   RUN_TEST(test_virtual_controls);
   RUN_TEST(test_inject);
   RUN_TEST(test_record_and_replay);
+  RUN_TEST(test_inverted_axis);
   RUN_TEST(test_oom_create);
   return UNITY_END();
 }

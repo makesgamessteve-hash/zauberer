@@ -4,6 +4,7 @@
 -- spec: retro-rendering: Palette colours only
 -- spec: retro-rendering: Palette off
 scenario { name = "terrain view" }
+demo.game.set_mode("showcase")
 demo.game.hud = false
 world.view_distance(768, 6000)
 local peak = world.position(2, 785, 11510, 128, 128, 0)

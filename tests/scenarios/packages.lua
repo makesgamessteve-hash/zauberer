@@ -7,6 +7,7 @@
 -- spec: input-actions: Mod changes a default binding
 -- spec: content-licensing: Mod assets appear in credits
 scenario { name = "fixture packages" }
+demo.game.set_mode("showcase")
 local by_id = {}
 for _, p in ipairs(engine.packages()) do
   by_id[p.id] = p

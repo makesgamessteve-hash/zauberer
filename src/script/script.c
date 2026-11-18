@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 #include "script/script_internal.h"
 
+#include "core/dmath.h"
+
 #include "core/log.h"
 
 #include <stdio.h>
@@ -206,6 +208,38 @@ static void block(lua_State *L, int table, const char *field, const char *what) 
   lua_setfield(L, table, field);
 }
 
+/* ---- Deterministic math -------------------------------------------------------
+ * The transcendental functions of the math library are replaced by core/dmath,
+ * so scripts (flight, simulation) give the same results on every platform. */
+
+#define DMATH1(fn, impl) \
+  static int fn(lua_State *L) { \
+    lua_pushnumber(L, impl(luaL_checknumber(L, 1))); \
+    return 1; \
+  }
+DMATH1(l_dsin, zb_dsin)
+DMATH1(l_dcos, zb_dcos)
+DMATH1(l_dtan, zb_dtan)
+DMATH1(l_dasin, zb_dasin)
+DMATH1(l_dacos, zb_dacos)
+DMATH1(l_dexp, zb_dexp)
+#undef DMATH1
+
+static int l_datan(lua_State *L) {
+  lua_pushnumber(L, zb_datan2(luaL_checknumber(L, 1), luaL_optnumber(L, 2, 1.0)));
+  return 1;
+}
+
+static int l_dlog(lua_State *L) {
+  double x = luaL_checknumber(L, 1);
+  if (lua_isnoneornil(L, 2)) {
+    lua_pushnumber(L, zb_dlog(x));
+  } else {
+    lua_pushnumber(L, zb_dlog(x) / zb_dlog(luaL_checknumber(L, 2)));
+  }
+  return 1;
+}
+
 static void open_sandbox(zb_script *s) {
   lua_State *L = s->L;
   luaL_requiref(L, LUA_GNAME, luaopen_base, 1);
@@ -257,6 +291,10 @@ static void open_sandbox(zb_script *s) {
   lua_setfield(L, -2, "random");
   lua_pushcfunction(L, l_randomseed);
   lua_setfield(L, -2, "randomseed");
+  static const luaL_Reg dmath[] = {{"sin", l_dsin},   {"cos", l_dcos},   {"tan", l_dtan},
+                                   {"asin", l_dasin}, {"acos", l_dacos}, {"atan", l_datan},
+                                   {"exp", l_dexp},   {"log", l_dlog},   {NULL, NULL}};
+  luaL_setfuncs(L, dmath, 0);
   lua_pop(L, 1);
   lua_pop(L, 1); /* globals */
 }

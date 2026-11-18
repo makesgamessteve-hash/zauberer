@@ -294,6 +294,10 @@ Ground height in metres above sea level from the loaded heightfield (the analyti
 
 Terrain height above sea level in metres at the position (the analytic terrain, within 0.5 m of the generated heightfield).
 
+### `world.move(pos: PlanetPos, heading: number, forward: number, right?: number, up?: number): PlanetPos, number`
+
+Moves a position forward metres along heading (radians clockwise from north), right metres to the side and up metres up; returns the new position and the heading carried along the path (straight flight follows a great circle, also across the poles).
+
 ### `world.neighbors(pos: PlanetPos): PlanetPos[]`
 
 Centres of the chunks sharing an edge or corner with the position's chunk (7 or 8).

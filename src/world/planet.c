@@ -231,6 +231,25 @@ void zb_planet_frame(zb_dvec3 dir, zb_dvec3 *east, zb_dvec3 *north, zb_dvec3 *up
   *north = dv_cross(u, e);
 }
 
+zb_planet_pos zb_planet_move(const zb_planet *p, const zb_planet_pos *pos, double heading, double forward, double right,
+                             double up, double *new_heading) {
+  zb_dvec3 c = zb_planet_to_cart(p, pos);
+  zb_dvec3 e, n, u;
+  zb_planet_frame(c, &e, &n, &u);
+  double ch = zb_dcos(heading), sh = zb_dsin(heading);
+  zb_dvec3 fwd = dv_add(dv_scale(n, ch), dv_scale(e, sh));
+  zb_dvec3 rgt = dv_sub(dv_scale(e, ch), dv_scale(n, sh));
+  zb_dvec3 moved = dv_add(c, dv_add(dv_scale(fwd, forward), dv_scale(rgt, right)));
+  zb_planet_pos out = zb_planet_from_cart(p, moved);
+  out.alt = (float)((double)out.alt + up);
+  /* Carry the forward direction into the new tangent plane. */
+  zb_dvec3 e2, n2, u2;
+  zb_planet_frame(moved, &e2, &n2, &u2);
+  zb_dvec3 f2 = dv_sub(fwd, dv_scale(u2, dv_dot(fwd, u2)));
+  *new_heading = zb_datan2(dv_dot(f2, e2), dv_dot(f2, n2));
+  return out;
+}
+
 static double angle_between(zb_dvec3 a, zb_dvec3 b) { return zb_datan2(dv_len(dv_cross(a, b)), dv_dot(a, b)); }
 
 double zb_planet_distance(const zb_planet *p, const zb_planet_pos *a, const zb_planet_pos *b) {

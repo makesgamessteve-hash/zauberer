@@ -2,6 +2,7 @@
 -- Rendered with a 1920 x 1080 window.
 -- spec: rendering-core: Full HD window
 scenario { name = "full HD layout" }
+demo.game.set_mode("showcase")
 demo.game.hud = false
 step(30)
 local st = render.stats()

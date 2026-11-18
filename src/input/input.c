@@ -31,6 +31,7 @@ typedef enum src_kind {
 typedef struct binding {
   src_kind kind;
   int a, b, c, d;
+  bool invert; /* gamepad axes written with a leading '-' */
   char control[NAME_LEN];
   char text[BIND_LEN];
 } binding;
@@ -225,10 +226,12 @@ static bool parse_binding(const char *text, zb_action_type type, binding *b) {
       b->a = btn;
       return type != ZB_ACTION_AXIS2;
     }
-    int axis = zb_pad_axis_from_name(rest);
+    bool invert = rest[0] == '-';
+    int axis = zb_pad_axis_from_name(invert ? rest + 1 : rest);
     if (axis >= 0) {
       b->kind = SRC_PAD_AXIS;
       b->a = axis;
+      b->invert = invert;
       return type != ZB_ACTION_AXIS2;
     }
     return false;
@@ -629,7 +632,11 @@ static float eval_binding(const zb_input *in, const binding *b, float *x, float 
       *y = -in->mouse_dy;
       break;
     case SRC_PAD_BUTTON: *x = pad_button(in, b->a) ? 1.0f : 0.0f; break;
-    case SRC_PAD_AXIS: *x = pad_axis(in, b->a); break;
+    case SRC_PAD_AXIS: {
+      float v = pad_axis(in, b->a);
+      *x = fabsf(v) < STICK_DEADZONE ? 0.0f : (b->invert ? -v : v);
+      break;
+    }
     case SRC_PAD_STICK: {
       float sx = pad_axis(in, b->a), sy = -pad_axis(in, b->b);
       if (sqrtf(sx * sx + sy * sy) >= STICK_DEADZONE) {

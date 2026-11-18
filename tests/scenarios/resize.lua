@@ -2,6 +2,7 @@
 -- Rendered (window, 640 x 360).
 -- spec: platform-targets: Resize at runtime
 scenario { name = "resize at runtime" }
+demo.game.set_mode("showcase")
 step(5)
 local frames = render.stats().frames
 engine.resize_window(800, 600)

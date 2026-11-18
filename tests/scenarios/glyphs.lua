@@ -2,6 +2,7 @@
 -- Rendered (window, 640 x 360) with the fixture mod "glyphs" installed.
 -- spec: rendering-core: Missing glyph
 scenario { name = "missing glyph" }
+demo.game.set_mode("showcase")
 demo.game.hud = false
 step(30)
 local font = render.font("fonts/pixel.lua")

@@ -2,6 +2,7 @@
 -- Rendered with a 1000 x 700 window.
 -- spec: rendering-core: Non-integer window size
 scenario { name = "fractional layout" }
+demo.game.set_mode("showcase")
 demo.game.hud = false
 step(30)
 local st = render.stats()

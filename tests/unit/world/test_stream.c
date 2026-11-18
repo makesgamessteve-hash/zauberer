@@ -178,8 +178,9 @@ static void test_altitude(void) {
   zb_stream_destroy(s);
 }
 
-static void count_faces(void *ctx, const zb_chunk_terrain *ct, uint32_t version) {
+static void count_faces(void *ctx, const zb_chunk_terrain *ct, uint32_t version, int target) {
   (void)version;
+  (void)target;
   int *faces = ctx;
   faces[ct->chunk.face]++;
 }
@@ -234,8 +235,9 @@ static bool logged(const order_log *o, zb_chunk c) {
   return false;
 }
 
-static void log_new(void *ctx, const zb_chunk_terrain *ct, uint32_t version) {
+static void log_new(void *ctx, const zb_chunk_terrain *ct, uint32_t version, int target) {
   (void)version;
+  (void)target;
   order_log *o = ctx;
   if (o->count < 4096 && !logged(o, ct->chunk)) {
     o->seen[o->count++] = ct->chunk;

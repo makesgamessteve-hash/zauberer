@@ -627,14 +627,14 @@ void zb_stream_get_stats(const zb_stream *s, zb_stream_stats *out) {
   out->refreshes = s->epoch;
 }
 
-void zb_stream_each(const zb_stream *s, void (*fn)(void *ctx, const zb_chunk_terrain *ct, uint32_t version),
+void zb_stream_each(const zb_stream *s, void (*fn)(void *ctx, const zb_chunk_terrain *ct, uint32_t version, int target),
                     void *ctx) {
   size_t cursor = 0;
   uint64_t key, value;
   while (zb_map_next(&s->map, &cursor, &key, &value)) {
     const entry *e = (const entry *)(uintptr_t)value;
     if (e->data.stage >= 0) {
-      fn(ctx, &e->data, e->version);
+      fn(ctx, &e->data, e->version, e->target);
     }
   }
 }

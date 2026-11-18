@@ -335,8 +335,11 @@ static cache_entry *find_entry(zb_terrain_view *tv, zb_chunk c) {
 }
 
 /* Visits a loaded chunk: marks its mesh as seen or asks for a (re)build. */
-static void visit(void *ctx, const zb_chunk_terrain *ct, uint32_t version) {
+static void visit(void *ctx, const zb_chunk_terrain *ct, uint32_t version, int target) {
   zb_terrain_view *tv = ctx;
+  if (target < 0) {
+    return; /* cached outside the rings: not drawn */
+  }
   const zb_planet *p = zb_world_planet(tv->world);
   zb_dvec3 d = zb_planet_chunk_dir(p, ct->chunk);
   zb_dvec3 c = {d.x * p->radius, d.y * p->radius, d.z * p->radius};

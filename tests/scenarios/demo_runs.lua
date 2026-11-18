@@ -3,6 +3,7 @@
 -- spec: lua-scripting: Entry scripts run in order
 -- spec: lua-scripting: Tick hook runs per tick
 scenario { name = "demo runs for ten seconds" }
+demo.game.set_mode("showcase")
 expect(demo ~= nil, "the base package's entry script ran")
 step(600)
 expect_eq(engine.tick(), 600)

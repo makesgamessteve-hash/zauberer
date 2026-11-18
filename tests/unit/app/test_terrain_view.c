@@ -178,7 +178,7 @@ static void test_view(void) {
     TEST_ASSERT_TRUE(st.built <= 12);
     zb_stream_stats ss;
     zb_stream_get_stats(zb_world_stream(w), &ss);
-    loaded = ss.chunks[0] + ss.chunks[1] + ss.chunks[2];
+    loaded = ss.wanted; /* settled: every chunk in the rings is loaded */
     if (ss.queued == 0 && ss.jobs == 0 && st.built == 0 && st.meshes == loaded) {
       break;
     }
@@ -213,7 +213,8 @@ static void test_view(void) {
   zb_terrain_view_get_stats(tv, &st);
   zb_stream_stats ss;
   zb_stream_get_stats(zb_world_stream(w), &ss);
-  TEST_ASSERT_EQUAL_size_t(ss.chunks[0] + ss.chunks[1] + ss.chunks[2], st.meshes);
+  TEST_ASSERT_EQUAL_size_t(ss.wanted, st.meshes); /* chunks left behind are cached, not drawn */
+  TEST_ASSERT_TRUE(ss.cached > 0);
   zb_terrain_view_destroy(tv);
   TEST_ASSERT_EQUAL_size_t(1, zb_render_null_meshes(zb_render_backend_of(r)));
   zb_terrain_view_destroy(NULL);

@@ -323,6 +323,24 @@ static int w_view_distance(lua_State *L) {
   return 2;
 }
 
+/* @lua world.move(pos: PlanetPos, heading: number, forward: number, right?: number, up?: number): PlanetPos, number
+ * Moves a position forward metres along heading (radians clockwise from north), right metres
+ * to the side and up metres up; returns the new position and the heading carried along the
+ * path (straight flight follows a great circle, also across the poles).
+ */
+static int w_move(lua_State *L) {
+  zb_planet_pos pos = check_pos(L, 1);
+  double heading = luaL_checknumber(L, 2);
+  double forward = luaL_checknumber(L, 3);
+  double right = luaL_optnumber(L, 4, 0.0);
+  double up = luaL_optnumber(L, 5, 0.0);
+  double out_heading;
+  zb_planet_pos moved = zb_planet_move(P(L), &pos, heading, forward, right, up, &out_heading);
+  push_pos(L, &moved);
+  lua_pushnumber(L, out_heading);
+  return 2;
+}
+
 /* @lua world.chunk_stage(pos: PlanetPos): integer
  * Stage the position's chunk is loaded at (0 coarse, 1 heightfield, 2 surface), or -1.
  */
@@ -389,6 +407,7 @@ void zb_script_open_world(zb_script *s) {
                                        {"from_local", w_from_local},
                                        {"up_at", w_up_at},
                                        {"view_distance", w_view_distance},
+                                       {"move", w_move},
                                        {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, world_fns, 0);

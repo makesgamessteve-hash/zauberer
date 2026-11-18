@@ -74,6 +74,12 @@ int zb_planet_neighbors(const zb_planet *p, zb_chunk c, zb_chunk out[8]);
 /* Local frame at a direction: up, geographic east and north (+Z is north;
  * at the poles east is +Y). */
 void zb_planet_frame(zb_dvec3 dir, zb_dvec3 *east, zb_dvec3 *north, zb_dvec3 *up);
+/* Moves a position `forward` metres along `heading` (radians clockwise from
+ * north), `right` metres to its right and `up` metres up. The heading is carried
+ * along the path (so straight flight follows a great circle) and the heading at
+ * the new position is stored in *new_heading. */
+zb_planet_pos zb_planet_move(const zb_planet *p, const zb_planet_pos *pos, double heading, double forward, double right,
+                             double up, double *new_heading);
 /* Great-circle distance at sea level, metres. */
 double zb_planet_distance(const zb_planet *p, const zb_planet_pos *a, const zb_planet_pos *b);
 /* Approximate edge lengths of a chunk on the sphere (metres, sea level). */

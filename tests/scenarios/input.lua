@@ -2,6 +2,7 @@
 -- Injected actions drive the demo state.
 -- spec: input-actions: Button held across ticks
 scenario { name = "input drives the demo" }
+demo.game.set_mode("showcase")
 local s = demo.game.state
 input.inject("spin", 1, 0, 30)
 step(30)

@@ -36,7 +36,7 @@ void zb_terrain_view_default_config(zb_terrain_view_config *c);
 zb_terrain_view *zb_terrain_view_create(const zb_allocator *a, zb_render *r, zb_vfs *vfs, const char *atlas,
                                         const zb_terrain_view_config *cfg);
 void zb_terrain_view_destroy(zb_terrain_view *tv);
-/* Builds what the budget allows and draws every loaded chunk (between
+/* Builds what the budget allows and draws every chunk inside the rings (between
  * zb_render_begin and zb_render_end). eye is the camera in render coordinates. */
 void zb_terrain_view_draw(zb_terrain_view *tv, zb_world *w, zb_vec3 eye);
 void zb_terrain_view_get_stats(const zb_terrain_view *tv, zb_terrain_view_stats *out);

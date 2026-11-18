@@ -143,6 +143,12 @@ class ScenarioTests(EngineTestCase):
     def test_stream_focus_scenario(self):
         self.assert_ok(self.scenario("stream_focus"))
 
+    def test_flight_controls(self):
+        self.assert_ok(self.scenario("flight_controls"))
+
+    def test_ten_minutes_of_flight(self):
+        self.assert_ok(self.scenario("flight_endless"))
+
     # spec: game-loop: Paused game keeps rendering
     def test_pause_scenario(self):
         self.assert_ok(self.scenario("pause"))

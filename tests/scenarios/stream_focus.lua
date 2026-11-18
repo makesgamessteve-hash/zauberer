@@ -1,6 +1,7 @@
 -- SPDX-License-Identifier: MIT
 -- spec: chunk-streaming: Streaming from Lua
 scenario { name = "terrain streams around a focus" }
+demo.game.set_mode("showcase")
 local pos = world.position(0, 5000, 6000, 100, 100, 50)
 expect_eq(world.chunk_stage(pos), -1, "nothing streams without a focus")
 world.set_focus(1, pos, { 0, 0, 0 }, { 0, 0, -1 })

@@ -17,6 +17,13 @@ endif()
 if(UNIX)
   target_link_libraries(zb_lua PUBLIC m)
 endif()
+# Deterministic x ^ y (core/dmath) in every Lua state, including the tools' interpreter.
+if(MSVC)
+  target_compile_options(zb_lua PRIVATE "/FI${PROJECT_SOURCE_DIR}/src/core/lua_numpow.h")
+else()
+  target_compile_options(zb_lua PRIVATE -include "${PROJECT_SOURCE_DIR}/src/core/lua_numpow.h")
+endif()
+target_link_libraries(zb_lua PUBLIC zb_core)
 
 # Standalone interpreter, used only by tools (LuaCov reports).
 if(NOT EMSCRIPTEN)

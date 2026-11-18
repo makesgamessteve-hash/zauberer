@@ -2,6 +2,7 @@
 -- Rendered (window, 640 x 360) with --debug-views 2.
 -- spec: rendering-core: Forced stereo
 scenario { name = "forced stereo" }
+demo.game.set_mode("showcase")
 demo.game.hud = false
 step(60)
 expect_eq(render.stats().views, 2)

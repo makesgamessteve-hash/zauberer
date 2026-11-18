@@ -494,6 +494,16 @@ function world.ground_height(pos) end
 ---@return number
 function world.height(pos) end
 
+---Moves a position forward metres along heading (radians clockwise from north), right metres to the side and up metres up; returns the new position and the heading carried along the path (straight flight follows a great circle, also across the poles).
+---@param pos PlanetPos
+---@param heading number
+---@param forward number
+---@param right? number
+---@param up? number
+---@return PlanetPos
+---@return number
+function world.move(pos, heading, forward, right, up) end
+
 ---Centres of the chunks sharing an edge or corner with the position's chunk (7 or 8).
 ---@param pos PlanetPos
 ---@return PlanetPos[]

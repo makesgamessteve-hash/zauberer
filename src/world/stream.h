@@ -72,7 +72,9 @@ int zb_stream_target(const zb_stream *s, zb_chunk c);
 /* Changes whenever a chunk's data changes (for mesh caches). */
 uint32_t zb_stream_version(const zb_stream *s, zb_chunk c);
 void zb_stream_get_stats(const zb_stream *s, zb_stream_stats *out);
-/* Calls fn for every loaded chunk. */
-void zb_stream_each(const zb_stream *s, void (*fn)(void *ctx, const zb_chunk_terrain *ct, uint32_t version), void *ctx);
+/* Calls fn for every loaded chunk with its data version and the stage the
+ * rings want (ZB_STAGE_NONE for cached chunks outside them). */
+void zb_stream_each(const zb_stream *s, void (*fn)(void *ctx, const zb_chunk_terrain *ct, uint32_t version, int target),
+                    void *ctx);
 
 #endif

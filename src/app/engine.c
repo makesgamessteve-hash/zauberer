@@ -569,7 +569,9 @@ static void step(zb_engine *e) {
 /* Terrain and the sky's horizon, for the camera the scripts set. */
 static void draw_world(zb_engine *e) {
   zb_vec3 eye = zb_render_camera_eye(e->render);
-  zb_terrain_view_draw(e->terrain_view, e->world, eye);
+  if (!e->headless) { /* headless runs draw nothing: no meshes to build */
+    zb_terrain_view_draw(e->terrain_view, e->world, eye);
+  }
   const zb_atmosphere *cur = zb_render_atmosphere(e->render);
   if (!cur->enabled) {
     return;

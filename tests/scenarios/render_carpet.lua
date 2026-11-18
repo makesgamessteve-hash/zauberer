@@ -3,6 +3,7 @@
 -- spec: rendering-core: Render the carpet model
 -- spec: platform-targets: Normal start
 scenario { name = "reference scene" }
+demo.game.set_mode("showcase")
 demo.game.hud = false
 step(60)
 expect_eq(render.state(demo.assets.carpet), "ready")
