@@ -1,0 +1,14 @@
+# vertical-slice Specification
+
+## Purpose
+Defines the vertical slices the milestones end with: short playable demos in which
+the systems of a milestone meet, played through as scenarios.
+
+## Requirements
+
+### Requirement: Vertical Slice A
+The base game SHALL let a player, in one session near the start: scare a wolf pack away with fire, see the grass catch and put it out with Unmake Fire, bring down the storm bird with a Fireball and collect its motes, and at deep water (a lake, or the sea in the first world) step off, be stopped by water too deep to wade, freeze it and walk out onto the ice, then fly on, alive.
+
+#### Scenario: Vertical Slice A
+- **WHEN** the slice is played through with the hands, the spellbook and the bindings of the base game
+- **THEN** the wolves run from the fire, the fire spreads and is put out, the storm bird falls and its storm mana is collected, the deep water stops the mage, the frozen water carries the mage out from the shore, and the carpet flies on with the player alive

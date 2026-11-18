@@ -14,7 +14,7 @@ The player SHALL have health up to 100, hurt through heat, impact, cold, poison,
 - **THEN** the fire burns, the ward turns most of it aside, healing mends, the backfire costs half its power in health, and the HUD shows health and what happened
 
 ### Requirement: Magic against creatures
-A bolt passing within 1.5 m of a living creature SHALL strike it (fire burns, water and stone strike) and go off there; withering SHALL hurt and healing mend the creatures within its reach; a spark SHALL jolt what it touches.
+A bolt passing within 2 m of a living creature SHALL strike it (fire burns, water and stone strike) and go off there; withering SHALL hurt and healing mend the creatures within its reach; a spark SHALL jolt what it touches.
 
 #### Scenario: Magic against creatures
 - **WHEN** a Fireball is cast at a deer in its path, and a wolf is withered and then healed
