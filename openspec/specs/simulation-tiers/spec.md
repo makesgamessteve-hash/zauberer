@@ -26,7 +26,7 @@ A fire burning in a chunk that leaves the active tier SHALL be remembered; when 
 - **THEN** the fire burns on after the short absence, and after the month the meadow far from where it was lit is burnt, the scars are dated when the chunk left, the grass has grown back over the ash, the scar is still shown after another absence and gone after 300 days, and fires remembered in another world are forgotten
 
 ### Requirement: The tier in the game
-The engine SHALL run the active tier every tick and report its cost; scripts SHALL read the milliseconds per simulation (fire, water, air, weather and rigid bodies), the budget, the seconds over budget and the fires remembered.
+The engine SHALL run the active tier every tick and report its cost; scripts SHALL read the milliseconds per simulation (fire, water, air, weather, rigid bodies and mana), the budget, the seconds over budget and the fires remembered.
 
 #### Scenario: Tier from Lua
 - **WHEN** a scenario reads the tier's cost, lights a fire, flies the carpet away until the fire's chunk leaves, skips a month and flies back
