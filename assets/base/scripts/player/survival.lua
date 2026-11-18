@@ -24,6 +24,7 @@ survival.CHILL = 35.5         -- below this it is too cold
 survival.FEVERISH = 39        -- above this it is too hot
 survival.FIRE_WARMTH = 18     -- deg C a fire close by adds to the air
 survival.CLOTHES = 10         -- deg C the mage's clothes are worth
+survival.COMFORT = 25         -- deg C felt a body seeks: clothes are shed and a fire sat back from above it
 survival.SICK_DAYS = 4        -- days a sickness lasts untreated
 
 local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
@@ -70,12 +71,16 @@ local function catch(s, chance, what)
 end
 
 -- The air a body feels, deg C: the weather's, colder high up, in wind and
--- when wet, warmer by a fire and in clothes.
+-- when wet, warmer in shelter, and warmer in clothes and by a fire as far as
+-- the body wants (up to COMFORT: in the heat clothes are shed and a fire is
+-- sat back from).
 function survival.feels(ctx)
   local air = (ctx.air or 15) - 6.5 * math.max(ctx.height or 0, 0) / 1000
   local wind = math.max((ctx.wind or 0) - 1, 0) * 0.7
-  return air - wind - (ctx.wet or 0) * 8 + (ctx.fire and survival.FIRE_WARMTH or 0) + survival.CLOTHES +
-    (ctx.shelter and 6 or 0)
+  local felt = air - wind - (ctx.wet or 0) * 8 + (ctx.shelter and 6 or 0)
+  felt = felt + math.min(survival.CLOTHES, math.max(survival.COMFORT - felt, 0))
+  if ctx.fire then felt = felt + math.min(survival.FIRE_WARMTH, math.max(survival.COMFORT - felt, 0)) end
+  return felt
 end
 
 -- The core temperature a body settles at in air that feels like this.

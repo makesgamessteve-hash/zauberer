@@ -47,6 +47,10 @@ test.case("cold, wind and wet chill, fire and clothes warm", function()
   for _ = 1, 8 do harms = survival.tick(hot, HOUR, { air = 46, effort = 2 }) end
   test.expect(hot.core > survival.FEVERISH and harm_of(harms, "heat") > 0, "overheated: " .. hot.core)
   test.expect(survival.feels({ air = 10, wind = 10 }) < survival.feels({ air = 10 }), "wind chill")
+  test.expect(survival.feels({ air = 0, fire = true }) > survival.feels({ air = 0 }), "a fire warms the cold")
+  test.expect(survival.feels({ air = 26 }) == 26 and survival.feels({ air = 26, fire = true }) == 26,
+    "in the heat the clothes come off and the fire is sat back from")
+  test.expect(survival.feels({ air = 15 }) == survival.COMFORT, "clothes as far as wanted")
   test.expect(survival.feels({ air = 10, height = 2000 }) < survival.feels({ air = 10 }), "colder high up")
   -- Rain soaks, a fire dries.
   local wet = survival.new()

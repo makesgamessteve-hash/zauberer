@@ -48,3 +48,8 @@ expect(sim.weather().strikes > before + 1, "a storm brings lightning")
 -- Invalid weather is refused.
 expect_error(function() sim.set_weather({ cloud = 2 }) end, "cloud must be 0..1")
 expect_error(function() sim.set_weather({ snow = -1 }) end, "snow must be 0..500")
+expect_error(function() sim.set_weather({ temperature = 70 }) end, "temperature must be -60..60")
+sim.set_weather({ temperature = 14 })
+expect_eq(sim.weather().temperature, 14, "the air as set")
+sim.set_weather({ rain = 0 })
+expect_eq(sim.weather().temperature, 14, "and kept when left out")

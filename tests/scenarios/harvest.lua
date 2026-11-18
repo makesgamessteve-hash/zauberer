@@ -62,6 +62,21 @@ local pool = world.move(game.walker.pos, 1.6, 4, 0)
 world.deform(pool, 3, -1.5)
 sim.add_water(pool, 3, 15)
 step(60)
+-- spec: harvest-and-cooking: Facing the water
+-- At the pool's edge with grass to give within reach, facing the water, the
+-- cups are filled.
+local edge = world.move(pool, 0, 2.6, 0)
+edge.alt = world.ground_height(edge)
+local offered = false
+for _, pl in ipairs(world.plants(edge, 3)) do
+  offered = offered or #plants.available(game.plants, pl, world.time().time, world.sky(pl.pos).season) > 0
+end
+expect(offered, "plants to give within reach of the edge")
+game.walker.pos = edge
+game.walker.heading = math.pi -- (towards the pool's middle)
+press("gather")
+expect(pack.count(p, "pool_water") == 4, "facing the water, four cups and not the plants about")
+pack.take(p, "pool_water", 4)
 game.walker.pos = world.move(pool, 0, 0, 0)
 game.walker.pos.alt = world.ground_height(pool)
 local gone = {}

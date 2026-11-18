@@ -304,6 +304,7 @@ static zb_weather current_weather(lua_State *L) {
  * @field snow number? mm/h of water (0 .. 500)
  * @field cloud number? 0 clear .. 1 overcast
  * @field storm number? 0 .. 1: thunderstorms (lightning)
+ * @field temperature number? deg C of the air (-60 .. 60)
  */
 static int s_set_weather(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -316,7 +317,8 @@ static int s_set_weather(lua_State *L) {
                 {"rain", &w.rain, 0.0, 500.0},
                 {"snow", &w.snow, 0.0, 500.0},
                 {"cloud", &w.cloud, 0.0, 1.0},
-                {"storm", &w.storm, 0.0, 1.0}};
+                {"storm", &w.storm, 0.0, 1.0},
+                {"temperature", &w.temperature, -60.0, 60.0}};
   for (size_t i = 0; i < sizeof fields / sizeof fields[0]; ++i) {
     lua_getfield(L, 1, fields[i].name);
     if (!lua_isnil(L, -1)) {

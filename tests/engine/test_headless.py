@@ -301,6 +301,9 @@ class ScenarioTests(EngineTestCase):
     def test_codex(self):
         self.assert_ok(self.scenario("codex"))
 
+    def test_living_things(self):
+        self.assert_ok(self.scenario("living_things"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))
