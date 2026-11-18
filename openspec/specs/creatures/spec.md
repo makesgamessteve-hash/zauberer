@@ -61,8 +61,8 @@ The active tier SHALL own the creatures and step them every tick; scripts SHALL 
 - **THEN** those near are drawn with legs or wings in their colour and those beyond the range are not
 
 ### Requirement: Creature budget
-Two hundred creatures in a desktop active tier SHALL cost at most 0.5 ms a tick on average in a release build on Linux.
+Two hundred creatures in a desktop active tier, wolves hunting deer among them, all thirsty and leaving scent, SHALL cost at most 0.5 ms a tick on average in a release build on Linux.
 
 #### Scenario: Creature budget
-- **WHEN** 200 wolves, deer and birds live around a mage on foot for five seconds after a noise
+- **WHEN** 200 wolves, deer and birds live around a mage on foot for five seconds after a noise, the wolves hunting the deer
 - **THEN** most are in the active tier and a tick costs at most 0.5 ms on average
