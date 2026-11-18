@@ -1238,10 +1238,42 @@ static int s_set(lua_State *L) {
   return 0;
 }
 
-void zb_script_write_luon(lua_State *L, int idx, luaL_Buffer *b, int depth) {
+static void put(zb_array *out, const char *text, size_t len) {
+  for (size_t k = 0; k < len; ++k) {
+    zb_array_push(out, &text[k]);
+  }
+}
+
+static void puts_(zb_array *out, const char *text) { put(out, text, strlen(text)); }
+
+/* A string as a Lua literal that reads back exactly. */
+static void put_quoted(zb_array *out, const char *s, size_t len) {
+  puts_(out, "\"");
+  for (size_t k = 0; k < len; ++k) {
+    unsigned char c = (unsigned char)s[k];
+    char tmp[8];
+    if (c == '"' || c == '\\') {
+      tmp[0] = '\\';
+      tmp[1] = (char)c;
+      put(out, tmp, 2);
+    } else if (c == '\n') {
+      puts_(out, "\\n");
+    } else if (c < 32 || c == 127) {
+      snprintf(tmp, sizeof tmp, "\\%03u", c);
+      puts_(out, tmp);
+    } else {
+      put(out, (const char *)&c, 1);
+    }
+  }
+  puts_(out, "\"");
+}
+
+/* Writes the value at idx as LUON into out. Only the C buffer grows while the
+ * table walk pushes keys and values, so the Lua stack stays the walk's own. */
+static void write_luon(lua_State *L, int idx, zb_array *out, int depth) {
   idx = lua_absindex(L, idx);
   switch (lua_type(L, idx)) {
-    case LUA_TBOOLEAN: luaL_addstring(b, lua_toboolean(L, idx) ? "true" : "false"); break;
+    case LUA_TBOOLEAN: puts_(out, lua_toboolean(L, idx) ? "true" : "false"); break;
     case LUA_TNUMBER: {
       char tmp[64];
       if (lua_isinteger(L, idx)) {
@@ -1249,42 +1281,46 @@ void zb_script_write_luon(lua_State *L, int idx, luaL_Buffer *b, int depth) {
       } else {
         snprintf(tmp, sizeof tmp, "%.17g", (double)lua_tonumber(L, idx));
       }
-      luaL_addstring(b, tmp);
+      puts_(out, tmp);
       break;
     }
     case LUA_TSTRING: {
-      lua_getglobal(L, "string");
-      lua_getfield(L, -1, "format");
-      lua_pushstring(L, "%q");
-      lua_pushvalue(L, idx);
-      lua_call(L, 2, 1);
-      lua_remove(L, -2);
-      luaL_addvalue(b);
+      size_t len;
+      const char *str = lua_tolstring(L, idx, &len);
+      put_quoted(out, str, len);
       break;
     }
     case LUA_TTABLE:
       if (depth > 8) {
-        luaL_addstring(b, "nil");
+        puts_(out, "nil");
         break;
       }
-      luaL_addstring(b, "{");
+      puts_(out, "{");
       lua_pushnil(L);
       while (lua_next(L, idx)) {
         int kt = lua_type(L, -2), vt = lua_type(L, -1);
         if ((kt == LUA_TSTRING || kt == LUA_TNUMBER) &&
             (vt == LUA_TBOOLEAN || vt == LUA_TNUMBER || vt == LUA_TSTRING || vt == LUA_TTABLE)) {
-          luaL_addstring(b, "[");
-          zb_script_write_luon(L, -2, b, depth + 1);
-          luaL_addstring(b, "]=");
-          zb_script_write_luon(L, -1, b, depth + 1);
-          luaL_addstring(b, ",");
+          puts_(out, "[");
+          write_luon(L, -2, out, depth + 1);
+          puts_(out, "]=");
+          write_luon(L, -1, out, depth + 1);
+          puts_(out, ",");
         }
         lua_pop(L, 1);
       }
-      luaL_addstring(b, "}");
+      puts_(out, "}");
       break;
-    default: luaL_addstring(b, "nil"); break;
+    default: puts_(out, "nil"); break;
   }
+}
+
+void zb_script_write_luon(lua_State *L, int idx, luaL_Buffer *b, int depth) {
+  zb_array out;
+  zb_array_init(&out, zb_script_from(L)->cfg.a, 1);
+  write_luon(L, idx, &out, depth);
+  luaL_addlstring(b, out.data ? (const char *)out.data : "", out.len);
+  zb_array_free(&out);
 }
 
 /* @lua save.flush(): boolean

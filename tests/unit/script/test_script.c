@@ -959,6 +959,22 @@ static void test_save_api(void) {
   TEST_ASSERT_EQUAL_DOUBLE(3.0, gnum("l"));
   TEST_ASSERT_EQUAL_DOUBLE(0.5, gnum("r"));
   TEST_ASSERT_EQUAL_STRING("true3x", gstr("fl"));
+  /* A large save (it outgrows any small buffer), with awkward strings. */
+  exec(
+      "local big = {}\n"
+      "for k = 1, 3000 do big[k] = { n = k, s = 'line\\n\"q\" \\\\ ' .. k .. string.char(1, 127), f = k / 7 } end\n"
+      "save.set('big', big)\n"
+      "ok2 = save.flush()\n");
+  TEST_ASSERT_TRUE(gbool("ok2"));
+  stop();
+  start();
+  run();
+  exec(
+      "local big = save.get('big')\n"
+      "count = #big\n"
+      "same = big[3000].s == 'line\\n\"q\" \\\\ 3000' .. string.char(1, 127) and big[7].f == 1\n");
+  TEST_ASSERT_EQUAL_DOUBLE(3000.0, gnum("count"));
+  TEST_ASSERT_TRUE(gbool("same"));
   /* a corrupt save starts empty with a warning */
   stop();
   put("user/save.lua", "return {{{");
