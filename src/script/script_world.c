@@ -406,10 +406,25 @@ static int w_plants(lua_State *L) {
   int found = 0;
   for (int c = 0; c < n && f; ++c) {
     const zb_chunk_terrain *ct = zb_stream_find(zb_world_stream(W(L)), chunks[c]);
-    for (uint32_t i = 0; ct && i < ct->plant_count && found < 4096; ++i) {
+    if (!ct) {
+      continue;
+    }
+    /* A chunk wholly out of reach is skipped; in the position's own chunk a
+     * box in nominal metres (with room to spare) rules most plants out before
+     * the exact distance. */
+    double width = 0.0, height = 0.0;
+    zb_planet_chunk_size(P(L), chunks[c], &width, &height);
+    zb_planet_pos centre = {chunks[c], 128.0f, 128.0f, 0.0f};
+    double half_diagonal = 0.5 * sqrt(width * width + height * height);
+    if (zb_planet_distance(P(L), &pos, &centre) - 1.1 * half_diagonal > radius) {
+      continue;
+    }
+    double box = c == 0 ? 1.1 * radius * 256.0 / fmin(width, height) + 0.5 : 1e9;
+    for (uint32_t i = 0; i < ct->plant_count && found < 4096; ++i) {
       const zb_plant *pl = &ct->plants[i];
       zb_planet_pos at = {chunks[c], (float)pl->x / 256.0f, (float)pl->y / 256.0f, 0.0f};
-      if (pl->layer == ZB_PLANT_REMOVED || zb_planet_distance(P(L), &pos, &at) > radius) {
+      if (pl->layer == ZB_PLANT_REMOVED || fabs((double)(at.lx - pos.lx)) > box ||
+          fabs((double)(at.ly - pos.ly)) > box || zb_planet_distance(P(L), &pos, &at) > radius) {
         continue;
       }
       const zb_species *sp = &f->species[pl->species];

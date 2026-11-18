@@ -31,4 +31,16 @@ for i = 1, math.min(#plants, 200) do
   expect(math.abs(p.pos.alt - world.ground_height(p.pos)) < 1.5, "standing on the ground")
 end
 expect_eq(#world.plants(here, 0), 0)
+-- Every radius finds exactly the plants within it (chunks out of reach are
+-- skipped and a box rules most out first: none is missed).
+for _, probe in ipairs({ { 0, 0 }, { 0.7, 90 }, { 2.2, 140 }, { 4.1, 200 }, { 5.5, 250 } }) do
+  local at = world.move(here, probe[1], probe[2], 0)
+  local all = world.plants(at, 64)
+  expect(#all < 4096, "under the cap")
+  for _, r in ipairs({ 3, 20, 40 }) do
+    local want = 0
+    for _, pl in ipairs(all) do want = want + (world.distance(pl.pos, at) <= r and 1 or 0) end
+    expect_eq(#world.plants(at, r), want, "plants within " .. r .. " m")
+  end
+end
 expect_error(function() world.plants(here, 300) end, "radius must be 0..256 metres")
