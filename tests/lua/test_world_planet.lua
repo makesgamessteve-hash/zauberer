@@ -54,3 +54,19 @@ test.case("invalid positions", function()
   test.expect_error(function() world.distance({}, {}) end, "'face' must be an integer")
   test.expect_error(function() world.chunk_key("here") end)
 end)
+
+-- spec: terrain-generation: Height and surface from Lua
+test.case("terrain height and surface", function()
+  local names = { soil = true, sand = true, rock = true, gravel = true, snow = true, ice = true, mud = true }
+  local land, sea = 0, 0
+  for i = 0, 59 do
+    local pos = world.position(i % 6, 1000 + i * 173, 2000 + i * 97, 100, 50)
+    local h = world.height(pos)
+    test.expect(h > -4500 and h < 4000, "height in range")
+    test.expect(names[world.surface(pos)], "known material")
+    if h > 0 then land = land + 1 else sea = sea + 1 end
+    if h < -25 then test.expect_eq(world.surface(pos), "mud") end
+  end
+  test.expect(land > 0 and sea > 0, "both land and sea")
+  test.expect_eq(world.height(world.position(0, 5, 5)), world.height(world.position(0, 5, 5)))
+end)

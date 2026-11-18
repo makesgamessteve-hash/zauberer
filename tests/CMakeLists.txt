@@ -5,6 +5,9 @@ target_include_directories(zb_test_support PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" 
 target_link_libraries(zb_test_support PUBLIC zb_core zb_unity)
 
 add_subdirectory(unit)
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND UNIX AND NOT EMSCRIPTEN)
+  include(perf/CMakeLists.txt)
+endif()
 
 # A deliberately failing unit test, run by tests/engine to check failure reports.
 add_executable(fixture_failing_unit fixtures/failing_unit/test_failing.c)

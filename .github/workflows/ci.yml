@@ -154,6 +154,8 @@ jobs:
         env:
           ZB_GOLDEN_OUT: ${{ github.workspace }}/golden-out
         run: ctest --preset release -L render
+      - name: Performance budgets
+        run: ctest --preset release -L perf --output-on-failure
       - name: Documented commands (README)
         env:
           SDL_VIDEO_DRIVER: offscreen

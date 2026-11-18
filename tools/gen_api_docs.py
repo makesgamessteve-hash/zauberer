@@ -39,7 +39,7 @@ MODULE_TITLES = {
     "render": "render: models, sprites, text and camera",
     "audio": "audio: sounds and music",
     "save": "save: player data",
-    "world": "world: planet coordinates",
+    "world": "world: planet coordinates and terrain",
     "test": "test: Lua tests",
     "math": "math: deterministic randomness",
     "": "Globals",

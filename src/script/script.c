@@ -656,6 +656,7 @@ zb_script *zb_script_create(const zb_script_config *cfg, char *err, size_t err_l
   }
   s->cfg = *cfg;
   s->planet = planet;
+  zb_terrain_init(&s->terrain, &s->planet, cfg->seed, NULL);
   s->current_pkg = -1;
   s->co_ref = LUA_NOREF;
   s->rng = zb_rng_make(cfg->seed, 0x72616e64);

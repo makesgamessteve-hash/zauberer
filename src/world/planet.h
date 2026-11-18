@@ -48,6 +48,8 @@ bool zb_chunk_equal(zb_chunk a, zb_chunk b);
 uint64_t zb_chunk_key(zb_chunk c);
 zb_chunk zb_chunk_from_key(uint64_t key);
 
+/* The face's normal and axes (u x v = n). */
+void zb_planet_face_axes(int face, zb_dvec3 *n, zb_dvec3 *u, zb_dvec3 *v);
 /* Unit direction from the planet centre through a face point (u, v in -1..1). */
 zb_dvec3 zb_planet_face_dir(int face, double u, double v);
 /* The face owning a direction (largest absolute component; ties in face order). */

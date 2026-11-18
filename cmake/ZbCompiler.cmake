@@ -17,7 +17,8 @@ if(ZB_COVERAGE)
   if(ZB_IS_MSVC)
     message(FATAL_ERROR "ZB_COVERAGE requires GCC or Clang")
   endif()
-  add_compile_options(--coverage -O0 -fno-inline)
+  # Atomic counters: worker threads (jobs, terrain) would corrupt plain ones.
+  add_compile_options(--coverage -fprofile-update=atomic -O0 -fno-inline)
   add_link_options(--coverage)
 endif()
 

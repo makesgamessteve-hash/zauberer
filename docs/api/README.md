@@ -252,7 +252,7 @@ Reads a value from the player's save data.
 
 Stores a value (nested tables of plain values) in the save data.
 
-## world: planet coordinates
+## world: planet coordinates and terrain
 
 ### `world.chunk_key(pos: PlanetPos): integer`
 
@@ -266,6 +266,10 @@ Great-circle distance at sea level in metres.
 
 The position of planet-centred coordinates in metres.
 
+### `world.height(pos: PlanetPos): number`
+
+Terrain height above sea level in metres at the position (the analytic terrain, within 0.5 m of the generated heightfield).
+
 ### `world.neighbors(pos: PlanetPos): PlanetPos[]`
 
 Centres of the chunks sharing an edge or corner with the position's chunk (7 or 8).
@@ -277,6 +281,10 @@ Describes the planet.
 ### `world.position(face: integer, x: integer, y: integer, lx?: number, ly?: number, alt?: number): PlanetPos`
 
 Makes a position; the offsets default to 0. Errors when the chunk is not on the planet.
+
+### `world.surface(pos: PlanetPos): string`
+
+Surface material at the position: "soil", "sand", "rock", "gravel", "snow", "ice" or "mud".
 
 ### `world.to_cartesian(pos: PlanetPos): number, number, number`
 

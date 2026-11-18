@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT */
-/* Lua bindings: world (planet coordinates).
+/* Lua bindings: world (planet coordinates and terrain).
  *
  * @luaclass PlanetInfo
  * @field radius number Sea-level radius in metres
@@ -15,6 +15,8 @@
  * @field alt number Metres above sea level
  */
 #include "script/script_internal.h"
+
+#include <math.h>
 
 static const zb_planet *P(lua_State *L) { return &zb_script_from(L)->planet; }
 
@@ -160,6 +162,48 @@ static int w_neighbors(lua_State *L) {
   return 1;
 }
 
+/* @lua world.height(pos: PlanetPos): number
+ * Terrain height above sea level in metres at the position (the analytic terrain, within
+ * 0.5 m of the generated heightfield).
+ */
+static int w_height(lua_State *L) {
+  zb_planet_pos pos = check_pos(L, 1);
+  zb_script *s = zb_script_from(L);
+  zb_dvec3 c = zb_planet_to_cart(&s->planet, &pos);
+  double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+  zb_dvec3 d = {c.x / len, c.y / len, c.z / len};
+  lua_pushnumber(L, zb_terrain_height(&s->terrain, d));
+  return 1;
+}
+
+/* Terrain height at a position moved by (dx, dy) nominal metres. */
+static double height_offset(zb_script *s, zb_planet_pos pos, float dx, float dy) {
+  pos.lx += dx;
+  pos.ly += dy;
+  pos.alt = 0.0f;
+  zb_dvec3 c = zb_planet_to_cart(&s->planet, &pos);
+  double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+  zb_dvec3 d = {c.x / len, c.y / len, c.z / len};
+  return zb_terrain_height(&s->terrain, d);
+}
+
+/* @lua world.surface(pos: PlanetPos): string
+ * Surface material at the position: "soil", "sand", "rock", "gravel", "snow", "ice" or "mud".
+ */
+static int w_surface(lua_State *L) {
+  zb_planet_pos pos = check_pos(L, 1);
+  zb_script *s = zb_script_from(L);
+  double h = height_offset(s, pos, 0.0f, 0.0f);
+  double w, hh;
+  zb_planet_chunk_size(&s->planet, pos.chunk, &w, &hh);
+  double gx = (height_offset(s, pos, 1.0f, 0.0f) - h) / (w / ZB_CHUNK_SIZE);
+  double gy = (height_offset(s, pos, 0.0f, 1.0f) - h) / (hh / ZB_CHUNK_SIZE);
+  double sin_lat = zb_planet_chunk_dir(&s->planet, pos.chunk).z;
+  zb_material m = zb_terrain_material_rule(h, sqrt(gx * gx + gy * gy), sin_lat, 0.0);
+  lua_pushstring(L, zb_material_name(m));
+  return 1;
+}
+
 void zb_script_open_world(zb_script *s) {
   static const luaL_Reg world_fns[] = {{"planet", w_planet},
                                        {"position", w_position},
@@ -168,6 +212,8 @@ void zb_script_open_world(zb_script *s) {
                                        {"distance", w_distance},
                                        {"chunk_key", w_chunk_key},
                                        {"neighbors", w_neighbors},
+                                       {"height", w_height},
+                                       {"surface", w_surface},
                                        {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, world_fns, 0);

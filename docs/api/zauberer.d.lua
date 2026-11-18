@@ -432,6 +432,11 @@ function world.distance(a, b) end
 ---@return PlanetPos
 function world.from_cartesian(x, y, z) end
 
+---Terrain height above sea level in metres at the position (the analytic terrain, within 0.5 m of the generated heightfield).
+---@param pos PlanetPos
+---@return number
+function world.height(pos) end
+
 ---Centres of the chunks sharing an edge or corner with the position's chunk (7 or 8).
 ---@param pos PlanetPos
 ---@return PlanetPos[]
@@ -450,6 +455,11 @@ function world.planet() end
 ---@param alt? number
 ---@return PlanetPos
 function world.position(face, x, y, lx, ly, alt) end
+
+---Surface material at the position: "soil", "sand", "rock", "gravel", "snow", "ice" or "mud".
+---@param pos PlanetPos
+---@return string
+function world.surface(pos) end
 
 ---Planet-centred coordinates in metres (+Z is the north pole).
 ---@param pos PlanetPos

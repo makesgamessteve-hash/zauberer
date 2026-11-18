@@ -65,6 +65,12 @@ zb_chunk zb_chunk_from_key(uint64_t key) {
   return c;
 }
 
+void zb_planet_face_axes(int face, zb_dvec3 *n, zb_dvec3 *u, zb_dvec3 *v) {
+  *n = FACES[face].n;
+  *u = FACES[face].u;
+  *v = FACES[face].v;
+}
+
 zb_dvec3 zb_planet_face_dir(int face, double u, double v) {
   const face_axes *f = &FACES[face];
   double a = zb_dtan(u * QUARTER_PI);
