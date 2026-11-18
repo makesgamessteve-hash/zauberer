@@ -52,11 +52,11 @@ Terrain SHALL follow the planet's curvature exactly: each chunk is drawn in its 
 - **THEN** its centre lies d²/2R below the origin's horizontal plane within 1 m, and its up direction is tilted by d/R
 
 ### Requirement: Water
-Chunks that reach below sea level SHALL get a water surface exactly at sea level.
+Chunks SHALL get translucent water surfaces where the sea, a lake or a river covers them (the sea exactly at sea level), drawn after the opaque scene in a mesh of their own.
 
 #### Scenario: Water at sea level
-- **WHEN** a sea chunk's mesh is built
-- **THEN** it contains water vertices at sea level (within 1 cm) above the sea floor
+- **WHEN** a sea chunk's terrain and water meshes are built at near and far levels
+- **THEN** the terrain mesh has no water, and the water mesh covers the chunk with translucent vertices exactly at sea level (within 1 cm) above the sea floor, facing up
 
 ### Requirement: Mesh and frame budgets
 Terrain meshes SHALL be built within a per-frame budget, nearest first; with the desktop profile at 700 m altitude the terrain SHALL take at most 4,000 draw items, 1,000,000 triangles and 3 ms of main-thread CPU per frame.

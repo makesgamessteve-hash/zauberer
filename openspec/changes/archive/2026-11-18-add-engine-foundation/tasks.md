@@ -28,7 +28,7 @@
 
 ## 4. Platform layer and game loop
 
-- [ ] 4.1 Define the platform interface and implement it with SDL3 (window, GL context, base path, user data path, events), plus a stub headless implementation; verify unit tests against the stub and a windowed smoke run on all desktop CI jobs
+- [x] 4.1 Define the platform interface and implement it with SDL3 (window, GL context, base path, user data path, events), plus a stub headless implementation; verify unit tests against the stub and a windowed smoke run on all desktop CI jobs
 - [x] 4.2 Implement the game loop with an injectable clock: fixed 60 Hz ticks, an 8-tick catch-up clamp, interpolation, pause and time scale; verify unit tests for "game-loop: Low frame rate", "High frame rate", "Two-second stall", "Frame between ticks" and "Paused game keeps rendering"
 - [x] 4.3 Implement the SDL3 main-callback entry and the SDL-free headless entry with `--headless` and `--ticks N`; verify the scenario test "game-loop: Run a fixed number of ticks"
 - [x] 4.4 Implement command-line parsing (`--assets`, `--user-dir`, `--headless`, `--ticks`, `--test`, `--scenario`, `--record`, `--replay`, `--debug-views`, `--lua-coverage`); verify unit tests for valid, missing and malformed arguments

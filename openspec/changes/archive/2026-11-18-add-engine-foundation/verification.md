@@ -45,3 +45,17 @@ Interactive play on Windows, macOS and physical phones has not been done yet.
 | Replay determinism | `tests/replays/demo.zbrec` reproduces its recorded state hashes natively and in WebAssembly (Node.js) |
 | `reuse lint`, `check_licenses`, `check_credits`, `check_includes`, `openspec validate --all --strict`, `luacheck`, clang-format | pass |
 | Generated assets | byte-identical when regenerated (`tools/gen/gen_all.py`) |
+
+## CI on Windows (task 4.1)
+
+The `windows-gl-smoke` job opens a window with Mesa's llvmpipe OpenGL driver
+(64-bit `opengl32.dll` from the newest mesa-dist-win release that still ships
+one), runs 120 ticks and checks that the first frame is presented. It passed
+in run 44241745955 (commit a44f8c0). macOS is set aside for now at the
+maintainer's request.
+
+## Still open
+
+Task 12.6 (the M0 exit demo on real Windows, Linux, desktop-web and
+mobile-web devices) needs hands-on runs; the change is archived with it open,
+as agreed with the maintainer.
