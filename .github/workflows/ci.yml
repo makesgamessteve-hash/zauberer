@@ -91,7 +91,8 @@ jobs:
         run: ctest --preset coverage
       - name: C coverage gate
         run: |
-          gcovr --root . --filter src/ \
+          # Terrain loops run billions of times in the tests; gcov's counts are right.
+          gcovr --root . --filter src/ --gcov-ignore-parse-errors=suspicious_hits.warn \
             --json-summary build/coverage/coverage.json --html-details build/coverage/coverage.html build/coverage
           python3 tools/coverage_gate.py c --gcovr-json build/coverage/coverage.json \
             --exclusions tools/coverage-exclusions.txt --baseline tools/coverage-baseline.json

@@ -179,6 +179,9 @@ class ScenarioTests(EngineTestCase):
         self.assert_ok(result)
         self.assertIn("could not load the world gone: no such world", result.stdout)
 
+    def test_water_bodies(self):
+        self.assert_ok(self.scenario("water"))
+
     def test_flight_controls(self):
         self.assert_ok(self.scenario("flight_controls"))
 

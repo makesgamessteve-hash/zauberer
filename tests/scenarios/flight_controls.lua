@@ -31,6 +31,13 @@ step(1)
 expect(demo.game.state.credits, "credits open in flight")
 input.inject("look", 1, 0, 30)
 step(30)
+-- The model may still be loading behind the terrain jobs on a small machine.
+for _ = 1, 1000 do
+  if render.state(demo.assets.carpet) ~= "pending" then break end
+  step(1)
+  sleep(5)
+end
+expect_eq(render.state(demo.assets.carpet), "ready")
 step(2) -- frames draw the HUD and the carpet
 expect(render.stats().model_draws >= 1, "the carpet is drawn")
 local local_pos = world.to_local(c.pos)

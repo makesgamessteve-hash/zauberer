@@ -2,7 +2,8 @@
 /* Draws the streamed terrain: one mesh per loaded chunk at a level of detail
  * chosen by distance (4, 8, 16, 32 or 64 m grids), in the chunk's own tangent
  * frame so that the planet's curvature is exact, with skirts against cracks
- * between levels and a water surface at sea level. Meshes are rebuilt within
+ * between levels, and translucent water where the sea, a lake or a river
+ * covers it. Meshes are rebuilt within
  * a per-frame budget when a chunk's data or level changes. */
 #ifndef ZB_APP_TERRAIN_VIEW_H
 #define ZB_APP_TERRAIN_VIEW_H
@@ -25,6 +26,8 @@ typedef struct zb_terrain_view_stats {
   size_t drawn;     /* chunks submitted this frame (before culling) */
   size_t triangles; /* triangles submitted this frame */
   size_t per_lod[ZB_TERRAIN_LODS];
+  size_t water;        /* chunks drawn with water this frame */
+  size_t water_meshes; /* water meshes held */
 } zb_terrain_view_stats;
 
 typedef struct zb_terrain_view zb_terrain_view;
@@ -45,5 +48,10 @@ int zb_terrain_view_lod(const zb_terrain_view *tv, float distance);
 /* Builds a chunk mesh (exposed for tests): grid step 4 << lod metres. */
 zb_result zb_terrain_mesh_build(const zb_allocator *a, const zb_planet *p, const zb_chunk_terrain *ct, int lod,
                                 const zb_vec3 colors[ZB_MAT_COUNT], const int layers[ZB_MAT_COUNT], zb_mesh_data *out);
+/* Builds a chunk's water mesh (exposed for tests): a 4 m grid at levels 0 and
+ * 1 once the chunk has its heights, else 16 m; colour alpha is the opacity,
+ * uv metres across the chunk. An empty mesh (no vertices) when it is dry. */
+zb_result zb_water_mesh_build(const zb_allocator *a, const zb_terrain *t, const zb_chunk_terrain *ct, int lod,
+                              zb_mesh_data *out);
 
 #endif

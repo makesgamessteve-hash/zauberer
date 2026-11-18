@@ -42,12 +42,13 @@ M.wrap = wrap
 function M.new(pos, heading)
   return {
     pos = pos, heading = heading or 0, speed = 0, pitch = 0, bank = 0, vspeed = 0,
-    time = 0, distance = 0, grounded = false, boosting = false,
+    time = 0, distance = 0, grounded = false, boosting = false, drifting = false,
   }
 end
 
 -- inp: { turn = -1..1 (right +), throttle = -1..1, climb = -1..1, boost = bool }
--- env: { move(pos, heading, forward, right, up) -> pos, heading; height(pos) -> metres }
+-- env: { move(pos, heading, forward, right, up) -> pos, heading; height(pos) -> metres;
+--        water(pos) -> kind?, surface, depth, east, north (optional) }
 function M.update(c, inp, dt, env)
   c.time = c.time + dt
   local throttle = clamp(inp.throttle or 0, -1, 1)
@@ -82,8 +83,26 @@ function M.update(c, inp, dt, env)
   c.heading = wrap(heading)
   c.distance = c.distance + forward
 
-  local floor = math.max(env.height(pos), 0) + M.CLEARANCE
+  -- Skimming water: the carpet rides on its surface and a river's current carries it.
+  local kind, surface, _, east, north
+  if env.water then
+    kind, surface, _, east, north = env.water(pos)
+  end
+  local floor = math.max(env.height(pos), kind and surface or 0) + M.CLEARANCE
+  -- Riding a current, it follows the water down unless it climbs away.
+  if c.drifting and kind and c.vspeed <= 0 and pos.alt > floor then
+    pos.alt = floor
+  end
   c.grounded = pos.alt <= floor
+  -- (positions hold altitudes as floats: resting on the floor reads a hair above it)
+  if kind and pos.alt <= floor + 0.05 and (east ~= 0 or north ~= 0) then
+    local s, co = math.sin(c.heading), math.cos(c.heading)
+    pos, heading = env.move(pos, c.heading, (east * s + north * co) * dt, (east * co - north * s) * dt, 0)
+    c.heading = wrap(heading)
+    c.drifting = true
+  else
+    c.drifting = false
+  end
   if c.grounded then
     pos.alt = floor
     if c.vspeed < 0 then c.vspeed = 0 end

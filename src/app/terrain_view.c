@@ -10,12 +10,14 @@
 #include "core/log.h"
 #include "core/luon.h"
 
-#define WATER_GRID 5      /* water surface vertices per chunk edge */
 #define UNTEXTURED 255.0f /* colour alpha marker: no atlas layer */
 
 typedef struct cache_entry {
   zb_chunk chunk;
   uint32_t mesh, count, version, origin_version;
+  uint32_t water_mesh, water_count; /* 0: no water on this chunk */
+  zb_vec3 water_center;
+  float water_radius;
   int lod;
   bool transformed;
   zb_origin frame; /* the chunk's tangent frame */
@@ -62,7 +64,9 @@ void zb_terrain_view_default_config(zb_terrain_view_config *c) {
 static const zb_vec3 DEFAULT_COLORS[ZB_MAT_COUNT] = {
     {0.0f, 0.0f, 0.0f},    {0.36f, 0.47f, 0.22f}, {0.77f, 0.68f, 0.48f}, {0.45f, 0.43f, 0.41f},
     {0.58f, 0.56f, 0.52f}, {0.92f, 0.94f, 0.96f}, {0.75f, 0.86f, 0.93f}, {0.33f, 0.25f, 0.18f}};
-static const zb_vec3 WATER_COLOR = {0.13f, 0.32f, 0.47f};
+/* Water colours (rgb) and opacity by kind: sea, lake, river. */
+static const float WATER_TINT[4][4] = {
+    {0.0f, 0.0f, 0.0f, 0.0f}, {0.10f, 0.27f, 0.45f, 0.86f}, {0.12f, 0.35f, 0.45f, 0.8f}, {0.20f, 0.42f, 0.48f, 0.72f}};
 /* Atlas layer standing in for each material until vegetation arrives (M2). */
 static const char *const MATERIAL_LAYER[ZB_MAT_COUNT] = {NULL, "grass", "sand", "rock", "gravel", "snow", "ice", "mud"};
 
@@ -146,7 +150,9 @@ void zb_terrain_view_destroy(zb_terrain_view *tv) {
     return;
   }
   for (size_t i = 0; i < tv->entries.len; ++i) {
-    zb_render_release_mesh(tv->r, ((cache_entry *)zb_array_at(&tv->entries, i))->mesh);
+    const cache_entry *e = zb_array_at(&tv->entries, i);
+    zb_render_release_mesh(tv->r, e->mesh);
+    zb_render_release_mesh(tv->r, e->water_mesh);
   }
   zb_array_free(&tv->entries);
   zb_array_free(&tv->requests);
@@ -178,11 +184,9 @@ zb_result zb_terrain_mesh_build(const zb_allocator *a, const zb_planet *p, const
   }
   int step = 4 << lod;
   int n = 256 / step + 1;
-  bool water = ct->min_height < 0.5f;
   size_t grid = (size_t)n * (size_t)n;
-  size_t vcount = grid + 4 * (size_t)n + (water ? WATER_GRID * WATER_GRID : 0);
-  size_t icount = (size_t)(n - 1) * (size_t)(n - 1) * 6 + 4 * (size_t)(n - 1) * 12 +
-                  (water ? (WATER_GRID - 1) * (WATER_GRID - 1) * 6 : 0);
+  size_t vcount = grid + 4 * (size_t)n;
+  size_t icount = (size_t)(n - 1) * (size_t)(n - 1) * 6 + 4 * (size_t)(n - 1) * 12;
   out->vertices = zb_alloc(a, vcount * sizeof(zb_vertex));
   out->indices = zb_alloc(a, icount * sizeof(uint32_t));
   if (!out->vertices || !out->indices) {
@@ -288,41 +292,119 @@ zb_result zb_terrain_mesh_build(const zb_allocator *a, const zb_planet *p, const
       k += 12;
     }
   }
-  /* Water at sea level over chunks that reach below it. */
-  if (water) {
-    size_t first = vk;
-    for (int j = 0; j < WATER_GRID; ++j) {
-      for (int i = 0; i < WATER_GRID; ++i) {
-        zb_planet_pos wp = {ct->chunk, (float)(i * 64), (float)(j * 64), 0.0f};
-        zb_vec3 l = zb_origin_to_local(&frame, p, &wp);
-        zb_vertex *vx = &v[vk++];
-        memset(vx, 0, sizeof *vx);
-        memcpy(vx->pos, &l, sizeof vx->pos);
-        vx->normal[1] = 1.0f;
-        vx->color[0] = WATER_COLOR.x;
-        vx->color[1] = WATER_COLOR.y;
-        vx->color[2] = WATER_COLOR.z;
-        vx->color[3] = UNTEXTURED / 255.0f;
+  out->vertex_count = vk;
+  out->index_count = k;
+  zb_mesh_compute_bounds(out);
+  return ZB_OK;
+}
+
+/* Which water a grid vertex shows: its own, or for a dry vertex beside water
+ * the highest neighbouring surface, so the water reaches under the shore. */
+static bool water_vertex(const uint8_t *kind, const float *surface, int n, int i, int j, int *k, float *h) {
+  if (kind[j * n + i] != ZB_WATER_NONE) {
+    *k = kind[j * n + i];
+    *h = surface[j * n + i];
+    return true;
+  }
+  bool found = false;
+  for (int dj = -1; dj <= 1; ++dj) {
+    for (int di = -1; di <= 1; ++di) {
+      int x = i + di, y = j + dj;
+      if (x < 0 || y < 0 || x >= n || y >= n || kind[y * n + x] == ZB_WATER_NONE) {
+        continue;
       }
-    }
-    for (int j = 0; j < WATER_GRID - 1; ++j) {
-      for (int i = 0; i < WATER_GRID - 1; ++i) {
-        uint32_t q0 = (uint32_t)(first + (size_t)(j * WATER_GRID + i)), q1 = q0 + 1;
-        uint32_t q2 = q0 + WATER_GRID + 1, q3 = q0 + WATER_GRID;
-        uint32_t tri[6] = {q0, q1, q2, q0, q2, q3};
-        if (flip) {
-          tri[1] = q2;
-          tri[2] = q1;
-          tri[4] = q3;
-          tri[5] = q2;
-        }
-        memcpy(&ix[k], tri, sizeof tri);
-        k += 6;
+      if (!found || surface[y * n + x] > *h) {
+        *k = kind[y * n + x];
+        *h = surface[y * n + x];
+        found = true;
       }
     }
   }
-  out->vertex_count = vk;
-  out->index_count = k;
+  return found;
+}
+
+zb_result zb_water_mesh_build(const zb_allocator *a, const zb_terrain *t, const zb_chunk_terrain *ct, int lod,
+                              zb_mesh_data *out) {
+  memset(out, 0, sizeof *out);
+  if (ct->stage < ZB_STAGE_COARSE || lod < 0 || lod >= ZB_TERRAIN_LODS) {
+    return ZB_ERR_INVALID;
+  }
+  /* A coarse look first: most chunks are dry (rivers show at 16 m too). */
+  uint8_t coarse_kind[17 * 17];
+  float coarse_surface[17 * 17];
+  zb_result r = zb_terrain_water_grid(t, a, ct, 16, coarse_kind, coarse_surface);
+  if (r != ZB_OK) {
+    return r;
+  }
+  bool any = false;
+  for (int i = 0; i < 17 * 17 && !any; ++i) {
+    any = coarse_kind[i] != ZB_WATER_NONE;
+  }
+  if (!any) {
+    return ZB_OK;
+  }
+  int step = lod <= 1 && ct->height ? 4 : 16, n = 256 / step + 1;
+  size_t grid = (size_t)n * (size_t)n;
+  uint8_t *kind = coarse_kind;
+  float *surface = coarse_surface;
+  if (step != 16) {
+    kind = zb_alloc(a, grid);
+    surface = zb_alloc(a, grid * sizeof(float));
+    if (!kind || !surface || (r = zb_terrain_water_grid(t, a, ct, step, kind, surface)) != ZB_OK) {
+      zb_free(a, kind);
+      zb_free(a, surface);
+      return r != ZB_OK ? r : ZB_ERR_NOMEM;
+    }
+  }
+  out->vertices = zb_alloc(a, grid * sizeof(zb_vertex));
+  out->indices = zb_alloc(a, (size_t)(n - 1) * (size_t)(n - 1) * 6 * sizeof(uint32_t));
+  if (!out->vertices || !out->indices) {
+    zb_mesh_free(a, out);
+    if (step != 16) {
+      zb_free(a, kind);
+      zb_free(a, surface);
+    }
+    return ZB_ERR_NOMEM;
+  }
+  zb_origin frame;
+  zb_origin_init(&frame, &t->planet, ct->chunk);
+  for (int j = 0; j < n; ++j) {
+    for (int i = 0; i < n; ++i) {
+      int k = ZB_WATER_NONE;
+      float h = 0.0f;
+      zb_vertex *vx = &out->vertices[(size_t)j * (size_t)n + (size_t)i];
+      memset(vx, 0, sizeof *vx);
+      water_vertex(kind, surface, n, i, j, &k, &h);
+      zb_planet_pos wp = {ct->chunk, (float)(i * step), (float)(j * step), h};
+      zb_vec3 l = zb_origin_to_local(&frame, &t->planet, &wp);
+      wp.alt += 1.0f;
+      zb_vec3 up = zb_v3_normalize(zb_v3_sub(zb_origin_to_local(&frame, &t->planet, &wp), l));
+      memcpy(vx->pos, &l, sizeof vx->pos);
+      memcpy(vx->normal, &up, sizeof vx->normal);
+      memcpy(vx->color, WATER_TINT[k], sizeof vx->color);
+      vx->uv[0] = (float)(i * step);
+      vx->uv[1] = (float)(j * step);
+    }
+  }
+  size_t q = 0;
+  for (int j = 0; j < n - 1; ++j) {
+    for (int i = 0; i < n - 1; ++i) {
+      uint32_t q0 = (uint32_t)(j * n + i), q1 = q0 + 1, q2 = q0 + (uint32_t)n + 1, q3 = q0 + (uint32_t)n;
+      if (kind[q0] == ZB_WATER_NONE && kind[q1] == ZB_WATER_NONE && kind[q2] == ZB_WATER_NONE &&
+          kind[q3] == ZB_WATER_NONE) {
+        continue;
+      }
+      uint32_t tri[6] = {q0, q2, q1, q0, q3, q2};
+      memcpy(&out->indices[q], tri, sizeof tri);
+      q += 6;
+    }
+  }
+  if (step != 16) {
+    zb_free(a, kind);
+    zb_free(a, surface);
+  }
+  out->vertex_count = grid;
+  out->index_count = q;
   zb_mesh_compute_bounds(out);
   return ZB_OK;
 }
@@ -400,6 +482,16 @@ static void build(zb_terrain_view *tv, const build_request *req) {
   zb_render_release_mesh(tv->r, e->mesh);
   e->mesh = mesh;
   e->count = count;
+  /* The water over it, if any (none when memory runs out: the land still shows). */
+  zb_render_release_mesh(tv->r, e->water_mesh);
+  e->water_mesh = e->water_count = 0;
+  if (zb_water_mesh_build(tv->a, zb_world_terrain(tv->world), req->ct, req->lod, &md) == ZB_OK && md.index_count) {
+    e->water_mesh = zb_render_upload_mesh(tv->r, &md);
+    e->water_count = e->water_mesh ? (uint32_t)md.index_count : 0;
+    e->water_center = md.center;
+    e->water_radius = md.radius;
+  }
+  zb_mesh_free(tv->a, &md);
   e->lod = req->lod;
   e->version = req->version;
   e->center = center;
@@ -435,6 +527,7 @@ void zb_terrain_view_draw(zb_terrain_view *tv, zb_world *w, zb_vec3 eye) {
     cache_entry *e = zb_array_at(&tv->entries, i);
     if (e->seen != tv->frame) {
       zb_render_release_mesh(tv->r, e->mesh);
+      zb_render_release_mesh(tv->r, e->water_mesh);
       zb_map_remove(&tv->index, zb_chunk_key(e->chunk));
       size_t last = tv->entries.len - 1;
       if (i != last) {
@@ -450,6 +543,11 @@ void zb_terrain_view_draw(zb_terrain_view *tv, zb_world *w, zb_vec3 eye) {
       e->transformed = true;
     }
     zb_render_draw_terrain(tv->r, e->mesh, e->count, e->transform, e->center, e->radius);
+    if (e->water_mesh) {
+      zb_render_draw_water(tv->r, e->water_mesh, e->water_count, e->transform, e->water_center, e->water_radius);
+      tv->stats.water++;
+      tv->stats.water_meshes++;
+    }
     tv->stats.drawn++;
     tv->stats.triangles += e->count / 3;
     tv->stats.per_lod[e->lod]++;

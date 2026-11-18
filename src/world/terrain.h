@@ -8,6 +8,7 @@
 
 #include "core/alloc.h"
 #include "world/planet.h"
+#include "world/water.h"
 
 #define ZB_COARSE_RES 17   /* stage 0 samples per chunk edge (16 m apart) */
 #define ZB_HEIGHT_RES 257  /* stage 1 samples per chunk edge (1 m apart, edges shared) */
@@ -36,8 +37,6 @@ typedef struct zb_terrain_params {
   double detail_height;   /* amplitude of 1 m detail (2.5) */
 } zb_terrain_params;
 
-struct zb_world_bundle;
-
 typedef struct zb_terrain {
   zb_planet planet;
   uint64_t seed;
@@ -45,7 +44,7 @@ typedef struct zb_terrain {
   double continent_threshold; /* sea level in continent-field units */
   /* A created world (terrain v2): heights from its macro grid, materials by
    * biome. NULL: the noise world of terrain v1. */
-  const struct zb_world_bundle *bundle;
+  const zb_world_bundle *bundle;
 } zb_terrain;
 
 typedef struct zb_chunk_terrain {
@@ -65,7 +64,7 @@ void zb_terrain_init(zb_terrain *t, const zb_planet *p, uint64_t seed, const zb_
 
 /* Switches to a created world's macro grid and biomes (the bundle must
  * outlive the terrain); NULL returns to the noise world. */
-void zb_terrain_use_bundle(zb_terrain *t, const struct zb_world_bundle *bundle);
+void zb_terrain_use_bundle(zb_terrain *t, const zb_world_bundle *bundle);
 /* The surface material for a biome (zb_biome), with the same height, slope
  * and jitter inputs as zb_terrain_material_rule. */
 zb_material zb_terrain_biome_material(int biome, double height, double slope, double jitter);
@@ -78,6 +77,24 @@ double zb_terrain_height(const zb_terrain *t, zb_dvec3 dir);
  * jitter in [-1, 1] that dithers the borders between materials. */
 zb_material zb_terrain_material_rule(double height, double slope, double sin_lat, double jitter);
 const char *zb_material_name(zb_material m);
+
+/* Water at a place: the sea below sea level, and in a created world lakes at
+ * their fill level and rivers in their channels. */
+typedef struct zb_water_sample {
+  zb_water_kind kind;
+  double surface; /* metres above sea level (0 for the sea) */
+  double depth;   /* from the surface down to the ground */
+  zb_dvec3 flow;  /* current in m/s, tangent to the sphere (rivers only) */
+} zb_water_sample;
+
+void zb_terrain_water(const zb_terrain *t, zb_dvec3 dir, zb_water_sample *out);
+/* Water over a chunk on an n x n grid every step metres (n = 256 / step + 1,
+ * step a power of two up to 64): its kind and surface per vertex. The ground
+ * comes from the chunk's heights (coarse ones raise rivers to stay visible
+ * over the uncarved ground). Rivers count where they come within half a step
+ * of a vertex, so narrow ones still show. */
+zb_result zb_terrain_water_grid(const zb_terrain *t, const zb_allocator *a, const zb_chunk_terrain *ct, int step,
+                                uint8_t *kind, float *surface);
 
 void zb_chunk_terrain_init(zb_chunk_terrain *ct, zb_chunk c);
 /* Advances the chunk to the stage (running the earlier stages first).

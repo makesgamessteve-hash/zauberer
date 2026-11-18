@@ -22,7 +22,7 @@ static zb_world *W(lua_State *L) { return zb_script_from(L)->world; }
 static const zb_planet *P(lua_State *L) { return zb_world_planet(W(L)); }
 static const zb_terrain *T(lua_State *L) { return zb_world_terrain(W(L)); }
 
-static void push_pos(lua_State *L, const zb_planet_pos *p) {
+void zb_script_push_pos(lua_State *L, const zb_planet_pos *p) {
   lua_createtable(L, 0, 6);
   lua_pushinteger(L, p->chunk.face);
   lua_setfield(L, -2, "face");
@@ -104,7 +104,7 @@ static int w_position(lua_State *L) {
   float lx = (float)luaL_optnumber(L, 4, 0.0);
   float ly = (float)luaL_optnumber(L, 5, 0.0);
   zb_planet_pos pos = make_pos(L, face, x, y, lx, ly, (float)luaL_optnumber(L, 6, 0.0));
-  push_pos(L, &pos);
+  zb_script_push_pos(L, &pos);
   return 1;
 }
 
@@ -126,7 +126,7 @@ static int w_to_cartesian(lua_State *L) {
 static int w_from_cartesian(lua_State *L) {
   zb_dvec3 c = {luaL_checknumber(L, 1), luaL_checknumber(L, 2), luaL_checknumber(L, 3)};
   zb_planet_pos pos = zb_planet_from_cart(P(L), c);
-  push_pos(L, &pos);
+  zb_script_push_pos(L, &pos);
   return 1;
 }
 
@@ -158,7 +158,7 @@ static int w_neighbors(lua_State *L) {
   lua_createtable(L, n, 0);
   for (int i = 0; i < n; ++i) {
     zb_planet_pos c = zb_planet_chunk_center(out[i]);
-    push_pos(L, &c);
+    zb_script_push_pos(L, &c);
     lua_rawseti(L, -2, i + 1);
   }
   return 1;
@@ -247,6 +247,37 @@ static int w_clear_focus(lua_State *L) {
   return 0;
 }
 
+/* @lua world.water(pos: PlanetPos): string?, number?, number?, number?, number?
+ * Water at a position: its kind ("ocean", "lake" or "river"; nil on dry land),
+ * the water surface in metres above sea level, its depth, and the current
+ * towards east and north in m/s.
+ */
+static int w_water(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  pos.alt = 0.0f;
+  zb_dvec3 c = zb_planet_to_cart(P(L), &pos);
+  double len = sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+  zb_dvec3 d = {c.x / len, c.y / len, c.z / len};
+  zb_water_sample w;
+  zb_terrain_water(T(L), d, &w);
+  static const char *const kinds[] = {NULL, "ocean", "lake", "river"};
+  if (w.kind == ZB_WATER_NONE) {
+    lua_pushnil(L);
+    return 1;
+  }
+  /* East and north at the place (the pole axis is +Z). */
+  double ex = -d.y, ey = d.x, el = sqrt(ex * ex + ey * ey);
+  ex = el > 0.0 ? ex / el : 1.0;
+  ey = el > 0.0 ? ey / el : 0.0;
+  zb_dvec3 north = {-d.z * ey, d.z * ex, d.x * ey - d.y * ex};
+  lua_pushstring(L, kinds[w.kind]);
+  lua_pushnumber(L, w.surface);
+  lua_pushnumber(L, w.depth);
+  lua_pushnumber(L, w.flow.x * ex + w.flow.y * ey);
+  lua_pushnumber(L, w.flow.x * north.x + w.flow.y * north.y + w.flow.z * north.z);
+  return 5;
+}
+
 /* @lua world.ground_height(pos: PlanetPos): number
  * Ground height in metres above sea level from the loaded heightfield (the analytic terrain
  * where the chunk is not loaded at stage 1 or more).
@@ -283,7 +314,7 @@ static int w_to_local(lua_State *L) {
 static int w_from_local(lua_State *L) {
   zb_vec3 l = zb_v3((float)luaL_checknumber(L, 1), (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3));
   zb_planet_pos pos = zb_origin_to_pos(zb_world_origin(W(L)), P(L), l);
-  push_pos(L, &pos);
+  zb_script_push_pos(L, &pos);
   return 1;
 }
 
@@ -336,7 +367,7 @@ static int w_move(lua_State *L) {
   double up = luaL_optnumber(L, 5, 0.0);
   double out_heading;
   zb_planet_pos moved = zb_planet_move(P(L), &pos, heading, forward, right, up, &out_heading);
-  push_pos(L, &moved);
+  zb_script_push_pos(L, &moved);
   lua_pushnumber(L, out_heading);
   return 2;
 }
@@ -423,6 +454,7 @@ void zb_script_open_world(zb_script *s) {
                                        {"set_focus", w_set_focus},
                                        {"clear_focus", w_clear_focus},
                                        {"ground_height", w_ground_height},
+                                       {"water", w_water},
                                        {"stream_stats", w_stream_stats},
                                        {"chunk_stage", w_chunk_stage},
                                        {"to_local", w_to_local},

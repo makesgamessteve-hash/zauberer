@@ -48,6 +48,7 @@
 #include "render/mesh.h"
 #include "world/creation.h"
 #include "world/dvec.h"
+#include "world/water.h"
 
 #define GLOBE_RES 24 /* globe cells per cube-face edge */
 
@@ -450,6 +451,82 @@ static int w_biome(lua_State *L) {
   return 1;
 }
 
+static bool water_cell_is(const zb_world_bundle *b, int32_t c, int kind) {
+  uint16_t f = b->cell_flags[c];
+  switch (kind) {
+    case ZB_WATER_RIVER: return zb_water_cell_has_channel(b, c) && !(f & (ZB_CELL_LAKE | ZB_CELL_OCEAN));
+    case ZB_WATER_LAKE: return (f & ZB_CELL_LAKE) != 0;
+    default: return (f & ZB_CELL_OCEAN) != 0;
+  }
+}
+
+/* @lua world.find_water(pos: PlanetPos, kind: "river"|"lake"|"ocean", radius: number?): PlanetPos?
+ * The nearest place within radius metres (default 50 km) where a created
+ * world has water of a kind: for a river, the middle of the channel leaving
+ * the nearest macro cell that has one; for a lake or the sea, the centre of
+ * the nearest such cell. nil in the noise world or when there is none.
+ */
+static int w_find_water(lua_State *L) {
+  static const char *const kinds[] = {"ocean", "lake", "river", NULL};
+  static const int kind_of[] = {ZB_WATER_OCEAN, ZB_WATER_LAKE, ZB_WATER_RIVER};
+  const zb_world_bundle *b = B(L);
+  zb_dvec3 d = pos_dir(L, 1);
+  int kind = kind_of[luaL_checkoption(L, 2, NULL, kinds)];
+  double radius = luaL_optnumber(L, 3, 50000.0);
+  if (!b) {
+    lua_pushnil(L);
+    return 1;
+  }
+  /* Breadth first over the macro grid, nearest cell centre wins. */
+  enum { MAX_VISIT = 8192 };
+  int32_t *queue = zb_alloc(S(L)->cfg.a, sizeof(int32_t) * MAX_VISIT);
+  if (!queue) {
+    return luaL_error(L, "out of memory");
+  }
+  double limit = radius / b->options.radius, best = 1e30;
+  int32_t found = -1;
+  size_t n = 0;
+  queue[n++] = zb_cubegrid_cell_at(&b->grid, d);
+  for (size_t i = 0; i < n; ++i) {
+    int32_t c = queue[i];
+    double angle = zb_dv_angle(d, zb_cubegrid_dir(&b->grid, c));
+    if (water_cell_is(b, c, kind) && angle < best && angle <= limit) {
+      best = angle;
+      found = c;
+    }
+    for (int k = 0; k < ZB_CUBEGRID_NBRS && n < MAX_VISIT; ++k) {
+      int32_t m = zb_cubegrid_nbr(&b->grid, c, k);
+      bool seen = m < 0 || zb_dv_angle(d, zb_cubegrid_dir(&b->grid, m)) > limit;
+      for (size_t j = n; j-- > 0 && !seen;) {
+        seen = queue[j] == m;
+      }
+      if (!seen) {
+        queue[n++] = m;
+      }
+    }
+  }
+  zb_free(S(L)->cfg.a, queue);
+  if (found < 0) {
+    lua_pushnil(L);
+    return 1;
+  }
+  const zb_planet *p = zb_world_planet(S(L)->world);
+  zb_dvec3 at = zb_cubegrid_dir(&b->grid, found);
+  if (kind == ZB_WATER_RIVER) {
+    zb_river_set rs;
+    zb_river_set_init(&rs, S(L)->cfg.a);
+    if (zb_rivers_add_cell(b, found, &rs) == ZB_OK && rs.count) {
+      const zb_river_piece *mid = &rs.piece[rs.count / 2];
+      at = zb_dv_norm(zb_dv_add(mid->a, mid->b));
+    }
+    zb_river_set_free(&rs);
+  }
+  zb_planet_pos pos = zb_planet_from_cart(p, zb_dv_scale(at, p->radius));
+  pos.alt = 0.0f;
+  zb_script_push_pos(L, &pos);
+  return 1;
+}
+
 /* @lua world.strata(pos: PlanetPos): Stratum[]?
  * The rock record under a position, youngest first, nil in the noise world.
  */
@@ -694,6 +771,7 @@ void zb_script_open_create(zb_script *s) {
                                  {"strata", w_strata},
                                  {"minerals", w_minerals},
                                  {"province", w_province},
+                                 {"find_water", w_find_water},
                                  {"draw_globe", w_draw_globe},
                                  {NULL, NULL}};
   s->globe_frame = -2;

@@ -667,6 +667,8 @@ static void draw_world(zb_engine *e) {
 static void frame(zb_engine *e, double alpha) {
   zb_world_update(e->world);
   zb_render_begin(e->render, e->drawable_w, e->drawable_h);
+  /* Game time animates the water, so captures of a tick are reproducible. */
+  zb_render_set_time(e->render, ((double)e->ticks + alpha) / (double)ZB_TICK_HZ);
   zb_script_frame(e->script, alpha);
   draw_world(e);
 #ifdef ZB_DEV

@@ -23,6 +23,7 @@ typedef struct zb_render_stats {
   size_t sprite_items;
   size_t terrain_items;
   size_t terrain_triangles;
+  size_t water_items;
   size_t text_glyphs;
   size_t culled;
   uint64_t frames;
@@ -88,6 +89,12 @@ void zb_render_draw_model(zb_render *r, uint32_t model, zb_mat4 transform);
 /* A terrain mesh (from zb_render_upload_mesh) with its bounding sphere in mesh coordinates. */
 void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
                             float radius);
+/* A translucent water mesh (colour alpha = opacity, uv = metres for its
+ * ripples), drawn after the opaque scene without writing depth. */
+void zb_render_draw_water(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
+                          float radius);
+/* The time that animates water, in seconds. */
+void zb_render_set_time(zb_render *r, double seconds);
 /* The current camera eye (render coordinates). */
 zb_vec3 zb_render_camera_eye(const zb_render *r);
 void zb_render_draw_sprite(zb_render *r, uint32_t sprite, zb_vec3 position, float scale, double time_s);

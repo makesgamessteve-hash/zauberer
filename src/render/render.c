@@ -64,6 +64,7 @@ struct zb_render {
   int target_w, target_h; /* 0: present to the window */
   zb_vec3 light_dir, light_color, ambient;
   zb_atmosphere atmosphere;
+  double time; /* seconds, for animated water */
   uint32_t lut_asset, bayer_asset, atlas_asset;
   float dither;
   int atlas_layers;
@@ -616,8 +617,8 @@ static uint32_t ready_texture(const zb_render *r, uint32_t handle) {
   return as && as->kind == ASSET_TEXTURE && as->state == ZB_ASSET_READY ? as->tex : 0;
 }
 
-void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
-                            float radius) {
+static void draw_mesh_item(zb_render *r, zb_draw_kind kind, uint32_t mesh, uint32_t index_count, zb_mat4 transform,
+                           zb_vec3 center, float radius) {
   if (!r->in_frame || mesh == 0) {
     return;
   }
@@ -629,18 +630,35 @@ void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, z
     }
     zb_draw_item it;
     memset(&it, 0, sizeof it);
-    it.kind = ZB_DRAW_TERRAIN;
+    it.kind = kind;
     it.view = (uint8_t)v;
     it.mesh = mesh;
     it.count = index_count;
     it.model = transform;
-    it.sort_key = ((uint64_t)v << 60) | (2ull << 56) | ((uint64_t)mesh << 16) | (r->items.len & 0xFFFF);
+    uint64_t pass = kind == ZB_DRAW_WATER ? 3ull : 2ull;
+    it.sort_key = ((uint64_t)v << 60) | (pass << 56) | ((uint64_t)mesh << 16) | (r->items.len & 0xFFFF);
     if (zb_array_push(&r->items, &it)) {
-      r->stats.terrain_items++;
-      r->stats.terrain_triangles += index_count / 3;
+      if (kind == ZB_DRAW_WATER) {
+        r->stats.water_items++;
+      } else {
+        r->stats.terrain_items++;
+        r->stats.terrain_triangles += index_count / 3;
+      }
     }
   }
 }
+
+void zb_render_draw_terrain(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
+                            float radius) {
+  draw_mesh_item(r, ZB_DRAW_TERRAIN, mesh, index_count, transform, center, radius);
+}
+
+void zb_render_draw_water(zb_render *r, uint32_t mesh, uint32_t index_count, zb_mat4 transform, zb_vec3 center,
+                          float radius) {
+  draw_mesh_item(r, ZB_DRAW_WATER, mesh, index_count, transform, center, radius);
+}
+
+void zb_render_set_time(zb_render *r, double seconds) { r->time = seconds; }
 
 /* ---- Frame ------------------------------------------------------------------ */
 
@@ -916,6 +934,7 @@ void zb_render_end(zb_render *r) {
   r->frame.dither = r->dither;
   r->frame.atlas_texture = ready_texture(r, r->atlas_asset);
   r->frame.atlas_layers = r->frame.atlas_texture ? r->atlas_layers : 0;
+  r->frame.time = (float)r->time;
   r->backend->execute(r->backend->ctx, &r->frame);
   r->stats.frames++;
   r->in_frame = false;

@@ -103,6 +103,7 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
  * @field sprite_draws integer Sprite draw items
  * @field terrain_items integer Terrain chunk draw items (after culling)
  * @field terrain_triangles integer Terrain triangles drawn
+ * @field water_items integer Water surface draw items (after culling)
  * @field glyphs integer Text glyphs
  * @field culled integer Items culled by the view frustum
  * @field frames integer Frames rendered so far
@@ -1031,6 +1032,8 @@ static int r_stats(lua_State *L) {
   lua_setfield(L, -2, "terrain_items");
   lua_pushinteger(L, (lua_Integer)st->terrain_triangles);
   lua_setfield(L, -2, "terrain_triangles");
+  lua_pushinteger(L, (lua_Integer)st->water_items);
+  lua_setfield(L, -2, "water_items");
   lua_pushinteger(L, (lua_Integer)st->text_glyphs);
   lua_setfield(L, -2, "glyphs");
   lua_pushinteger(L, (lua_Integer)st->culled);

@@ -20,7 +20,7 @@ local game = { mode = "flight", state = state.new(), fullscreen = false, hud = t
 local assets = {}
 
 local SHOWCASE_ACTIONS = { "turn", "look", "zoom", "spin", "chime", "credits", "fullscreen", "quit" }
-local WORLD = { move = world.move, height = world.height, chunk_hash = world.chunk_hash }
+local WORLD = { move = world.move, height = world.height, water = world.water, chunk_hash = world.chunk_hash }
 local SUN = { 0.45, 0.6, -0.66 }
 
 local function setup_flight()

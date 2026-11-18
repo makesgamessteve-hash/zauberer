@@ -125,6 +125,7 @@
 ---@field sprite_draws integer Sprite draw items
 ---@field terrain_items integer Terrain chunk draw items (after culling)
 ---@field terrain_triangles integer Terrain triangles drawn
+---@field water_items integer Water surface draw items (after culling)
 ---@field glyphs integer Text glyphs
 ---@field culled integer Items culled by the view frustum
 ---@field frames integer Frames rendered so far
@@ -580,6 +581,13 @@ function world.distance(a, b) end
 ---@return boolean
 function world.draw_globe(frame, position, radius, spin) end
 
+---The nearest place within radius metres (default 50 km) where a created world has water of a kind: for a river, the middle of the channel leaving the nearest macro cell that has one; for a lake or the sea, the centre of the nearest such cell. nil in the noise world or when there is none.
+---@param pos PlanetPos
+---@param kind "river"|"lake"|"ocean"
+---@param radius number?
+---@return PlanetPos?
+function world.find_water(pos, kind, radius) end
+
 ---The position of planet-centred coordinates in metres.
 ---@param x number
 ---@param y number
@@ -698,6 +706,15 @@ function world.up_at(pos) end
 ---@return number
 ---@return number
 function world.view_distance(near, far) end
+
+---Water at a position: its kind ("ocean", "lake" or "river"; nil on dry land), the water surface in metres above sea level, its depth, and the current towards east and north in m/s.
+---@param pos PlanetPos
+---@return string?
+---@return number?
+---@return number?
+---@return number?
+---@return number?
+function world.water(pos) end
 
 net = {}
 

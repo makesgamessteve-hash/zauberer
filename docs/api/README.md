@@ -310,6 +310,10 @@ Great-circle distance at sea level in metres.
 
 Draws the planet as a globe: a time-lapse frame of the world being created (1-based; nil for the newest), or the played world by biome when none is being created. Returns false when there is nothing to show yet.
 
+### `world.find_water(pos: PlanetPos, kind: "river"|"lake"|"ocean", radius: number?): PlanetPos?`
+
+The nearest place within radius metres (default 50 km) where a created world has water of a kind: for a river, the middle of the channel leaving the nearest macro cell that has one; for a lake or the sea, the centre of the nearest such cell. nil in the noise world or when there is none.
+
 ### `world.from_cartesian(x: number, y: number, z: number): PlanetPos`
 
 The position of planet-centred coordinates in metres.
@@ -389,6 +393,10 @@ The local up direction at a position, in render coordinates (it tilts with the p
 ### `world.view_distance(near?: number, far?: number): number, number`
 
 Gets or sets the streaming rings: chunks get full detail within near metres and coarse detail within far metres (growing with altitude up to twice far).
+
+### `world.water(pos: PlanetPos): string?, number?, number?, number?, number?`
+
+Water at a position: its kind ("ocean", "lake" or "river"; nil on dry land), the water surface in metres above sea level, its depth, and the current towards east and north in m/s.
 
 ## net: co-op sessions
 
@@ -665,6 +673,7 @@ Scenarios: runs ticks simulation ticks (default 1) before continuing.
 | `sprite_draws` | `integer` | Sprite draw items |
 | `terrain_items` | `integer` | Terrain chunk draw items (after culling) |
 | `terrain_triangles` | `integer` | Terrain triangles drawn |
+| `water_items` | `integer` | Water surface draw items (after culling) |
 | `glyphs` | `integer` | Text glyphs |
 | `culled` | `integer` | Items culled by the view frustum |
 | `frames` | `integer` | Frames rendered so far |

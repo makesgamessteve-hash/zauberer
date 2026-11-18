@@ -89,18 +89,41 @@ static void test_water(void) {
   zb_chunk_terrain ct = generate((zb_chunk){1, 100, 200}, ZB_STAGE_TERRAIN);
   TEST_ASSERT_TRUE(ct.max_height < 0.0f); /* deep sea */
   zb_mesh_data m;
+  /* The land has no water in it; the water is a mesh of its own. */
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_terrain_mesh_build(zb_test_alloc(), &g_planet, &ct, 2, COLORS, LAYERS, &m));
-  size_t grid = 17 * 17 + 4 * 17;
-  TEST_ASSERT_EQUAL_size_t(grid + 25, m.vertex_count);
+  TEST_ASSERT_EQUAL_size_t(17 * 17 + 4 * 17, m.vertex_count);
+  zb_mesh_free(zb_test_alloc(), &m);
   zb_origin frame;
   zb_origin_init(&frame, &g_planet, ct.chunk);
-  for (size_t k = grid; k < m.vertex_count; ++k) {
-    zb_vec3 p = zb_v3(m.vertices[k].pos[0], m.vertices[k].pos[1], m.vertices[k].pos[2]);
-    zb_planet_pos pos = zb_planet_from_cart(&g_planet, zb_origin_to_cart(&frame, p));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, pos.alt); /* exactly at sea level */
-    TEST_ASSERT_TRUE(m.vertices[k].pos[1] > ct.max_height);
+  for (int lod = 0; lod <= 2; lod += 2) {
+    TEST_ASSERT_EQUAL_INT(ZB_OK, zb_water_mesh_build(zb_test_alloc(), &g_terrain, &ct, lod, &m));
+    size_t n = lod == 0 ? 65 : 17;
+    TEST_ASSERT_EQUAL_size_t(n * n, m.vertex_count);
+    TEST_ASSERT_EQUAL_size_t((n - 1) * (n - 1) * 6, m.index_count); /* all of it is sea */
+    for (size_t k = 0; k < m.vertex_count; ++k) {
+      zb_vec3 p = zb_v3(m.vertices[k].pos[0], m.vertices[k].pos[1], m.vertices[k].pos[2]);
+      zb_planet_pos pos = zb_planet_from_cart(&g_planet, zb_origin_to_cart(&frame, p));
+      TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, pos.alt); /* exactly at sea level */
+      TEST_ASSERT_TRUE(m.vertices[k].pos[1] > ct.max_height);
+      TEST_ASSERT_TRUE(m.vertices[k].color[3] > 0.5f && m.vertices[k].color[3] < 1.0f); /* translucent */
+      TEST_ASSERT_TRUE(m.vertices[k].normal[1] > 0.99f);
+    }
+    zb_mesh_free(zb_test_alloc(), &m);
   }
-  zb_mesh_free(zb_test_alloc(), &m);
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_water_mesh_build(zb_test_alloc(), &g_terrain, &ct, 7, &m));
+  zb_failing_allocator fa;
+  for (int fail = 0; fail < 6; ++fail) {
+    zb_result r = zb_water_mesh_build(zb_failing_init(&fa, zb_test_alloc(), fail), &g_terrain, &ct, 0, &m);
+    TEST_ASSERT_TRUE(r == ZB_OK || r == ZB_ERR_NOMEM);
+    zb_mesh_free(zb_test_alloc(), &m);
+  }
+  zb_chunk_terrain_release(zb_test_alloc(), &ct);
+  /* Dry land: an empty water mesh. */
+  ct = generate((zb_chunk){0, 1000, 1000}, ZB_STAGE_COARSE);
+  if (ct.min_height > 1.0f) {
+    TEST_ASSERT_EQUAL_INT(ZB_OK, zb_water_mesh_build(zb_test_alloc(), &g_terrain, &ct, 2, &m));
+    TEST_ASSERT_EQUAL_size_t(0, m.vertex_count);
+  }
   zb_chunk_terrain_release(zb_test_alloc(), &ct);
 }
 
@@ -188,8 +211,10 @@ static void test_view(void) {
     }
   }
   TEST_ASSERT_EQUAL_size_t(loaded, st.meshes);
-  /* The renderer's own placeholder cube is the one extra mesh. */
-  TEST_ASSERT_EQUAL_size_t(st.meshes + 1, zb_render_null_meshes(zb_render_backend_of(r)));
+  /* Water meshes over the sea, and the renderer's own placeholder cube. */
+  TEST_ASSERT_TRUE(st.water_meshes > 0 && st.water == st.water_meshes);
+  TEST_ASSERT_TRUE(zb_render_get_stats(r)->water_items > 0);
+  TEST_ASSERT_EQUAL_size_t(st.meshes + st.water_meshes + 1, zb_render_null_meshes(zb_render_backend_of(r)));
   TEST_ASSERT_TRUE(st.per_lod[0] > 0 && st.per_lod[1] > 0 && st.per_lod[2] > 0);
   TEST_ASSERT_TRUE(zb_render_get_stats(r)->terrain_items > 0);
   TEST_ASSERT_TRUE(zb_render_get_stats(r)->culled > 0); /* chunks behind the camera */

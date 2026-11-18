@@ -11,13 +11,13 @@
 
 #define ZB_RENDER_MAX_VIEWS 2
 
-typedef enum zb_draw_kind { ZB_DRAW_MODEL, ZB_DRAW_SPRITE, ZB_DRAW_TERRAIN } zb_draw_kind;
+typedef enum zb_draw_kind { ZB_DRAW_MODEL, ZB_DRAW_SPRITE, ZB_DRAW_TERRAIN, ZB_DRAW_WATER, ZB_DRAW_KINDS } zb_draw_kind;
 
 typedef struct zb_draw_item {
   zb_draw_kind kind;
   uint8_t view;
   uint64_t sort_key;
-  uint32_t mesh;    /* backend mesh handle (models, terrain) */
+  uint32_t mesh;    /* backend mesh handle (models, terrain, water) */
   uint32_t texture; /* backend texture handle (0 = white) */
   uint32_t first;   /* first index (models) */
   uint32_t count;   /* index count (models) */
@@ -82,6 +82,7 @@ typedef struct zb_frame {
   float dither;
   uint32_t atlas_texture; /* terrain material atlas */
   int atlas_layers;
+  float time; /* seconds, for animated water */
 } zb_frame;
 
 typedef struct zb_render_backend {

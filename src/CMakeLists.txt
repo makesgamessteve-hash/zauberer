@@ -29,7 +29,7 @@ if(WIN32)
   target_link_libraries(zb_net PUBLIC ws2_32)
 endif()
 zb_module(zb_world SOURCES world/bundle.c world/climate.c world/creation.c world/cubegrid.c world/geology.c world/geology_final.c world/geology_macro.c world/lattice.c
-  world/noise.c world/planet.c world/stream.c world/terrain.c world/world.c
+  world/noise.c world/planet.c world/stream.c world/terrain.c world/water.c world/world.c
   DEPS zb_core)
 zb_module(zb_input SOURCES input/input.c DEPS zb_core)
 zb_module(zb_render SOURCES render/render.c render/image.c render/mesh.c render/retro.c render/backend_null.c

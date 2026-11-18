@@ -90,6 +90,7 @@ typedef ptrdiff_t GLintptr;
   X(void, glDepthFunc, (GLenum func)) \
   X(void, glCullFace, (GLenum mode)) \
   X(void, glBlendFunc, (GLenum s, GLenum d)) \
+  X(void, glDepthMask, (GLboolean flag)) \
   X(void, glGenTextures, (GLsizei n, GLuint * t)) \
   X(void, glDeleteTextures, (GLsizei n, const GLuint *t)) \
   X(void, glBindTexture, (GLenum target, GLuint t)) \
@@ -164,6 +165,7 @@ typedef struct gl_program {
   GLint eye, fog_color, fog_density, layers;
   GLint cam_right, cam_up, cam_fwd, tan_half, tan_offset, world_up, zenith, horizon, dip, sun_dir, sun_color;
   GLint scene, lut, bayer, dither, palette;
+  GLint time;
 } gl_program;
 
 typedef struct sprite_instance {
@@ -181,7 +183,7 @@ typedef struct gl_ctx {
   zb_array textures; /* GLuint, handle = index + 1, 0 = free slot */
   zb_array meshes;   /* gl_mesh; vao == 0 marks a free slot */
   size_t free_hint;  /* no free slot below this index */
-  gl_program model, sprite, text, terrain, sky, post;
+  gl_program model, sprite, text, terrain, water, sky, post;
   GLuint empty_vao; /* fullscreen passes draw from gl_VertexID */
   GLuint post_fbo, post_color;
   GLuint quad_vbo, inst_vbo, sprite_vao;
@@ -328,6 +330,7 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const cha
                {"u_lut", offsetof(gl_program, lut)},
                {"u_bayer", offsetof(gl_program, bayer)},
                {"u_dither", offsetof(gl_program, dither)},
+               {"u_time", offsetof(gl_program, time)},
                {"u_palette", offsetof(gl_program, palette)}};
   for (size_t i = 0; i < sizeof extra / sizeof extra[0]; ++i) {
     *(GLint *)((char *)out + extra[i].offset) = c->gl.glGetUniformLocation(p, extra[i].name);
@@ -517,6 +520,44 @@ static void draw_meshes(gl_ctx *c, const zb_frame *f, int view, zb_draw_kind kin
   }
 }
 
+/* Translucent water after the opaque scene: blended, depth-tested but not
+ * written, seen from above and below. */
+static void draw_water(gl_ctx *c, const zb_frame *f, int view) {
+  const gl_program *p = &c->water;
+  bool started = false;
+  for (size_t i = 0; i < f->item_count; ++i) {
+    const zb_draw_item *it = &f->items[i];
+    if (it->kind != ZB_DRAW_WATER || it->view != view || it->mesh == 0 || it->mesh > c->meshes.len) {
+      continue;
+    }
+    if (!started) {
+      c->gl.glUseProgram(p->id);
+      c->gl.glUniformMatrix4fv(p->view_proj, 1, GL_FALSE, f->views[view].view_proj.m);
+      c->gl.glUniform3f(p->light_dir, f->light_dir.x, f->light_dir.y, f->light_dir.z);
+      c->gl.glUniform3f(p->light_color, f->light_color.x, f->light_color.y, f->light_color.z);
+      c->gl.glUniform3f(p->ambient, f->ambient.x, f->ambient.y, f->ambient.z);
+      c->gl.glUniform1f(p->time, f->time);
+      set_fog(c, p, f, view);
+      c->gl.glEnable(GL_BLEND);
+      c->gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      c->gl.glDepthMask(GL_FALSE);
+      c->gl.glDisable(GL_CULL_FACE);
+      started = true;
+    }
+    const gl_mesh *m = zb_array_at(&c->meshes, it->mesh - 1);
+    zb_mat4 nm = zb_m4_normal_matrix(it->model);
+    c->gl.glUniformMatrix4fv(p->model, 1, GL_FALSE, it->model.m);
+    c->gl.glUniformMatrix4fv(p->normal, 1, GL_FALSE, nm.m);
+    c->gl.glBindVertexArray(m->vao);
+    c->gl.glDrawElements(GL_TRIANGLES, (GLsizei)it->count, GL_UNSIGNED_INT, NULL);
+  }
+  if (started) {
+    c->gl.glDisable(GL_BLEND);
+    c->gl.glDepthMask(GL_TRUE);
+    c->gl.glEnable(GL_CULL_FACE);
+  }
+}
+
 static void draw_sprites(gl_ctx *c, const zb_frame *f, int view) {
   const gl_program *p = &c->sprite;
   const zb_view *v = &f->views[view];
@@ -666,6 +707,7 @@ static void gl_execute(void *ctx, const zb_frame *f) {
     draw_meshes(c, f, v, ZB_DRAW_TERRAIN);
     draw_meshes(c, f, v, ZB_DRAW_MODEL);
     draw_sprites(c, f, v);
+    draw_water(c, f, v);
   }
   draw_post(c, f);
   draw_text(c, f);
@@ -723,8 +765,8 @@ static void gl_destroy(void *ctx) {
     c->gl.glDeleteProgram(c->sprite.id);
   if (c->text.id)
     c->gl.glDeleteProgram(c->text.id);
-  const GLuint extra_programs[3] = {c->terrain.id, c->sky.id, c->post.id};
-  for (int i = 0; i < 3; ++i) {
+  const GLuint extra_programs[4] = {c->terrain.id, c->water.id, c->sky.id, c->post.id};
+  for (int i = 0; i < 4; ++i) {
     if (extra_programs[i]) {
       c->gl.glDeleteProgram(extra_programs[i]);
     }
@@ -834,6 +876,7 @@ zb_render_backend *zb_render_gl_backend(const zb_allocator *a, zb_gl_loader load
       !build_program(c, vfs, "sprite", "sprite", sprite_attribs, &c->sprite, err, err_len) ||
       !build_program(c, vfs, "text", "text", text_attribs, &c->text, err, err_len) ||
       !build_program(c, vfs, "terrain", "terrain", model_attribs, &c->terrain, err, err_len) ||
+      !build_program(c, vfs, "water", "water", model_attribs, &c->water, err, err_len) ||
       !build_program(c, vfs, "fullscreen", "sky", no_attribs, &c->sky, err, err_len) ||
       !build_program(c, vfs, "fullscreen", "post", no_attribs, &c->post, err, err_len)) {
     gl_destroy(c);

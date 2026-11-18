@@ -7,7 +7,9 @@
 #include "core/dmath.h"
 #include "core/hash.h"
 #include "world/bundle.h"
+#include "world/dvec.h"
 #include "world/noise.h"
+#include "world/water.h"
 
 #define MACRO_RES (ZB_COARSE_RES + 2)
 #define COARSE_STEP 16 /* stage 1 samples per stage 0 sample */
@@ -88,15 +90,21 @@ void zb_terrain_init(zb_terrain *t, const zb_planet *p, uint64_t seed, const zb_
 
 void zb_terrain_use_bundle(zb_terrain *t, const zb_world_bundle *bundle) { t->bundle = bundle; }
 
-/* Terrain v2: the created world's macro grid with hills and crags below its 6 km cells. */
-static double bundle_height(const zb_terrain *t, zb_dvec3 d) {
+/* Terrain v2: the created world's macro grid with hills and crags below its
+ * 6 km cells; both fade into river valleys. rs holds the rivers nearby. */
+static double bundle_height(const zb_terrain *t, zb_dvec3 d, const zb_river_set *rs) {
   const zb_terrain_params *pr = &t->params;
   double h = zb_world_bundle_height(t->bundle, d);
   double px = d.x * t->planet.radius, py = d.y * t->planet.radius, pz = d.z * t->planet.radius;
+  double relief = 1.0;
+  zb_river_hit hit;
+  if (rs && rs->count && zb_rivers_nearest(rs, t->planet.radius, d, 1e30, &hit)) {
+    relief = zb_river_hill_factor(&hit);
+  }
   double land = smoothstep(-20.0, 40.0, h);
-  h += (0.3 + 0.7 * land) * pr->hill_height *
+  h += relief * (0.3 + 0.7 * land) * pr->hill_height *
        zb_fbm3(stream(t, SEED_HILLS), px / 6000.0, py / 6000.0, pz / 6000.0, 6, 0.5);
-  double rugged = smoothstep(800.0, 2800.0, h);
+  double rugged = relief * smoothstep(800.0, 2800.0, h);
   if (rugged > 0.0) {
     double r = zb_ridged3(stream(t, SEED_CRAGS), px / 4000.0, py / 4000.0, pz / 4000.0, 5);
     h += rugged * 450.0 * (r - 0.4);
@@ -104,9 +112,39 @@ static double bundle_height(const zb_terrain *t, zb_dvec3 d) {
   return h;
 }
 
+/* Rivers within radius metres of d (none in the noise world). Point queries
+ * ignore a failure (memory ran out: fewer rivers); chunks report it. */
+static zb_result gather_rivers(const zb_terrain *t, zb_dvec3 d, double radius, zb_river_set *rs,
+                               const zb_allocator *a) {
+  zb_river_set_init(rs, a);
+  return t->bundle ? zb_rivers_gather(t->bundle, d, radius, rs) : ZB_OK;
+}
+
+/* The widest reach of any river in the set. */
+static double max_reach(const zb_river_set *rs) {
+  double m = 0.0;
+  for (size_t i = 0; i < rs->count; ++i) {
+    double r = 2.0 * rs->piece[i].half_width + 4.0;
+    m = r > m ? r : m;
+  }
+  return m;
+}
+
+static double carve(const zb_terrain *t, const zb_river_set *rs, double reach, zb_dvec3 d, double height) {
+  zb_river_hit hit;
+  if (rs->count && zb_rivers_nearest(rs, t->planet.radius, d, reach, &hit)) {
+    return zb_river_carve(&hit, height);
+  }
+  return height;
+}
+
 double zb_terrain_macro_height(const zb_terrain *t, zb_dvec3 d) {
   if (t->bundle) {
-    return bundle_height(t, d);
+    zb_river_set rs;
+    (void)gather_rivers(t, d, 0.0, &rs, zb_heap_allocator());
+    double h = bundle_height(t, d, &rs);
+    zb_river_set_free(&rs);
+    return h;
   }
   const zb_terrain_params *pr = &t->params;
   double e = continent_field(t, d) - t->continent_threshold;
@@ -139,8 +177,22 @@ static double detail_height(const zb_terrain *t, double px, double py, double pz
   return t->params.detail_height * zb_fbm3(stream(t, SEED_DETAIL), px / 40.0, py / 40.0, pz / 40.0, 3, 0.45);
 }
 
+/* The full height with the rivers in rs (terrain v2). */
+static double height_with(const zb_terrain *t, zb_dvec3 d, const zb_river_set *rs) {
+  double r = t->planet.radius;
+  double h = bundle_height(t, d, rs) + detail_height(t, d.x * r, d.y * r, d.z * r);
+  return carve(t, rs, max_reach(rs), d, h);
+}
+
 double zb_terrain_height(const zb_terrain *t, zb_dvec3 d) {
   double r = t->planet.radius;
+  if (t->bundle) {
+    zb_river_set rs;
+    (void)gather_rivers(t, d, 0.0, &rs, zb_heap_allocator());
+    double h = height_with(t, d, &rs);
+    zb_river_set_free(&rs);
+    return h;
+  }
   return zb_terrain_macro_height(t, d) + detail_height(t, d.x * r, d.y * r, d.z * r);
 }
 
@@ -338,6 +390,25 @@ static void update_range(zb_chunk_terrain *ct, const float *v, int n) {
   }
 }
 
+/* Rivers near a chunk and its one-sample border. */
+static zb_result chunk_rivers(const zb_terrain *t, const zb_allocator *a, zb_chunk c, zb_river_set *rs) {
+  double w, h;
+  zb_planet_chunk_size(&t->planet, c, &w, &h);
+  zb_result r =
+      gather_rivers(t, zb_planet_chunk_dir(&t->planet, c), 0.5 * sqrt(w * w + h * h) + 2.0 * COARSE_STEP, rs, a);
+  if (r != ZB_OK) {
+    zb_river_set_free(rs);
+  }
+  return r;
+}
+
+/* Only the rivers whose banks reach into the chunk (margin: extra metres). */
+static void chunk_rivers_near(const zb_terrain *t, zb_chunk c, zb_river_set *rs, double margin) {
+  double w, h;
+  zb_planet_chunk_size(&t->planet, c, &w, &h);
+  zb_rivers_keep_near(rs, t->planet.radius, zb_planet_chunk_dir(&t->planet, c), 0.5 * sqrt(w * w + h * h), margin);
+}
+
 /* The created world's biome at every 16 m sample of a chunk (zeros for the noise world). */
 static void coarse_biomes(const zb_terrain *t, zb_chunk c, uint8_t out[ZB_COARSE_RES * ZB_COARSE_RES]) {
   if (!t->bundle) {
@@ -355,16 +426,22 @@ static void coarse_biomes(const zb_terrain *t, zb_chunk c, uint8_t out[ZB_COARSE
   }
 }
 
-static void generate_coarse(const zb_terrain *t, zb_chunk_terrain *ct) {
+static zb_result generate_coarse(const zb_terrain *t, const zb_allocator *a, zb_chunk_terrain *ct) {
   face_frame f = frame_of(ct->chunk.face);
   double ta[MACRO_RES], tb[MACRO_RES];
   axis_tangents(t, ct->chunk.x, -COARSE_STEP, COARSE_STEP, MACRO_RES, ta);
   axis_tangents(t, ct->chunk.y, -COARSE_STEP, COARSE_STEP, MACRO_RES, tb);
+  zb_river_set rs;
+  if (chunk_rivers(t, a, ct->chunk, &rs) != ZB_OK) {
+    return ZB_ERR_NOMEM;
+  }
   for (int y = 0; y < MACRO_RES; ++y) {
     for (int x = 0; x < MACRO_RES; ++x) {
-      ct->macro[y * MACRO_RES + x] = (float)zb_terrain_macro_height(t, sample_dir(&f, ta[x], tb[y]));
+      zb_dvec3 d = sample_dir(&f, ta[x], tb[y]);
+      ct->macro[y * MACRO_RES + x] = (float)(t->bundle ? bundle_height(t, d, &rs) : zb_terrain_macro_height(t, d));
     }
   }
+  zb_river_set_free(&rs);
   /* Coarse materials from the macro grid (slope over 16 m). */
   double w, h;
   zb_planet_chunk_size(&t->planet, ct->chunk, &w, &h);
@@ -391,6 +468,7 @@ static void generate_coarse(const zb_terrain *t, zb_chunk_terrain *ct) {
     }
   }
   ct->stage = ZB_STAGE_COARSE;
+  return ZB_OK;
 }
 
 /* Catmull-Rom weights for t in [0, 1). */
@@ -468,6 +546,32 @@ static zb_result generate_terrain(const zb_terrain *t, const zb_allocator *a, zb
   }
   zb_free(a, rows);
   zb_free(a, detail);
+  /* River channels and banks, at full resolution. */
+  zb_river_set rs;
+  if (chunk_rivers(t, a, ct->chunk, &rs) != ZB_OK) {
+    zb_free(a, height);
+    return ZB_ERR_NOMEM;
+  }
+  chunk_rivers_near(t, ct->chunk, &rs, 1.0);
+  double *ua = rs.count ? zb_alloc(a, sizeof(double) * 2 * ZB_HEIGHT_RES) : NULL;
+  if (rs.count && !ua) {
+    zb_river_set_free(&rs);
+    zb_free(a, height);
+    return ZB_ERR_NOMEM;
+  }
+  if (ua) {
+    double reach = max_reach(&rs), *ub = ua + ZB_HEIGHT_RES;
+    axis_tangents(t, ct->chunk.x, 0.0, 1.0, R, ua);
+    axis_tangents(t, ct->chunk.y, 0.0, 1.0, R, ub);
+    for (int y = 0; y < R; ++y) {
+      for (int x = 0; x < R; ++x) {
+        float *hp = &height[y * R + x];
+        *hp = (float)carve(t, &rs, reach, sample_dir(&f, ua[x], ub[y]), (double)*hp);
+      }
+    }
+    zb_free(a, ua);
+  }
+  zb_river_set_free(&rs);
   ct->height = height;
   ct->min_height = ct->max_height = height[0];
   update_range(ct, height, R * R);
@@ -475,15 +579,71 @@ static zb_result generate_terrain(const zb_terrain *t, const zb_allocator *a, zb
   return ZB_OK;
 }
 
+/* Water-shaped materials of a created world: river beds (gravel where the
+ * current is fast, mud where it is slow), sandy banks, and lake beds and
+ * beaches. Returns ZB_MAT_NONE where the land's own rule applies. */
+static zb_material water_material(const zb_terrain *t, const zb_river_set *rs, double reach, zb_dvec3 d, double height,
+                                  double lake) {
+  zb_river_hit hit;
+  if (rs->count && zb_rivers_nearest(rs, t->planet.radius, d, reach, &hit) && !(height < 0.0 && hit.surface < 1.0)) {
+    if (hit.distance < hit.half_width) {
+      return hit.speed > 1.2 ? ZB_MAT_GRAVEL : ZB_MAT_MUD;
+    }
+    if (height < hit.surface + 1.5) {
+      return ZB_MAT_SAND;
+    }
+  }
+  if (height < lake - 1.0) {
+    return ZB_MAT_MUD;
+  }
+  if (height < lake + 1.0) {
+    return ZB_MAT_SAND;
+  }
+  return ZB_MAT_NONE;
+}
+
 static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb_chunk_terrain *ct) {
   uint8_t *mat = zb_alloc(a, (size_t)ZB_SURFACE_RES * ZB_SURFACE_RES);
   if (!mat) {
     return ZB_ERR_NOMEM;
   }
+  zb_river_set rs;
+  if (chunk_rivers(t, a, ct->chunk, &rs) != ZB_OK) {
+    zb_free(a, mat);
+    return ZB_ERR_NOMEM;
+  }
+  chunk_rivers_near(t, ct->chunk, &rs, 1.0);
+  double reach = max_reach(&rs);
   double jitter[JITTER_RES * JITTER_RES];
   jitter_lattice(t, ct->chunk, jitter);
   uint8_t biomes[ZB_COARSE_RES * ZB_COARSE_RES];
   coarse_biomes(t, ct->chunk, biomes);
+  face_frame f = frame_of(ct->chunk.face);
+  /* Lake levels at the 16 m samples (no lake: far below the ground). */
+  float lakes[ZB_COARSE_RES * ZB_COARSE_RES];
+  double ca[ZB_COARSE_RES], cb[ZB_COARSE_RES];
+  axis_tangents(t, ct->chunk.x, 0.0, COARSE_STEP, ZB_COARSE_RES, ca);
+  axis_tangents(t, ct->chunk.y, 0.0, COARSE_STEP, ZB_COARSE_RES, cb);
+  for (int y = 0; y < ZB_COARSE_RES; ++y) {
+    for (int x = 0; x < ZB_COARSE_RES; ++x) {
+      double level = -1e9;
+      if (t->bundle && !zb_lake_level(t->bundle, sample_dir(&f, ca[x], cb[y]), &level)) {
+        level = -1e9;
+      }
+      lakes[y * ZB_COARSE_RES + x] = (float)level;
+    }
+  }
+  double *fa = rs.count ? zb_alloc(a, sizeof(double) * 2 * ZB_SURFACE_RES) : NULL;
+  double *fb = fa ? fa + ZB_SURFACE_RES : NULL;
+  if (rs.count && !fa) {
+    zb_river_set_free(&rs);
+    zb_free(a, mat);
+    return ZB_ERR_NOMEM;
+  }
+  if (fa) {
+    axis_tangents(t, ct->chunk.x, 0.5, 1.0, ZB_SURFACE_RES, fa);
+    axis_tangents(t, ct->chunk.y, 0.5, 1.0, ZB_SURFACE_RES, fb);
+  }
   double w, h;
   zb_planet_chunk_size(&t->planet, ct->chunk, &w, &h);
   double cw = w / ZB_SURFACE_RES, ch = h / ZB_SURFACE_RES;
@@ -501,13 +661,18 @@ static zb_result generate_surface(const zb_terrain *t, const zb_allocator *a, zb
         int bx = (int)((x + 8.0 + 6.0 * jit) / 16.0), by = (int)((y + 8.0 - 6.0 * jit) / 16.0);
         bx = bx < 0 ? 0 : (bx >= ZB_COARSE_RES ? ZB_COARSE_RES - 1 : bx);
         by = by < 0 ? 0 : (by >= ZB_COARSE_RES ? ZB_COARSE_RES - 1 : by);
+        zb_dvec3 d = fa ? sample_dir(&f, fa[x], fb[y]) : f.n;
+        zb_material m = water_material(t, &rs, reach, d, avg, (double)lakes[by * ZB_COARSE_RES + bx]);
         mat[y * ZB_SURFACE_RES + x] =
-            (uint8_t)zb_terrain_biome_material(biomes[by * ZB_COARSE_RES + bx], avg, slope, jit);
+            (uint8_t)(m != ZB_MAT_NONE ? m
+                                       : zb_terrain_biome_material(biomes[by * ZB_COARSE_RES + bx], avg, slope, jit));
       } else {
         mat[y * ZB_SURFACE_RES + x] = (uint8_t)zb_terrain_material_rule(avg, slope, sin_lat, jit);
       }
     }
   }
+  zb_free(a, fa);
+  zb_river_set_free(&rs);
   ct->material = mat;
   ct->stage = ZB_STAGE_SURFACE;
   return ZB_OK;
@@ -518,7 +683,10 @@ zb_result zb_terrain_generate(const zb_terrain *t, const zb_allocator *a, zb_chu
     return ZB_ERR_INVALID;
   }
   if (ct->stage < ZB_STAGE_COARSE && stage >= ZB_STAGE_COARSE) {
-    generate_coarse(t, ct);
+    zb_result r = generate_coarse(t, a, ct);
+    if (r != ZB_OK) {
+      return r;
+    }
   }
   if (ct->stage < ZB_STAGE_TERRAIN && stage >= ZB_STAGE_TERRAIN) {
     zb_result r = generate_terrain(t, a, ct);
@@ -576,4 +744,84 @@ uint64_t zb_chunk_terrain_hash(const zb_chunk_terrain *ct) {
     zb_hasher_bytes(&h, ct->material, (size_t)ZB_SURFACE_RES * ZB_SURFACE_RES);
   }
   return zb_hasher_final(&h);
+}
+
+/* ---- Water ------------------------------------------------------------------ */
+
+/* Lakes first (a river crossing a lake is part of it), then rivers, then the
+ * sea. widen: how far beyond its banks a river still counts; raise: lift
+ * rivers above ground that is not carved (coarse heights). */
+static void classify_water(const zb_terrain *t, const zb_river_set *rs, zb_dvec3 d, double ground, double widen,
+                           bool raise, zb_water_sample *out) {
+  memset(out, 0, sizeof *out);
+  double level;
+  if (t->bundle && zb_lake_level(t->bundle, d, &level) && ground < level) {
+    out->kind = ZB_WATER_LAKE;
+    out->surface = level;
+    out->depth = level - ground;
+    return;
+  }
+  zb_river_hit hit;
+  /* A river's mouth: once it reaches the sea below sea level, it is the sea. */
+  bool sea = ground < 0.0;
+  if (rs->count && zb_rivers_nearest(rs, t->planet.radius, d, max_reach(rs) + widen, &hit) &&
+      hit.distance < hit.half_width + widen && (raise || ground < hit.surface) && !(sea && hit.surface < 1.0)) {
+    out->kind = ZB_WATER_RIVER;
+    out->surface = raise && ground + 0.5 > hit.surface ? ground + 0.5 : hit.surface;
+    out->depth = out->surface - ground;
+    /* A parabolic profile, fastest mid-stream and still at the banks, and a
+     * pull towards the middle that carries floating things round bends. */
+    double u = hit.distance / hit.half_width;
+    u = u < 1.0 ? u : 1.0;
+    out->flow = zb_dv_add(zb_dv_scale(hit.along, 1.5 * hit.speed * (1.0 - u * u)),
+                          zb_dv_scale(hit.to_centre, 0.5 * hit.speed * u));
+    return;
+  }
+  if (sea) {
+    out->kind = ZB_WATER_OCEAN;
+    out->depth = -ground;
+  }
+}
+
+void zb_terrain_water(const zb_terrain *t, zb_dvec3 dir, zb_water_sample *out) {
+  zb_river_set rs;
+  (void)gather_rivers(t, dir, 0.0, &rs, zb_heap_allocator());
+  double ground = t->bundle ? height_with(t, dir, &rs) : zb_terrain_height(t, dir);
+  classify_water(t, &rs, dir, ground, 0.0, false, out);
+  zb_river_set_free(&rs);
+}
+
+zb_result zb_terrain_water_grid(const zb_terrain *t, const zb_allocator *a, const zb_chunk_terrain *ct, int step,
+                                uint8_t *kind, float *surface) {
+  if (step < 1 || step > 64 || (step & (step - 1)) != 0 || ct->stage < ZB_STAGE_COARSE) {
+    return ZB_ERR_INVALID;
+  }
+  int n = (int)ZB_CHUNK_SIZE / step + 1;
+  zb_river_set rs;
+  if (chunk_rivers(t, a, ct->chunk, &rs) != ZB_OK) {
+    return ZB_ERR_NOMEM;
+  }
+  chunk_rivers_near(t, ct->chunk, &rs, 0.5 * step + 1.0);
+  double *ua = zb_alloc(a, sizeof(double) * 2 * (size_t)n);
+  if (!ua) {
+    zb_river_set_free(&rs);
+    return ZB_ERR_NOMEM;
+  }
+  double *ub = ua + n;
+  axis_tangents(t, ct->chunk.x, 0.0, (double)step, n, ua);
+  axis_tangents(t, ct->chunk.y, 0.0, (double)step, n, ub);
+  face_frame f = frame_of(ct->chunk.face);
+  bool raise = ct->height == NULL;
+  for (int j = 0; j < n; ++j) {
+    for (int i = 0; i < n; ++i) {
+      double ground = (double)zb_chunk_height_at(ct, (float)(i * step), (float)(j * step));
+      zb_water_sample w;
+      classify_water(t, &rs, sample_dir(&f, ua[i], ub[j]), ground, 0.5 * step, raise, &w);
+      kind[j * n + i] = (uint8_t)w.kind;
+      surface[j * n + i] = (float)w.surface;
+    }
+  }
+  zb_free(a, ua);
+  zb_river_set_free(&rs);
+  return ZB_OK;
 }

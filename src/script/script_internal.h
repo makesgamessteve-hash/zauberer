@@ -90,6 +90,7 @@ void zb_script_close_create(zb_script *s);
 void zb_script_free_bundle(zb_script *s);
 /* A PlanetPos argument (errors name its first bad field). */
 zb_planet_pos zb_script_check_pos(lua_State *L, int idx);
+void zb_script_push_pos(lua_State *L, const zb_planet_pos *p);
 /* Registers net (co-op sessions). */
 void zb_script_open_net(zb_script *s);
 /* The network codec: encodes the value at idx into out (NULL or an error

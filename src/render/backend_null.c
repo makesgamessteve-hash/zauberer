@@ -9,7 +9,7 @@ typedef struct null_ctx {
   zb_render_backend iface;
   const zb_allocator *a;
   uint32_t next;
-  size_t counts[3]; /* per zb_draw_kind */
+  size_t counts[ZB_DRAW_KINDS]; /* per zb_draw_kind */
   size_t frames;
   size_t live_meshes;
   zb_frame last;
@@ -83,7 +83,7 @@ zb_render_backend *zb_render_null_backend(const zb_allocator *a) {
 
 size_t zb_render_null_item_count(const zb_render_backend *b, zb_draw_kind kind) {
   const null_ctx *n = b->ctx;
-  return (unsigned)kind < 3 ? n->counts[kind] : 0;
+  return (unsigned)kind < ZB_DRAW_KINDS ? n->counts[kind] : 0;
 }
 
 size_t zb_render_null_meshes(const zb_render_backend *b) {
