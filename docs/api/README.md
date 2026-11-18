@@ -560,6 +560,20 @@ Scenarios: waits ms milliseconds of real time (for tests with several processes;
 
 Scenarios: runs ticks simulation ticks (default 1) before continuing.
 
+## gesture
+
+### `gesture.forms(): string[]`
+
+The eight forms: tap, line, circle, spiral, triangle, square, zigzag, wave.
+
+### `gesture.recognize(points: number[], options?: GestureOptions): Gesture`
+
+Recognises a stroke given as { x1, y1, x2, y2, ... } (up to 4096 points), in any orientation, drawn either way round. Strokes shorter than tap_size are taps.
+
+### `gesture.template(form: string, count?: integer): number[]`
+
+The stroke of a form at unit size as { x1, y1, ... } with count points (default 32, 2 .. 512): for tracing guides and tests.
+
 ## mana
 
 ### `mana.at(pos: PlanetPos): ManaCell`
@@ -782,6 +796,19 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `input_mode` | `string` | "desktop" or "touch" |
 | `drawable_size` | `integer[]` | Drawable width and height in pixels |
 | `seed` | `integer` | The run's random seed |
+
+### Gesture
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `form` | `string` | The form, or "none" when the stroke is like none |
+| `accuracy` | `number` | 0 .. 1: how well it matches (the weave's control) |
+| `second` | `string` | The next best form |
+| `second_accuracy` | `number` |  |
+| `size` | `number` | Half the stroke's extent, in the units of the points |
+| `x` | `number` | Its centre |
+| `y` | `number` |  |
+| `angle` | `number` | Radians from the first point to the last |
 
 ### Light
 

@@ -89,6 +89,7 @@ void zb_script_open_save(zb_script *s);
 void zb_script_open_sim(zb_script *s);
 void zb_script_open_bodies(zb_script *s); /* after zb_script_open_sim */
 void zb_script_open_mana(zb_script *s);
+void zb_script_open_gesture(zb_script *s);
 /* The world's bodies as a list of tables sim.spawn takes (pushed), and back:
  * replaces the bodies with those of the list at idx; returns how many. */
 void zb_script_push_bodies(lua_State *L);

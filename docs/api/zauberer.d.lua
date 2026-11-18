@@ -56,6 +56,16 @@
 ---@field drawable_size integer[] Drawable width and height in pixels
 ---@field seed integer The run's random seed
 
+---@class Gesture
+---@field form string The form, or "none" when the stroke is like none
+---@field accuracy number 0 .. 1: how well it matches (the weave's control)
+---@field second string The next best form
+---@field second_accuracy number
+---@field size number Half the stroke's extent, in the units of the points
+---@field x number Its centre
+---@field y number
+---@field angle number Radians from the first point to the last
+
 ---@class Light
 ---@field direction number[]? Direction the light travels
 ---@field color number[]? Light colour
@@ -919,6 +929,24 @@ function sleep(ms) end
 ---Scenarios: runs ticks simulation ticks (default 1) before continuing.
 ---@param ticks? integer
 function step(ticks) end
+
+gesture = {}
+
+---The eight forms: tap, line, circle, spiral, triangle, square, zigzag, wave.
+---@return string[]
+function gesture.forms() end
+
+---Recognises a stroke given as { x1, y1, x2, y2, ... } (up to 4096 points), in any orientation, drawn either way round. Strokes shorter than tap_size are taps.
+---@param points number[]
+---@param options? GestureOptions
+---@return Gesture
+function gesture.recognize(points, options) end
+
+---The stroke of a form at unit size as { x1, y1, ... } with count points (default 32, 2 .. 512): for tracing guides and tests.
+---@param form string
+---@param count? integer
+---@return number[]
+function gesture.template(form, count) end
 
 mana = {}
 

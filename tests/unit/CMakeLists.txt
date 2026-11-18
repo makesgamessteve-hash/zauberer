@@ -28,6 +28,7 @@ zb_add_unit_test(test_surface_water SOURCES sim/test_surface_water.c LIBS zb_sim
 zb_add_unit_test(test_air SOURCES sim/test_air.c LIBS zb_sim)
 zb_add_unit_test(test_tier SOURCES sim/test_tier.c LIBS zb_sim)
 zb_add_unit_test(test_input SOURCES input/test_input.c LIBS zb_input)
+zb_add_unit_test(test_gesture SOURCES input/test_gesture.c LIBS zb_input)
 zb_add_unit_test(test_render SOURCES render/test_render.c LIBS zb_render)
 zb_add_unit_test(test_retro SOURCES render/test_retro.c LIBS zb_render)
 zb_add_unit_test(test_audio SOURCES audio/test_audio.c LIBS zb_audio)
