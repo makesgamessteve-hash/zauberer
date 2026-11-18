@@ -66,3 +66,10 @@ Burning cells SHALL release smoke into the air at their burn rate, and fire SHAL
 #### Scenario: Fire smokes and follows the local wind
 - **WHEN** a fire burns in a forest chunk that shelters the wind
 - **THEN** smoke is released into the air above it, and the fire leans with the chunk's sheltered wind rather than the weather's
+
+### Requirement: Heat sinks
+Magic SHALL take heat from the cells around a place: unburnt ground cools, never more than 30 degrees below the air, and a burning cell that loses more than 50 kJ/m² goes out.
+
+#### Scenario: Heat sinks for magic
+- **WHEN** heat is taken gently and in excess from unburnt ground, and weakly and strongly from a fire
+- **THEN** the ground cools but never more than 30 degrees below the air, the weak sink leaves the fire burning and the strong one puts it out

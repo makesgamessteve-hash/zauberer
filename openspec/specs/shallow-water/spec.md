@@ -19,7 +19,7 @@ Surface water in the active tier SHALL flow between neighbouring 2 m cells by th
 - **THEN** its surface levels out within 2 cm, all of it stays in the basin, and the chunk goes to sleep keeping the water
 
 ### Requirement: Volume balance
-Every cubic metre SHALL be accounted for: the water on the ground, soaked into it and drained into the terrain's water bodies SHALL equal the water rained and added, up to rounding, counting the water standing in chunks when they left the active tier.
+Every cubic metre SHALL be accounted for: the water on the ground, soaked into it and drained into the terrain's water bodies SHALL equal the water rained and added, up to rounding, counting the water standing in chunks when they left the active tier and the water magic took away.
 
 #### Scenario: Water drains into the sea
 - **WHEN** water is poured on a shore that slopes into the sea, and also onto the sea
@@ -52,3 +52,10 @@ A chunk of moving water SHALL step in at most 2 ms on desktop in a release build
 #### Scenario: Water budget
 - **WHEN** a flood spreads over a chunk
 - **THEN** the median step takes at most 2 ms
+
+### Requirement: Removing and freezing water
+Magic SHALL take standing water away (counted in the balance) and freeze water, standing or a water body, for a time: frozen water SHALL neither flow nor take water in, SHALL be reported as frozen so that it can be walked on, and SHALL melt when its time is up or when thawed.
+
+#### Scenario: Water for magic
+- **WHEN** standing water is partly and wholly removed, a pool and the sea are frozen, time passes, the ice is thawed, and frozen water is drawn
+- **THEN** removals take what was asked or what there was and are counted in the balance, frozen water keeps its depth and does not flow until it melts on time or is thawed, dry ground does not freeze, the sea freezes at its level, and ice is drawn pale and nearly opaque
