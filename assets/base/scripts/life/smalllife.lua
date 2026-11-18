@@ -131,7 +131,7 @@ end
 function smalllife.spoil(load, hours, temperature, wet, kept)
   local rate = 0.16 * 2 ^ ((math.min(temperature, 45) - 20) / 10) * (wet and 1.5 or 1) * (kept or 1)
   if temperature <= 0 then rate = 0 end
-  local l = math.min(math.max(load, 0.001), 0.999)
+  local l = math.min(math.max(load, 0.01), 0.999) -- (fresh food carries a few microbes)
   return 1 / (1 + (1 / l - 1) * math.exp(-math.min(rate * hours, 700))) -- logistic: levels off at 1
 end
 

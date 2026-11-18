@@ -788,6 +788,42 @@ void zb_fire_add_heat(zb_fire *f, const zb_planet_pos *pos, double radius, doubl
   }
 }
 
+typedef struct fuel_ctx {
+  zb_fire *f;
+  double kg_per_cell; /* 0: counting */
+} fuel_ctx;
+
+#define DRY_WOOD 0.08 /* kg of water per kg of seasoned wood */
+
+static bool fuel_fn(void *ctx, int32_t cell) {
+  fuel_ctx *k = ctx;
+  fire_chunk *c = chunk_of(k->f, cell);
+  int i = cell % CELLS;
+  if (c->state[i] & (WATER | BURNING)) {
+    return false;
+  }
+  if (k->kg_per_cell <= 0.0) {
+    return true;
+  }
+  c->fuel[i] += (float)(k->kg_per_cell / (c->cw * c->ch));
+  c->fuel0[i] = c->fuel[i] > c->fuel0[i] ? c->fuel[i] : c->fuel0[i];
+  c->kind[i] = FUEL_WOOD;
+  c->moist[i] = (float)DRY_WOOD;
+  c->state[i] &= (uint8_t) ~(BURNT | SCARRED);
+  wake(c);
+  return true;
+}
+
+int zb_fire_add_fuel(zb_fire *f, const zb_planet_pos *pos, double radius, double kg) {
+  fuel_ctx count = {f, 0.0};
+  int n = zb_active_around(&f->grid, pos, radius, fuel_fn, &count);
+  if (n > 0 && kg > 0.0) {
+    fuel_ctx lay = {f, kg / n};
+    zb_active_around(&f->grid, pos, radius, fuel_fn, &lay);
+  }
+  return kg > 0.0 ? n : 0;
+}
+
 #define QUENCH 50000.0 /* J/m^2 taken from a burning cell that put it out */
 
 typedef struct cool_ctx {

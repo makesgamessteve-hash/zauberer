@@ -384,9 +384,13 @@ static int w_set_surface(lua_State *L) {
 }
 
 void zb_script_open_save(zb_script *s) {
-  static const luaL_Reg fns[] = {{"save_game", w_save_game},         {"load_game", w_load_game},     {"saves", w_saves},
-                                 {"remove_plants", w_remove_plants}, {"cut_plant", w_cut_plant},
-                                 {"set_surface", w_set_surface},     {NULL, NULL}};
+  static const luaL_Reg fns[] = {{"save_game", w_save_game},
+                                 {"load_game", w_load_game},
+                                 {"saves", w_saves},
+                                 {"remove_plants", w_remove_plants},
+                                 {"cut_plant", w_cut_plant},
+                                 {"set_surface", w_set_surface},
+                                 {NULL, NULL}};
   lua_getglobal(s->L, "world");
   luaL_setfuncs(s->L, fns, 0);
   lua_pop(s->L, 1);

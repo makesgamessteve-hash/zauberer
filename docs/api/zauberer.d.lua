@@ -1002,6 +1002,13 @@ function registry.keys(kind) end
 
 sim = {}
 
+---Lays kg (0 .. 1000) of dry wood within radius metres (default 0.5, up to 8) of a place: a campfire to light. Returns the cells that took it (none under water or burning).
+---@param pos PlanetPos
+---@param kg number
+---@param radius? number
+---@return integer
+function sim.add_fuel(pos, kg, radius) end
+
 ---Adds heat spread over radius metres (up to 64): enough of it dries and then ignites the fuel there.
 ---@param pos PlanetPos
 ---@param radius number

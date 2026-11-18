@@ -195,6 +195,20 @@ static int s_ignite(lua_State *L) {
   return 1;
 }
 
+/* @lua sim.add_fuel(pos: PlanetPos, kg: number, radius?: number): integer
+ * Lays kg (0 .. 1000) of dry wood within radius metres (default 0.5, up to
+ * 8) of a place: a campfire to light. Returns the cells that took it (none
+ * under water or burning).
+ */
+static int s_add_fuel(lua_State *L) {
+  zb_planet_pos pos = zb_script_check_pos(L, 1);
+  double kg = luaL_checknumber(L, 2), radius = luaL_optnumber(L, 3, 0.5);
+  luaL_argcheck(L, kg >= 0.0 && kg <= 1000.0, 2, "kg must be 0..1000");
+  luaL_argcheck(L, radius >= 0.0 && radius <= 8.0, 3, "radius must be 0..8 metres");
+  lua_pushinteger(L, zb_fire_add_fuel(F(L), &pos, radius, kg));
+  return 1;
+}
+
 /* @lua sim.add_heat(pos: PlanetPos, radius: number, joules: number)
  * Adds heat spread over radius metres (up to 64): enough of it dries and then
  * ignites the fuel there.
@@ -661,6 +675,7 @@ void zb_script_open_sim(zb_script *s) {
                                      {"material_at", s_material_at},
                                      {"ignite", s_ignite},
                                      {"add_heat", s_add_heat},
+                                     {"add_fuel", s_add_fuel},
                                      {"fire_at", s_fire_at},
                                      {"fire_stats", s_fire_stats},
                                      {"set_weather", s_set_weather},

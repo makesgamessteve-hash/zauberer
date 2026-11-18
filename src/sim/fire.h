@@ -75,6 +75,10 @@ void zb_fire_ground_changed(zb_fire *f, const zb_chunk_terrain *ct);
 void zb_fire_soak(zb_fire *f, const zb_planet_pos *pos);
 /* Adds heat (J) spread over radius metres. */
 void zb_fire_add_heat(zb_fire *f, const zb_planet_pos *pos, double radius, double joules);
+/* Lays kg of dry wood within radius metres of pos (a campfire, a woodpile):
+ * fuel of the wood kind, dry, on cells not under water and not burning
+ * (burnt cells can burn again). Returns the cells that took it. */
+int zb_fire_add_fuel(zb_fire *f, const zb_planet_pos *pos, double radius, double kg);
 /* Takes joules of heat from the cells within radius (a heat sink: magic
  * unmaking fire); a burning cell that loses more than 50 kJ/m^2 goes out.
  * Returns how many fires it put out. */

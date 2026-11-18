@@ -25,6 +25,10 @@ local effects = require("magic.effects")
 local health = require("player.health")
 local walker = require("player.walker")
 local survival = require("player.survival")
+local pack = require("player.pack")
+local harvest = require("life.harvest")
+local cooking = require("life.cooking")
+local items = require("life.items")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -63,6 +67,7 @@ local function setup_flight()
   game.magic = magic.new(back and back.magic)
   game.health = health.new(back and back.health)
   game.survival = survival.new(back and back.survival, save.get("difficulty"))
+  game.pack = pack.new(back and back.pack)
   game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
@@ -136,7 +141,7 @@ function game.save()
   local c = game.carpet
   local player = c and { pos = c.pos, heading = c.heading, magic = game.magic and magic.snapshot(game.magic),
     health = game.health and health.snapshot(game.health),
-    survival = game.survival and survival.snapshot(game.survival),
+    survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
       plants = plants.snapshot(game.plants, world.time().time),
@@ -297,6 +302,32 @@ local function flight_tick(dt)
   for _, h in ipairs(survival.tick(game.survival, game_dt, body)) do
     health.hurt(game.health, h[1], h[2], function(kind) return effects.warded(fx, kind) end)
   end
+  pack.spoil(game.pack, game_dt / 3600, body.air, false)
+  -- Gathering, fire and food (on foot), eating and drinking.
+  local function said(list)
+    local parts = {}
+    for id, n in pairs(list) do parts[#parts + 1] = items.name(id):lower() .. " " .. n end
+    table.sort(parts)
+    return table.concat(parts, ", ")
+  end
+  if w and input.state("gather").pressed then
+    local got, why = harvest.gather(game.pack, { plants = game.plants, smalllife = game.smalllife }, w.pos, now)
+    pack.say(game.pack, got and ("Gathered " .. said(got.items)) or why)
+  end
+  if w and input.state("campfire").pressed then
+    local kg, why = cooking.campfire(game.pack, world.move(w.pos, w.heading, 0.6, 0))
+    pack.say(game.pack, kg and string.format("A campfire of %.1f kg laid: light it", kg) or why)
+  end
+  if w and input.state("cook").pressed then
+    local made, why = cooking.cook(game.pack, w.pos)
+    pack.say(game.pack, made and ("Cooked " .. said(made)) or why)
+  end
+  for action, fn in pairs({ eat = cooking.eat, drink = cooking.drink }) do
+    if input.state(action).pressed then
+      local name, why = fn(game.pack, game.survival)
+      pack.say(game.pack, name and ("You " .. action .. " " .. name:lower()) or why)
+    end
+  end
   if w and input.state("sleep").pressed and not game.health.down then
     local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
     for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
@@ -372,8 +403,8 @@ end
 local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
-  local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), magic.hud_lines(game.magic),
-    fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
+  local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
+    magic.hud_lines(game.magic), fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
@@ -483,4 +514,5 @@ _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
+  pack = pack, harvest = harvest, cooking = cooking,
 }

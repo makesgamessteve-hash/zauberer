@@ -31,6 +31,12 @@ return {
   jump = { type = "button", bind = { "key:space", "gamepad:a", "touch:button:jump" } },
   -- Survival: lie down to sleep (on foot).
   sleep = { type = "button", bind = { "key:l", "touch:button:sleep" } },
+  -- Gathering, fire and food.
+  gather = { type = "button", bind = { "key:t", "touch:button:gather" } },
+  campfire = { type = "button", bind = { "key:b", "touch:button:campfire" } },
+  cook = { type = "button", bind = { "key:k", "touch:button:cook" } },
+  eat = { type = "button", bind = { "key:y", "touch:button:eat" } },
+  drink = { type = "button", bind = { "key:u", "touch:button:drink" } },
   -- Showcase (the carpet seen from an orbiting camera)
   turn = { type = "axis2", bind = { "keys:w,s,a,d", "keys:up,down,left,right", "gamepad:left_stick", "touch:stick:move" } },
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },

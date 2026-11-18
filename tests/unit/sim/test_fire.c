@@ -322,6 +322,38 @@ static void test_heat(void) {
   scene_close(&s);
 }
 
+/* spec: harvest-and-cooking: A campfire */
+static void test_campfire(void) {
+  scene s;
+  scene_open(&s, CHANNEL, 0.0, 0.0);
+  zb_planet_pos camp = offset(&s, -60.0f, 0.0f);
+  zb_fire_cell before, c;
+  zb_fire_cell_at(s.fire, &camp, &before);
+  TEST_ASSERT_TRUE(zb_fire_add_fuel(s.fire, &camp, 0.5, 6.0) >= 1);
+  zb_fire_cell_at(s.fire, &camp, &c);
+  TEST_ASSERT_TRUE(c.fuel > before.fuel + 0.5 && c.moisture < 0.1);
+  TEST_ASSERT_EQUAL_INT(zb_materials_find(g_materials, "wood"), c.material);
+  TEST_ASSERT_EQUAL_INT(0, zb_fire_add_fuel(s.fire, &camp, 0.5, 0.0));
+  /* Lit, it burns a while; burnt out, it takes wood again and burns again. */
+  zb_fire_add_heat(s.fire, &camp, 0.5, 2e7);
+  run(&s, 2.0);
+  zb_fire_cell_at(s.fire, &camp, &c);
+  TEST_ASSERT_TRUE(c.burning);
+  zb_fire_cool(s.fire, &camp, 30.0, 1e12);
+  TEST_ASSERT_TRUE(zb_fire_add_fuel(s.fire, &camp, 0.5, 6.0) >= 1);
+  zb_fire_add_heat(s.fire, &camp, 0.5, 2e7);
+  run(&s, 2.0);
+  zb_fire_cell_at(s.fire, &camp, &c);
+  TEST_ASSERT_TRUE_MESSAGE(c.burning, "relit");
+  zb_fire_cool(s.fire, &camp, 30.0, 1e12);
+  /* Not on water. */
+  zb_planet_pos river = offset(&s, 32.0f, 0.0f);
+  zb_fire_cell_at(s.fire, &river, &c);
+  TEST_ASSERT_TRUE(c.water);
+  TEST_ASSERT_EQUAL_INT(0, zb_fire_add_fuel(s.fire, &river, 0.3, 6.0));
+  scene_close(&s);
+}
+
 /* spec: simulation-tiers: Fires catch up when their chunk returns */
 static void test_catch_up(void) {
   scene s;
@@ -434,6 +466,7 @@ int main(void) {
   RUN_TEST(test_water_and_rain);
   RUN_TEST(test_embers);
   RUN_TEST(test_heat);
+  RUN_TEST(test_campfire);
   RUN_TEST(test_local_wind);
   RUN_TEST(test_catch_up);
   RUN_TEST(test_deterministic);
