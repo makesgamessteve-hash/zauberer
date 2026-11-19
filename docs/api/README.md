@@ -925,7 +925,7 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `version` | `string` | Engine version, e.g. "0.1.0" |
+| `version` | `string` | Engine version, e.g. "1.0.0-rc.1" |
 | `api` | `string` | Scripting API version, e.g. "1.0" |
 | `platform` | `string` | "windows", "linux", "macos", "web" or "web-node" |
 | `build` | `string` | "development" or "release" |

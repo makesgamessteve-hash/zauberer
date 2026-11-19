@@ -48,7 +48,7 @@
 ---@field dir boolean Whether it is a directory
 
 ---@class EngineInfo
----@field version string Engine version, e.g. "0.1.0"
+---@field version string Engine version, e.g. "1.0.0-rc.1"
 ---@field api string Scripting API version, e.g. "1.0"
 ---@field platform string "windows", "linux", "macos", "web" or "web-node"
 ---@field build string "development" or "release"

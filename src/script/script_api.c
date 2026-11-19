@@ -19,7 +19,7 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
 /* ---- API types (documentation, see tools/gen_api_docs.py) ---------------------
  *
  * @luaclass EngineInfo
- * @field version string Engine version, e.g. "0.1.0"
+ * @field version string Engine version, e.g. "1.0.0-rc.1"
  * @field api string Scripting API version, e.g. "1.0"
  * @field platform string "windows", "linux", "macos", "web" or "web-node"
  * @field build string "development" or "release"

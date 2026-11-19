@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "core/log.h"
 #include "core/memfs.h"
+#include "core/version.h"
 #include "net/relay.h"
 #include "net/session.h"
 #include "net/socket.h"
@@ -545,8 +546,8 @@ static void test_engine_info(void) {
           "_G.ver = engine.version .. '/' .. engine.api_version\n");
   start();
   run();
-  TEST_ASSERT_EQUAL_STRING("testos|development|touch|1280x720|99|0.1.0|1.0", gstr("info"));
-  TEST_ASSERT_EQUAL_STRING("0.1.0/1.0", gstr("ver"));
+  TEST_ASSERT_EQUAL_STRING("testos|development|touch|1280x720|99|" ZB_VERSION "|" ZB_API_VERSION, gstr("info"));
+  TEST_ASSERT_EQUAL_STRING(ZB_VERSION "/" ZB_API_VERSION, gstr("ver"));
 }
 
 static void test_engine_info_without_host(void) {
