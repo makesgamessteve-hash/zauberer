@@ -2,6 +2,13 @@
 -- Attribution for every asset file of this package (checked by tools/check_credits.py).
 return {
   { file = "fonts/pixel.png", author = "Zauberer contributors", source = "tools/gen/gen_font.py", license = "CC-BY-4.0" },
+  { file = "fonts/script_nastal.png", author = "Zauberer contributors", source = "tools/gen/gen_scripts.py", license = "CC-BY-4.0" },
+  { file = "fonts/script_qalam.png", author = "Zauberer contributors", source = "tools/gen/gen_scripts.py", license = "CC-BY-4.0" },
+  { file = "fonts/script_khachar.png", author = "Zauberer contributors", source = "tools/gen/gen_scripts.py", license = "CC-BY-4.0" },
+  { file = "fonts/script_runic.png", author = "Zauberer contributors", source = "tools/gen/gen_scripts.py", license = "CC-BY-4.0" },
+  { file = "fonts/script_tifin.png", author = "Zauberer contributors", source = "tools/gen/gen_scripts.py", license = "CC-BY-4.0" },
+  { file = "fonts/script_akshara.png", author = "Zauberer contributors", source = "tools/gen/gen_scripts.py", license = "CC-BY-4.0" },
+  { file = "fonts/script_brush.png", author = "Zauberer contributors", source = "tools/gen/gen_scripts.py", license = "CC-BY-4.0" },
   { file = "sprites/flame.png", author = "Zauberer contributors", source = "tools/gen/gen_sprites.py", license = "CC-BY-4.0" },
   { file = "sprites/mote.png", author = "Zauberer contributors", source = "tools/gen/gen_sprites.py", license = "CC-BY-4.0" },
   { file = "sprites/rain.png", author = "Zauberer contributors", source = "tools/gen/gen_sprites.py", license = "CC-BY-4.0" },

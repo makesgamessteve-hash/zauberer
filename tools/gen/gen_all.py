@@ -9,6 +9,7 @@ sys.path.insert(0, HERE)
 import gen_carpet  # noqa: E402
 import gen_flora  # noqa: E402
 import gen_font  # noqa: E402
+import gen_scripts  # noqa: E402
 import gen_home  # noqa: E402
 import gen_ornaments  # noqa: E402
 import gen_palette  # noqa: E402
@@ -19,6 +20,7 @@ import gen_terrain  # noqa: E402
 
 def main(base):
     gen_font.main(os.path.join(base, "fonts"))
+    gen_scripts.main(os.path.join(base, "fonts"))
     gen_sprites.main(os.path.join(base, "sprites"))
     gen_flora.main(os.path.join(base, "sprites"))
     gen_carpet.main(os.path.join(base, "models", "carpet.glb"))

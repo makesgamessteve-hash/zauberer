@@ -1,0 +1,118 @@
+-- SPDX-License-Identifier: MIT
+-- Unit tests of the people modules' pure parts (people/rng, land.class,
+-- language, history, job); the peopled world is tested in
+-- tests/scenarios/peoples.lua.
+local rng = require("people.rng")
+local land = require("people.land")
+local language = require("people.language")
+local peopling = require("people.peopling")
+local history = require("people.history")
+local job = require("people.job")
+
+test.case("the classes of land", function()
+  test.expect_eq(land.class(-20, 500, 100, 10), "ice")
+  test.expect_eq(land.class(10, 100, 100, 10), "desert")
+  test.expect_eq(land.class(10, 300, 3000, 10), "mountain")
+  test.expect_eq(land.class(25, 2500, 100, 10), "rainforest")
+  test.expect_eq(land.class(20, 1500, 50, 10), "swamp")
+  test.expect_eq(land.class(-3, 400, 100, 10), "tundra")
+  test.expect_eq(land.class(25, 600, 400, 10), "savanna")
+  test.expect_eq(land.class(10, 600, 400, 10), "grassland")
+  test.expect_eq(land.class(10, 300, 400, 10), "steppe")
+  test.expect_eq(land.class(10, 600, 400, 10, "Mixed forest"), "forest")
+  test.expect_eq(land.class(10, 600, 400, 10, "boreal taiga"), "forest")
+  test.expect_eq(land.class(10, 600, 400, 10, "alpine meadow"), "grassland")
+  test.expect_eq(land.class(10, 600, 400, 10, "hot desert"), "desert")
+  test.expect_eq(land.class(10, 600, 400, 10, "unknownbiome"), "grassland")
+  test.expect(land.size(2000000) == 31 and land.size(10000) == 4)
+end)
+
+test.case("long work in slices", function()
+  local seen = {}
+  local j = job.new(function(n)
+    for i = 1, n do
+      seen[#seen + 1] = i
+      job.pace(job.SLICE)
+    end
+    return "done", n
+  end, 3)
+  test.expect(not job.run(j, 1) and #seen == 1)
+  test.expect(job.run(j) and j.result == "done" and j.extra == 3 and #seen == 3 and j.slices == 4)
+  job.pace(job.SLICE * 2) -- outside a job: nothing happens
+  local bad = job.new(function() error("broken") end)
+  test.expect_error(function() job.run(bad) end, "broken")
+  test.expect(bad.done and bad.error:find("broken", 1, true))
+end)
+
+test.case("counter-based randomness", function()
+  test.expect_eq(rng.hash(1, "a", 2), rng.hash(1, "a", 2))
+  test.expect(rng.hash(1, "a", 2) ~= rng.hash(1, "a", 3) and rng.hash(1, 2.5) ~= rng.hash(1, 2))
+  local s, t = rng.new(7), rng.new(7)
+  local v = s:int(3, 9)
+  test.expect(v >= 3 and v <= 9 and v == t:int(3, 9))
+  test.expect(s:chance(1) and not s:chance(0))
+  test.expect_eq(s:weighted({ { "x", 0 }, { "y", 5 } }), "y")
+  test.expect_eq(s:weighted({ z = 0, y = 3 }), "y")
+  test.expect_eq(s:weighted({ { "only", 0 } }), "only")
+  local list = s:shuffle({ 1, 2, 3, 4 })
+  table.sort(list)
+  test.expect_eq(table.concat(list, ","), "1,2,3,4")
+  test.expect(rng.float(3) >= 0 and rng.float(3) < 1)
+end)
+
+test.case("languages: sounds of a family, daughters sharing roots, names", function()
+  local fam = peopling.data().family.persianate
+  local proto = language.new(1, "p", fam)
+  local a = language.derive(proto, 1, "a", 2)
+  local b = language.derive(proto, 1, "b", 2)
+  local other = language.new(2, "q", peopling.data().family.steppe)
+  test.expect_eq(language.root(proto, "water"), language.root(proto, "water"))
+  test.expect(language.kinship(a, b) > 0 and language.kinship(a, b) < 1 and language.kinship(a, a) == 1)
+  test.expect_eq(language.kinship(a, other), 0)
+  test.expect(language.kinship(proto, a) > language.kinship(a, b))
+  local shared = 0
+  for _, m in ipairs(language.MEANINGS) do
+    if language.root(a, m) == language.root(b, m) then shared = shared + 1 end
+  end
+  test.expect(shared > 5, "related languages share roots")
+  local town = language.name(a, "settlement", 7)
+  test.expect(town:match("^%u%l+$"), town)
+  test.expect(language.name(a, "settlement", 7) == town and language.name(a, "settlement", 8) ~= town)
+  test.expect(language.name(proto, "river", 1, "water"):match("^%u"))
+  test.expect(language.name(proto, "person", 3):match("^%u%l+$"))
+  local words, gloss = language.phrase(proto, { "light", "weave" })
+  test.expect(words:find(" ", 1, true) and gloss == "light weave")
+  test.expect_eq(language.tidy("znuedztechh"), "znuedztech")
+  test.expect_eq(language.tidy("aaab"), "aab")
+  test.expect_eq(language.tidy("khshtra"), "khsha")
+end)
+
+test.case("the history database: ids, events, pruning, snapshot", function()
+  local h = history.new(1000)
+  local a = history.add(h, "culture", { name = "A" })
+  local b = history.add(h, "polity", { name = "B" })
+  test.expect(a.id == "culture:1" and b.id == "polity:1" and history.get(h, "culture:1") == a)
+  test.expect_error(function() history.add(h, "dragon", {}) end, "unknown kind")
+  test.expect_error(function() history.event(h, { kind = "war" }) end, "year")
+  local e1 = history.event(h, { year = 900, kind = "skirmish", participants = { b.id }, importance = 0.1 })
+  history.event(h, { year = 950, kind = "skirmish", participants = { b.id }, importance = 0.1 })
+  local kept = history.event(h, { year = 990, kind = "raid", participants = { b.id }, importance = 0.1 })
+  local cause = history.event(h, { year = 800, kind = "insult", participants = { a.id }, importance = 0 })
+  local war = history.event(h, { year = 960, kind = "war", participants = { a.id, b.id }, importance = 0.9,
+    cause = cause.id })
+  history.refer(h, kept.id)
+  test.expect_eq(#history.events(h, { participant = b.id }), 4)
+  test.expect_eq(#history.events(h, { kind = "war" }), 1)
+  test.expect_eq(#history.events(h, { place = "nowhere" }), 0)
+  test.expect_eq(history.prune(h, 0.3), 2)
+  test.expect(history.get(h, war.id) and history.get(h, kept.id) and history.get(h, cause.id))
+  test.expect(not history.get(h, e1.id))
+  local summary = history.events(h, { kind = "summary" })[1]
+  test.expect_eq(summary.title, "border skirmishes, 900-950")
+  test.expect_eq(history.summary_title({ kind = "omen", from = 5, to = 5 }), "omens, 5")
+  local back = history.restore(history.snapshot(h))
+  test.expect(back and history.get(back, war.id).year == 960 and history.get(back, "culture:1").name == "A")
+  test.expect(history.restore({}) == nil and history.restore(nil) == nil)
+  back = history.restore({ year = 5, events = { 3, { id = "event:9", year = 1, kind = "x" } } })
+  test.expect(#back.events == 1 and back.next_event == 3)
+end)
