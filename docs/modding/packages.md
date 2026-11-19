@@ -128,3 +128,48 @@ Lua tests use `test.case`, `test.expect`, `test.expect_eq`, `test.expect_near` a
 `test.expect_error`; `require` loads your package's modules. Scenarios step the
 simulation (`step(n)`), inject input (`input.inject`) and check results with `expect`; the
 process exits with a non-zero code when an expectation fails.
+
+## Languages
+
+A package can add text in any language, and can add languages. Put string tables in
+`locale/<code>/` (any file name except `language.lua`); the tables of every package are
+merged. A new language also needs `locale/<code>/language.lua`:
+
+```lua
+return { name = "Türkçe", plural = "one_other" } -- plural rules: one_other, one_few_many, other
+```
+
+Keys are the English text as the game shows it, or format frames that match whole lines:
+
+```lua
+return {
+  ["Rune stones: %d glowing"] = "Runensteine: %d leuchten",
+  ["%s and %s"] = "{2} und {1}",                       -- {n}: values in another order
+  ["%d stones"] = { one = "%d Stein", other = "%d Steine" },
+}
+```
+
+Values a frame captures are translated in turn (item and species names, lists of them).
+Generated names of people and places are never translated. To find text without an entry,
+run a scenario in your language and collect what was shown untranslated:
+
+```lua
+local i18n = require("ui.i18n")
+i18n.set("de")
+i18n.collect(true)
+-- ... play ...
+for _, text in ipairs(i18n.collect(false)) do engine.log("info", "untranslated: " .. text) end
+```
+
+## Turning packages off
+
+Players turn packages on and off in the game's menu (Escape, Packages). The choice is kept
+in `config.lua` and takes effect at the next start; packages that require one that is
+turned off are disabled with it. Scripts can do the same with
+`engine.set_package_enabled(id, on)`; the base game cannot be turned off.
+
+## The game's extension API and the example mod
+
+The engine API (`render`, `world`, `sim`, …) is the same for every package. The base game
+adds its own API for mods, the global `zauberer`: see [The game's API for mods](game-api.md),
+and [the example mod](example-mod.md) that uses it.

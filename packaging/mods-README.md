@@ -9,6 +9,9 @@ dependencies require.
 Mods can also live in the `mods/` folder of your user data (`%APPDATA%/Zauberer`,
 `$XDG_DATA_HOME/zauberer` or `~/Library/Application Support/Zauberer`).
 
+An example mod is in `examples/lantern-moths/`: copy that folder here to try it, and read
+`examples/example-mod.md`. Escape, Packages in the game turns mods off and on.
+
 Mods are code: install only mods you trust. How to make one is described in
 `docs/modding/packages.md` in the source repository:
 <https://github.com/makesgamessteve-hash/zauberer/blob/main/docs/modding/packages.md>

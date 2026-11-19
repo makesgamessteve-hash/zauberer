@@ -51,6 +51,13 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/mods/README.md")
   install(FILES "${PROJECT_SOURCE_DIR}/packaging/mods-README.md" DESTINATION mods RENAME README.md)
 endif()
 
+# examples/: the example mod (copy it into mods/ to try it) and its guide.
+if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/examples")
+  install(DIRECTORY "${PROJECT_SOURCE_DIR}/examples/" DESTINATION examples PATTERN ".*" EXCLUDE)
+  install(FILES "${PROJECT_SOURCE_DIR}/docs/modding/example-mod.md" "${PROJECT_SOURCE_DIR}/docs/modding/game-api.md"
+    "${PROJECT_SOURCE_DIR}/docs/modding/packages.md" DESTINATION examples)
+endif()
+
 install(FILES "${PROJECT_SOURCE_DIR}/LICENSE" "${PROJECT_SOURCE_DIR}/README.md"
   "${PROJECT_SOURCE_DIR}/CHANGELOG.md" "${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md" DESTINATION .)
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/LICENSES/" DESTINATION LICENSES)

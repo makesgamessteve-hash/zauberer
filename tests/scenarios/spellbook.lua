@@ -69,7 +69,7 @@ end
 step(6)
 expect_eq(p.free.form, "circle", "the drawn form")
 expect(#magic.sights(p).trail == 0, "no trail once drawn")
-expect(hud_has("Free weave: unmake fire circle"))
+expect(hud_has("Free weave: unmake *fire circle"))
 input.inject("cast_left", 1, 0, 40)
 step(45)
 r = game.last_cast

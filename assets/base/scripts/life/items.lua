@@ -61,6 +61,20 @@ end
 
 function items.get(id) return items.all()[id] end
 
+-- Adds an item from a mod (checked like data/items.lua; an id may not be taken
+-- twice). Returns true, or nil and what is wrong.
+function items.add(def)
+  local all = items.all()
+  if type(def) ~= "table" then return nil, "an item must be a table" end
+  if all[def.id] then return nil, "item " .. tostring(def.id) .. ": twice" end
+  local list = { def }
+  for _, it in pairs(all) do list[#list + 1] = it end
+  local ok, why = items.check(list)
+  if not ok then return nil, why end
+  all[def.id] = def
+  return true
+end
+
 function items.name(id)
   local it = items.get(id)
   return it and it.name or id

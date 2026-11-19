@@ -169,16 +169,45 @@ def nearest(rgb):
     return best
 
 
-def lut_rows():
+# Colour vision (accessibility): the image is corrected for a kind of colour
+# blindness by daltonisation - the colours such an eye cannot tell apart are
+# simulated in LMS cone space and the error is moved into channels it sees.
+RGB_TO_LMS = ((17.8824, 43.5161, 4.11935), (3.45565, 27.1554, 3.86714), (0.0299566, 0.184309, 1.46709))
+LMS_TO_RGB = ((0.0809444479, -0.130504409, 0.116721066), (-0.0102485335, 0.0540193266, -0.113614708),
+              (-0.000365296938, -0.00412161469, 0.693511405))
+CVD = {
+    "protanopia": ((0.0, 2.02344, -2.52581), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)),
+    "deuteranopia": ((1.0, 0.0, 0.0), (0.494207, 0.0, 1.24827), (0.0, 0.0, 1.0)),
+    "tritanopia": ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (-0.395913, 0.801109, 0.0)),
+}
+ERROR_SHIFT = ((0.0, 0.0, 0.0), (0.7, 1.0, 0.0), (0.7, 0.0, 1.0))
+
+
+def _mul(m, v):
+    return tuple(m[i][0] * v[0] + m[i][1] * v[1] + m[i][2] * v[2] for i in range(3))
+
+
+def daltonize(rgb, kind):
+    """The colour corrected for a kind of colour blindness (None: unchanged)."""
+    if kind is None:
+        return rgb
+    seen = _mul(LMS_TO_RGB, _mul(CVD[kind], _mul(RGB_TO_LMS, rgb)))
+    error = tuple(a - b for a, b in zip(rgb, seen))
+    shift = _mul(ERROR_SHIFT, error)
+    return tuple(max(0, min(255, int(round(c + d)))) for c, d in zip(rgb, shift))
+
+
+def lut_rows(kind=None):
     """The 32x32x32 lookup table as 32 rows of 1024 RGBA pixels: pixel (x, y)
-    is colour (r = x % 32, g = y, b = x // 32) on the 5-bit grid."""
+    is colour (r = x % 32, g = y, b = x // 32) on the 5-bit grid; kind
+    corrects it for a kind of colour blindness first."""
     levels = [grid_value(v) for v in range(LUT_SIZE)]
     rows = []
     for g in range(LUT_SIZE):
         row = []
         for b in range(LUT_SIZE):
             for r in range(LUT_SIZE):
-                color = PALETTE[nearest((levels[r], levels[g], levels[b]))]
+                color = PALETTE[nearest(daltonize((levels[r], levels[g], levels[b]), kind))]
                 row.append(color + (255,))
         rows.append(row)
     return rows
@@ -208,6 +237,8 @@ def main(out_dir):
     os.makedirs(out_dir, exist_ok=True)
     write_png(os.path.join(out_dir, "base.png"), len(PALETTE), 1, [[c + (255,) for c in PALETTE]])
     write_png(os.path.join(out_dir, "base_lut.png"), LUT_SIZE * LUT_SIZE, LUT_SIZE, lut_rows())
+    for kind in sorted(CVD):
+        write_png(os.path.join(out_dir, "base_lut_%s.png" % kind), LUT_SIZE * LUT_SIZE, LUT_SIZE, lut_rows(kind))
     matrix = bayer(8)
     write_png(os.path.join(out_dir, "bayer8.png"), 8, 8,
               [[(v * 4 + 2,) * 3 + (255,) for v in row] for row in matrix])

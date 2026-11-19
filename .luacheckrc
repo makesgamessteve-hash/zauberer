@@ -3,7 +3,7 @@
 std = "lua54"
 max_line_length = 120
 read_globals = { "engine", "render", "audio", "input", "vfs", "save", "world", "net", "xr", "registry", "sim", "mana", "gesture" }
-globals = { "demo" }
+globals = { "demo", "zauberer" } -- (zauberer: the game's API for mods, defined by the base game)
 exclude_files = { "third_party/**", "build/**", "build-*/**" }
 
 files["assets/*/package.lua"] = { std = "lua54" }
@@ -19,8 +19,11 @@ files["tests/fixtures/scenarios/**"] = {
 files["tests/fixtures/mods/broken/package.lua"] = { only = {} } -- deliberately not a literal table
 files["tests/fixtures/mods/failing_hook/**"] = { globals = { "failing_hook_ticks" } }
 files["tests/fixtures/mods/xr_events/**"] = { globals = { "xr_events" } }
--- Data tables (credits, bindings, notices) keep one entry per line.
+-- Data tables (credits, bindings, notices, string tables, generated fonts) keep one entry per line.
 files["assets/*/credits.lua"] = { max_line_length = false }
+files["assets/*/locale/**"] = { max_line_length = false }
+files["assets/*/fonts/**"] = { max_line_length = false }
+files["examples/*/tests/**"] = { read_globals = { "test" } }
 files["assets/*/data/**"] = { max_line_length = false }
 -- Saves kept exactly as the game wrote them.
 files["tests/fixtures/saves/**"] = { max_line_length = false }

@@ -47,6 +47,11 @@ local prologue = require("story.prologue")
 local coopplay = require("coop.play")
 local saga = require("story.saga")
 local weave = require("coop.weave")
+local text = require("ui.text")
+local settings = require("ui.settings")
+local access = require("ui.access")
+local menu = require("ui.menu")
+local modapi = require("mods.api")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -131,7 +136,7 @@ local function setup_flight()
   render.light({ direction = { -SUN[1], -SUN[2], -SUN[3] }, color = { 1, 0.95, 0.85 }, ambient = { 0.38, 0.4, 0.48 } })
   render.atmosphere({ zenith = { 0.2, 0.4, 0.78 }, horizon = { 0.72, 0.8, 0.88 }, sun = SUN,
     sun_color = { 1, 0.95, 0.8 }, fog_distance = 12000 })
-  render.palette({})
+  render.palette(access.palette())
   render.daylight(true) -- the sun, the moon and the seasons over the carpet
   world.set_focus(1, game.carpet.pos, { 0, 0, 0 }, carpet.forward(game.carpet))
 end
@@ -140,7 +145,7 @@ local function setup_create()
   world.clear_focus(1)
   render.daylight(false)
   render.atmosphere(false)
-  render.palette({})
+  render.palette(access.palette())
   render.clear_color(0.02, 0.02, 0.06)
   render.light({ direction = { -0.5, -0.3, -0.8 }, color = { 1, 0.95, 0.85 }, ambient = { 0.25, 0.25, 0.32 } })
   local options = game.world_options or {}
@@ -241,6 +246,7 @@ engine.on("init", function()
     assets[kind] = render.sprite("sprites/" .. kind .. ".lua")
   end
   assets.font = render.font("fonts/pixel.lua")
+  game.setup_ui()
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
   game.credits = engine.credits()
   local saved = save.get("world")
@@ -266,11 +272,59 @@ local function handle(ev)
     game.fullscreen = not game.fullscreen
     engine.set_fullscreen(game.fullscreen)
   elseif ev == "quit" then
-    if game.mode == "flight" then
-      game.save()
-    end
-    engine.quit()
+    game.quit_to_desktop()
   end
+end
+
+-- The player's settings (language, accessibility), the input they shape and
+-- the menu (again after a script reload in development).
+function game.setup_ui()
+  if game.menu then return end
+  game.settings = settings.load(engine.info().language)
+  if not input.raw_state then access.wrap_input(input, menu.ACTIONS) end
+  game.menu = menu.new(game.settings, {
+    quit = function() game.quit_to_desktop() end,
+    resume = function() access.block(false) end,
+    packages = engine.packages,
+    set_package = engine.set_package_enabled,
+  })
+  game.captions = access.captions_new()
+  settings.listeners[#settings.listeners + 1] = function(s, name)
+    if name == "survival" and game.survival then game.survival.preset = s.survival end
+    if name == "colour_vision" and game.mode ~= "showcase" then render.palette(access.palette()) end
+  end
+end
+
+-- Sound captions: lightning, fire close by and calling creatures, with the side they are on.
+local function bearing(from, to)
+  local a, b = world.to_local(from), world.to_local(to)
+  return math.atan(b[1] - a[1], a[3] - b[3]) % (2 * math.pi)
+end
+
+function game.listen()
+  local now = world.time().time
+  if not access.option("captions") or (game.captions.next_listen or 0) > now or not game.carpet then return end
+  local me = (game.walker and game.walker.pos) or game.carpet.pos
+  local heading = (game.walker and game.walker.heading) or game.carpet.heading or 0
+  local fires, creatures = {}, {}
+  for k = 0, 7 do
+    local b = k * math.pi / 4
+    if sim.fire_at(world.move(me, b, 20)).burning then fires[#fires + 1] = b end
+  end
+  for _, id in ipairs(sim.creatures_near(me, 80)) do
+    local cr = sim.creature(id)
+    if cr then creatures[#creatures + 1] = { species = cr.species, alive = cr.alive, bearing = bearing(me, cr.pos) } end
+  end
+  access.listen(game.captions, now, { heading = heading, strikes = sim.weather().strikes, fires = fires,
+    creatures = creatures })
+end
+
+-- Saves (in flight) and ends the game.
+function game.quit_to_desktop()
+  if game.mode == "flight" then
+    game.save()
+  end
+  engine.quit()
 end
 
 local function showcase_tick(dt)
@@ -441,7 +495,19 @@ local function flight_tick(dt)
   if game.flight_ticks % AUTOSAVE_TICKS == 0 then
     game.save()
   end
+  game.setup_ui()
   local st = controls.read()
+  -- Escape opens the menu; while it is open the heir's own actions are idle (the world goes on).
+  if game.menu.open then
+    menu.tick(game.menu, input.state, dt)
+    access.block(game.menu.open)
+  elseif st.quit and st.quit.pressed then
+    menu.toggle(game.menu)
+    access.block(true)
+    st = controls.read()
+  end
+  game.listen()
+  modapi.tick(game.mods, dt)
   if game.tent and game.tent.inside and game.walker then
     home_tick(dt, st)
     return
@@ -861,8 +927,8 @@ local function flight_tick(dt)
   if co.role == "none" then
     for p = 2, 4 do world.clear_focus(p) end
   end
-  -- The shared buttons keep their showcase meaning (chime, credits, fullscreen, quit).
-  for _, name in ipairs({ "chime", "fullscreen", "quit" }) do
+  -- The shared buttons keep their showcase meaning (chime, credits, fullscreen); Escape is the menu's.
+  for _, name in ipairs({ "chime", "fullscreen" }) do
     if st[name] and st[name].pressed then
       handle(name)
     end
@@ -896,15 +962,20 @@ end)
 
 local function draw_hud(lines)
   if not game.hud then return end
+  if game.menu and game.menu.open then
+    local credits = {}
+    for _, c in ipairs(game.credits or {}) do credits[#credits + 1] = { raw = hud.credit_line(c) } end
+    text.lines(assets.font, menu.lines(game.menu, credits), hud.color)
+    return
+  end
+  for _, line in ipairs(access.caption_lines(game.captions, world.time().time)) do lines[#lines + 1] = line end
   if game.state.credits then
     lines[#lines + 1] = "Credits:"
     for _, c in ipairs(game.credits or {}) do
-      lines[#lines + 1] = hud.credit_line(c)
+      lines[#lines + 1] = { raw = hud.credit_line(c) }
     end
   end
-  for i, line in ipairs(lines) do
-    render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
-  end
+  text.lines(assets.font, lines, hud.color)
 end
 
 -- The HUD in flight: the carpet, health, magic, creatures and motes.
@@ -921,9 +992,19 @@ local function flight_lines()
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
   if game.channeling then lines[#lines + 1] = "Channeling" end
+  for _, line in ipairs(modapi.hud_lines(game.mods)) do lines[#lines + 1] = line end
   if game.saga then
-    for _, line in ipairs(saga.hud_lines(game.saga, (game.walker and game.walker.pos) or c.pos)) do
+    local at = (game.walker and game.walker.pos) or c.pos
+    for _, line in ipairs(saga.hud_lines(game.saga, at)) do
       lines[#lines + 1] = line
+    end
+    for _, m in ipairs(require("story.narrative").data().circle) do -- the next of the Circle to find
+      local site = game.saga.N.sites[m.id]
+      if site and not game.saga.N.remnants[m.id] then
+        local marker = access.marker(site.name, require("people.npcs").directions(at, site.pos))
+        if marker then lines[#lines + 1] = marker end
+        break
+      end
     end
   elseif game.story then
     for _, line in ipairs(prologue.hud_lines(game.story)) do lines[#lines + 1] = line end
@@ -990,10 +1071,11 @@ local function flight_frame()
     render.camera(game.camera_override())
   elseif game.walker then -- on foot: out of the eyes
     local eye, target = walker.view(game.walker)
-    render.camera({ eye = eye, target = target, up = world.up_at(game.walker.pos), fov = 70, near = 0.1, far = 30000 })
+    render.camera({ eye = eye, target = target, up = world.up_at(game.walker.pos), fov = access.fov(70), near = 0.1,
+      far = 30000 })
   else
     local eye, target = camera.view(game.chase, p, c.heading, up, dt)
-    render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
+    render.camera({ eye = eye, target = target, up = up, fov = access.fov(70) - 5, near = 0.5, far = 30000 })
   end
   if game.tent then
     local tp = world.to_local(game.tent.pos)
@@ -1038,10 +1120,7 @@ end
 local function create_frame()
   render.camera({ eye = { 0, 0.4, 3.2 }, target = { 0, 0, 0 }, fov = 45, near = 0.1, far = 10 })
   world.draw_globe(nil, { 0, 0, 0 }, 1, game.creation.spin)
-  local lines = creation.lines(game.creation)
-  for i, line in ipairs(lines) do
-    render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
-  end
+  text.lines(assets.font, creation.lines(game.creation), hud.color)
 end
 
 local function showcase_frame()
@@ -1058,9 +1137,7 @@ local function showcase_frame()
   end
   if game.hud then
     local info = engine.info()
-    for i, line in ipairs(hud.lines(s, input.mode(), info, game.credits)) do
-      render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
-    end
+    text.lines(assets.font, hud.lines(s, input.mode(), info, game.credits), hud.color)
   end
 end
 
@@ -1090,6 +1167,19 @@ engine.on("event", function(name, args)
     game.drawable = { args.width, args.height }
   end
 end)
+
+-- The extension API for mods (docs/modding/game-api.md), shared through _G.
+game.mods = modapi.new({
+  pack = function() return game.pack end,
+  say = function(message) if game.pack then pack.say(game.pack, message) end end,
+  player = function()
+    local c, w = game.carpet, game.walker
+    local pos = (w and w.pos) or (c and c.pos)
+    local sky = pos and world.sky(pos)
+    return { pos = pos, on_foot = w ~= nil, night = sky ~= nil and sky.daylight < 0.2, time = world.time().time }
+  end,
+})
+_G.zauberer = game.mods.public
 
 -- Exposed for scenario tests.
 _G.demo = {

@@ -119,15 +119,100 @@ GLYPHS = {
 COLUMNS = 16
 CELL = 8
 
+# Extended Latin: letters with diacritics are composed from the base letters
+# above and a one-row mark (over a small letter, or over a capital squeezed
+# into five rows); marks below the line take the cell's eighth row.
+MARKS = {
+    "\u0300": 0x08, "\u0301": 0x02, "\u0302": 0x0E, "\u0303": 0x0D, "\u0304": 0x1F, "\u0306": 0x11,
+    "\u0307": 0x04, "\u0308": 0x0A, "\u030a": 0x04, "\u030b": 0x05, "\u030c": 0x0A,
+}
+MARKS_BELOW = {"\u0327": 0x04, "\u0326": 0x04, "\u0328": 0x02}  # cedilla, comma below, ogonek
+EXTENDED = (
+    "ÀÁÂÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÙÚÛÝàáâãåçèéêëìíîïñòóôõùúûýÿ"
+    "ĀāĂăĄąĆćĈĉĊċČčĎďĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĨĩĪīĬĭĮįİĴĵĶķĹĺĻļĽľŃńŅņŇňŌōŎŏŐőŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžȘșȚț"
+)
+# Letters and signs that are not a base letter and a mark.
+SPECIAL = {
+    "\u0131": [0x00, 0x00, 0x0C, 0x04, 0x04, 0x04, 0x0E],  # dotless i
+    "\u00f8": [0x00, 0x01, 0x0E, 0x13, 0x15, 0x19, 0x0E],  # o with stroke
+    "\u00d8": [0x0F, 0x13, 0x15, 0x15, 0x15, 0x19, 0x1E],
+    "\u00e6": [0x00, 0x00, 0x1A, 0x05, 0x1F, 0x14, 0x1B],  # ae
+    "\u00c6": [0x0F, 0x14, 0x14, 0x1F, 0x14, 0x14, 0x17],
+    "\u0153": [0x00, 0x00, 0x1A, 0x15, 0x17, 0x14, 0x1B],  # oe
+    "\u0152": [0x0F, 0x14, 0x14, 0x17, 0x14, 0x14, 0x0F],
+    "\u0142": [0x0C, 0x04, 0x06, 0x0C, 0x04, 0x04, 0x0E],  # l with stroke
+    "\u0141": [0x10, 0x10, 0x14, 0x18, 0x10, 0x10, 0x1F],
+    "\u0111": [0x01, 0x07, 0x0D, 0x13, 0x11, 0x11, 0x0F],  # d with stroke
+    "\u0110": [0x1C, 0x12, 0x11, 0x1D, 0x11, 0x12, 0x1C],
+    "\u00f0": [0x0A, 0x04, 0x0A, 0x0F, 0x11, 0x11, 0x0E],  # eth
+    "\u00d0": [0x1C, 0x12, 0x11, 0x1D, 0x11, 0x12, 0x1C],
+    "\u00fe": [0x10, 0x10, 0x1E, 0x11, 0x1E, 0x10, 0x10],  # thorn
+    "\u00de": [0x10, 0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10],
+    "\u00a1": [0x04, 0x00, 0x04, 0x04, 0x04, 0x04, 0x04],  # inverted !
+    "\u00bf": [0x04, 0x00, 0x04, 0x08, 0x10, 0x11, 0x0E],  # inverted ?
+    "\u00ab": [0x00, 0x05, 0x0A, 0x14, 0x0A, 0x05, 0x00],  # << quotes
+    "\u00bb": [0x00, 0x14, 0x0A, 0x05, 0x0A, 0x14, 0x00],
+    "\u201e": [0x00, 0x00, 0x00, 0x00, 0x1B, 0x09, 0x12],  # low double quote
+    "\u201c": [0x09, 0x12, 0x1B, 0x00, 0x00, 0x00, 0x00],
+    "\u201d": [0x1B, 0x09, 0x12, 0x00, 0x00, 0x00, 0x00],
+    "\u2018": [0x04, 0x08, 0x0C, 0x00, 0x00, 0x00, 0x00],
+    "\u2019": [0x0C, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00],
+    "\u201a": [0x00, 0x00, 0x00, 0x00, 0x0C, 0x04, 0x08],
+    "\u2013": [0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00],  # en dash
+    "\u2014": [0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00],  # em dash
+    "\u2026": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x15],  # ellipsis
+    "\u20ac": [0x07, 0x08, 0x1E, 0x08, 0x1E, 0x08, 0x07],  # euro
+    "\u00b0": [0x0C, 0x12, 0x12, 0x0C, 0x00, 0x00, 0x00],  # degree
+    "\u00b7": [0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00],  # middle dot
+    "\u00d7": [0x00, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x00],  # times
+}
+SQUEEZE = (0, 2, 3, 4, 6)  # the rows a capital keeps under a mark
+
+
+def compose(ch):
+    """A glyph (7 or 8 rows) for a letter with diacritics, or None."""
+    import unicodedata
+    parts = unicodedata.normalize("NFD", ch)
+    base, marks = parts[0], parts[1:]
+    if base not in GLYPHS or not marks:
+        return None
+    rows = list(GLYPHS[base]) + [0]
+    for m in marks:
+        if m in MARKS_BELOW:
+            rows[7] |= MARKS_BELOW[m]
+        elif base.isupper():
+            squeezed = [GLYPHS[base][r] for r in SQUEEZE]
+            rows = [MARKS[m], 0] + squeezed + [rows[7]]
+        elif base in "dlt" and rows[0]:  # a caron beside a tall letter
+            rows[0] |= 0x01
+            rows[1] |= 0x01
+        else:  # small letters (i and j lose their dot to the mark)
+            rows[0] = MARKS[m]
+    return rows if rows[7] else rows[:7]
+
+
+def all_glyphs():
+    glyphs = dict(GLYPHS)
+    replacement = glyphs.pop("\u25a1")
+    for ch in EXTENDED:
+        rows = compose(ch)
+        if rows and ch not in glyphs:
+            glyphs[ch] = rows
+    for ch, rows in SPECIAL.items():
+        glyphs.setdefault(ch, rows)
+    glyphs["\u25a1"] = replacement  # the replacement glyph stays last
+    return glyphs
+
 
 def main(out_dir):
-    chars = list(GLYPHS.keys())
+    glyphs = all_glyphs()
+    chars = list(glyphs.keys())
     rows = (len(chars) + COLUMNS - 1) // COLUMNS
     width, height = COLUMNS * CELL, rows * CELL
     pixels = [[(0, 0, 0, 0)] * width for _ in range(height)]
     for index, ch in enumerate(chars):
         cx, cy = (index % COLUMNS) * CELL, (index // COLUMNS) * CELL
-        for y, bits in enumerate(GLYPHS[ch]):
+        for y, bits in enumerate(glyphs[ch]):
             for x in range(5):
                 if bits & (0x10 >> x):
                     pixels[cy + y][cx + x] = (255, 255, 255, 255)

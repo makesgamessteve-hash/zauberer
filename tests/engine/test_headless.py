@@ -364,6 +364,61 @@ class ScenarioTests(EngineTestCase):
     def test_story_bot(self):
         self.assert_ok(self.scenario("story_bot"))
 
+    def test_menu(self):
+        self.assert_ok(self.scenario("menu"))
+
+    def test_german(self):
+        self.assert_ok(self.scenario("german"))
+
+    def test_letters(self):
+        self.assert_ok(self.scenario("letters"))
+
+    # spec: localisation: The player's language from the system
+    def test_language_from_system(self):
+        script = self.tmp / "lang.lua"
+        script.write_text("scenario { name = 'lang' }\nexpect_eq(engine.info().language, 'de')\n"
+                          "expect_eq(demo.game.settings.language, 'de')\n"
+                          "expect_eq(require('ui.i18n').t('Resume'), 'Weiterspielen')\n", encoding="utf-8")
+        self.assert_ok(self.run_engine("--headless", "--scenario", str(script), env={"ZB_LANGUAGE": "de"}))
+
+    def install_example_mod(self):
+        target = self.user_dir / "mods"
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(SOURCE_DIR / "examples" / "lantern-moths", target / "lantern-moths")
+
+    # spec: modding-sdk: The example mod is tested
+    def test_example_mod(self):
+        self.install_example_mod()
+        self.assert_ok(self.scenario("example_mod"))
+        result = self.run_engine("--headless", "--test", "examples/lantern-moths/tests")
+        self.assert_ok(result)
+        self.assertIn("0 failure(s)", result.stdout)
+
+    # spec: modding-sdk: Turning a package off from the game
+    def test_package_turned_off(self):
+        self.install_example_mod()
+        script = self.tmp / "off.lua"
+        script.write_text(
+            "scenario { name = 'off' }\n"
+            "local ok, why = engine.set_package_enabled('base', false)\n"
+            "expect(not ok and why:find('base game'), tostring(why))\n"
+            "expect(not engine.set_package_enabled('no-such-mod', false))\n"
+            "expect(engine.set_package_enabled('lantern-moths', false))\n"
+            "for _, p in ipairs(engine.packages()) do\n"
+            "  if p.id == 'lantern-moths' then expect(p.enabled and p.turned_off, 'still on until the next start') end\n"
+            "end\n", encoding="utf-8")
+        self.assert_ok(self.run_engine("--headless", "--scenario", str(script)))
+        self.assertIn("lantern-moths", (self.user_dir / "config.lua").read_text(encoding="utf-8"))
+        script.write_text(
+            "scenario { name = 'next start' }\n"
+            "local seen\n"
+            "for _, p in ipairs(engine.packages()) do if p.id == 'lantern-moths' then seen = p end end\n"
+            "expect(seen and not seen.enabled and seen.error == 'turned off' and seen.turned_off)\n"
+            "expect(zauberer.version and not require('life.items').get('moth_dust'), 'the base game alone')\n"
+            "expect(engine.set_package_enabled('lantern-moths', true))\n", encoding="utf-8")
+        self.assert_ok(self.run_engine("--headless", "--scenario", str(script)))
+        self.assertNotIn("lantern-moths", (self.user_dir / "config.lua").read_text(encoding="utf-8"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))
