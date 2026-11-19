@@ -49,11 +49,14 @@ end
 -- inp: { turn = -1..1 (right +), throttle = -1..1, climb = -1..1, boost = bool }
 -- env: { move(pos, heading, forward, right, up) -> pos, heading; height(pos) -> metres;
 --        water(pos) -> kind?, surface, depth, east, north (optional) }
+-- c.limits (optional, from its condition): { speed, climb = factors, fly =
+-- false when it cannot fly: it sinks gently and creeps along }.
 function M.update(c, inp, dt, env)
   c.time = c.time + dt
-  local throttle = clamp(inp.throttle or 0, -1, 1)
-  local boosting = inp.boost and throttle >= 0
-  local top = boosting and M.BOOST_MAX or M.CRUISE_MAX
+  local lim = c.limits or {}
+  local throttle = clamp(inp.throttle or 0, -1, lim.fly == false and 0.1 or 1)
+  local boosting = inp.boost and throttle >= 0 and lim.fly ~= false
+  local top = (boosting and M.BOOST_MAX or M.CRUISE_MAX) * (lim.speed or 1)
   if throttle > 0 then
     local accel = boosting and M.BOOST_ACCEL or M.ACCEL
     c.speed = math.min(c.speed + accel * throttle * dt, math.max(top, c.speed))
@@ -75,9 +78,10 @@ function M.update(c, inp, dt, env)
   local bank_target = -turn * M.BANK_MAX * math.min(1, c.speed / 20)
   c.bank = approach(c.bank, bank_target, M.BANK_RATE, dt)
 
-  local climb = clamp(inp.climb or 0, -1, 1)
+  local climb = lim.fly == false and -0.3 or clamp(inp.climb or 0, -1, 1)
   c.pitch = approach(c.pitch, climb * M.MAX_PITCH, M.PITCH_RATE, dt)
-  c.vspeed = climb * M.CLIMB_RATE * (1 - 0.5 * c.speed / M.BOOST_MAX) + c.speed * math.sin(c.pitch) * 0.5
+  c.vspeed = climb * M.CLIMB_RATE * (1 - 0.5 * c.speed / M.BOOST_MAX) * (lim.climb or 1)
+    + c.speed * math.sin(c.pitch) * 0.5
   local forward = c.speed * math.cos(c.pitch) * dt
   local pos, heading = env.move(c.pos, c.heading, forward, 0, c.vspeed * dt)
   c.heading = wrap(heading)

@@ -39,6 +39,16 @@ return {
   drink = { type = "button", bind = { "key:u", "touch:button:drink" } },
   -- The Codex: open it at the entry last learned, turn the page, close it.
   codex = { type = "button", bind = { "key:j", "touch:button:codex" } },
+  -- The endless bag: stow the pack's goods, take the road's needs back out.
+  stow = { type = "button", bind = { "key:i", "touch:button:stow" } },
+  unstow = { type = "button", bind = { "key:o", "touch:button:unstow" } },
+  -- The carpet: patch it on the ground (thread and life or void mana).
+  patch = { type = "button", bind = { "key:m", "touch:button:patch" } },
+  -- The carpet as a cloak: wrap it on or spread it out (from the air: glide down), shift its colour.
+  cloak = { type = "button", bind = { "key:h", "touch:button:cloak" } },
+  cloak_colour = { type = "button", bind = { "key:period", "touch:button:cloak_colour" } },
+  -- The carpet as a tent: pitch it (on foot by the carpet) or pack it up (by the tent).
+  tent = { type = "button", bind = { "key:p", "touch:button:tent" } },
   -- Showcase (the carpet seen from an orbiting camera)
   turn = { type = "axis2", bind = { "keys:w,s,a,d", "keys:up,down,left,right", "gamepad:left_stick", "touch:stick:move" } },
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },

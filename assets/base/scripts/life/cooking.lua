@@ -49,10 +49,11 @@ function cooking.campfire(p, pos)
   return kg
 end
 
--- Cooks, boils and brews everything it can over a fire within reach of pos;
--- returns { [made item] = count }, or nil and why.
-function cooking.cook(p, pos)
-  if not cooking.fire_near(pos) then return nil, "no fire near" end
+-- Cooks, boils and brews everything it can over a fire within reach of pos
+-- (or at a hearth: hearth true); returns { [made item] = count }, or nil and
+-- why.
+function cooking.cook(p, pos, hearth)
+  if not hearth and not cooking.fire_near(pos) then return nil, "no fire near" end
   local made = {}
   local function turn(from, to, n)
     local taken = pack.take(p, from, n)

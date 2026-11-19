@@ -24,6 +24,7 @@ survival.CHILL = 35.5         -- below this it is too cold
 survival.FEVERISH = 39        -- above this it is too hot
 survival.FIRE_WARMTH = 18     -- deg C a fire close by adds to the air
 survival.CLOTHES = 10         -- deg C the mage's clothes are worth
+survival.CLOAK = 20           -- deg C the carpet worn as a cloak is worth, dry
 survival.COMFORT = 25         -- deg C felt a body seeks: clothes are shed and a fire sat back from above it
 survival.SICK_DAYS = 4        -- days a sickness lasts untreated
 
@@ -73,12 +74,14 @@ end
 -- The air a body feels, deg C: the weather's, colder high up, in wind and
 -- when wet, warmer in shelter, and warmer in clothes and by a fire as far as
 -- the body wants (up to COMFORT: in the heat clothes are shed and a fire is
--- sat back from).
+-- sat back from). ctx.cloak (0 .. 1: how much of its worth the carpet worn
+-- as a cloak gives) adds up to CLOAK more and halves the wind's chill.
 function survival.feels(ctx)
   local air = (ctx.air or 15) - 6.5 * math.max(ctx.height or 0, 0) / 1000
-  local wind = math.max((ctx.wind or 0) - 1, 0) * 0.7
+  local wind = math.max((ctx.wind or 0) - 1, 0) * 0.7 * ((ctx.cloak or 0) > 0 and 0.5 or 1)
   local felt = air - wind - (ctx.wet or 0) * 8 + (ctx.shelter and 6 or 0)
   felt = felt + math.min(survival.CLOTHES, math.max(survival.COMFORT - felt, 0))
+  felt = felt + math.min(survival.CLOAK * (ctx.cloak or 0), math.max(survival.COMFORT - felt, 0))
   if ctx.fire then felt = felt + math.min(survival.FIRE_WARMTH, math.max(survival.COMFORT - felt, 0)) end
   return felt
 end
@@ -103,13 +106,13 @@ function survival.tick(s, seconds, ctx)
   -- Wet: rain and water soak, warmth and air dry.
   if (ctx.in_water or 0) > 0.3 then
     s.wet = 1
-  elseif (ctx.rain or 0) > 0.2 and not ctx.shelter then
+  elseif (ctx.rain or 0) > 0.2 and not ctx.shelter and (ctx.cloak or 0) <= 0 then -- (a cloak keeps off rain)
     s.wet = math.min(s.wet + seconds / 1800, 1)
   else
     s.wet = math.max(s.wet - seconds / (ctx.fire and 900 or 7200), 0)
   end
   local feels = survival.feels({ air = ctx.air, wind = ctx.wind, wet = s.wet, height = ctx.height, fire = ctx.fire,
-    shelter = ctx.shelter })
+    shelter = ctx.shelter, cloak = ctx.cloak })
   local target = settles_at(feels, effort)
   s.core = s.core + (target - s.core) * clamp(seconds / 7200, 0, 1)
   local hot, cold = s.core > survival.FEVERISH, s.core < survival.CHILL
@@ -203,7 +206,7 @@ function survival.sleep(s, hours, ctx)
   local slept, harms = 0, {}
   while slept < hours and s.rest < 99 do
     local quiet = { air = ctx.air, wind = ctx.wind, rain = ctx.rain, fire = ctx.fire, shelter = ctx.shelter,
-      effort = 0, height = 0 }
+      cloak = ctx.cloak, effort = 0, height = 0 }
     for _, h in ipairs(survival.tick(s, 3600, quiet)) do harms[#harms + 1] = h end
     -- Asleep: the body asks less, and rest comes back.
     s.food = clamp(s.food + 100 / 24 * 0.3, 0, 100)

@@ -11,6 +11,7 @@ walker.ACCEL = 8.0         -- m/s^2
 walker.TURN = 2.2          -- rad/s at full stick
 walker.MOUSE_TURN = 0.004  -- radians per mouse pixel
 walker.GRAVITY = 9.81
+walker.GLIDE_SINK = 3       -- m/s: the fastest a cloaked mage sinks, gliding
 walker.JUMP = 4.2          -- m/s up
 walker.EYE = 1.7           -- metres above the feet
 walker.WADE = 0.9          -- metres of water a mage can wade
@@ -87,6 +88,7 @@ function walker.update(w, inp, dt, env)
     w.vspeed, w.grounded = walker.JUMP, false
   end
   if not w.grounded then w.vspeed = w.vspeed - walker.GRAVITY * dt end
+  if w.glide and w.vspeed < -walker.GLIDE_SINK then w.vspeed = -walker.GLIDE_SINK end -- (the cloak spread as a glider)
   local pos, heading = env.move(w.pos, w.heading, w.speed * dt, 0, w.vspeed * dt)
   local floor, depth, ice = walker.floor(pos, env)
   w.blocked = depth > walker.WADE

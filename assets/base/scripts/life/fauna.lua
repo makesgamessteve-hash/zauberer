@@ -86,11 +86,12 @@ local TOLD = {
   attacked = function(ev) return "A " .. name_of(ev.species):lower() .. " attacks you" end,
 }
 
--- One tick: tells the creatures where the player is and returns what
+-- One tick: tells the creatures where the player is (and how they see the
+-- player: seen = { visibility, presence }, optional) and returns what
 -- happened to them since the last tick (see sim.creature_events).
-function fauna.tick(f, dt, player_pos, on_foot)
+function fauna.tick(f, dt, player_pos, on_foot, seen)
   f.time = f.time + dt
-  sim.set_player(player_pos, on_foot)
+  sim.set_player(player_pos, on_foot, seen)
   -- The mage's scent on the ground, for noses downwind.
   if on_foot or player_pos.alt - world.ground_height(player_pos) < fauna.SCENT_REACH then
     sim.emit(player_pos, "scent", fauna.SCENT * dt)
