@@ -340,6 +340,15 @@ class ScenarioTests(EngineTestCase):
     def test_lore(self):
         self.assert_ok(self.scenario("lore"))
 
+    def test_settlements(self):
+        self.assert_ok(self.scenario("settlements"))
+
+    def test_caves(self):
+        self.assert_ok(self.scenario("caves"))
+
+    def test_people(self):
+        self.assert_ok(self.scenario("people"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))

@@ -108,4 +108,22 @@ return {
   { id = "bark_tea", name = "Bark tea", kind = "water", weight = 0.5, water = 0.45, cures = { sick = 0.3 } },
   { id = "spruce_tea", name = "Spruce tea", kind = "water", weight = 0.5, water = 0.45, kcal = 5,
     cures = { sick = 0.1 } },
+  -- What people make and trade (concept 6.12): found in houses, sold in
+  -- bazaars. price: what it is worth in coins where it is neither scarce nor
+  -- plentiful.
+  { id = "flatbread", name = "Flatbread", kind = "food", weight = 0.2, kcal = 500, spoils = "cooked", price = 1 },
+  { id = "dried_meat", name = "Dried meat", kind = "food", weight = 0.1, kcal = 250, spoils = "dried", price = 3 },
+  { id = "pomegranate", name = "Pomegranate", kind = "food", weight = 0.3, kcal = 230, water = 0.1, spoils = "fresh",
+    price = 1 },
+  { id = "salt", name = "Salt", kind = "material", weight = 0.5, salty = true, price = 2 },
+  { id = "spices", name = "Spices", kind = "material", weight = 0.1, price = 8 },
+  { id = "wool", name = "Wool", kind = "material", weight = 0.5, thread = 4, price = 2 },
+  { id = "silk", name = "Silk", kind = "material", weight = 0.2, thread = 8, price = 15 },
+  { id = "copper_ore", name = "Copper ore", kind = "material", weight = 2, price = 3 },
+  { id = "iron_ingot", name = "Iron ingot", kind = "material", weight = 2, price = 10 },
+  { id = "dyed_cloth", name = "Dyed cloth", kind = "material", weight = 0.5, price = 6 },
+  { id = "rug", name = "Rug", kind = "material", weight = 4, price = 30 },
+  { id = "lamp_oil", name = "Lamp oil", kind = "material", weight = 0.5, fuel = 0.4, price = 2 },
+  { id = "coin", name = "Coin", kind = "money", weight = 0.005, price = 1 },
+  { id = "book", name = "Book", kind = "book", weight = 0.8, price = 20 },
 }

@@ -28,6 +28,8 @@ return {
   channel = { type = "button", bind = { "key:v", "gamepad:dpad_down", "touch:button:channel" } },
   -- On foot: step off a carpet resting low and slow (and back on), and jump.
   mount = { type = "button", bind = { "key:e", "gamepad:right_stick", "touch:button:mount" } },
+  -- Places and people: open a door or a chest, take what is in it, talk.
+  use = { type = "button", bind = { "key:tab", "gamepad:left_trigger", "touch:button:use" } },
   jump = { type = "button", bind = { "key:space", "gamepad:a", "touch:button:jump" } },
   -- Survival: lie down to sleep (on foot).
   sleep = { type = "button", bind = { "key:l", "touch:button:sleep" } },

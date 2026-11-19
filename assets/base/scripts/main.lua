@@ -41,6 +41,7 @@ local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
 local codex = require("life.codex")
+local placeplay = require("places.play")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -93,6 +94,9 @@ local function setup_flight()
   game.known = {} -- the substances analysed
   for _, id in ipairs(back and type(back.known) == "table" and back.known or {}) do game.known[id] = true end
   game.codex = codex.new(back and back.codex)
+  -- The peopled world (made in slices as play begins), Anarvan where the carpet set out.
+  game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
+    game.home.pos, FOOT)
   game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
@@ -173,7 +177,8 @@ function game.save()
     ritual = game.ritual and ritual.snapshot(game.ritual),
     summoning = game.summoning and summoning.snapshot(game.summoning),
     disciplines = game.disciplines and disciplines.snapshot(game.disciplines),
-    home = game.home_place and home.snapshot(game.home_place), known = game.known and (function()
+    home = game.home_place and home.snapshot(game.home_place),
+    world_places = game.world_places and placeplay.snapshot(game.world_places), known = game.known and (function()
       local list = {}
       for id in pairs(game.known) do list[#list + 1] = id end
       table.sort(list)
@@ -221,6 +226,7 @@ engine.on("init", function()
   assets.room = render.model("models/room.glb")
   assets.mote = render.sprite("sprites/mote.lua")
   assets.flame = render.sprite("sprites/flame.lua")
+  assets.person = render.sprite("sprites/person.lua")
   for _, kind in ipairs({ "bee", "mosquito", "firefly", "butterfly" }) do
     assets[kind] = render.sprite("sprites/" .. kind .. ".lua")
   end
@@ -716,6 +722,40 @@ local function flight_tick(dt)
   motes.tick(game.motes, dt, { { pos = me, mage = m } })
   motes.bloom(game.motes, me, dt)
   game.channeling = input.state("channel").held and motes.channel(m, me, dt, w and math.abs(w.speed) or c.speed) > 0
+  do -- places and people near every heir; doors and containers used on foot
+    local viewers = { me }
+    for p = 1, 3 do
+      local other = co.role == "host" and co.carpets[p]
+      if other then viewers[#viewers + 1] = other.pos end
+    end
+    placeplay.tick(game.world_places, viewers, function(at, v) -- what the heirs bring to a dungeon's puzzle
+      local cell, water = sim.fire_at(at), sim.water_at(at)
+      local lit = artificing.working(game.artifacts, "lantern_of_light")
+      for _, l in ipairs(magic.sights(game.magic).lights) do lit = lit or world.distance(l, at) < 6 end
+      return { heat = cell.loaded and cell.temperature or 0, burnt = cell.loaded and (cell.burnt or cell.burning),
+        water = water.loaded and water.depth or 0, light = lit and 1 or 0,
+        careful = w ~= nil and math.abs(w.speed) < walker.WALK * 0.7 and world.distance(v, at) < 3, dark = k.worn }
+    end, dt)
+    if game.world_places.said then
+      pack.say(game.pack, game.world_places.said)
+      game.world_places.said = nil
+    end
+    if w and input.state("use").pressed and game.world_places.places.ready then
+      local heir = { pack = game.pack, serve = st.boost and st.boost.held, cloak = k.worn and "drab" or "vivid",
+        magic = game.last_cast ~= nil,
+        rest = function(hours) -- a night's lodging
+          local h, harms = survival.sleep(game.survival, hours, survival.sense(me, w, 0))
+          for _, hm in ipairs(harms) do health.hurt(game.health, hm[1], hm[2]) end
+          world.set_time(now + h * 3600)
+          game.survival_at = now + h * 3600
+          game.slept = h
+        end,
+        heal = function(n) health.heal(game.health, n) end,
+        learn = function(d) disciplines.practice(game.disciplines, d, 20, "taught") end }
+      local used = placeplay.use(game.world_places, w, game.pack, heir)
+      if used then pack.say(game.pack, used) end
+    end
+  end
   if w then
     world.set_focus(1, me, { 0, 0, 0 }, { math.sin(w.heading), 0, -math.cos(w.heading) })
   else
@@ -791,6 +831,8 @@ local function flight_lines()
   end
   if game.channeling then lines[#lines + 1] = "Channeling" end
   local w = game.walker
+  local place = game.world_places and placeplay.line(game.world_places, w and w.pos or c.pos)
+  if place then lines[#lines + 1] = place end
   if w then
     lines[#lines + 1] = "On foot" .. (w.on_ice and ", on the ice" or "") .. (w.blocked and " - too deep to wade" or "")
   elseif walker.can_step_off(c, FOOT) then
@@ -861,6 +903,7 @@ local function flight_frame()
   elseif not game.cloak.worn then
     render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
   end
+  placeplay.draw(game.world_places, game.walker and game.walker.pos or c.pos, assets.person)
   local sights = magic.sights(game.magic)
   if artificing.working(game.artifacts, "lantern_of_light") then -- (the lantern in the mage's hand)
     local at = game.walker and world.move(game.walker.pos, game.walker.heading, 0.4, 0.3, 1.2)
@@ -953,5 +996,5 @@ _G.demo = {
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
   pack = pack, bag = bag, condition = condition, cloak = cloak, tent = tent, home = home, harvest = harvest,
   cooking = cooking, codex = codex, alchemy = alchemy, crafting = crafting, artificing = artificing, ritual = ritual,
-  summoning = summoning, disciplines = disciplines,
+  summoning = summoning, disciplines = disciplines, placeplay = placeplay, places = require("places.places"),
 }

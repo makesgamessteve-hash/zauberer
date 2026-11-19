@@ -106,9 +106,7 @@ end)
 -- spec: peoples-and-cultures: Realms
 case("realms around capitals, their kind and their law on mages", function()
   test.expect(#db.polity >= #db.culture)
-  local kinds = {}
   for _, p in ipairs(db.polity) do
-    kinds[p.type] = true
     test.expect(p.name and p.title and p.mages and #p.laws == 2 and p.capital and p.dynasty and p.ruler)
     test.expect_eq(history.get(db, p.capital).realm, p.id)
     test.expect(p.mages == "mages are welcome" or p.mages == "mages need a licence" or p.mages == "mages are hunted"

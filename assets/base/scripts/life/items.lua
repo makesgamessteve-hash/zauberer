@@ -3,7 +3,7 @@
 -- give, and what is made of them.
 local items = {}
 
-items.KINDS = { food = true, herb = true, material = true, water = true }
+items.KINDS = { food = true, herb = true, material = true, water = true, money = true, book = true }
 -- How fast microbes grow on food by how it was kept (life/smalllife.spoil).
 items.KEPT = { fresh = 1, cooked = 0.5, dried = 0.1 }
 
@@ -24,7 +24,7 @@ function items.check(list)
       return nil, where .. ": weight must be 0 .. 1000 kg"
     end
     local share = { raw = true, poison = true, dirty = true } -- (chances and strengths: 0 .. 1)
-    for _, field in ipairs({ "kcal", "water", "raw", "poison", "dirty", "fuel", "thread", "heals" }) do
+    for _, field in ipairs({ "kcal", "water", "raw", "poison", "dirty", "fuel", "thread", "heals", "price" }) do
       local v = it[field]
       if v ~= nil and (type(v) ~= "number" or v < 0 or (share[field] and v > 1)) then
         return nil, where .. ": " .. field .. " out of range"

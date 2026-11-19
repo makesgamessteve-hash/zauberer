@@ -11,6 +11,7 @@ import gen_flora  # noqa: E402
 import gen_font  # noqa: E402
 import gen_scripts  # noqa: E402
 import gen_home  # noqa: E402
+import gen_kit  # noqa: E402
 import gen_ornaments  # noqa: E402
 import gen_palette  # noqa: E402
 import gen_sounds  # noqa: E402
@@ -25,6 +26,7 @@ def main(base):
     gen_flora.main(os.path.join(base, "sprites"))
     gen_carpet.main(os.path.join(base, "models", "carpet.glb"))
     gen_home.main(os.path.join(base, "models"))
+    gen_kit.main(os.path.join(base, "models"))
     gen_sounds.main(base)
     gen_palette.main(os.path.join(base, "palettes"))
     gen_terrain.main(os.path.join(base, "textures", "terrain"))

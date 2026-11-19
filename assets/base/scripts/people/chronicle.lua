@@ -138,7 +138,8 @@ function chronicle.write(db, grid, opts)
         local work = s:pick({ "a great library", "an observatory", "a stone bridge", "a canal",
           "a garden of four parts" })
         history.event(db, { year = math.min(now - 1, year + s:int(1, reign)), kind = "great work",
-          participants = { p.id, ruler.id }, place = p.capital, importance = 0.5, title = ruler.name .. " builds " .. work, work = work })
+          participants = { p.id, ruler.id }, place = p.capital, importance = 0.5,
+          title = ruler.name .. " builds " .. work, work = work })
       end
       year = year + reign
     end
@@ -250,6 +251,26 @@ function chronicle.weave_story(db, grid, s, anchor)
   local now = db.year
   -- Anarvan: the weavers' village where the story begins.
   local cell = anchor and land.cell_at(grid, anchor) or grid.cells[db.culture[1].cradle]
+  if not db.cell_realm[cell.id] then -- (a shore no people reached: it belongs to the nearest settled land)
+    local seen, frontier, found = { [cell.id] = true }, { cell.id }, nil
+    while not found and #frontier > 0 do
+      local nextf = {}
+      for _, id in ipairs(frontier) do
+        for _, nid in ipairs(grid.cells[id].nb) do
+          if not seen[nid] then
+            seen[nid] = true
+            if db.cell_realm[nid] and not found then found = nid end
+            nextf[#nextf + 1] = nid
+          end
+        end
+      end
+      frontier = nextf
+    end
+    if found then
+      db.cell_culture[cell.id], db.cell_faith[cell.id] = db.cell_culture[found], db.cell_faith[found]
+      db.cell_realm[cell.id] = db.cell_realm[found]
+    end
+  end
   local culture = db.cell_culture[cell.id] or db.culture[1].id
   local pos = anchor and world.move(anchor, 0, 0, 0, 0) or land.point(grid, cell, 0.5, 0.5)
   pos.alt = world.height(pos)
@@ -263,6 +284,14 @@ function chronicle.weave_story(db, grid, s, anchor)
     place = anarvan.id, importance = 0.9, title = "Anarvan is founded by weavers" })
   history.refer(db, anarvan.id)
   db.story = { anarvan = anarvan.id }
+  local nearest, nd -- a road to the nearest place
+  for _, st in ipairs(db.settlement) do
+    if st ~= anarvan and not st.ruined then
+      local d = world.distance(st.pos, pos)
+      if not nd or d < nd then nearest, nd = st, d end
+    end
+  end
+  if nearest then db.roads[#db.roads + 1] = { a = anarvan.id, b = nearest.id, length = nd, kind = "road" } end
   -- The Circle of the Loom: seven mages from many peoples, broken forty years ago.
   local circle_year = now - chronicle.CIRCLE_YEARS_AGO
   local members = {}
