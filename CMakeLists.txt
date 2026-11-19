@@ -1,6 +1,17 @@
 # SPDX-License-Identifier: MIT
 cmake_minimum_required(VERSION 3.25)
-project(zauberer VERSION 0.1.0 LANGUAGES C)
+
+# The release version has one source: ZB_VERSION in src/core/version.h
+# ("MAJOR.MINOR.PATCH" with an optional pre-release suffix such as "-rc.1").
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/src/core/version.h" ZB_VERSION_LINE REGEX "^#define ZB_VERSION \"")
+if(NOT ZB_VERSION_LINE MATCHES "\"(([0-9]+)\\.([0-9]+)\\.([0-9]+))(-[0-9A-Za-z.-]+)?\"")
+  message(FATAL_ERROR "src/core/version.h: ZB_VERSION is not a semantic version: ${ZB_VERSION_LINE}")
+endif()
+set(ZB_VERSION_FULL "${CMAKE_MATCH_1}${CMAKE_MATCH_5}")
+set(ZB_VERSION_NUMBER "${CMAKE_MATCH_1}")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/core/version.h")
+
+project(zauberer VERSION ${ZB_VERSION_NUMBER} LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -27,6 +38,11 @@ include(ZbDependencies)
 include(ZbTesting)
 
 add_subdirectory(src)
+
+# Store-agnostic desktop packages (install rules and CPack; docs/release.md).
+if(NOT EMSCRIPTEN)
+  include(ZbPackaging)
+endif()
 
 if(ZB_TESTS)
   enable_testing()

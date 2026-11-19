@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: MIT
+# Release packages (docs/release.md): the Linux and Windows archives and the web zip,
+# built from the chosen ref and uploaded as workflow artifacts with SHA256SUMS.
+# Started by hand only (Actions > Release > Run workflow); it never runs on push, pull
+# request or a schedule. It needs no secrets: packages built here are unsigned (signing
+# happens on a machine that holds the keys, see docs/release.md). It does not deploy the
+# web build and does not create tags or GitHub releases. macOS packages are built locally.
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  LINUX_DEPS: >-
+    ninja-build libegl-dev libgl-dev libgles-dev
+    libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxfixes-dev libxss-dev libxtst-dev
+    libxkbcommon-dev libwayland-dev libwayland-bin wayland-protocols libdecor-0-dev
+    libasound2-dev libpulse-dev libdbus-1-dev libudev-dev
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_DEPS
+      - name: Check the version and changelog
+        run: python3 tools/release.py check
+      - name: Build and package (release preset, CPack)
+        run: python3 tools/release.py package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-linux
+          path: build/dist/*.tar.gz
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build and package (release preset, CPack)
+        run: python tools/release.py package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-windows
+          path: build/dist/*.zip
+          if-no-files-found: error
+
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Emscripten
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install "$(cat cmake/emsdk-version.txt)"
+          "$RUNNER_TEMP/emsdk/emsdk" activate "$(cat cmake/emsdk-version.txt)"
+          echo "EMSDK=$RUNNER_TEMP/emsdk" >> "$GITHUB_ENV"
+      - name: Build web and web-st
+        run: |
+          source "$EMSDK/emsdk_env.sh"
+          for preset in web web-st; do
+            cmake --preset "$preset"
+            cmake --build --preset "$preset"
+          done
+      - name: Zip the web build
+        run: python3 tools/release.py web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-web
+          path: build/dist/*.zip
+          if-no-files-found: error
+
+  checksums:
+    needs: [linux, windows, web]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: build/dist
+          merge-multiple: true
+      - name: SHA256SUMS
+        run: python3 tools/release.py sums
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zauberer-release
+          path: |
+            build/dist/*.tar.gz
+            build/dist/*.zip
+            build/dist/SHA256SUMS
+          if-no-files-found: error
