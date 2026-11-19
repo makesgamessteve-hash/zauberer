@@ -58,6 +58,8 @@ with up to three friends as the father's children, the heirs of the carpet.
 | [OpenSpec specs](openspec/specs/) | The capability specs as they stand; every change that made them is in `openspec/changes/archive/` |
 | [Lua API reference](docs/api/README.md) | Every function scripts can call (generated from the C bindings; type stubs in `docs/api/zauberer.d.lua`) |
 | [Creating packages](docs/modding/packages.md) | Package layout, `package.lua`, scripts, hooks, data, credits and testing a mod |
+| [Changelog](CHANGELOG.md) | What changed in each release, starting with 1.0.0-rc.1 (milestones M0–M11) |
+| [Cutting a release](docs/release.md) | Version, changelog, gates, desktop and web packages, signing, checksums, web deploy and tag |
 
 ## Technology
 
@@ -121,6 +123,10 @@ node tests/web/server.mjs build/web-st/bin    # prints the URL to open
 
 With a WebXR headset (or a WebXR emulator extension), the page shows an **Enter VR** button
 that starts an immersive session; the camera becomes the seat the head moves around.
+
+Release packages (one plain folder per platform with the game, the relay, `assets/`,
+`mods/`, licenses and credits) come from `python3 tools/release.py package`; see
+[docs/release.md](docs/release.md).
 
 Useful options: `--assets <dir>`, `--user-dir <dir>`, `--headless`, `--ticks <n>`,
 `--seed <n>`, `--debug-views 2` (stereo), `--record <file>` / `--replay <file>`
