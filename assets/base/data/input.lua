@@ -49,6 +49,15 @@ return {
   cloak_colour = { type = "button", bind = { "key:period", "touch:button:cloak_colour" } },
   -- The carpet as a tent: pitch it (on foot by the carpet) or pack it up (by the tent).
   tent = { type = "button", bind = { "key:p", "touch:button:tent" } },
+  -- Ritual magic: lay the circle and begin the chosen ritual (on foot), choose the next.
+  ritual = { type = "button", bind = { "key:slash", "touch:button:ritual" } },
+  ritual_next = { type = "button", bind = { "key:apostrophe", "touch:button:ritual_next" } },
+  -- Summoning: call a being (from what is near), bond a familiar, dismiss the beings.
+  summon = { type = "button", bind = { "key:comma", "touch:button:summon" } },
+  bond = { type = "button", bind = { "key:semicolon", "touch:button:bond" } },
+  dismiss = { type = "button", bind = { "key:minus", "touch:button:dismiss" } },
+  -- The disciplines' mastery, shown and hidden.
+  disciplines = { type = "button", bind = { "key:f2", "touch:button:disciplines" } },
   -- Showcase (the carpet seen from an orbiting camera)
   turn = { type = "axis2", bind = { "keys:w,s,a,d", "keys:up,down,left,right", "gamepad:left_stick", "touch:stick:move" } },
   zoom = { type = "axis1", bind = { "keys:e,q", "gamepad:right_trigger" } },

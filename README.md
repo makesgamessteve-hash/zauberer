@@ -15,7 +15,7 @@ from words, gestures, ingredients and eight colors of mana, and it acts through 
 world's simulation of heat, fire, water, air and life. Play alone, or in online co-op
 with up to three friends as the father's children, the heirs of the carpet.
 
-> **Status: M5, living things.** M0–M5 are done.
+> **Status: M7, the disciplines.** M0–M7 are done.
 >
 > - The engine runs on Linux, Windows, macOS and the web, with co-op flight over WebSockets
 >   and a WebXR spike.
@@ -29,6 +29,12 @@ with up to three friends as the father's children, the heirs of the carpet.
 >   packs and scent tracking, plant life cycles, fungi and insects, survival (food, water,
 >   rest, warmth, disease), foraging, hunting, campfires and cooking, and a Codex that
 >   grows from Seen to Understood.
+> - The carpet and home: the endless bag with its vault, the carpet's wear and repair and
+>   upgrades, the carpet as a camouflage cloak, and the carpet as a tent with a pocket home.
+> - The disciplines: chemistry and alchemy in the tent's laboratory, crafting and
+>   artificing in its workshop (a lantern of perpetual light), ritual magic (calling rain),
+>   summoning elementals and bonding familiars, and mastery through practice, study and
+>   trials.
 
 ## Documents
 

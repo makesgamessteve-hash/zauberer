@@ -286,6 +286,24 @@ function ecology.fold_all(state)
   state.live = {}
 end
 
+-- An individual leaves the wild (bonded as a familiar): it is no longer the
+-- ecology's to fold, and its chunk counts one fewer.
+function ecology.release(state, id)
+  for key, live in pairs(state.live) do
+    for sp, ids in pairs(live) do
+      for i, cid in ipairs(ids) do
+        if cid == id then
+          table.remove(ids, i)
+          local r = state.chunks[key]
+          if r and r.n[sp] then r.n[sp] = math.max(r.n[sp] - 1, 0) end
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+
 -- The live individuals of a chunk (by species), if it is virtualised.
 function ecology.live(state, pos)
   return state.live[tostring(world.chunk_key(pos))]

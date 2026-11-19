@@ -319,6 +319,21 @@ class ScenarioTests(EngineTestCase):
     def test_carpet_and_home(self):
         self.assert_ok(self.scenario("carpet_and_home"))
 
+    def test_alchemy(self):
+        self.assert_ok(self.scenario("alchemy"))
+
+    def test_workshop(self):
+        self.assert_ok(self.scenario("workshop"))
+
+    def test_rituals(self):
+        self.assert_ok(self.scenario("rituals"))
+
+    def test_summoning(self):
+        self.assert_ok(self.scenario("summoning"))
+
+    def test_the_disciplines(self):
+        self.assert_ok(self.scenario("the_disciplines"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))

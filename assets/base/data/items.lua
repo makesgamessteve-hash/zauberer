@@ -16,6 +16,9 @@
 --   spoils    microbes grow on it ("fresh", "cooked", "dried"; omitted: it keeps)
 --   fuel      kg of firewood it makes
 --   thread    units of thread it gives for patching the carpet
+--   contains  substance = share of its weight, put in a vessel (data/substances.lua)
+--   heals     health it mends, drunk or eaten
+--   mana      colour = mana it holds (a quintessence)
 return {
   -- From trees
   { id = "acorns", name = "Acorns", kind = "food", weight = 0.004, kcal = 12, raw = 0.02, spoils = "dried" },
@@ -23,12 +26,14 @@ return {
   { id = "hazelnuts", name = "Hazelnuts", kind = "food", weight = 0.003, kcal = 19, spoils = "dried" },
   { id = "pine_nuts", name = "Pine nuts", kind = "food", weight = 0.001, kcal = 7, spoils = "dried" },
   { id = "coconut", name = "Coconut", kind = "food", weight = 1.2, kcal = 350, water = 0.3, spoils = "dried" },
-  { id = "dates", name = "Dates", kind = "food", weight = 0.008, kcal = 22, spoils = "dried" },
+  { id = "dates", name = "Dates", kind = "food", weight = 0.008, kcal = 22, spoils = "dried",
+    contains = { sugar = 0.6, yeast = 0.01, spent_matter = 0.39 } },
   { id = "spruce_tips", name = "Spruce tips", kind = "herb", weight = 0.002, kcal = 1, brew = "spruce_tea",
     spoils = "fresh" },
   { id = "birch_sap", name = "Birch sap", kind = "water", weight = 0.25, kcal = 2, water = 0.25, spoils = "fresh" },
-  { id = "oak_bark", name = "Oak bark", kind = "herb", weight = 0.05, brew = "bark_tea" },
-  { id = "birch_bark", name = "Birch bark", kind = "herb", weight = 0.05, brew = "bark_tea" },
+  { id = "oak_bark", name = "Oak bark", kind = "herb", weight = 0.05, brew = "bark_tea", contains = { bark_matter = 1 } },
+  { id = "birch_bark", name = "Birch bark", kind = "herb", weight = 0.05, brew = "bark_tea",
+    contains = { bark_matter = 1 } },
   { id = "resin", name = "Resin", kind = "material", weight = 0.02 },
   { id = "acacia_gum", name = "Acacia gum", kind = "material", weight = 0.02, kcal = 5 },
   { id = "wood", name = "Wood", kind = "material", weight = 1.0, fuel = 1.0 },
@@ -36,7 +41,8 @@ return {
   { id = "hazel_rods", name = "Hazel rods", kind = "material", weight = 0.15, fuel = 0.15 },
   { id = "palm_fibre", name = "Palm fibre", kind = "material", weight = 0.05, thread = 1 },
   { id = "kapok_fibre", name = "Kapok fibre", kind = "material", weight = 0.01, thread = 1 },
-  { id = "kapok_bark", name = "Kapok bark", kind = "herb", weight = 0.05, brew = "bark_tea" },
+  { id = "kapok_bark", name = "Kapok bark", kind = "herb", weight = 0.05, brew = "bark_tea",
+    contains = { bark_matter = 1 } },
   -- From shrubs and ground cover
   { id = "saltbush_leaves", name = "Saltbush leaves", kind = "food", weight = 0.01, kcal = 2, salty = true,
     spoils = "fresh" },
@@ -48,6 +54,7 @@ return {
   { id = "cooked_fiddleheads", name = "Cooked fiddleheads", kind = "food", weight = 0.01, kcal = 3,
     spoils = "cooked" },
   { id = "healing_herbs", name = "Healing herbs", kind = "herb", weight = 0.01, cures = { sick = 0.1 },
+    contains = { herb_matter = 1 },
     brew = "herbal_tea", spoils = "fresh" },
   { id = "reed_roots", name = "Reed roots", kind = "food", weight = 0.05, kcal = 30, raw = 0.15,
     cooked = "roasted_reed_roots", spoils = "fresh" },
@@ -73,15 +80,29 @@ return {
   { id = "storm_feather", name = "Storm feather", kind = "material", weight = 0.02 },
   -- Water, by cup (half a litre)
   { id = "river_water", name = "River water", kind = "water", weight = 0.5, water = 0.5, dirty = 0.1,
-    boiled = "boiled_water" },
+    boiled = "boiled_water", contains = { water = 1 } },
   { id = "lake_water", name = "Lake water", kind = "water", weight = 0.5, water = 0.5, dirty = 0.2,
-    boiled = "boiled_water" },
+    boiled = "boiled_water", contains = { water = 1 } },
   { id = "pool_water", name = "Pool water", kind = "water", weight = 0.5, water = 0.5, dirty = 0.4,
-    boiled = "boiled_water" },
+    boiled = "boiled_water", contains = { water = 1 } },
   { id = "swamp_water", name = "Swamp water", kind = "water", weight = 0.5, water = 0.5, dirty = 0.8,
     boiled = "boiled_water" },
   { id = "sea_water", name = "Sea water", kind = "water", weight = 0.5, water = 0.5, salty = true },
-  { id = "boiled_water", name = "Boiled water", kind = "water", weight = 0.5, water = 0.5 },
+  { id = "boiled_water", name = "Boiled water", kind = "water", weight = 0.5, water = 0.5, contains = { water = 1 } },
+  -- The workbench's (concept 3.4); conducts: how well its material carries
+  -- mana of each colour, for enchanting.
+  { id = "cord", name = "Cord", kind = "material", weight = 0.05, thread = 4 },
+  { id = "lantern", name = "Horn lantern", kind = "material", weight = 0.8, conducts = { light = 0.6, fire = 0.4 } },
+  { id = "staff", name = "Staff", kind = "material", weight = 1.5, conducts = { life = 0.8, earth = 0.4 } },
+  { id = "wand", name = "Wand", kind = "material", weight = 0.2, conducts = { life = 0.5, light = 0.3 } },
+  -- Alchemy's products (concept 3.4).
+  { id = "spirit", name = "Spirit of wine", kind = "material", weight = 0.1, fuel = 0.1, contains = { spirit = 1 } },
+  { id = "healing_draught", name = "Healing draught", kind = "water", weight = 0.05, water = 0.02, heals = 40,
+    cures = { sick = 0.2 }, contains = { healing_draught = 1 } },
+  { id = "astringent_tincture", name = "Astringent tincture", kind = "water", weight = 0.1, water = 0.02,
+    cures = { sick = 0.6, poison = 0.3 }, contains = { astringent = 1 } },
+  { id = "light_quintessence", name = "Quintessence of light", kind = "material", weight = 0.1,
+    mana = { light = 30 }, contains = { light_quintessence = 1 } },
   { id = "herbal_tea", name = "Herbal tea", kind = "water", weight = 0.5, water = 0.45, cures = { sick = 0.5,
     poison = 0.3 } },
   { id = "bark_tea", name = "Bark tea", kind = "water", weight = 0.5, water = 0.45, cures = { sick = 0.3 } },

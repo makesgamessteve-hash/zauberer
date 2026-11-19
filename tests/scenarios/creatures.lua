@@ -33,7 +33,7 @@ expect_eq(fauna.species().wolf.name, "Grey wolf")
 -- A species of a script's own.
 local index = sim.define_species({ id = "lynx", length = 1.2, mass = 80, walk = 1.2, run = 8, diet = "omnivore",
   sight = 50, hearing = 100, smell = 250, health = 80, resist = { impact = 0.3 }, color = { 0.3, 0.25, 0.2 } })
-expect_eq(index, 7) -- after the seven base species
+expect_eq(index, 9) -- after the nine base species (two of them summoned)
 local spot = world.move(here, game.carpet.heading, 60, 0)
 local lynx = sim.spawn_creature("lynx", spot)
 step(2)

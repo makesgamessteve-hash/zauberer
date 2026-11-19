@@ -194,6 +194,7 @@ static void set_number(lua_State *L, const char *name, double v) {
  * @field thirst number 0 .. 1
  * @field target integer? The creature it hunts or eats
  * @field eaten number Of a carcass: 0 .. 1 eaten by predators
+ * @field bond number? Metres it keeps from the player it is bound to
  */
 static int s_creature(lua_State *L) {
   zb_creature_state st;
@@ -225,6 +226,9 @@ static int s_creature(lua_State *L) {
   }
   set_number(L, "thirst", st.thirst);
   set_number(L, "eaten", st.eaten);
+  if (st.bond > 0.0) {
+    set_number(L, "bond", st.bond);
+  }
   if (st.target) {
     lua_pushinteger(L, st.target);
     lua_setfield(L, -2, "target");
@@ -312,6 +316,19 @@ static int s_stimulus(lua_State *L) {
   luaL_argcheck(L, seconds >= 0.0 && seconds <= 3600.0, 4, "seconds must be 0..3600");
   zb_creatures_stimulus(CR(L), k, &pos, strength, seconds);
   return 0;
+}
+
+/* @lua sim.bond(id: integer, metres: number|nil): boolean
+ * Binds a creature to the player (summoned, a familiar): it follows, keeping
+ * within metres (0.5 .. 50) of the player, and neither fears nor hunts the
+ * player; nil lets it go. False when there is no such creature.
+ */
+static int s_bond(lua_State *L) {
+  uint32_t id = (uint32_t)luaL_checkinteger(L, 1);
+  double metres = luaL_optnumber(L, 2, 0.0);
+  luaL_argcheck(L, metres == 0.0 || (metres >= 0.5 && metres <= 50.0), 2, "metres must be 0.5..50");
+  lua_pushboolean(L, zb_creatures_bond(CR(L), id, metres));
+  return 1;
 }
 
 /* @lua sim.set_player(pos: PlanetPos|nil, on_foot?: boolean, seen?: PlayerSeen)
@@ -434,6 +451,7 @@ void zb_script_open_creatures(zb_script *s) {
                                  {"hurt", s_hurt},
                                  {"stimulus", s_stimulus},
                                  {"set_player", s_set_player},
+                                 {"bond", s_bond},
                                  {"creature_events", s_creature_events},
                                  {"creature_stats", s_creature_stats},
                                  {"remove_creature", s_remove_creature},

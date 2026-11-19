@@ -198,6 +198,7 @@ function survival.consume(s, item, load)
   end
   if cures.poison and s.poison > 0 then s.poison = math.max(s.poison - cures.poison, 0) end
   if (item.rest or 0) > 0 then s.rest = clamp(s.rest + item.rest, 0, 100) end
+  if (item.heals or 0) > 0 then s.heal = (s.heal or 0) + item.heals end -- (for the body's health to take)
 end
 
 -- Sleeps up to hours (or until rested) in ctx; returns the hours slept and

@@ -644,6 +644,10 @@ A body as it is now, or nil when there is no such body.
 
 
 
+### `sim.bond(id: integer, metres: number|nil): boolean`
+
+Binds a creature to the player (summoned, a familiar): it follows, keeping within metres (0.5 .. 50) of the player, and neither fears nor hunts the player; nil lets it go. False when there is no such creature.
+
 ### `sim.cool(pos: PlanetPos, radius: number, joules: number): integer`
 
 Takes heat from within radius metres (up to 64): a heat sink, magic unmaking fire. Burning cells that lose more than 50 kJ/m^2 go out; returns how many did.

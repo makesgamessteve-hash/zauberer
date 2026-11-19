@@ -84,8 +84,11 @@ press("stow")
 expect(bag.in_vault(game.bag, "cooked_meat") == 5 and pack.weight(game.pack) == 0 and said("Shelved"), "shelved")
 press("unstow")
 expect(pack.count(game.pack, "cooked_meat") == 5, "taken off the shelves")
-input.inject("steer", 1, 0, 3)
-step(5)
+for _ = 1, 5 do -- (on round to the hearth, past the laboratory and workshop)
+  if game.home_place.room == "hearth" then break end
+  input.inject("steer", 1, 0, 3)
+  step(5)
+end
 expect(game.home_place.room == "hearth")
 pack.add(game.pack, "raw_meat", 2, 0)
 press("cook")

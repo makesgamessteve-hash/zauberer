@@ -62,6 +62,7 @@ typedef struct creature {
   zb_planet_pos goal, threat, water;
   bool has_goal, has_threat, has_water, has_flock, fled_told;
   bool alive, frozen;
+  double bond; /* bound to the player: the distance it keeps (0: free) */
 } creature;
 
 typedef struct stimulus {
@@ -281,6 +282,20 @@ void zb_creatures_set_player(zb_creatures *c, const zb_planet_pos *pos, bool on_
     c->player = *pos;
   }
   c->on_foot = on_foot;
+}
+
+bool zb_creatures_bond(zb_creatures *c, uint32_t id, double metres) {
+  int i = find(c, id);
+  if (i < 0) {
+    return false;
+  }
+  creature *cr = C(c, i);
+  cr->bond = metres > 0.0 ? metres : 0.0;
+  if (cr->bond > 0.0) {
+    cr->fear = 0.0;
+    cr->has_threat = false;
+  }
+  return true;
 }
 
 void zb_creatures_set_player_presence(zb_creatures *c, double visibility, double presence) {
@@ -596,7 +611,7 @@ static void decide(zb_creatures *c, creature *cr) {
     }
   }
   double flight = s->flight > 0.0 ? s->flight : 25.0;
-  if (se.player >= 0.0 && se.player < flight) {
+  if (cr->bond <= 0.0 && se.player >= 0.0 && se.player < flight) { /* (the bound fear the player no more) */
     double f = s->fear_of_player * c->presence * (1.0 - se.player / flight);
     f = f > 1.0 ? 1.0 : f;
     if (f > fear) {
@@ -630,8 +645,9 @@ static void decide(zb_creatures *c, creature *cr) {
   }
   double score[ZB_ACTIONS];
   score[ZB_ACT_FLEE] = cr->fear * 1.2;
-  double hunt_player =
-      eats_meat && se.player >= 0.0 ? s->aggression * (0.4 + cr->hunger) * (c->on_foot ? 1.0 : 0.1) * calm : 0.0;
+  double hunt_player = eats_meat && se.player >= 0.0 && cr->bond <= 0.0
+                           ? s->aggression * (0.4 + cr->hunger) * (c->on_foot ? 1.0 : 0.1) * calm
+                           : 0.0;
   bool chasing = cr->action == ZB_ACT_HUNT && cr->target; /* a chase goes on until the hunter is spent */
   double hunt_prey =
       nb.prey >= 0 && cr->energy > (chasing ? GIVE_UP : GIVE_UP * 2.0) ? (0.2 + cr->hunger * 0.9) * calm : 0.0;
@@ -644,6 +660,8 @@ static void decide(zb_creatures *c, creature *cr) {
   score[ZB_ACT_REST] = ((1.0 - cr->energy) * 0.7 + (awake ? 0.0 : 0.6)) * calm * (nb.danger >= 0 ? 0.2 : 1.0);
   score[ZB_ACT_ALERT] = nb.danger >= 0 && nb.danger_d >= DANGER_RANGE ? 0.35 * calm + 0.1 : 0.0;
   score[ZB_ACT_WANDER] = 0.25;
+  score[ZB_ACT_FOLLOW] =
+      cr->bond > 0.0 && c->has_player && dist(c, &cr->pos, &c->player) > cr->bond ? 0.9 : 0.0; /* (to the player) */
   score[cr->action] += COMMITMENT; /* no dithering between two close choices */
   zb_action best = ZB_ACT_WANDER;
   for (int a = 0; a < ZB_ACTIONS; ++a) {
@@ -751,6 +769,13 @@ static void move(zb_creatures *c, creature *cr, double dt) {
     case ZB_ACT_ALERT:
       if (cr->has_threat) {
         toward = bearing(c, &cr->pos, &cr->threat); /* watching it */
+      }
+      break;
+    case ZB_ACT_FOLLOW:
+      if (c->has_player) {
+        double d = dist(c, &cr->pos, &c->player);
+        want = d > cr->bond * 3.0 ? run : (d > cr->bond ? s->walk : 0.0);
+        toward = bearing(c, &cr->pos, &c->player);
       }
       break;
     case ZB_ACT_INVESTIGATE:
@@ -974,6 +999,7 @@ static void state_of(const creature *cr, zb_creature_state *out) {
   out->alive = cr->alive;
   out->frozen = cr->frozen;
   out->sees_player = cr->sees_player;
+  out->bond = cr->bond;
   out->thirst = cr->thirst;
   out->target = cr->target;
   out->eaten = cr->eaten;
@@ -1044,8 +1070,8 @@ void zb_creatures_each(const zb_creatures *c, zb_creature_fn fn, void *ctx) {
 }
 
 const char *zb_action_name(zb_action a) {
-  static const char *names[ZB_ACTIONS] = {"wander",      "graze", "rest", "flee", "hunt",
-                                          "investigate", "drink", "feed", "alert"};
+  static const char *names[ZB_ACTIONS] = {"wander",      "graze", "rest", "flee",  "hunt",
+                                          "investigate", "drink", "feed", "alert", "follow"};
   return a >= 0 && a < ZB_ACTIONS ? names[a] : "?";
 }
 

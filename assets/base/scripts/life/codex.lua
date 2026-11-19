@@ -63,8 +63,8 @@ function codex.entries()
   end
   for _, f in ipairs(smalllife.fungi()) do source(f.item, add("fungus", f.id, f.name, f)) end
   for id, sp in pairs(fauna.species()) do
-    local key = add("animal", id, sp.name, sp)
-    for item in pairs(sp.products or {}) do source(item, key) end
+    local key = sp.summoned and nil or add("animal", id, sp.name, sp)
+    for item in pairs(key and sp.products or {}) do source(item, key) end
   end
   for _, b in ipairs(read("data/insects.lua")) do add("insect", b.id, b.name, b) end
   registry, sources = all, from

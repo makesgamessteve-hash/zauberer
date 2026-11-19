@@ -42,6 +42,7 @@ typedef enum zb_action {
   ZB_ACT_DRINK,       /* go to water and drink */
   ZB_ACT_FEED,        /* eat a kill */
   ZB_ACT_ALERT,       /* stand and watch a danger far off */
+  ZB_ACT_FOLLOW,      /* keep near the player it is bound to */
   ZB_ACTIONS
 } zb_action;
 
@@ -104,6 +105,7 @@ typedef struct zb_creature_state {
   double sees_player; /* metres to the player when seen, else -1 */
   uint32_t target;    /* the creature it hunts or eats, 0 for none */
   double eaten;       /* of a carcass: 0 .. 1 eaten by predators */
+  double bond;        /* metres it keeps from the player it is bound to (0: free) */
 } zb_creature_state;
 
 typedef enum zb_creature_event_kind { ZB_CREATURE_DIED, ZB_CREATURE_FLED, ZB_CREATURE_ATTACKED } zb_creature_event_kind;
@@ -151,6 +153,10 @@ void zb_creatures_set_player(zb_creatures *c, const zb_planet_pos *pos, bool on_
  * see the player at (0 .. 2: camouflage, light, movement; 1 plain), presence
  * how much the player frightens them (0 .. 3: a vivid cloak awes; 1 plain). */
 void zb_creatures_set_player_presence(zb_creatures *c, double visibility, double presence);
+/* Binds a creature to the player (summoned, a familiar): it keeps within
+ * metres of the player, fears and hunts the player no more; 0 lets it go.
+ * False when there is no such creature. */
+bool zb_creatures_bond(zb_creatures *c, uint32_t id, double metres);
 /* A stimulus: a noise (heard within strength x hearing), a light (seen), or a
  * threat (feared) at pos for seconds. */
 typedef enum zb_stimulus_kind { ZB_STIMULUS_NOISE, ZB_STIMULUS_LIGHT, ZB_STIMULUS_THREAT } zb_stimulus_kind;

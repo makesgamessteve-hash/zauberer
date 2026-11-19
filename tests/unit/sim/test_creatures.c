@@ -372,6 +372,36 @@ static void test_seen_or_not(void) {
   scene_close(&s);
 }
 
+/* spec: summoning: Bound beings */
+static void test_bond(void) {
+  scene s;
+  scene_open(&s, MEADOW);
+  zb_planet_pos mage = at(&s, 128.0f, 128.0f), far = at(&s, 128.0f, 188.0f);
+  zb_creatures_set_player(s.cr, &mage, true);
+  uint32_t deer = zb_creatures_spawn(s.cr, s.deer, &far);
+  TEST_ASSERT_FALSE(zb_creatures_bond(s.cr, 999999, 3.0));
+  TEST_ASSERT_TRUE(zb_creatures_bond(s.cr, deer, 3.0));
+  TEST_ASSERT_EQUAL_DOUBLE(3.0, state(&s, deer).bond);
+  run(&s, 1.0);
+  TEST_ASSERT_EQUAL_STRING("follow", zb_action_name(state(&s, deer).action));
+  run(&s, 30.0);
+  zb_creature_state d = state(&s, deer);
+  TEST_ASSERT_TRUE_MESSAGE(apart(&s, &d.pos, &mage) < 8.0, "it came to the mage");
+  TEST_ASSERT_TRUE_MESSAGE(d.fear < 0.1 && strcmp(zb_action_name(d.action), "flee") != 0, "unafraid close by");
+  /* A bound wolf does not hunt the mage. */
+  uint32_t wolf = zb_creatures_spawn(s.cr, s.wolf, &far);
+  zb_creatures_bond(s.cr, wolf, 4.0);
+  zb_creatures_set_needs(s.cr, wolf, 1.0, -1.0, -1.0);
+  run(&s, 5.0);
+  TEST_ASSERT_TRUE(strcmp(zb_action_name(state(&s, wolf).action), "hunt") != 0 || state(&s, wolf).target != 0);
+  /* Let go, the deer is a deer again. */
+  TEST_ASSERT_TRUE(zb_creatures_bond(s.cr, deer, 0.0));
+  run(&s, 1.0);
+  TEST_ASSERT_EQUAL_DOUBLE(0.0, state(&s, deer).bond);
+  TEST_ASSERT_EQUAL_STRING("flee", zb_action_name(state(&s, deer).action));
+  scene_close(&s);
+}
+
 /* spec: creatures: Scent on the wind */
 static void test_scent(void) {
   scene s;
@@ -674,6 +704,7 @@ int main(void) {
   RUN_TEST(test_herd);
   RUN_TEST(test_scent_trail);
   RUN_TEST(test_seen_or_not);
+  RUN_TEST(test_bond);
   int failures = UNITY_END();
   if (g_materials) {
     zb_materials_free(g_materials);
