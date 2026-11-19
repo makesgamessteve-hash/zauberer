@@ -51,7 +51,8 @@ with up to three friends as the father's children, the heirs of the carpet.
 > - Release: English and German, accessibility settings (remapping, toggle instead of hold,
 >   gesture assist, colour glyphs and colour-vision palettes, text size and contrast, reduced
 >   flashing, sound captions, story markers, survival presets), a menu on Escape, the game's
->   API for mods with an example mod, and release packages for every platform.
+>   API for mods with an example mod, playable WebXR (controller flight, gestures in the air,
+>   comfort options), and release packages for every platform.
 
 ## Documents
 
