@@ -80,5 +80,8 @@
     { "name": "coverage", "inherits": "test-base", "configurePreset": "coverage" },
     { "name": "asan", "inherits": "test-base", "configurePreset": "asan" },
     { "name": "web-node", "inherits": "test-base", "configurePreset": "web-node" }
+  ],
+  "packagePresets": [
+    { "name": "release", "configurePreset": "release" }
   ]
 }
