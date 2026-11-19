@@ -44,6 +44,8 @@ typedef struct zb_water_stats {
 } zb_water_stats;
 
 zb_surface_water *zb_surface_water_create(const zb_allocator *a, zb_world *world, double radius);
+/* Changes the radius around each focus point that is simulated. */
+void zb_surface_water_set_radius(zb_surface_water *w, double radius);
 void zb_surface_water_destroy(zb_surface_water *w);
 void zb_surface_water_set_world(zb_surface_water *w, zb_world *world);
 void zb_surface_water_set_rain(zb_surface_water *w, double mm_per_hour);

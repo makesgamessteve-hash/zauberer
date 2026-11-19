@@ -396,6 +396,51 @@ static int w_load(lua_State *L) {
   return 1;
 }
 
+/* @lua world.export_bundle(): string?
+ * The created world being played as bytes (its bundle), to send to heirs
+ * joining a co-op session; nil in the noise world.
+ */
+static int w_export_bundle(lua_State *L) {
+  zb_script *s = S(L);
+  const zb_world_bundle *b = zb_world_get_bundle(s->world);
+  if (!b) {
+    lua_pushnil(L);
+    return 1;
+  }
+  zb_array out;
+  zb_array_init(&out, s->cfg.a, 1);
+  zb_result r = zb_world_bundle_write(b, &out);
+  if (r != ZB_OK) {
+    zb_array_free(&out);
+    return luaL_error(L, "%s", zb_result_str(r));
+  }
+  lua_pushlstring(L, (const char *)out.data, out.len);
+  zb_array_free(&out);
+  return 1;
+}
+
+/* @lua world.play_bundle(data: string): boolean, string?
+ * Plays in a created world given as bytes (a bundle a co-op host sent);
+ * nil and why when they are not a world bundle.
+ */
+static int w_play_bundle(lua_State *L) {
+  zb_script *s = S(L);
+  size_t len;
+  const char *data = luaL_checklstring(L, 1, &len);
+  char err[160];
+  zb_world_bundle *b = zb_calloc(s->cfg.a, sizeof *b);
+  zb_result r = b ? zb_world_bundle_read(s->cfg.a, data, len, b, err, sizeof err) : ZB_ERR_NOMEM;
+  if (r != ZB_OK || !zb_script_adopt_bundle(s, b, err, sizeof err)) {
+    if (b) {
+      zb_world_bundle_free(b);
+      zb_free(s->cfg.a, b);
+    }
+    return fail2(L, r == ZB_ERR_NOMEM ? "out of memory" : err);
+  }
+  lua_pushboolean(L, true);
+  return 1;
+}
+
 /* ---- What a created world knows -------------------------------------------------------------- */
 
 static const zb_world_bundle *B(lua_State *L) { return zb_world_get_bundle(S(L)->world); }
@@ -795,6 +840,8 @@ void zb_script_open_create(zb_script *s) {
                                  {"create_cancel", w_create_cancel},
                                  {"create_finish", w_create_finish},
                                  {"load", w_load},
+                                 {"export_bundle", w_export_bundle},
+                                 {"play_bundle", w_play_bundle},
                                  {"info", w_info},
                                  {"climate", w_climate},
                                  {"biome", w_biome},

@@ -225,8 +225,34 @@ static void test_without_fire(void) {
   zb_world_destroy(w);
 }
 
+/* spec: multi-area-simulation: Areas share the budget */
+static void test_radius(void) {
+  load_data();
+  zb_world_desc d;
+  memset(&d, 0, sizeof d);
+  d.a = zb_test_alloc();
+  d.seed = 1;
+  d.profile = ZB_STREAM_MOBILE;
+  d.clock_ns = frozen_clock;
+  char err[128];
+  zb_world *w = zb_world_create(&d, err, sizeof err);
+  zb_tier_config tc = {zb_test_alloc(), w, g_materials, 100.0, 7, NULL, NULL};
+  zb_tier *t = zb_tier_create(&tc);
+  TEST_ASSERT_EQUAL_DOUBLE(100.0, zb_tier_radius(t));
+  TEST_ASSERT_EQUAL_DOUBLE(100.0, zb_tier_set_radius(t, 60.0));
+  TEST_ASSERT_EQUAL_DOUBLE(60.0, zb_tier_radius(t));
+  zb_tier_update(t, 1.0 / 60.0);
+  zb_tier_config nofire = {zb_test_alloc(), w, NULL, 100.0, 7, NULL, NULL};
+  zb_tier *t2 = zb_tier_create(&nofire);
+  TEST_ASSERT_EQUAL_DOUBLE(100.0, zb_tier_set_radius(t2, 80.0));
+  zb_tier_destroy(t2);
+  zb_tier_destroy(t);
+  zb_world_destroy(w);
+}
+
 int main(void) {
   UNITY_BEGIN();
+  RUN_TEST(test_radius);
   RUN_TEST(test_coupling);
   RUN_TEST(test_weather);
   RUN_TEST(test_without_fire);

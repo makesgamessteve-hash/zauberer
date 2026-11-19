@@ -248,6 +248,8 @@ static void let_go(void *ctx, void *data) {
   zb_free(m->a, data);
 }
 
+void zb_mana_set_radius(zb_mana *m, double radius) { m->grid.radius = radius; }
+
 zb_mana *zb_mana_create(const zb_allocator *a, zb_world *world, double radius) {
   zb_mana *m = zb_calloc(a, sizeof *m);
   if (!m) {

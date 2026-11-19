@@ -21,3 +21,11 @@ expect(not game.creation.ok, "and abandons the world being made")
 local again, err = world.create({ quality = "quick", radius = 300000 })
 expect(again, "nothing is being created any more: " .. tostring(err))
 world.create_cancel()
+-- A created world travels to joining heirs as its bundle's bytes.
+-- spec: coop-sessions: The world sent to joiners
+local bytes = world.export_bundle()
+expect(type(bytes) == "string" and #bytes > 1000, "the bundle as bytes")
+expect(world.play_bundle(bytes), "played from the bytes")
+expect_eq(world.info().seed, 11)
+local bad, why = world.play_bundle("not a world")
+expect(not bad and why, "other bytes are refused")

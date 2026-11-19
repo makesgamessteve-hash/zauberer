@@ -61,7 +61,6 @@ class EngineTestCase(unittest.TestCase):
         coverage = os.environ.get("ZB_LUA_COVERAGE")
         if coverage:
             cmd += ["--lua-coverage", coverage]
-            timeout *= 3  # the Lua line hook makes long scenarios several times slower
         cmd += list(args)
         env = dict(os.environ)
         env.setdefault("ZB_NO_DIALOGS", "1")
@@ -81,6 +80,7 @@ class EngineTestCase(unittest.TestCase):
         coverage = os.environ.get("ZB_LUA_COVERAGE")
         if coverage:
             cmd += ["--lua-coverage", coverage]
+            timeout *= 3  # the Lua line hook makes long scenarios several times slower
         cmd += list(args)
         full_env = dict(os.environ)
         full_env.setdefault("ZB_NO_DIALOGS", "1")

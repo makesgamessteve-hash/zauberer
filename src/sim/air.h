@@ -34,6 +34,8 @@ typedef struct zb_air_stats {
 } zb_air_stats;
 
 zb_air *zb_air_create(const zb_allocator *a, zb_world *world, double radius);
+/* Changes the radius around each focus point that is simulated. */
+void zb_air_set_radius(zb_air *air, double radius);
 void zb_air_destroy(zb_air *air);
 void zb_air_set_world(zb_air *air, zb_world *world);
 /* The weather's wind (m/s towards east and north). */

@@ -143,6 +143,8 @@ static void let_go(void *ctx, void *data) {
   zb_free(air->a, c);
 }
 
+void zb_air_set_radius(zb_air *air, double radius) { air->grid.radius = radius; }
+
 zb_air *zb_air_create(const zb_allocator *a, zb_world *world, double radius) {
   zb_air *air = zb_calloc(a, sizeof *air);
   if (!air) {

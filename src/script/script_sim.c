@@ -671,6 +671,27 @@ static int s_tier_stats(lua_State *L) {
   return 1;
 }
 
+/* @lua sim.set_active_radius(metres?: number): number
+ * The radius (50 .. 2000 m) simulated around each focus point - fire, water,
+ * air and mana - so that several areas, one per separated heir, share the
+ * host's budget; without an argument only tells it. Returns the radius in
+ * use before.
+ */
+static int s_set_active_radius(lua_State *L) {
+  zb_tier *tier = zb_script_from(L)->cfg.tier;
+  if (!tier) {
+    return luaL_error(L, "no active tier");
+  }
+  if (lua_isnoneornil(L, 1)) {
+    lua_pushnumber(L, zb_tier_radius(tier));
+    return 1;
+  }
+  double r = luaL_checknumber(L, 1);
+  luaL_argcheck(L, r >= 50.0 && r <= 2000.0, 1, "radius must be 50..2000 m");
+  lua_pushnumber(L, zb_tier_set_radius(tier, r));
+  return 1;
+}
+
 void zb_script_open_sim(zb_script *s) {
   static const luaL_Reg registry_fns[] = {{"keys", r_keys}, {"get", r_get}, {NULL, NULL}};
   static const luaL_Reg sim_fns[] = {{"material", s_material},
@@ -696,6 +717,7 @@ void zb_script_open_sim(zb_script *s) {
                                      {"emit", s_emit},
                                      {"air_stats", s_air_stats},
                                      {"tier_stats", s_tier_stats},
+                                     {"set_active_radius", s_set_active_radius},
                                      {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, registry_fns, 0);

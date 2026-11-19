@@ -62,6 +62,8 @@ typedef struct zb_mana_sources {
 } zb_mana_sources;
 
 zb_mana *zb_mana_create(const zb_allocator *a, zb_world *world, double radius);
+/* Changes the radius around each focus point that is simulated. */
+void zb_mana_set_radius(zb_mana *m, double radius);
 void zb_mana_destroy(zb_mana *m);
 void zb_mana_set_world(zb_mana *m, zb_world *world);
 void zb_mana_set_sources(zb_mana *m, const zb_mana_sources *s);

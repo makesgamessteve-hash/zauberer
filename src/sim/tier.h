@@ -74,6 +74,10 @@ void zb_tier_apply_weather(zb_tier *t, const zb_weather *w);
 /* Lightning at a place: fire in the dry fuel there, counted; the cells that caught. */
 int zb_tier_lightning(zb_tier *t, const zb_planet_pos *pos);
 void zb_tier_get_stats(const zb_tier *t, zb_tier_stats *out);
+/* The radius simulated around each focus point (several areas, one per
+ * separated heir, share the budget by shrinking it). Returns the old one. */
+double zb_tier_set_radius(zb_tier *t, double radius);
+double zb_tier_radius(const zb_tier *t);
 /* The ground of these chunks changed (zb_world_deform): the simulations take
  * the new heights, and water moves again. */
 void zb_tier_ground_changed(zb_tier *t, const zb_chunk *chunks, int count);

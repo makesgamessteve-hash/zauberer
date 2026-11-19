@@ -216,6 +216,20 @@ void zb_tier_update(zb_tier *t, double seconds) {
   }
 }
 
+double zb_tier_set_radius(zb_tier *t, double radius) {
+  double old = t->cfg.radius;
+  t->cfg.radius = radius;
+  if (t->fire) {
+    zb_fire_set_radius(t->fire, radius);
+  }
+  zb_surface_water_set_radius(t->water, radius);
+  zb_air_set_radius(t->air, radius);
+  zb_mana_set_radius(t->mana, radius);
+  return old;
+}
+
+double zb_tier_radius(const zb_tier *t) { return t->cfg.radius; }
+
 void zb_tier_get_stats(const zb_tier *t, zb_tier_stats *out) { *out = t->stats; }
 
 void zb_tier_ground_changed(zb_tier *t, const zb_chunk *chunks, int count) {

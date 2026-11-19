@@ -138,6 +138,8 @@ static void let_go(void *ctx, void *data) {
   zb_free(w->a, c);
 }
 
+void zb_surface_water_set_radius(zb_surface_water *w, double radius) { w->grid.radius = radius; }
+
 zb_surface_water *zb_surface_water_create(const zb_allocator *a, zb_world *world, double radius) {
   zb_surface_water *w = zb_calloc(a, sizeof *w);
   if (!w) {
