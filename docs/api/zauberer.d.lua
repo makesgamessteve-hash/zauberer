@@ -648,6 +648,10 @@ function world.distance(a, b) end
 ---@return boolean
 function world.draw_globe(frame, position, radius, spin) end
 
+---The created world being played as bytes (its bundle), to send to heirs joining a co-op session; nil in the noise world.
+---@return string?
+function world.export_bundle() end
+
 ---The nearest place within radius metres (default 50 km) where a created world has water of a kind: for a river, the middle of the channel leaving the nearest macro cell that has one; for a lake or the sea, the centre of the nearest such cell. nil in the noise world or when there is none.
 ---@param pos PlanetPos
 ---@param kind "river"|"lake"|"ocean"
@@ -733,6 +737,12 @@ function world.planet() end
 ---@param radius number
 ---@return Plant[]
 function world.plants(pos, radius) end
+
+---Plays in a created world given as bytes (a bundle a co-op host sent); nil and why when they are not a world bundle.
+---@param data string
+---@return boolean
+---@return string?
+function world.play_bundle(data) end
 
 ---Makes a position; the offsets default to 0. Errors when the chunk is not on the planet.
 ---@param face integer
@@ -1276,6 +1286,11 @@ function sim.remove_creature(id) end
 ---@param cubic_metres number
 ---@return number
 function sim.remove_water(pos, radius, cubic_metres) end
+
+---The radius (50 .. 2000 m) simulated around each focus point - fire, water, air and mana - so that several areas, one per separated heir, share the host's budget; without an argument only tells it. Returns the radius in use before.
+---@param metres? number
+---@return number
+function sim.set_active_radius(metres) end
 
 ---Sets a creature's needs, each 0 .. 1 and left as it is when omitted: { hunger = .., thirst = .., energy = .. }; it reconsiders what to do at once. Returns whether the creature exists.
 ---@param id integer

@@ -12,6 +12,7 @@ files["tests/scenarios/**"] = {
   read_globals = { "scenario", "step", "sleep", "expect", "expect_eq", "expect_near", "expect_error" },
   globals = { "failing_hook_ticks", "xr_events" },
 }
+files["tests/scenarios/together_*.lua"] = { read_globals = { "together" } } -- (set by tests/engine/test_together.py)
 files["tests/fixtures/scenarios/**"] = {
   read_globals = { "scenario", "step", "sleep", "expect", "expect_eq", "expect_near", "expect_error" },
 }

@@ -714,8 +714,10 @@ These are planned, not committed:
 
 ## 9. Open questions for the project owner
 
-1. **Relay hosting** (before M9): should the project run a public relay for invite codes,
-   with small ongoing costs, or ship only the self-hostable relay plus LAN play?
+1. **Relay hosting**: should the project run a public relay for invite codes, with small
+   ongoing costs, or ship only the self-hostable relay plus LAN play? M9 ships the
+   self-hostable relay (`zauberer-relay`) and LAN play; the relay forwards opaque but not
+   yet encrypted frames over `ws://` (a TLS proxy gives `wss://` for browsers).
 
 **Resolved by the project owner:**
 

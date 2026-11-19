@@ -19,7 +19,7 @@ function M.new()
   return {
     role = "none", me = -1, tick = 0, carpets = {}, queues = {}, acks = {}, inputs = {},
     seq = 0, history = {}, predicted_ok = 0, mispredictions = 0,
-    terrain_checks = 0, terrain_mismatches = 0, inbox = {},
+    terrain_checks = 0, terrain_mismatches = 0, inbox = {}, events = {}, riders = nil,
   }
 end
 
@@ -51,6 +51,7 @@ local function spawn(co, player, api)
 end
 
 local function host_receive(co, m, api)
+  if m.event ~= "data" then co.events[#co.events + 1] = m end
   if m.event == "joined" then
     spawn(co, m.player, api)
   elseif m.event == "left" then
@@ -75,6 +76,13 @@ local function client_state(co, s, dt, api)
   if not snap then return end
   local mine = co.carpets[co.me]
   local ack = s.acks[co.me] or 0
+  co.riders = s.riders
+  if co.riders and co.riders.pilot ~= co.me and mine then -- (riding: carried by the pilot, nothing to predict)
+    M.restore(mine, snap)
+    co.history = {}
+    co.seq = math.max(co.seq, ack)
+    return
+  end
   if not mine then
     mine = carpet.new(snap, 0)
     co.carpets[co.me] = mine
@@ -105,6 +113,7 @@ local function client_state(co, s, dt, api)
 end
 
 local function client_receive(co, m, dt, api)
+  if m.event ~= "data" then co.events[#co.events + 1] = m end
   if m.event == "data" and m.channel == "state" then
     client_state(co, m.value, dt, api)
   elseif m.event == "data" and m.channel == "terrain" then
@@ -116,6 +125,23 @@ local function client_receive(co, m, dt, api)
     co.carpets[m.player], co.inputs[m.player] = nil, nil
   elseif m.event == "data" then
     co.inbox[#co.inbox + 1] = m
+  end
+end
+
+-- Riding the whole Weave together: the riders sit on the pilot's carpet
+-- (each a little behind the last), whatever their own inputs.
+local function ride(co, api)
+  local r = co.riders
+  if not r then return end
+  local pilot = co.carpets[r.pilot]
+  if not pilot then return end
+  for k, p in ipairs(r.list) do
+    local c = co.carpets[p]
+    if c and p ~= r.pilot then
+      c.pos = api.move(pilot.pos, pilot.heading, -1.2 * k, 0, 0)
+      c.pos.alt = pilot.pos.alt
+      c.heading, c.speed, c.pitch, c.vspeed = pilot.heading, pilot.speed, pilot.pitch, pilot.vspeed
+    end
   end
 end
 
@@ -131,12 +157,13 @@ local function host_tick(co, own, inp, dt, api, netapi)
       co.acks[p], co.inputs[p] = i.seq, i
     end
   end
+  ride(co, api)
   if co.tick % M.STATE_EVERY == 0 then
     local snaps = {}
     for p, c in pairs(co.carpets) do
       snaps[p] = carpet.snapshot(c)
     end
-    netapi.send("state", { tick = co.tick, carpets = snaps, acks = co.acks, inputs = co.inputs })
+    netapi.send("state", { tick = co.tick, carpets = snaps, acks = co.acks, inputs = co.inputs, riders = co.riders })
   end
   if co.tick % M.TERRAIN_EVERY == 0 then
     local pos = { face = own.pos.face, x = own.pos.x, y = own.pos.y, lx = 128, ly = 128, alt = 0 }
@@ -154,9 +181,25 @@ local function client_tick(co, inp, dt, api, netapi)
   if not mine then return end
   co.seq = co.seq + 1
   local i = copy_input(inp, co.seq)
-  carpet.update(mine, i, dt, api)
-  co.history[co.seq] = { inp = i, snap = carpet.snapshot(mine) }
+  if not (co.riders and co.riders.pilot ~= co.me) then
+    carpet.update(mine, i, dt, api)
+    co.history[co.seq] = { inp = i, snap = carpet.snapshot(mine) }
+  end
   netapi.send("input", i, 0)
+end
+
+-- The heirs ride the whole Weave: pilot (a player index) and the riders
+-- (player indices, the pilot among them); nil: each flies their own.
+function M.set_riders(co, pilot, list)
+  co.riders = list and { pilot = pilot, list = list } or nil
+end
+
+-- Takes the session events seen since last asked (joined, left, welcome,
+-- ended, away, back, blobs).
+function M.take_events(co)
+  local e = co.events
+  co.events = {}
+  return e
 end
 
 -- One tick. own: the local carpet when hosting or alone; api: { move, height,

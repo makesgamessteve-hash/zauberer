@@ -25,7 +25,11 @@ game.camera_override = function()
   local t = world.to_local(above(spot, 12)) -- the walkers and the bird above them in view
   return { eye = { t[1], t[2] + 18, t[3] + 45 }, target = t, up = { 0, 1, 0 }, fov = 60, near = 0.5, far = 5000 }
 end
-step(2)
+for _ = 1, 600 do -- (the village about is built up before counting)
+  step(1)
+  if game.world_places.places.ready then break end
+end
+step(180)
 local before = render.stats().model_draws
 local placed = {
   { "wolf", -6, 0 }, { "wolf", -3, 2 }, { "deer", 2, -2 }, { "deer", 5, 1 }, { "storm_bird", 0, 0 },

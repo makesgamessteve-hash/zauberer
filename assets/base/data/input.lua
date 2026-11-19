@@ -31,6 +31,7 @@ return {
   -- Places and people: open a door or a chest, take what is in it, talk.
   use = { type = "button", bind = { "key:tab", "gamepad:left_trigger", "touch:button:use" } },
   story = { type = "button", bind = { "key:f5" } }, -- begin the prologue in Anarvan (Vertical Slice B)
+  weave = { type = "button", bind = { "key:f6", "touch:button:weave" } }, -- co-op: split the Weave or rejoin it
   jump = { type = "button", bind = { "key:space", "gamepad:a", "touch:button:jump" } },
   -- Survival: lie down to sleep (on foot).
   sleep = { type = "button", bind = { "key:l", "touch:button:sleep" } },

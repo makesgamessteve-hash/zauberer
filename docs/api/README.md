@@ -326,6 +326,10 @@ Great-circle distance at sea level in metres.
 
 Draws the planet as a globe: a time-lapse frame of the world being created (1-based; nil for the newest), or the played world by biome when none is being created. Returns false when there is nothing to show yet.
 
+### `world.export_bundle(): string?`
+
+The created world being played as bytes (its bundle), to send to heirs joining a co-op session; nil in the noise world.
+
 ### `world.find_water(pos: PlanetPos, kind: "river"|"lake"|"ocean", radius: number?): PlanetPos?`
 
 The nearest place within radius metres (default 50 km) where a created world has water of a kind: for a river, the middle of the channel leaving the nearest macro cell that has one; for a lake or the sea, the centre of the nearest such cell. nil in the noise world or when there is none.
@@ -385,6 +389,10 @@ Describes the planet.
 ### `world.plants(pos: PlanetPos, radius: number): Plant[]`
 
 The plants within radius metres (up to 256) of a position, from the chunks loaded with their plants (stage 3); at most 4096.
+
+### `world.play_bundle(data: string): boolean, string?`
+
+Plays in a created world given as bytes (a bundle a co-op host sent); nil and why when they are not a world bundle.
 
 ### `world.position(face: integer, x: integer, y: integer, lx?: number, ly?: number, alt?: number): PlanetPos`
 
@@ -787,6 +795,10 @@ Takes a creature (alive or dead) out of the world.
 ### `sim.remove_water(pos: PlanetPos, radius: number, cubic_metres: number): number`
 
 Takes up to cubic_metres (0 .. 1e7) of standing water from within radius metres (up to 64): drying magic. Returns how much it took.
+
+### `sim.set_active_radius(metres?: number): number`
+
+The radius (50 .. 2000 m) simulated around each focus point - fire, water, air and mana - so that several areas, one per separated heir, share the host's budget; without an argument only tells it. Returns the radius in use before.
 
 ### `sim.set_needs(id: integer, needs: table): boolean`
 

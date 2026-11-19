@@ -44,6 +44,13 @@ if(Python3_FOUND)
       WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
     set_tests_properties(relay_process PROPERTIES
       ENVIRONMENT "ZB_RELAY_BIN=$<TARGET_FILE:zauberer-relay>" LABELS "engine;relay" TIMEOUT 120)
+    # The M9 exit demo: a relay, a host and three clients over two days.
+    add_test(NAME together_process
+      COMMAND "${Python3_EXECUTABLE}" -m unittest -v tests.engine.test_together
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+    set_tests_properties(together_process PROPERTIES
+      ENVIRONMENT "${ZB_ENGINE_TEST_ENV};ZB_RELAY_BIN=$<TARGET_FILE:zauberer-relay>" LABELS "engine;relay"
+      TIMEOUT 1800)
   endif()
   if(NOT ZB_HEADLESS_ONLY)
     # Rendered tests need a GL 3.3 driver: on Linux the SDL offscreen driver with Mesa llvmpipe.

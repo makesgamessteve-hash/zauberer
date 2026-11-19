@@ -44,6 +44,8 @@ local codex = require("life.codex")
 local placeplay = require("places.play")
 local director = require("story.director")
 local prologue = require("story.prologue")
+local coopplay = require("coop.play")
+local weave = require("coop.weave")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -122,6 +124,7 @@ local function setup_flight()
   game.channeling = false
   game.chase = camera.new()
   game.coop = coop.new()
+  game.together = coopplay.new(back and back.together, (game.world_options or {}).heirs or 4)
   game.last_frame_time = nil
   render.light({ direction = { -SUN[1], -SUN[2], -SUN[3] }, color = { 1, 0.95, 0.85 }, ambient = { 0.38, 0.4, 0.48 } })
   render.atmosphere({ zenith = { 0.2, 0.4, 0.78 }, horizon = { 0.72, 0.8, 0.88 }, sun = SUN,
@@ -182,7 +185,8 @@ function game.save()
     disciplines = game.disciplines and disciplines.snapshot(game.disciplines),
     home = game.home_place and home.snapshot(game.home_place),
     world_places = game.world_places and placeplay.snapshot(game.world_places),
-    story = game.story and prologue.snapshot(game.story), known = game.known and (function()
+    story = game.story and prologue.snapshot(game.story),
+    together = game.together and coopplay.snapshot(game.together), known = game.known and (function()
       local list = {}
       for id in pairs(game.known) do list[#list + 1] = id end
       table.sort(list)
@@ -480,6 +484,9 @@ local function flight_tick(dt)
       game.tent, t = nil, nil
       game.carpet.pos, game.carpet.speed = world.move(game.carpet.pos, 0, 0, 0), 0
       game.carpet.pos.alt = world.ground_height(game.carpet.pos) + carpet.CLEARANCE
+    elseif not t and not k.worn and walker.near_carpet(w, game.carpet) and co.role ~= "none"
+      and not weave.can_pitch(game.together.weave) then
+      condition.say(game.condition, select(2, weave.can_pitch(game.together.weave)))
     elseif not t and not k.worn and walker.near_carpet(w, game.carpet) then
       local pitched, why = tent.pitch(w.pos, w.heading)
       if pitched then
@@ -514,6 +521,24 @@ local function flight_tick(dt)
   end
   local c = coop.tick(co, game.carpet, (down or w) and still or controls.flight_input(st), dt, WORLD, net)
   game.carpet = c
+  -- Co-op: the heirs, the Weave, the host's clock, votes and the active areas.
+  if co.role ~= "none" then
+    local T = game.together
+    coopplay.tick(T, co, { now = world.time().time, netapi = net, set_time = world.set_time,
+      sleep = function(hours) world.set_time(world.time().time + hours * 3600) end,
+      in_home = { [1] = game.tent ~= nil and game.tent.inside or nil },
+      past_prologue = game.story ~= nil and game.story.beat ~= "village",
+      world_info = function()
+        return { seed = (world.info() or {}).seed, name = game.save_name, bundle = world.export_bundle(),
+          history = nil }
+      end,
+      areas = { set_focus = world.set_focus, clear_focus = world.clear_focus, set_radius = sim.set_active_radius,
+        distance = world.distance }, tier = sim.tier_stats })
+    for _, line in ipairs(coopplay.take_said(T)) do pack.say(game.pack, line) end
+    if input.state("weave").pressed then
+      coopplay.ask(T, co, net, T.weave.whole and "split" or "rejoin", { now = world.time().time })
+    end
+  end
   -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
   local spell = {}
   for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
@@ -648,7 +673,14 @@ local function flight_tick(dt)
     local moved = bag.unstow(game.bag, game.pack, game.magic.caster.mage)
     bag.say(game.bag, next(moved) and ("Taken out " .. said(moved)) or "Nothing taken out")
   end
-  if w and input.state("sleep").pressed and not game.health.down then
+  if w and input.state("sleep").pressed and co.role ~= "none" then -- with company: a vote
+    local T = game.together
+    if T.open_vote then
+      coopplay.ask(T, co, net, "ballot", { yes = true })
+    else
+      coopplay.ask(T, co, net, "vote", { kind = "sleep", now = now })
+    end
+  elseif w and input.state("sleep").pressed and not game.health.down then
     local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
     for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
     world.set_time(now + hours * 3600)
@@ -799,14 +831,9 @@ local function flight_tick(dt)
   else
     world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
   end
-  -- The host streams around every heir (one focus each).
-  for p = 1, 3 do
-    local other = co.role == "host" and co.carpets[p]
-    if other then
-      world.set_focus(p + 1, other.pos, carpet.velocity(other), carpet.forward(other))
-    else
-      world.clear_focus(p + 1)
-    end
+  -- (Hosting, coop.play gives every group of heirs its own active area.)
+  if co.role == "none" then
+    for p = 2, 4 do world.clear_focus(p) end
   end
   -- The shared buttons keep their showcase meaning (chime, credits, fullscreen, quit).
   for _, name in ipairs({ "chime", "fullscreen", "quit" }) do

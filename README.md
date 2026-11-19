@@ -15,7 +15,7 @@ from words, gestures, ingredients and eight colors of mana, and it acts through 
 world's simulation of heat, fire, water, air and life. Play alone, or in online co-op
 with up to three friends as the father's children, the heirs of the carpet.
 
-> **Status: M7, the disciplines.** M0–M7 are done.
+> **Status: M9, together.** M0–M9 are done.
 >
 > - The engine runs on Linux, Windows, macOS and the web, with co-op flight over WebSockets
 >   and a WebXR spike.
@@ -35,6 +35,14 @@ with up to three friends as the father's children, the heirs of the carpet.
 >   artificing in its workshop (a lantern of perpetual light), ritual magic (calling rain),
 >   summoning elementals and bonding familiars, and mastery through practice, study and
 >   trials.
+> - Places and people: the world is peopled (peoples, related invented languages, faiths,
+>   realms, settlements, roads and a chronicle, or the optional Rise and fall simulation);
+>   every house can be entered; citadels, caves with underground rivers and dungeons with
+>   puzzles; people with their days, talk and trades; prices, factions and caravans; lore
+>   told from each side. Vertical Slice B: the prologue in Anarvan and Act I (F5).
+> - Together: up to four heirs join by invite code through a self-hostable relay or on the
+>   LAN, ride the Weave together or split it, vote to sleep, and come back to the saved
+>   world.
 
 ## Documents
 
@@ -69,7 +77,14 @@ gamepad and touch bindings are in `assets/base/data/input.lua`):
 | Quick wheel | 1–8 put a prepared weave in the right hand |
 | Channel mana | hold V while still |
 | On foot | E steps off a carpet resting low and slow (and back on); Space jumps; Shift runs |
-| Other | N new world, F1 or Tab credits, F11 fullscreen, Esc quit |
+| Use | Tab opens doors and chests, takes what is in them and talks with people (Shift+Tab asks for their service) |
+| Story | F5 begins the prologue in Anarvan (Vertical Slice B) |
+| Co-op | F6 splits the Weave into a carpet each or rejoins it; L in company opens or agrees to a vote to sleep |
+| Other | N new world, F1 credits, F11 fullscreen, Esc quit |
+
+Co-op: run the relay (`zauberer-relay --port 47821`, built next to the game) where every
+player can reach it; the host calls `net.host_relay("ws://<relay>:47821")` and gives the
+others its invite code (in the browser the relay must be behind a TLS proxy, `wss://`).
 
 Vertical Slice A, the M4 demo: scare the wolves near the start with fire, put out the
 grass fire with Unmake Fire, bring down the storm bird with a Fireball and collect its
