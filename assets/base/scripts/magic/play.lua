@@ -12,6 +12,7 @@ local spellbook = require("magic.spellbook")
 local effects = require("magic.effects")
 local cast = require("magic.cast")
 local stroke = require("magic.stroke")
+local access = require("ui.access")
 
 local play = {}
 
@@ -125,6 +126,21 @@ local function release(p, carpet, aim)
   return r
 end
 
+-- A recognised gesture (gesture.recognize): it shapes the weave a hand is
+-- charging (hand: "left" or "right" drew it, as in VR; nil: either), else it
+-- is the form of the free weave.
+function play.gesture(p, g, hand)
+  if p.charging and (hand == nil or p.charging.hand == hand) then
+    p.charging.gesture = g
+  elseif g.form ~= "none" then
+    p.free.form = g.form
+    p.free.until_time = p.time + FREE_TIME
+    say(p, "Form: " .. g.form .. " (" .. math.floor(g.accuracy * 100 + 0.5) .. "%)")
+  else
+    say(p, "That was no form")
+  end
+end
+
 -- One tick. states: input action states by name (see play.ACTIONS); carpet;
 -- aim: { heading, pitch }; place: the mana where the mage is. Returns the
 -- result of a cast made this tick, if any.
@@ -145,18 +161,9 @@ function play.tick(p, states, dt, carpet, aim, place)
   end
   -- Drawing a gesture (mouse motion while the draw button is held).
   local look = st("look")
-  local g = stroke.update(p.stroke, st("draw").held, look.x or 0, look.y or 0, 0, 0, dt)
-  if g then
-    if p.charging then
-      p.charging.gesture = g
-    elseif g.form ~= "none" then
-      p.free.form = g.form
-      p.free.until_time = p.time + FREE_TIME
-      say(p, "Form: " .. g.form .. " (" .. math.floor(g.accuracy * 100 + 0.5) .. "%)")
-    else
-      say(p, "That was no form")
-    end
-  end
+  p.stroke.options = access.gesture_options(p.stroke.options) -- (the player's gesture assist)
+  local g = access.gesture(stroke.update(p.stroke, st("draw").held, look.x or 0, look.y or 0, 0, 0, dt))
+  if g then play.gesture(p, g) end
   -- Charging and casting with the hands.
   local result
   for _, hand in ipairs({ "left", "right" }) do
@@ -188,7 +195,7 @@ function play.hud_lines(p)
   local parts = {}
   for _, c in ipairs(mage.COLORS) do
     local amount = math.floor(m.mana[c] + 0.5)
-    if amount > 0 then parts[#parts + 1] = c .. " " .. amount end
+    if amount > 0 then parts[#parts + 1] = access.colour(c) .. " " .. amount end
   end
   local lines = { "Mana " .. math.floor(mage.total(m) + 0.5) .. "/" .. m.capacity .. ": " .. table.concat(parts, ", ") }
   local function hand_name(hand)
@@ -197,7 +204,9 @@ function play.hud_lines(p)
   end
   lines[#lines + 1] = "Left: " .. hand_name("left") .. "   Right: " .. hand_name("right")
   local fw = play.free_weave(p)
-  lines[#lines + 1] = "Free weave: " .. fw.verb .. " " .. table.concat(fw.colors, "+") ..
+  local shown = {}
+  for i, c in ipairs(fw.colors) do shown[i] = access.colour(c) end
+  lines[#lines + 1] = "Free weave: " .. fw.verb .. " " .. table.concat(shown, "+") ..
     (p.free.form and p.time < p.free.until_time and (" " .. p.free.form) or " (draw a form)")
   if p.charging then
     lines[#lines + 1] = "Charging " .. math.floor(p.charging.power + 0.5) .. " mana"

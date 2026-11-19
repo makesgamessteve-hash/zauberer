@@ -23,11 +23,16 @@ walker.CARPET_LOW = 4.0    -- metres above the floor
 local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function wrap(a) return (a + math.pi) % (2 * math.pi) - math.pi end
 
--- The floor under a place: the ground or the ice on water; and how deep the
+-- The floor under a place: the ground, a building's floor (env.structure,
+-- the highest within a step of alt) or the ice on water; and how deep the
 -- open water there is. env.height and env.water (water bodies) are used where
 -- the active tier has not loaded the place.
-function walker.floor(pos, env)
+function walker.floor(pos, env, alt)
   local ground = env.height(pos)
+  if env.structure then -- the floors, stairs and plinths of buildings; underground, the floors of caves and vaults
+    local f, under = env.structure(pos, alt or pos.alt or ground)
+    if f and (under or f > ground) then return f, 0, false end
+  end
   local w = sim.water_at(pos)
   if w.loaded then
     if w.frozen then return math.max(ground, w.level), 0, true end
@@ -67,7 +72,8 @@ end
 
 -- inp: turn and throttle (-1 .. 1), run and jump (booleans), look (mouse or
 -- stick: x turns, y tilts the view), mouse (look is in pixels).
--- env: move(pos, heading, forward, right, up), height(pos), water(pos).
+-- env: move(pos, heading, forward, right, up), height(pos), water(pos), and
+-- optionally structure(pos, alt) (a building's floor) and blocked(a, b, alt).
 function walker.update(w, inp, dt, env)
   w.time = w.time + dt
   w.landing = nil
@@ -90,6 +96,11 @@ function walker.update(w, inp, dt, env)
   if not w.grounded then w.vspeed = w.vspeed - walker.GRAVITY * dt end
   if w.glide and w.vspeed < -walker.GLIDE_SINK then w.vspeed = -walker.GLIDE_SINK end -- (the cloak spread as a glider)
   local pos, heading = env.move(w.pos, w.heading, w.speed * dt, 0, w.vspeed * dt)
+  w.bumped = env.blocked ~= nil and w.speed ~= 0 and env.blocked(w.pos, pos, w.pos.alt) -- a wall or a closed door
+  if w.bumped then
+    pos, heading = env.move(w.pos, w.heading, 0, 0, w.vspeed * dt), w.heading
+    w.speed = 0
+  end
   local floor, depth, ice = walker.floor(pos, env)
   w.blocked = depth > walker.WADE
   if w.blocked then -- too deep to wade: the mage stays on the shore

@@ -28,6 +28,10 @@ return {
   channel = { type = "button", bind = { "key:v", "gamepad:dpad_down", "touch:button:channel" } },
   -- On foot: step off a carpet resting low and slow (and back on), and jump.
   mount = { type = "button", bind = { "key:e", "gamepad:right_stick", "touch:button:mount" } },
+  -- Places and people: open a door or a chest, take what is in it, talk.
+  use = { type = "button", bind = { "key:tab", "gamepad:left_trigger", "touch:button:use" } },
+  story = { type = "button", bind = { "key:f5" } }, -- begin the prologue in Anarvan (Vertical Slice B)
+  weave = { type = "button", bind = { "key:f6", "touch:button:weave" } }, -- co-op: split the Weave or rejoin it
   jump = { type = "button", bind = { "key:space", "gamepad:a", "touch:button:jump" } },
   -- Survival: lie down to sleep (on foot).
   sleep = { type = "button", bind = { "key:l", "touch:button:sleep" } },
@@ -64,7 +68,7 @@ return {
   spin = { type = "button", bind = { "key:space", "mouse:left", "gamepad:a", "touch:button:spin" } },
   -- Everywhere
   chime = { type = "button", bind = { "key:c", "gamepad:x", "touch:button:chime" } },
-  credits = { type = "button", bind = { "key:f1", "key:tab", "gamepad:back", "touch:button:credits" } },
+  credits = { type = "button", bind = { "key:f1", "gamepad:back", "touch:button:credits" } },
   fullscreen = { type = "button", bind = { "key:f11" } },
   new_world = { type = "button", bind = { "key:n", "gamepad:y" } },
   confirm = { type = "button", bind = { "key:return", "key:space", "gamepad:a", "touch:button:confirm" } },

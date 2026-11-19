@@ -24,7 +24,7 @@ function M.lines(s, mode, info, credits)
   if s.credits then
     lines[#lines + 1] = "Credits:"
     for _, c in ipairs(credits or {}) do
-      lines[#lines + 1] = M.credit_line(c)
+      lines[#lines + 1] = { raw = M.credit_line(c) } -- (names: never translated)
     end
   end
   return lines

@@ -1,1 +1,1 @@
-Zauberer web build (single-threaded) of 1e59d6b, M7 The Disciplines.
+Zauberer web build (single-threaded) of 3769a78, 1.0.0-rc.1 (M11 Release).

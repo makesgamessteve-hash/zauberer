@@ -97,7 +97,7 @@ function ritual.tick(s, dt, ctx)
   if a.elapsed + 1e-9 < r.channel then return nil end
   s.active = nil
   local result = { done = r, from_land = a.from_land, blighted = mana.at(a.pos).blighted }
-  if r.effect == "rain" or r.effect == "ward" then
+  if r.effect == "rain" or r.effect == "ward" or r.effect == "calm" then
     s.effects[r.effect] = { until_time = ctx.now + r.hours * 3600, pos = a.pos, radius = r.radius, rain = r.rain }
   end
   return result

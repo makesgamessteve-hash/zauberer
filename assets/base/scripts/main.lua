@@ -41,6 +41,18 @@ local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
 local codex = require("life.codex")
+local placeplay = require("places.play")
+local director = require("story.director")
+local prologue = require("story.prologue")
+local coopplay = require("coop.play")
+local saga = require("story.saga")
+local weave = require("coop.weave")
+local text = require("ui.text")
+local settings = require("ui.settings")
+local access = require("ui.access")
+local menu = require("ui.menu")
+local modapi = require("mods.api")
+local xrplay = require("xr.play")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -93,6 +105,11 @@ local function setup_flight()
   game.known = {} -- the substances analysed
   for _, id in ipairs(back and type(back.known) == "table" and back.known or {}) do game.known[id] = true end
   game.codex = codex.new(back and back.codex)
+  -- The peopled world (made in slices as play begins), Anarvan where the carpet set out.
+  game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
+    game.home.pos, FOOT, game.world_options and game.world_options.history)
+  game.story, game.story_saved = nil, back and back.story -- (the prologue resumes once the world is peopled)
+  game.saga, game.saga_saved = nil, back and back.saga -- (and the acts after it)
   game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
@@ -115,11 +132,12 @@ local function setup_flight()
   game.channeling = false
   game.chase = camera.new()
   game.coop = coop.new()
+  game.together = coopplay.new(back and back.together, (game.world_options or {}).heirs or 4)
   game.last_frame_time = nil
   render.light({ direction = { -SUN[1], -SUN[2], -SUN[3] }, color = { 1, 0.95, 0.85 }, ambient = { 0.38, 0.4, 0.48 } })
   render.atmosphere({ zenith = { 0.2, 0.4, 0.78 }, horizon = { 0.72, 0.8, 0.88 }, sun = SUN,
     sun_color = { 1, 0.95, 0.8 }, fog_distance = 12000 })
-  render.palette({})
+  render.palette(access.palette())
   render.daylight(true) -- the sun, the moon and the seasons over the carpet
   world.set_focus(1, game.carpet.pos, { 0, 0, 0 }, carpet.forward(game.carpet))
 end
@@ -128,7 +146,7 @@ local function setup_create()
   world.clear_focus(1)
   render.daylight(false)
   render.atmosphere(false)
-  render.palette({})
+  render.palette(access.palette())
   render.clear_color(0.02, 0.02, 0.06)
   render.light({ direction = { -0.5, -0.3, -0.8 }, color = { 1, 0.95, 0.85 }, ambient = { 0.25, 0.25, 0.32 } })
   local options = game.world_options or {}
@@ -173,7 +191,10 @@ function game.save()
     ritual = game.ritual and ritual.snapshot(game.ritual),
     summoning = game.summoning and summoning.snapshot(game.summoning),
     disciplines = game.disciplines and disciplines.snapshot(game.disciplines),
-    home = game.home_place and home.snapshot(game.home_place), known = game.known and (function()
+    home = game.home_place and home.snapshot(game.home_place),
+    world_places = game.world_places and placeplay.snapshot(game.world_places),
+    story = game.story and prologue.snapshot(game.story), saga = game.saga and saga.snapshot(game.saga),
+    together = game.together and coopplay.snapshot(game.together), known = game.known and (function()
       local list = {}
       for id in pairs(game.known) do list[#list + 1] = id end
       table.sort(list)
@@ -221,10 +242,12 @@ engine.on("init", function()
   assets.room = render.model("models/room.glb")
   assets.mote = render.sprite("sprites/mote.lua")
   assets.flame = render.sprite("sprites/flame.lua")
+  assets.person = render.sprite("sprites/person.lua")
   for _, kind in ipairs({ "bee", "mosquito", "firefly", "butterfly" }) do
     assets[kind] = render.sprite("sprites/" .. kind .. ".lua")
   end
   assets.font = render.font("fonts/pixel.lua")
+  game.setup_ui()
   game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
   game.credits = engine.credits()
   local saved = save.get("world")
@@ -250,11 +273,72 @@ local function handle(ev)
     game.fullscreen = not game.fullscreen
     engine.set_fullscreen(game.fullscreen)
   elseif ev == "quit" then
-    if game.mode == "flight" then
-      game.save()
-    end
-    engine.quit()
+    game.quit_to_desktop()
   end
+end
+
+-- The player's settings (language, accessibility), the input they shape and
+-- the menu (again after a script reload in development).
+function game.setup_ui()
+  if game.menu then return end
+  game.settings = settings.load(engine.info().language)
+  if not input.raw_state then access.wrap_input(input, menu.ACTIONS) end
+  game.menu = menu.new(game.settings, {
+    quit = function() game.quit_to_desktop() end,
+    resume = function() access.block(false) end,
+    packages = engine.packages,
+    set_package = engine.set_package_enabled,
+  })
+  game.captions = access.captions_new()
+  game.xr_options = game.vr_options(game.settings)
+  settings.listeners[#settings.listeners + 1] = function(s, name)
+    if name:match("^xr_") then -- (the VR comfort options, also for a session already running)
+      game.xr_options = game.vr_options(s)
+      if game.xrp then
+        for k, v in pairs(game.xr_options) do game.xrp.options[k] = v end
+      end
+    end
+    if name == "survival" and game.survival then game.survival.preset = s.survival end
+    if name == "colour_vision" and game.mode ~= "showcase" then render.palette(access.palette()) end
+  end
+end
+
+-- Sound captions: lightning, fire close by and calling creatures, with the side they are on.
+local function bearing(from, to)
+  local a, b = world.to_local(from), world.to_local(to)
+  return math.atan(b[1] - a[1], a[3] - b[3]) % (2 * math.pi)
+end
+
+function game.listen()
+  local now = world.time().time
+  if not access.option("captions") or (game.captions.next_listen or 0) > now or not game.carpet then return end
+  local me = (game.walker and game.walker.pos) or game.carpet.pos
+  local heading = (game.walker and game.walker.heading) or game.carpet.heading or 0
+  local fires, creatures = {}, {}
+  for k = 0, 7 do
+    local b = k * math.pi / 4
+    if sim.fire_at(world.move(me, b, 20)).burning then fires[#fires + 1] = b end
+  end
+  for _, id in ipairs(sim.creatures_near(me, 80)) do
+    local cr = sim.creature(id)
+    if cr then creatures[#creatures + 1] = { species = cr.species, alive = cr.alive, bearing = bearing(me, cr.pos) } end
+  end
+  access.listen(game.captions, now, { heading = heading, strikes = sim.weather().strikes, fires = fires,
+    creatures = creatures })
+end
+
+-- The VR options (xr.play) from the player's settings.
+function game.vr_options(s)
+  return { steer = s.xr_steer, snap_turn = s.xr_snap_turn, vignette = s.xr_vignette,
+    reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
+end
+
+-- Saves (in flight) and ends the game.
+function game.quit_to_desktop()
+  if game.mode == "flight" then
+    game.save()
+  end
+  engine.quit()
 end
 
 local function showcase_tick(dt)
@@ -425,7 +509,19 @@ local function flight_tick(dt)
   if game.flight_ticks % AUTOSAVE_TICKS == 0 then
     game.save()
   end
+  game.setup_ui()
   local st = controls.read()
+  -- Escape opens the menu; while it is open the heir's own actions are idle (the world goes on).
+  if game.menu.open then
+    menu.tick(game.menu, input.state, dt)
+    access.block(game.menu.open)
+  elseif st.quit and st.quit.pressed then
+    menu.toggle(game.menu)
+    access.block(true)
+    st = controls.read()
+  end
+  game.listen()
+  modapi.tick(game.mods, dt)
   if game.tent and game.tent.inside and game.walker then
     home_tick(dt, st)
     return
@@ -470,6 +566,9 @@ local function flight_tick(dt)
       game.tent, t = nil, nil
       game.carpet.pos, game.carpet.speed = world.move(game.carpet.pos, 0, 0, 0), 0
       game.carpet.pos.alt = world.ground_height(game.carpet.pos) + carpet.CLEARANCE
+    elseif not t and not k.worn and walker.near_carpet(w, game.carpet) and co.role ~= "none"
+      and not weave.can_pitch(game.together.weave) then
+      condition.say(game.condition, select(2, weave.can_pitch(game.together.weave)))
     elseif not t and not k.worn and walker.near_carpet(w, game.carpet) then
       local pitched, why = tent.pitch(w.pos, w.heading)
       if pitched then
@@ -496,11 +595,40 @@ local function flight_tick(dt)
     end
   end
   game.carpet.limits = condition.limits(game.condition) -- (wet, torn or grounded, it flies worse)
-  local c = coop.tick(co, game.carpet, (down or w) and still or controls.flight_input(st), dt, WORLD, net)
+  if game.story and not prologue.can_fly(game.story) then -- (the carpet has not chosen the heir yet)
+    local lim = {}
+    for key, v in pairs(game.carpet.limits or {}) do lim[key] = v end
+    lim.fly = false
+    game.carpet.limits = lim
+  end
+  game.xrp = game.xrp or xrplay.new(game.xr_options) -- VR: reins or head, thumbsticks, gestures in the air
+  local xin = xrplay.tick(game.xrp, xr.state(), dt, game.carpet)
+  local fin = (down or w) and still or controls.flight_input(st)
+  if xin and not (down or w) then fin = xrplay.flight(fin, xin) end
+  local c = coop.tick(co, game.carpet, fin, dt, WORLD, net)
   game.carpet = c
+  -- Co-op: the heirs, the Weave, the host's clock, votes and the active areas.
+  if co.role ~= "none" then
+    local T = game.together
+    coopplay.tick(T, co, { now = world.time().time, netapi = net, set_time = world.set_time,
+      sleep = function(hours) world.set_time(world.time().time + hours * 3600) end,
+      in_home = { [1] = game.tent ~= nil and game.tent.inside or nil },
+      past_prologue = game.story ~= nil and game.story.beat ~= "village",
+      world_info = function()
+        return { seed = (world.info() or {}).seed, name = game.save_name, bundle = world.export_bundle(),
+          history = nil }
+      end,
+      areas = { set_focus = world.set_focus, clear_focus = world.clear_focus, set_radius = sim.set_active_radius,
+        distance = world.distance }, tier = sim.tier_stats })
+    for _, line in ipairs(coopplay.take_said(T)) do pack.say(game.pack, line) end
+    if input.state("weave").pressed then
+      coopplay.ask(T, co, net, T.weave.whole and "split" or "rejoin", { now = world.time().time })
+    end
+  end
   -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
   local spell = {}
   for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
+  if xin and not down then xrplay.spell(xin, spell, function(g, hand) magic.gesture(game.magic, g, hand) end) end
   if down then
     for name in pairs(spell) do spell[name] = {} end
   end
@@ -601,6 +729,7 @@ local function flight_tick(dt)
     local got, why = harvest.gather(game.pack, { plants = game.plants, smalllife = game.smalllife,
       method = function(id) return codex.method(game.codex, id) end }, w.pos, now, w.heading)
     pack.say(game.pack, got and ("Gathered " .. said(got.items)) or why)
+    game.gathered_now = got ~= nil or game.gathered_now
     if got then codex.sampled(game.codex, got.sources) end
   end
   if w and input.state("campfire").pressed then
@@ -631,7 +760,14 @@ local function flight_tick(dt)
     local moved = bag.unstow(game.bag, game.pack, game.magic.caster.mage)
     bag.say(game.bag, next(moved) and ("Taken out " .. said(moved)) or "Nothing taken out")
   end
-  if w and input.state("sleep").pressed and not game.health.down then
+  if w and input.state("sleep").pressed and co.role ~= "none" then -- with company: a vote
+    local T = game.together
+    if T.open_vote then
+      coopplay.ask(T, co, net, "ballot", { yes = true })
+    else
+      coopplay.ask(T, co, net, "vote", { kind = "sleep", now = now })
+    end
+  elseif w and input.state("sleep").pressed and not game.health.down then
     local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
     for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
     world.set_time(now + hours * 3600)
@@ -664,6 +800,7 @@ local function flight_tick(dt)
       end
     end
     game.ritual_done = rr.done.id
+    if rr.done.effect == "divine" and game.saga then saga.divine(game.saga, now, game.disciplines.tier.ritual) end
     disciplines.practice(game.disciplines, "ritual", 30, "ritual", rr.done.id)
   elseif rr and rr.broken then
     health.hurt(game.health, "magic", rr.backlash)
@@ -716,22 +853,101 @@ local function flight_tick(dt)
   motes.tick(game.motes, dt, { { pos = me, mage = m } })
   motes.bloom(game.motes, me, dt)
   game.channeling = input.state("channel").held and motes.channel(m, me, dt, w and math.abs(w.speed) or c.speed) > 0
+  do -- places and people near every heir; doors and containers used on foot
+    local viewers = { me }
+    for p = 1, 3 do
+      local other = co.role == "host" and co.carpets[p]
+      if other then viewers[#viewers + 1] = other.pos end
+    end
+    placeplay.tick(game.world_places, viewers, function(at, v) -- what the heirs bring to a dungeon's puzzle
+      local cell, water = sim.fire_at(at), sim.water_at(at)
+      local lit = artificing.working(game.artifacts, "lantern_of_light")
+      for _, l in ipairs(magic.sights(game.magic).lights) do lit = lit or world.distance(l, at) < 6 end
+      return { heat = cell.loaded and cell.temperature or 0, burnt = cell.loaded and (cell.burnt or cell.burning),
+        water = water.loaded and water.depth or 0, light = lit and 1 or 0,
+        careful = w ~= nil and math.abs(w.speed) < walker.WALK * 0.7 and world.distance(v, at) < 3, dark = k.worn }
+    end, dt)
+    if game.world_places.said then
+      pack.say(game.pack, game.world_places.said)
+      game.world_places.said = nil
+    end
+    local used_text
+    if w and input.state("use").pressed and game.world_places.places.ready then
+      local heir = { pack = game.pack, serve = st.boost and st.boost.held, cloak = k.worn and "drab" or "vivid",
+        rumour = game.saga and require("story.narrative").rumour(game.saga.N, me),
+        magic = game.last_cast ~= nil,
+        rest = function(hours) -- a night's lodging
+          local h, harms = survival.sleep(game.survival, hours, survival.sense(me, w, 0))
+          for _, hm in ipairs(harms) do health.hurt(game.health, hm[1], hm[2]) end
+          world.set_time(now + h * 3600)
+          game.survival_at = now + h * 3600
+          game.slept = h
+        end,
+        heal = function(n) health.heal(game.health, n) end,
+        learn = function(d) disciplines.practice(game.disciplines, d, 20, "taught") end }
+      used_text = placeplay.use(game.world_places, w, game.pack, heir)
+      if used_text then pack.say(game.pack, used_text) end
+    end
+    -- The story: begun with F5 in Anarvan (or resumed from the save), fed what the heir does.
+    local P = game.world_places.places
+    if P.ready and not game.story and (input.state("story").pressed or game.story_saved) then
+      game.story = director.start(P)
+      local saved = game.story_saved
+      game.story_saved = nil
+      if type(saved) == "table" and saved.beat then
+        for key, v in pairs(saved) do game.story[key] = v end
+      else
+        game.walker = walker.new(game.story.start, 0, FOOT)
+        w = game.walker
+        world.set_time(math.floor(now / 86400) * 86400 + 7 * 3600)
+      end
+    end
+    if game.story then
+      local ground = world.ground_height(me)
+      local before = game.story_boiled or pack.count(game.pack, "boiled_water")
+      local happened = director.tick(game.story, P, { pos = me, used = input.state("use").pressed, slept = game.slept,
+        dt = dt, now = now, set_time = world.set_time, talked_to = used_text and used_text:match("^(%a+): "),
+        found = used_text and used_text:match("^Found (.+)$"), flying = w == nil and me.alt - ground > 3,
+        book = game.magic.caster.book, pack = game.pack, gathered = game.gathered_now,
+        boiled = pack.count(game.pack, "boiled_water") > before })
+      game.story_boiled = pack.count(game.pack, "boiled_water")
+      if happened then pack.say(game.pack, game.story.lines[#game.story.lines]) end
+      game.slept = nil
+    end
+    -- Acts II and III: after the prologue (or from the save).
+    if P.ready and not game.saga and (game.saga_saved or (game.story and game.story.beat == "done")) then
+      game.saga = saga.begin(saga.new(game.saga_saved), P, now)
+      game.saga_saved = nil
+    end
+    if game.saga then
+      local void = false
+      for _, e in pairs(game.magic.caster.book.journal) do
+        for _, col in ipairs(e.weave and e.weave.colors or {}) do void = void or col == "void" end
+      end
+      local defeated = game.saga.N.defeated and not game.saga.ending
+      local done = saga.tick(game.saga, { P = P, pos = me, now = now, dt = dt, economy = game.world_places.folk.economy,
+        heirs_power = 40 + 20 * game.disciplines.tier.spellcasting, ritual = game.disciplines.tier.ritual, void = void,
+        ash_ward = artificing.working(game.artifacts, "ash_ward"), ally = next(game.summoning.bound) ~= nil,
+        calm = ritual.effects(game.ritual, now).calm ~= nil,
+        cast = cast_now and cast_now.ok and cast_now.plan and { colours = cast_now.plan.weave.colors,
+          power = cast_now.plan.power } or nil,
+        hurt = function(harm, colour) health.hurt(game.health, colour == "fire" and "heat" or "magic", harm) end,
+        learn = function(d) disciplines.practice(game.disciplines, d, 40, "taught by the Circle") end,
+        choose = defeated and input.state("story").pressed, take = defeated and input.state("use").pressed })
+      for _, id in ipairs(done) do pack.say(game.pack, "Story: " .. id) end
+    end
+  end
   if w then
     world.set_focus(1, me, { 0, 0, 0 }, { math.sin(w.heading), 0, -math.cos(w.heading) })
   else
     world.set_focus(1, c.pos, carpet.velocity(c), carpet.forward(c))
   end
-  -- The host streams around every heir (one focus each).
-  for p = 1, 3 do
-    local other = co.role == "host" and co.carpets[p]
-    if other then
-      world.set_focus(p + 1, other.pos, carpet.velocity(other), carpet.forward(other))
-    else
-      world.clear_focus(p + 1)
-    end
+  -- (Hosting, coop.play gives every group of heirs its own active area.)
+  if co.role == "none" then
+    for p = 2, 4 do world.clear_focus(p) end
   end
-  -- The shared buttons keep their showcase meaning (chime, credits, fullscreen, quit).
-  for _, name in ipairs({ "chime", "fullscreen", "quit" }) do
+  -- The shared buttons keep their showcase meaning (chime, credits, fullscreen); Escape is the menu's.
+  for _, name in ipairs({ "chime", "fullscreen" }) do
     if st[name] and st[name].pressed then
       handle(name)
     end
@@ -765,15 +981,25 @@ end)
 
 local function draw_hud(lines)
   if not game.hud then return end
+  if game.menu and game.menu.open then
+    local credits = {}
+    for _, c in ipairs(game.credits or {}) do credits[#credits + 1] = { raw = hud.credit_line(c) } end
+    text.lines(assets.font, menu.lines(game.menu, credits), hud.color)
+    return
+  end
+  for _, line in ipairs(access.caption_lines(game.captions, world.time().time)) do lines[#lines + 1] = line end
   if game.state.credits then
     lines[#lines + 1] = "Credits:"
     for _, c in ipairs(game.credits or {}) do
-      lines[#lines + 1] = hud.credit_line(c)
+      lines[#lines + 1] = { raw = hud.credit_line(c) }
     end
   end
-  for i, line in ipairs(lines) do
-    render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
+  if xr.state().active then -- (in the headset: a panel low ahead)
+    local shown = {}
+    for i, line in ipairs(lines) do shown[i] = text.of(line) end
+    return xrplay.draw_hud(assets.font, shown, hud.color)
   end
+  text.lines(assets.font, lines, hud.color)
 end
 
 -- The HUD in flight: the carpet, health, magic, creatures and motes.
@@ -790,7 +1016,26 @@ local function flight_lines()
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
   if game.channeling then lines[#lines + 1] = "Channeling" end
+  for _, line in ipairs(modapi.hud_lines(game.mods)) do lines[#lines + 1] = line end
+  if game.saga then
+    local at = (game.walker and game.walker.pos) or c.pos
+    for _, line in ipairs(saga.hud_lines(game.saga, at)) do
+      lines[#lines + 1] = line
+    end
+    for _, m in ipairs(require("story.narrative").data().circle) do -- the next of the Circle to find
+      local site = game.saga.N.sites[m.id]
+      if site and not game.saga.N.remnants[m.id] then
+        local marker = access.marker(site.name, require("people.npcs").directions(at, site.pos))
+        if marker then lines[#lines + 1] = marker end
+        break
+      end
+    end
+  elseif game.story then
+    for _, line in ipairs(prologue.hud_lines(game.story)) do lines[#lines + 1] = line end
+  end
   local w = game.walker
+  local place = game.world_places and placeplay.line(game.world_places, w and w.pos or c.pos)
+  if place then lines[#lines + 1] = place end
   if w then
     lines[#lines + 1] = "On foot" .. (w.on_ice and ", on the ice" or "") .. (w.blocked and " - too deep to wade" or "")
   elseif walker.can_step_off(c, FOOT) then
@@ -850,16 +1095,23 @@ local function flight_frame()
     render.camera(game.camera_override())
   elseif game.walker then -- on foot: out of the eyes
     local eye, target = walker.view(game.walker)
-    render.camera({ eye = eye, target = target, up = world.up_at(game.walker.pos), fov = 70, near = 0.1, far = 30000 })
+    render.camera({ eye = eye, target = target, up = world.up_at(game.walker.pos), fov = access.fov(70), near = 0.1,
+      far = 30000 })
   else
     local eye, target = camera.view(game.chase, p, c.heading, up, dt)
-    render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
+    render.camera({ eye = eye, target = target, up = up, fov = access.fov(70) - 5, near = 0.5, far = 30000 })
   end
+  xrplay.frame(game.xrp, c, p, up, not game.walker and not game.camera_override, assets.mote) -- (VR: the seat)
   if game.tent then
     local tp = world.to_local(game.tent.pos)
     render.draw_model(assets.tent, { position = tp, rotation = { 0, 180 - math.deg(game.tent.heading), 0 } })
   elseif not game.cloak.worn then
     render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
+  end
+  placeplay.draw(game.world_places, game.walker and game.walker.pos or c.pos, assets.person)
+  if game.story and game.story.azhdar and game.story.beat == "arrival" then -- the Ash Weaver on his dark carpet
+    render.draw_model(assets.carpet, { position = world.to_local(game.story.azhdar), rotation = { 0, 45, 0 },
+      scale = 1.2 })
   end
   local sights = magic.sights(game.magic)
   if artificing.working(game.artifacts, "lantern_of_light") then -- (the lantern in the mage's hand)
@@ -893,10 +1145,7 @@ end
 local function create_frame()
   render.camera({ eye = { 0, 0.4, 3.2 }, target = { 0, 0, 0 }, fov = 45, near = 0.1, far = 10 })
   world.draw_globe(nil, { 0, 0, 0 }, 1, game.creation.spin)
-  local lines = creation.lines(game.creation)
-  for i, line in ipairs(lines) do
-    render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
-  end
+  text.lines(assets.font, creation.lines(game.creation), hud.color)
 end
 
 local function showcase_frame()
@@ -913,9 +1162,7 @@ local function showcase_frame()
   end
   if game.hud then
     local info = engine.info()
-    for i, line in ipairs(hud.lines(s, input.mode(), info, game.credits)) do
-      render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
-    end
+    text.lines(assets.font, hud.lines(s, input.mode(), info, game.credits), hud.color)
   end
 end
 
@@ -946,6 +1193,19 @@ engine.on("event", function(name, args)
   end
 end)
 
+-- The extension API for mods (docs/modding/game-api.md), shared through _G.
+game.mods = modapi.new({
+  pack = function() return game.pack end,
+  say = function(message) if game.pack then pack.say(game.pack, message) end end,
+  player = function()
+    local c, w = game.carpet, game.walker
+    local pos = (w and w.pos) or (c and c.pos)
+    local sky = pos and world.sky(pos)
+    return { pos = pos, on_foot = w ~= nil, night = sky ~= nil and sky.daylight < 0.2, time = world.time().time }
+  end,
+})
+_G.zauberer = game.mods.public
+
 -- Exposed for scenario tests.
 _G.demo = {
   game = game, assets = assets, state = state, touch = touch, carpet = carpet, controls = controls, coop = coop,
@@ -953,5 +1213,5 @@ _G.demo = {
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
   pack = pack, bag = bag, condition = condition, cloak = cloak, tent = tent, home = home, harvest = harvest,
   cooking = cooking, codex = codex, alchemy = alchemy, crafting = crafting, artificing = artificing, ritual = ritual,
-  summoning = summoning, disciplines = disciplines,
+  summoning = summoning, disciplines = disciplines, placeplay = placeplay, places = require("places.places"),
 }

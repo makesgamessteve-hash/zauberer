@@ -3,7 +3,7 @@
 -- give, and what is made of them.
 local items = {}
 
-items.KINDS = { food = true, herb = true, material = true, water = true }
+items.KINDS = { food = true, herb = true, material = true, water = true, money = true, book = true }
 -- How fast microbes grow on food by how it was kept (life/smalllife.spoil).
 items.KEPT = { fresh = 1, cooked = 0.5, dried = 0.1 }
 
@@ -24,7 +24,7 @@ function items.check(list)
       return nil, where .. ": weight must be 0 .. 1000 kg"
     end
     local share = { raw = true, poison = true, dirty = true } -- (chances and strengths: 0 .. 1)
-    for _, field in ipairs({ "kcal", "water", "raw", "poison", "dirty", "fuel", "thread", "heals" }) do
+    for _, field in ipairs({ "kcal", "water", "raw", "poison", "dirty", "fuel", "thread", "heals", "price" }) do
       local v = it[field]
       if v ~= nil and (type(v) ~= "number" or v < 0 or (share[field] and v > 1)) then
         return nil, where .. ": " .. field .. " out of range"
@@ -60,6 +60,20 @@ function items.all()
 end
 
 function items.get(id) return items.all()[id] end
+
+-- Adds an item from a mod (checked like data/items.lua; an id may not be taken
+-- twice). Returns true, or nil and what is wrong.
+function items.add(def)
+  local all = items.all()
+  if type(def) ~= "table" then return nil, "an item must be a table" end
+  if all[def.id] then return nil, "item " .. tostring(def.id) .. ": twice" end
+  local list = { def }
+  for _, it in pairs(all) do list[#list + 1] = it end
+  local ok, why = items.check(list)
+  if not ok then return nil, why end
+  all[def.id] = def
+  return true
+end
 
 function items.name(id)
   local it = items.get(id)
