@@ -371,7 +371,7 @@ static void test_text_and_glyphs(void) {
   uint32_t glyphs[16];
   TEST_ASSERT_EQUAL_size_t(0, zb_render_text_glyphs(w.r, font, "abc", glyphs, 16)); /* pending */
   settle(&w);
-  size_t n = zb_render_text_glyphs(w.r, font, "A\xE2\x82\xACz", glyphs, 16); /* A, euro (missing), z */
+  size_t n = zb_render_text_glyphs(w.r, font, "A\xE2\x98\xBAz", glyphs, 16); /* A, a smiling face (missing), z */
   TEST_ASSERT_EQUAL_size_t(3, n);
   uint32_t box[1];
   zb_render_text_glyphs(w.r, font, "\xE2\x96\xA1", box, 1); /* the replacement glyph itself */

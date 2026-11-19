@@ -20,6 +20,7 @@ function M.new()
     role = "none", me = -1, tick = 0, carpets = {}, queues = {}, acks = {}, inputs = {},
     seq = 0, history = {}, predicted_ok = 0, mispredictions = 0,
     terrain_checks = 0, terrain_mismatches = 0, inbox = {}, events = {}, riders = nil,
+    rides = {}, rides_seen = 0,
   }
 end
 
@@ -79,7 +80,9 @@ local function client_state(co, s, dt, api)
   co.riders = s.riders
   if co.riders and co.riders.pilot ~= co.me and mine then -- (riding: carried by the pilot, nothing to predict)
     M.restore(mine, snap)
-    co.history = {}
+    for seq in pairs(co.history) do -- (inputs not yet applied stay: the Weave may be split before they are)
+      if seq <= ack then co.history[seq] = nil end
+    end
     co.seq = math.max(co.seq, ack)
     return
   end
@@ -90,8 +93,10 @@ local function client_state(co, s, dt, api)
     co.seq = ack
     return
   end
+  local rides = s.rides and s.rides[co.me] or 0
   local predicted = co.history[ack]
-  if predicted then
+  -- (A prediction is checked unless the host moved the carpet for riding since it was made.)
+  if predicted and predicted.snap and predicted.rides == rides then
     if same(snap, predicted.snap) then
       co.predicted_ok = co.predicted_ok + 1
     else
@@ -99,12 +104,13 @@ local function client_state(co, s, dt, api)
     end
   end
   -- Reconcile: start from the host's state and replay the unacknowledged inputs.
+  co.rides_seen = rides
   M.restore(mine, snap)
   for seq = ack + 1, co.seq do
     local h = co.history[seq]
     if h then
       carpet.update(mine, h.inp, dt, api)
-      h.snap = carpet.snapshot(mine)
+      h.snap, h.rides = carpet.snapshot(mine), rides
     end
   end
   for seq in pairs(co.history) do
@@ -138,6 +144,7 @@ local function ride(co, api)
   for k, p in ipairs(r.list) do
     local c = co.carpets[p]
     if c and p ~= r.pilot then
+      co.rides[p] = (co.rides[p] or 0) + 1 -- (the client cannot foresee this move)
       c.pos = api.move(pilot.pos, pilot.heading, -1.2 * k, 0, 0)
       c.pos.alt = pilot.pos.alt
       c.heading, c.speed, c.pitch, c.vspeed = pilot.heading, pilot.speed, pilot.pitch, pilot.vspeed
@@ -163,7 +170,8 @@ local function host_tick(co, own, inp, dt, api, netapi)
     for p, c in pairs(co.carpets) do
       snaps[p] = carpet.snapshot(c)
     end
-    netapi.send("state", { tick = co.tick, carpets = snaps, acks = co.acks, inputs = co.inputs, riders = co.riders })
+    netapi.send("state", { tick = co.tick, carpets = snaps, acks = co.acks, inputs = co.inputs, riders = co.riders,
+      rides = co.rides })
   end
   if co.tick % M.TERRAIN_EVERY == 0 then
     local pos = { face = own.pos.face, x = own.pos.x, y = own.pos.y, lx = 128, ly = 128, alt = 0 }
@@ -183,7 +191,9 @@ local function client_tick(co, inp, dt, api, netapi)
   local i = copy_input(inp, co.seq)
   if not (co.riders and co.riders.pilot ~= co.me) then
     carpet.update(mine, i, dt, api)
-    co.history[co.seq] = { inp = i, snap = carpet.snapshot(mine) }
+    co.history[co.seq] = { inp = i, snap = carpet.snapshot(mine), rides = co.rides_seen }
+  else -- (riding: nothing predicted, but the input is kept in case the host has split the Weave already)
+    co.history[co.seq] = { inp = i }
   end
   netapi.send("input", i, 0)
 end
