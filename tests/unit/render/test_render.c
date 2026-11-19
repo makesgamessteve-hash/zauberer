@@ -5,6 +5,7 @@
 #include "support/test_support.h"
 #include "unity.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -299,6 +300,115 @@ static void test_explicit_views(void) {
   TEST_ASSERT_EQUAL_UINT32(0, f->target);
   TEST_ASSERT_EQUAL_INT(1280, f->layout.drawable_w);
   TEST_ASSERT_EQUAL_INT(640, f->layout.internal_w);
+  free_world(&w);
+}
+
+/* m * (x, y, z, 1) in clip space, divided by w. */
+static void project(zb_mat4 m, zb_vec3 p, float *nx, float *ny, float *w) {
+  const float *a = m.m;
+  float x = a[0] * p.x + a[4] * p.y + a[8] * p.z + a[12];
+  float y = a[1] * p.x + a[5] * p.y + a[9] * p.z + a[13];
+  *w = a[3] * p.x + a[7] * p.y + a[11] * p.z + a[15];
+  *nx = x / *w;
+  *ny = y / *w;
+}
+
+/* spec: webxr-play: HUD readable in the headset */
+static void test_xr_hud_and_vignette(void) {
+  world w = make_world();
+  settle(&w);
+  zb_render_set_camera(w.r, zb_v3(5, 1.5f, 4), zb_v3(5, 1.5f, 0), zb_v3(0, 1, 0), 60, 0.5f, 300);
+  /* A head 1.2 m up, turned 40 degrees to the left: the canvas centre lies straight ahead of it. */
+  zb_xr_pose head = {zb_v3(0.3f, 1.2f, -0.1f), zb_quat_axis_angle(zb_v3(0, 1, 0), 40.0f * ZB_PI / 180.0f)};
+  zb_xr_frame rig;
+  zb_xr_emulate(head, 640, 360, 0.064f, &rig);
+  zb_render_set_views(w.r, rig.views, 2);
+  /* The default: the canvas fills each view (the same place in both eyes). */
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, zb_render_xr_hud(w.r, NULL));
+  zb_render_begin(w.r, 640, 360);
+  zb_render_end(w.r);
+  const zb_frame *f = zb_render_null_last_frame(w.backend);
+  int cw = f->views[0].width, ih = f->layout.internal_h;
+  TEST_ASSERT_EQUAL_INT(320, cw);
+  for (int v = 0; v < 2; ++v) {
+    assert_m4(zb_m4_ortho(0.0f, (float)cw, (float)ih, 0.0f, -1.0f, 1.0f), f->views[v].text);
+  }
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, f->vignette);
+  /* Head-locked at 2 m: every canvas pixel is in the same direction from the head in both eyes. */
+  zb_render_set_xr_hud(w.r, 2.0f, 0.0f);
+  TEST_ASSERT_EQUAL_FLOAT(2.0f, zb_render_xr_hud(w.r, NULL));
+  zb_render_set_vignette(w.r, 0.6f);
+  zb_render_begin(w.r, 640, 360);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, 0.6f, f->vignette);
+  zb_vec3 fwd = zb_quat_rotate(head.orientation, zb_v3(0, 0, -1));
+  zb_vec3 right = zb_quat_rotate(head.orientation, zb_v3(1, 0, 0));
+  zb_vec3 up = zb_quat_rotate(head.orientation, zb_v3(0, 1, 0));
+  float k = 2.0f / rig.views[0].proj.m[5] / (float)ih; /* tangent per pixel */
+  const float px[3][2] = {{160, 180}, {200, 240}, {10, 20}};
+  for (int i = 0; i < 3; ++i) {
+    zb_vec3 at = zb_v3_add(head.position, zb_v3_scale(fwd, 2.0f));
+    at = zb_v3_add(at, zb_v3_scale(right, (px[i][0] - 0.5f * (float)cw) * k * 2.0f));
+    at = zb_v3_add(at, zb_v3_scale(up, -(px[i][1] - 0.5f * (float)ih) * k * 2.0f));
+    for (int v = 0; v < 2; ++v) {
+      float ex, ey, ew, tx, ty, tw;
+      project(zb_m4_mul(rig.views[v].proj, rig.views[v].view), at, &ex, &ey, &ew);
+      project(f->views[v].text, zb_v3(px[i][0], px[i][1], 0.0f), &tx, &ty, &tw);
+      TEST_ASSERT_FLOAT_WITHIN(1e-4f, ex, tx);
+      TEST_ASSERT_FLOAT_WITHIN(1e-4f, ey, ty);
+      TEST_ASSERT_TRUE(tw > 1.9f);
+    }
+  }
+  /* The canvas centre is straight ahead: right of the left eye's viewport centre, left of the right one's. */
+  float cx0, cy0, cx1, cy1, w0;
+  project(f->views[0].text, zb_v3(160, 180, 0), &cx0, &cy0, &w0);
+  project(f->views[1].text, zb_v3(160, 180, 0), &cx1, &cy1, &w0);
+  TEST_ASSERT_TRUE(cx0 > 0.05f && cx1 < -0.05f);
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, cy0);
+  /* Never clipped by the depth range: z is 0. */
+  for (int v = 0; v < 2; ++v) {
+    const float *t = f->views[v].text.m;
+    TEST_ASSERT_EQUAL_FLOAT(0.0f, t[2] + t[6] + t[10] + t[14]);
+  }
+  /* An explicit pixel size: 3 mm per canvas pixel on a plane 1.5 m away. */
+  zb_render_set_xr_hud(w.r, 1.5f, 0.003f);
+  float pixel = 0.0f;
+  TEST_ASSERT_EQUAL_FLOAT(1.5f, zb_render_xr_hud(w.r, &pixel));
+  TEST_ASSERT_EQUAL_FLOAT(0.003f, pixel);
+  zb_render_begin(w.r, 640, 360);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  {
+    zb_vec3 at = zb_v3_add(zb_v3_add(head.position, zb_v3_scale(fwd, 1.5f)), zb_v3_scale(up, -100.0f * 0.003f));
+    float ex, ey, ew, tx, ty, tw;
+    project(zb_m4_mul(rig.views[1].proj, rig.views[1].view), at, &ex, &ey, &ew);
+    project(f->views[1].text, zb_v3(160, 280, 0.0f), &tx, &ty, &tw);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4f, ex, tx);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4f, ey, ty);
+  }
+  /* Clamped and invalid settings. */
+  zb_render_set_xr_hud(w.r, 5000.0f, 7.0f);
+  TEST_ASSERT_EQUAL_FLOAT(1000.0f, zb_render_xr_hud(w.r, &pixel));
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, pixel);
+  zb_render_set_xr_hud(w.r, NAN, NAN);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, zb_render_xr_hud(w.r, &pixel));
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, pixel);
+  zb_render_set_vignette(w.r, 3.0f);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, zb_render_vignette(w.r));
+  zb_render_set_vignette(w.r, -1.0f);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, zb_render_vignette(w.r));
+  zb_render_set_vignette(w.r, INFINITY);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, zb_render_vignette(w.r));
+  /* A projection without a vertical scale cannot place the panel: the canvas fills the views. */
+  zb_xr_view flat[2] = {rig.views[0], rig.views[1]};
+  flat[0].proj.m[5] = flat[1].proj.m[5] = 0.0f;
+  zb_render_set_xr_hud(w.r, 2.0f, 0.0f);
+  zb_render_set_views(w.r, flat, 2);
+  zb_render_begin(w.r, 640, 360);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  assert_m4(zb_m4_ortho(0.0f, (float)f->views[1].width, (float)ih, 0.0f, -1.0f, 1.0f), f->views[1].text);
   free_world(&w);
 }
 
@@ -599,6 +709,7 @@ int main(void) {
   RUN_TEST(test_draw_list_and_culling);
   RUN_TEST(test_two_views);
   RUN_TEST(test_explicit_views);
+  RUN_TEST(test_xr_hud_and_vignette);
   RUN_TEST(test_corrupt_and_missing_model);
   RUN_TEST(test_missing_texture_placeholder);
   RUN_TEST(test_sprites);

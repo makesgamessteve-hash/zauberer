@@ -48,6 +48,8 @@ typedef struct zb_script_host {
   void (*xr_emulate)(void *ctx, const zb_xr_pose *head);
   /* Test API: a controller button event (zb_xr_hand, zb_xr_button). */
   void (*xr_button)(void *ctx, int hand, int button, bool down);
+  /* Test API: the emulated headset's controller of a hand (ZB_XR_HAND_LEFT or ZB_XR_HAND_RIGHT). */
+  void (*xr_controller)(void *ctx, int hand, const zb_xr_controller *c);
   /* Plays in a created world from now on, taking ownership of the bundle;
    * false with a message if the world cannot be made (the bundle stays the
    * caller's). NULL: scripts keep a private world. */

@@ -166,10 +166,10 @@ typedef struct gl_foliage {
 
 typedef struct gl_program {
   GLuint id;
-  GLint view_proj, model, normal, light_dir, light_color, ambient, tex, right, up, screen;
+  GLint view_proj, model, normal, light_dir, light_color, ambient, tex, right, up;
   GLint eye, fog_color, fog_density, layers;
   GLint cam_right, cam_up, cam_fwd, tan_half, tan_offset, world_up, zenith, horizon, dip, sun_dir, sun_color;
-  GLint scene, lut, bayer, dither, palette;
+  GLint scene, lut, bayer, dither, palette, vignette, vignette_center, vignette_half;
   GLint time, tints;
   GLint night, moon_dir, moon_light, celestial, snow;
 } gl_program;
@@ -314,7 +314,6 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const cha
   out->tex = c->gl.glGetUniformLocation(p, "u_tex");
   out->right = c->gl.glGetUniformLocation(p, "u_right");
   out->up = c->gl.glGetUniformLocation(p, "u_up");
-  out->screen = c->gl.glGetUniformLocation(p, "u_screen");
   static const struct {
     const char *name;
     size_t offset;
@@ -344,7 +343,10 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const cha
                {"u_moon_light", offsetof(gl_program, moon_light)},
                {"u_celestial", offsetof(gl_program, celestial)},
                {"u_snow", offsetof(gl_program, snow)},
-               {"u_palette", offsetof(gl_program, palette)}};
+               {"u_palette", offsetof(gl_program, palette)},
+               {"u_vignette", offsetof(gl_program, vignette)},
+               {"u_vignette_center", offsetof(gl_program, vignette_center)},
+               {"u_vignette_half", offsetof(gl_program, vignette_half)}};
   for (size_t i = 0; i < sizeof extra / sizeof extra[0]; ++i) {
     *(GLint *)((char *)out + extra[i].offset) = c->gl.glGetUniformLocation(p, extra[i].name);
   }
@@ -711,15 +713,20 @@ static void draw_text(gl_ctx *c, const zb_frame *f) {
   c->gl.glBindVertexArray(c->text_vao);
   c->gl.glBindBuffer(GL_ARRAY_BUFFER, c->text_vbo);
   c->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(f->text_count * sizeof(zb_text_vertex)), f->text, GL_STREAM_DRAW);
-  /* Explicit (headset) views each show the text at the same place. */
+  /* Explicit (headset) views draw the text into each view's destination in the
+   * target (after the upscale), through their own text matrix. */
   int passes = f->explicit_views ? f->view_count : 1;
   for (int v = 0; v < passes; ++v) {
     const zb_view *w = &f->views[v];
-    int x = f->explicit_views ? w->x : 0, y = f->explicit_views ? w->y : 0;
-    int width = f->explicit_views ? w->width : f->layout.internal_w;
-    int height = f->explicit_views ? w->height : f->layout.internal_h;
-    c->gl.glViewport(x, y, width, height);
-    c->gl.glUniform2f(p->screen, (GLfloat)width, (GLfloat)height);
+    zb_mat4 m = f->explicit_views
+                    ? w->text
+                    : zb_m4_ortho(0.0f, (float)f->layout.internal_w, (float)f->layout.internal_h, 0.0f, -1.0f, 1.0f);
+    if (f->explicit_views) {
+      c->gl.glViewport(w->out_x, w->out_y, w->out_w, w->out_h);
+    } else {
+      c->gl.glViewport(0, 0, f->layout.internal_w, f->layout.internal_h);
+    }
+    c->gl.glUniformMatrix4fv(p->view_proj, 1, GL_FALSE, m.m);
     for (size_t b = 0; b < f->text_batch_count; ++b) {
       c->gl.glBindTexture(GL_TEXTURE_2D, texture_id(c, f->text_batches[b].texture));
       c->gl.glDrawArrays(GL_TRIANGLES, (GLint)f->text_batches[b].first, (GLsizei)f->text_batches[b].count);
@@ -781,7 +788,22 @@ static void draw_post(gl_ctx *c, const zb_frame *f) {
   c->gl.glBindTexture(GL_TEXTURE_2D, palette ? texture_id(c, f->bayer_texture) : 0);
   c->gl.glActiveTexture(GL_TEXTURE0);
   c->gl.glBindVertexArray(c->empty_vao);
-  c->gl.glDrawArrays(GL_TRIANGLES, 0, 3);
+  c->gl.glUniform1f(p->vignette, f->vignette);
+  /* One pass per view, each with the vignette about its own optical centre. */
+  int passes = f->vignette > 0.0f ? f->view_count : 1;
+  for (int v = 0; v < passes; ++v) {
+    const zb_view *w = &f->views[v];
+    bool whole = passes == 1;
+    int x = whole ? 0 : w->x, y = whole ? 0 : w->y;
+    int width = whole || v == passes - 1 ? f->layout.internal_w - x : w->width;
+    int height = whole ? f->layout.internal_h : w->height;
+    c->gl.glViewport(x, y, width, height);
+    float hw = 0.5f * (float)width, hh = 0.5f * (float)height;
+    /* The optical axis sits at -(m8, m9) in the view's normalised device coordinates. */
+    c->gl.glUniform2f(p->vignette_center, (float)x + hw * (1.0f - w->proj.m[8]), (float)y + hh * (1.0f - w->proj.m[9]));
+    c->gl.glUniform2f(p->vignette_half, hw, hh);
+    c->gl.glDrawArrays(GL_TRIANGLES, 0, 3);
+  }
   c->gl.glEnable(GL_DEPTH_TEST);
   c->gl.glEnable(GL_CULL_FACE);
 }
@@ -811,7 +833,9 @@ static void gl_execute(void *ctx, const zb_frame *f) {
     draw_water(c, f, v);
   }
   draw_post(c, f);
-  draw_text(c, f);
+  if (!f->explicit_views) {
+    draw_text(c, f);
+  }
   c->gl.glBindVertexArray(0);
   /* Upscale to the window (or the target) with nearest-neighbour filtering. */
   c->gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, c->post_fbo);
@@ -824,6 +848,10 @@ static void gl_execute(void *ctx, const zb_frame *f) {
       c->gl.glBlitFramebuffer(w->x, w->y, w->x + w->width, w->y + w->height, w->out_x, w->out_y, w->out_x + w->out_w,
                               w->out_y + w->out_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
+    /* Text at the destination's resolution. */
+    c->gl.glBindFramebuffer(GL_FRAMEBUFFER, f->target);
+    draw_text(c, f);
+    c->gl.glBindVertexArray(0);
   } else {
     c->gl.glClearColor(f->clear[0], f->clear[1], f->clear[2], 1.0f);
     c->gl.glClear(GL_COLOR_BUFFER_BIT);

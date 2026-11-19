@@ -223,6 +223,17 @@
 ---@field tilt number? Axial tilt in degrees (23)
 ---@field quality string? "quick", "normal" or "high"
 
+---@class XrController
+---@field tracked boolean The pose is known this frame (else it is the session origin)
+---@field pose XrPose Grip pose (else the target ray's) relative to the session origin
+---@field axes number[] Thumbstick {x, y}: x to the right, y pushed forward (-1 .. 1)
+---@field trigger number Trigger, 0 .. 1
+---@field squeeze number Grip squeeze, 0 .. 1
+
+---@class XrControllers
+---@field left XrController The left hand's controller
+---@field right XrController The right hand's controller
+
 ---@class XrPose
 ---@field position number[] {x, y, z} in metres, relative to the session origin
 ---@field orientation number[] Rotation quaternion {x, y, z, w}
@@ -235,6 +246,7 @@
 ---@field frames integer XR frames rendered in the running session
 ---@field size integer[] Width and height of the XR framebuffer in pixels
 ---@field head XrPose Viewer (head) pose relative to the session origin
+---@field controllers XrControllers The left and right controllers
 
 engine = {}
 
@@ -510,6 +522,17 @@ function render.text_glyphs(font, text) end
 ---@param path string
 ---@return integer
 function render.texture(path) end
+
+---Comfort vignette: darkens the edges of every view (around each eye's optical centre in VR) by up to strength (0 .. 1; 0 or false switches it off), e.g. while the carpet turns or speeds up. Returns the strength in effect.
+---@param strength number|false
+---@return number
+function render.vignette(strength) end
+
+---Screen text in VR is drawn at the headset's resolution. false or 0 (the default) shows the canvas (one view's width, render.stats().internal_width / views, by the internal height) filling every eye's view; a distance (metres, up to 1000) puts it on a plane that far in front of the head instead, the canvas centre straight ahead, so both eyes see it in the same direction. pixel is the size of a canvas pixel on that plane in metres (default: as wide as a pixel in the middle of the view). Returns the distance in effect.
+---@param distance number|false
+---@param pixel? number
+---@return number
+function render.xr_hud(distance, pixel) end
 
 audio = {}
 
@@ -971,7 +994,15 @@ function xr.emulate(head) end
 ---@param down boolean
 function xr.emulate_button(hand, button, down) end
 
----The WebXR session. While it runs, the camera set with render.camera is the session origin (the seat on the carpet): every eye sees the scene from the head pose relative to it, with the headset's field of view. The head pose is updated before the frame hooks of every XR frame; it is presentation data and not part of replays. A session start or end reaches the event hook as "xr_session" (value "started" or "ended"); controller buttons are bindings such as "xr:select" (see input.bind).
+---Test API: the emulated headset's controller of a hand from now on, as xr.state().controllers reports it: tracked at the pose (relative to the session origin), or untracked for false; the thumbstick {x, y} (default {0, 0}, each -1 .. 1), the trigger and the squeeze (default 0, each 0 .. 1).
+---@param hand "left"|"right"
+---@param pose XrPose|false
+---@param axes? number[]
+---@param trigger? number
+---@param squeeze? number
+function xr.emulate_controller(hand, pose, axes, trigger, squeeze) end
+
+---The WebXR session. While it runs, the camera set with render.camera is the session origin (the seat on the carpet): every eye sees the scene from the head pose relative to it, with the headset's field of view. The head pose is updated before the frame hooks of every XR frame; it is presentation data and not part of replays. The controllers (poses, thumbsticks, trigger and squeeze of the left and right hands) are updated with it and are presentation data in the same way. A session start or end reaches the event hook as "xr_session" (value "started" or "ended"); controller buttons are bindings such as "xr:select" (see input.bind).
 ---@return XrState
 function xr.state() end
 

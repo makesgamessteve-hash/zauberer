@@ -50,9 +50,11 @@ addToLibrary({
 // whether an immersive-vr session is possible, starts one for the page's Enter
 // VR button (Module.zbXrEnter) with a 'local' reference space and a WebGL layer
 // on the engine's context, and drives the engine from the session's frames:
-// per frame it writes the layer size, the viewer pose and each view's viewport,
-// view matrix and projection into wasm memory (layout: src/core/xr.h) and calls
-// zb_web_xr_frame. Select and squeeze become engine input events. The page
+// per frame it writes the layer size, the viewer pose, each view's viewport,
+// view matrix and projection, and the left and right controllers (grip or
+// target-ray pose, thumbstick, trigger and squeeze) into wasm memory (layout:
+// src/core/xr.h) and calls zb_web_xr_frame. Select and squeeze become engine
+// input events. The page
 // hears about changes through Module.zbXrStatus('unsupported' | 'supported' |
 // 'running').
 addToLibrary({
@@ -161,8 +163,39 @@ addToLibrary({
         h.set(view.transform.inverse.matrix, v + 4);
         h.set(view.projectionMatrix, v + 20);
       }
-      if (!_zb_web_xr_frame(ZBXR.framebuffer, 10 + views * 36)) {
+      var end = at + 10 + views * 36;
+      ZBXR.writeControllers(frame, h, end);
+      if (!_zb_web_xr_frame(ZBXR.framebuffer, 10 + views * 36 + 24)) {
         session.end().catch(function () {});
+      }
+    },
+
+    // The controller block: per hand (left, right) tracked, position (3),
+    // orientation (4), thumbstick x and y (forward +), trigger and squeeze.
+    writeControllers: function (frame, h, at) {
+      h.fill(0, at, at + 24);
+      var sources = frame.session.inputSources || [];
+      for (var i = 0; i < sources.length; ++i) {
+        var src = sources[i], hand = ZBXR.HANDS[src.handedness];
+        if (!hand) continue;
+        var c = at + (hand - 1) * 12;
+        var space = src.gripSpace || src.targetRaySpace;
+        var pose = space ? frame.getPose(space, ZBXR.space) : null;
+        if (pose) {
+          var p = pose.transform.position, o = pose.transform.orientation;
+          h[c] = 1;
+          h[c + 1] = p.x; h[c + 2] = p.y; h[c + 3] = p.z;
+          h[c + 4] = o.x; h[c + 5] = o.y; h[c + 6] = o.z; h[c + 7] = o.w;
+        }
+        var pad = src.gamepad;
+        if (pad) {
+          var axes = pad.axes || [], k = axes.length >= 4 ? 2 : 0;
+          h[c + 8] = axes[k] || 0;
+          h[c + 9] = -(axes[k + 1] || 0); // gamepads report forward as negative
+          var b = pad.buttons || [];
+          h[c + 10] = b[0] ? b[0].value || 0 : 0;
+          h[c + 11] = b[1] ? b[1].value || 0 : 0;
+        }
       }
     },
 

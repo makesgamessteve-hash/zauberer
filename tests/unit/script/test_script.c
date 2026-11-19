@@ -618,6 +618,16 @@ static void h_xr_button(void *ctx, int hand, int button, bool down) {
   g_button[2] = down;
 }
 
+static zb_xr_controller g_controller;
+static int g_controller_hand, g_controller_calls;
+
+static void h_xr_controller(void *ctx, int hand, const zb_xr_controller *c) {
+  (void)ctx;
+  g_controller_hand = hand;
+  g_controller = *c;
+  g_controller_calls++;
+}
+
 static void test_xr_api(void) {
   package("assets/base", "base", NULL, NULL);
   start();
@@ -627,7 +637,10 @@ static void test_xr_api(void) {
       "local s = xr.state()\n"
       "no_xr = not s.available and not s.active and not s.emulated and s.views == 0 and s.frames == 0\n"
       "  and s.size[1] == 0 and s.head.position[3] == 0 and s.head.orientation[4] == 1\n"
-      "xr.emulate({ position = { 1, 2, 3 } }); xr.emulate(false); xr.emulate_button('left', 'select', true)\n");
+      "  and not s.controllers.left.tracked and s.controllers.right.pose.orientation[4] == 1\n"
+      "  and s.controllers.right.trigger == 0 and s.controllers.left.axes[2] == 0\n"
+      "xr.emulate({ position = { 1, 2, 3 } }); xr.emulate(false); xr.emulate_button('left', 'select', true)\n"
+      "xr.emulate_controller('left', false)\n");
   TEST_ASSERT_TRUE(gbool("no_xr"));
   stop();
 
@@ -635,6 +648,7 @@ static void test_xr_api(void) {
   F.cfg.host.xr_state = h_xr_state;
   F.cfg.host.xr_emulate = h_xr_emulate;
   F.cfg.host.xr_button = h_xr_button;
+  F.cfg.host.xr_controller = h_xr_controller;
   start_with(&F.cfg);
   run();
   memset(&g_xr, 0, sizeof g_xr);
@@ -645,6 +659,47 @@ static void test_xr_api(void) {
   g_xr.frame.height = 400;
   g_xr.frame.head.position = zb_v3(0.1f, 0.2f, -0.3f);
   g_xr.frame.head.orientation = zb_quat_axis_angle(zb_v3(0, 1, 0), ZB_PI / 6.0f);
+  g_xr.frame.controllers[1].tracked = true;
+  g_xr.frame.controllers[1].pose.position = zb_v3(0.2f, -0.3f, -0.4f);
+  g_xr.frame.controllers[1].pose.orientation = zb_quat_identity();
+  g_xr.frame.controllers[1].axes[1] = 0.5f;
+  g_xr.frame.controllers[1].trigger = 0.75f;
+  g_xr.frame.controllers[1].squeeze = 0.25f;
+  /* spec: webxr-play: Controllers reach Lua */
+  exec(
+      "local r, l = xr.state().controllers.right, xr.state().controllers.left\n"
+      "ctl_ok = r.tracked and not l.tracked and math.abs(r.pose.position[3] + 0.4) < 1e-6\n"
+      "  and r.pose.orientation[4] == 1 and r.axes[1] == 0 and r.axes[2] == 0.5 and r.trigger == 0.75\n"
+      "  and r.squeeze == 0.25\n");
+  TEST_ASSERT_TRUE(gbool("ctl_ok"));
+  exec("xr.emulate_controller('right', { position = { 0.1, 0.2, 0.3 } }, { 0.5, -1 }, 0.8, 0.9)");
+  TEST_ASSERT_EQUAL_INT(ZB_XR_HAND_RIGHT, g_controller_hand);
+  TEST_ASSERT_TRUE(g_controller.tracked);
+  TEST_ASSERT_EQUAL_FLOAT(0.3f, g_controller.pose.position.z);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, g_controller.pose.orientation.w);
+  TEST_ASSERT_EQUAL_FLOAT(0.5f, g_controller.axes[0]);
+  TEST_ASSERT_EQUAL_FLOAT(-1.0f, g_controller.axes[1]);
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, 0.8f, g_controller.trigger);
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, 0.9f, g_controller.squeeze);
+  exec("xr.emulate_controller('left', false)");
+  TEST_ASSERT_EQUAL_INT(ZB_XR_HAND_LEFT, g_controller_hand);
+  TEST_ASSERT_FALSE(g_controller.tracked);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, g_controller.trigger);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, g_controller.axes[1]);
+  exec(
+      "c1 = select(2, pcall(xr.emulate_controller, 'none', false))\n"
+      "c2 = select(2, pcall(xr.emulate_controller, 'left', true))\n"
+      "c3 = select(2, pcall(xr.emulate_controller, 'left', false, { 2, 0 }))\n"
+      "c4 = select(2, pcall(xr.emulate_controller, 'left', false, nil, 1.5))\n"
+      "c5 = select(2, pcall(xr.emulate_controller, 'left', { position = { 1 } }))\n"
+      "c6 = select(2, pcall(xr.emulate_controller, 'left', false, 'up'))\n");
+  TEST_ASSERT_NOT_NULL(strstr(gstr("c1"), "invalid option 'none'"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("c2"), "pose or false expected"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("c3"), "axes must be -1 .. 1"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("c4"), "out of range"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("c5"), "pose.position needs 3 numbers"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("c6"), "table expected"));
+  TEST_ASSERT_EQUAL_INT(2, g_controller_calls);
   exec(
       "local s = xr.state()\n"
       "xr_ok = s.available and s.active and not s.emulated and s.views == 2 and s.frames == 12\n"
@@ -690,7 +745,9 @@ static void test_xr_api(void) {
   F.cfg.test_api = false;
   start_with(&F.cfg);
   run();
-  exec("helpers = xr.emulate == nil and xr.emulate_button == nil and type(xr.state) == 'function'");
+  exec(
+      "helpers = xr.emulate == nil and xr.emulate_button == nil and xr.emulate_controller == nil\n"
+      "  and type(xr.state) == 'function'");
   TEST_ASSERT_TRUE(gbool("helpers"));
 }
 
@@ -896,6 +953,20 @@ static void test_render_api(void) {
   TEST_ASSERT_TRUE(gnum("frame1") > gnum("frame0"));
   TEST_ASSERT_EQUAL_STRING("2,2,4,1,640x360,2,fake,1,1280,1280,0,0,0,720,720", gstr("stats"));
   TEST_ASSERT_EQUAL_INT(1, F.backend.frames);
+  /* The comfort vignette and the head-locked HUD distance. */
+  exec(
+      "v1 = render.vignette(0.5); v2 = render.vignette(2); v3 = render.vignette(false)\n"
+      "h1 = render.xr_hud(1.5, 0.003); h2 = render.xr_hud(0); h3 = render.xr_hud(false)\n"
+      "bad1 = select(2, pcall(render.vignette, -1)); bad2 = select(2, pcall(render.xr_hud, 0 / 0))\n"
+      "bad3 = select(2, pcall(render.vignette, 'more'))\n");
+  TEST_ASSERT_EQUAL_DOUBLE(0.5, gnum("v1"));
+  TEST_ASSERT_EQUAL_DOUBLE(1.0, gnum("v2"));
+  TEST_ASSERT_EQUAL_DOUBLE(0.0, gnum("v3"));
+  TEST_ASSERT_EQUAL_DOUBLE(1.5, gnum("h1"));
+  TEST_ASSERT_EQUAL_DOUBLE(0.0, gnum("h2") + gnum("h3"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("bad1"), "finite number >= 0"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("bad2"), "finite number >= 0"));
+  TEST_ASSERT_NOT_NULL(strstr(gstr("bad3"), "number expected"));
 }
 
 /* ---- audio API ------------------------------------------------------------------------------ */

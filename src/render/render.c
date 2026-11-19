@@ -59,7 +59,10 @@ struct zb_render {
   float fovy, znear, zfar;
   float eye_sep;
   zb_xr_view xr_views[ZB_RENDER_MAX_VIEWS];
-  int xr_view_count; /* explicit views; 0 = derived from the camera */
+  int xr_view_count;  /* explicit views; 0 = derived from the camera */
+  float xr_hud;       /* head-locked text distance in explicit views (0 = per view) */
+  float xr_hud_pixel; /* metres per canvas pixel on its plane (0 = from the views) */
+  float vignette;
   uint32_t target_fb;
   int target_w, target_h; /* 0: present to the window */
   zb_vec3 light_dir, light_color, ambient;
@@ -226,6 +229,24 @@ void zb_render_set_views(zb_render *r, const zb_xr_view *views, int count) {
   }
   r->xr_view_count = count;
 }
+
+void zb_render_set_xr_hud(zb_render *r, float distance, float pixel) {
+  r->xr_hud = isfinite(distance) && distance > 0.0f ? (distance > 1000.0f ? 1000.0f : distance) : 0.0f;
+  r->xr_hud_pixel = isfinite(pixel) && pixel > 0.0f ? (pixel > 1.0f ? 1.0f : pixel) : 0.0f;
+}
+
+float zb_render_xr_hud(const zb_render *r, float *pixel) {
+  if (pixel) {
+    *pixel = r->xr_hud_pixel;
+  }
+  return r->xr_hud;
+}
+
+void zb_render_set_vignette(zb_render *r, float strength) {
+  r->vignette = isfinite(strength) && strength > 0.0f ? (strength > 1.0f ? 1.0f : strength) : 0.0f;
+}
+
+float zb_render_vignette(const zb_render *r) { return r->vignette; }
 
 void zb_render_set_target(zb_render *r, uint32_t framebuffer, int width, int height) {
   bool on = width > 0 && height > 0;
@@ -740,6 +761,60 @@ static zb_mat4 with_depth_range(zb_mat4 p, float znear, float zfar) {
   return p;
 }
 
+/* The eye position of a rigid view matrix (its rows are the eye's axes, and eye = -R t). */
+static zb_vec3 eye_of(const zb_mat4 *view) {
+  const float *m = view->m;
+  zb_vec3 right = zb_v3(m[0], m[4], m[8]), up = zb_v3(m[1], m[5], m[9]), back = zb_v3(m[2], m[6], m[10]);
+  return zb_v3_scale(zb_v3_add(zb_v3_add(zb_v3_scale(right, m[12]), zb_v3_scale(up, m[13])), zb_v3_scale(back, m[14])),
+                     -1.0f);
+}
+
+/* Text matrices of the explicit views: the canvas fills each view, or (xr_hud)
+ * lies on a head-locked plane (see zb_render_set_xr_hud). */
+static void explicit_text(zb_render *r) {
+  int n = r->xr_view_count, ih = r->internal_h;
+  float cw = (float)r->frame.views[0].width;
+  float k = 0.0f; /* tangent per canvas pixel */
+  for (int v = 0; v < n; ++v) {
+    float m5 = r->xr_views[v].proj.m[5];
+    k += fabsf(m5) > 1e-6f ? 2.0f / fabsf(m5) / (float)ih / (float)n : 0.0f;
+  }
+  for (int v = 0; v < n; ++v) {
+    zb_view *vw = &r->frame.views[v];
+    vw->text = zb_m4_ortho(0.0f, (float)vw->width, (float)ih, 0.0f, -1.0f, 1.0f);
+  }
+  if (r->xr_hud <= 0.0f || !(k > 0.0f)) {
+    return;
+  }
+  zb_vec3 head = zb_v3(0.0f, 0.0f, 0.0f);
+  for (int v = 0; v < n; ++v) {
+    head = zb_v3_add(head, zb_v3_scale(eye_of(&r->xr_views[v].view), 1.0f / (float)n));
+  }
+  const float *m = r->xr_views[0].view.m;
+  zb_vec3 right = zb_v3(m[0], m[4], m[8]), up = zb_v3(m[1], m[5], m[9]), back = zb_v3(m[2], m[6], m[10]);
+  float d = r->xr_hud, s = r->xr_hud_pixel > 0.0f ? r->xr_hud_pixel : k * d;
+  /* Canvas pixel (x, y) -> head + right (x - cw/2) s - up (y - ih/2) s - back d (reference space). */
+  zb_vec3 origin = zb_v3_add(zb_v3_sub(head, zb_v3_scale(back, d)),
+                             zb_v3_add(zb_v3_scale(right, -0.5f * cw * s), zb_v3_scale(up, 0.5f * (float)ih * s)));
+  zb_mat4 canvas = zb_m4_identity();
+  canvas.m[0] = right.x * s;
+  canvas.m[1] = right.y * s;
+  canvas.m[2] = right.z * s;
+  canvas.m[4] = -up.x * s;
+  canvas.m[5] = -up.y * s;
+  canvas.m[6] = -up.z * s;
+  canvas.m[10] = 0.0f;
+  canvas.m[12] = origin.x;
+  canvas.m[13] = origin.y;
+  canvas.m[14] = origin.z;
+  for (int v = 0; v < n; ++v) {
+    const zb_xr_view *xv = &r->xr_views[v];
+    zb_mat4 t = zb_m4_mul(xv->proj, zb_m4_mul(xv->view, canvas));
+    t.m[2] = t.m[6] = t.m[10] = t.m[14] = 0.0f; /* z = 0: never clipped by near or far */
+    r->frame.views[v].text = t;
+  }
+}
+
 /* Views from explicit (headset) views relative to the camera: each at the
  * internal height with its viewport's aspect ratio, side by side. */
 static void explicit_views(zb_render *r) {
@@ -781,18 +856,16 @@ static void explicit_views(zb_render *r) {
     vw->view = zb_m4_mul(xv->view, camera);
     vw->proj = with_depth_range(xv->proj, r->znear, r->zfar);
     vw->view_proj = zb_m4_mul(vw->proj, vw->view);
-    /* Rigid view matrix: its rows are the eye's axes, and eye = -R t. */
+    /* Rigid view matrix: its rows are the eye's axes. */
     const float *m = vw->view.m;
     vw->right = zb_v3(m[0], m[4], m[8]);
     vw->up = zb_v3(m[1], m[5], m[9]);
-    zb_vec3 back = zb_v3(m[2], m[6], m[10]);
-    vw->eye = zb_v3_scale(
-        zb_v3_add(zb_v3_add(zb_v3_scale(vw->right, m[12]), zb_v3_scale(vw->up, m[13])), zb_v3_scale(back, m[14])),
-        -1.0f);
+    vw->eye = eye_of(&vw->view);
     r->frustums[v] = zb_frustum_from_matrix(vw->view_proj);
   }
   r->frame.view_count = r->xr_view_count;
   r->frame.explicit_views = true;
+  explicit_text(r);
 }
 
 void zb_render_begin(zb_render *r, int drawable_w, int drawable_h) {
@@ -1026,6 +1099,7 @@ void zb_render_end(zb_render *r) {
   r->frame.bayer_texture = ready_texture(r, r->bayer_asset);
   r->frame.palette = r->frame.lut_texture != 0 && r->frame.bayer_texture != 0;
   r->frame.dither = r->dither;
+  r->frame.vignette = r->vignette;
   r->frame.atlas_texture = ready_texture(r, r->atlas_asset);
   r->frame.atlas_layers = r->frame.atlas_texture ? r->atlas_layers : 0;
   r->frame.time = (float)r->time;
