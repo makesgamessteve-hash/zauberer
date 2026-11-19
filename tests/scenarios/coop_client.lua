@@ -16,6 +16,9 @@ end
 expect(wait_for(function() return net.status().role == "client" end, 30), "joined: " .. net.status().error)
 expect_eq(net.status().player, 1, "the first client is player 1")
 expect(wait_for(function() return co.carpets[1] ~= nil and co.carpets[0] ~= nil end, 30), "both carpets known")
+-- The heirs begin on the whole Weave; each flies their own carpet once it is split.
+net.send("ask", { what = "split" }, 0)
+expect(wait_for(function() return co.riders == nil end, 30), "the Weave was split")
 for _ = 1, 300 do
   input.inject("steer", 0.3, 1, 1)
   step(1)
