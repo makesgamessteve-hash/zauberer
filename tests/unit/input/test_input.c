@@ -55,6 +55,31 @@ static zb_event touch(zb_event_type type, uint64_t finger, float x, float y, uin
   return e;
 }
 
+/* spec: accessibility: Remapping takes the next key or button */
+static void test_capture(void) {
+  char got[48];
+  TEST_ASSERT_FALSE(zb_input_take_capture(in, got, sizeof got));
+  zb_event e = key(ZB_KEY_X, true, 1);
+  zb_input_handle_event(in, &e);
+  e = key(ZB_KEY_X, false, 2); /* (letting go captures nothing) */
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_TRUE(zb_input_take_capture(in, got, sizeof got));
+  TEST_ASSERT_EQUAL_STRING("key:x", got);
+  TEST_ASSERT_FALSE(zb_input_take_capture(in, got, sizeof got));
+  e = mouse_button(ZB_MOUSE_RIGHT, true, false, 3);
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_TRUE(zb_input_take_capture(in, got, sizeof got));
+  TEST_ASSERT_EQUAL_STRING("mouse:right", got);
+  memset(&e, 0, sizeof e);
+  e.type = ZB_EV_GAMEPAD_BUTTON;
+  e.u.gamepad_button.id = 7;
+  e.u.gamepad_button.button = ZB_PAD_A;
+  e.u.gamepad_button.down = true;
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_TRUE(zb_input_take_capture(in, got, sizeof got));
+  TEST_ASSERT_EQUAL_STRING("gamepad:a", got);
+}
+
 static zb_value parse(zb_luon_doc *doc, const char *text) {
   zb_luon_error err;
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_luon_parse(doc, zb_test_alloc(), text, strlen(text), &err));
@@ -602,5 +627,6 @@ int main(void) {
   RUN_TEST(test_inverted_axis);
   RUN_TEST(test_xr_buttons);
   RUN_TEST(test_oom_create);
+  RUN_TEST(test_capture);
   return UNITY_END();
 }

@@ -26,6 +26,7 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
  * @field input_mode string "desktop" or "touch"
  * @field drawable_size integer[] Drawable width and height in pixels
  * @field seed integer The run's random seed
+ * @field language string The player's preferred language ("en", "de"): the system's, or ZB_LANGUAGE
  *
  * @luaclass PackageInfo
  * @field id string Package id
@@ -34,6 +35,7 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
  * @field license string License of the package's code
  * @field license_assets string License of the package's assets
  * @field enabled boolean Whether the package is loaded
+ * @field turned_off boolean Whether the player turned it off (from the next start)
  * @field load_order integer? Position in the load order (enabled packages)
  * @field error string? Why the package is disabled
  *
@@ -273,6 +275,8 @@ static int e_info(lua_State *L) {
   lua_setfield(L, -2, "drawable_size");
   lua_pushinteger(L, (lua_Integer)info.seed);
   lua_setfield(L, -2, "seed");
+  lua_pushstring(L, info.language && *info.language ? info.language : "en");
+  lua_setfield(L, -2, "language");
   return 1;
 }
 
@@ -420,6 +424,8 @@ static int e_packages(lua_State *L) {
       set_str(L, "license_assets", p->license_assets);
       lua_pushboolean(L, p->enabled);
       lua_setfield(L, -2, "enabled");
+      lua_pushboolean(L, p->id && zb_vfs_is_turned_off(s->cfg.vfs, p->id));
+      lua_setfield(L, -2, "turned_off");
       if (!p->enabled) {
         set_str(L, "error", p->error);
       }
@@ -437,6 +443,36 @@ static int e_packages(lua_State *L) {
     }
   }
   return 1;
+}
+
+/* @lua engine.set_package_enabled(id: string, on: boolean): boolean, string?
+ * Turns a package (a mod) on or off from the next start; the choice is kept with the player's settings. The base
+ * game cannot be turned off. Returns false and the reason when the change cannot be made.
+ */
+static int e_set_package_enabled(lua_State *L) {
+  zb_script *s = S(L);
+  const char *id = luaL_checkstring(L, 1);
+  luaL_checktype(L, 2, LUA_TBOOLEAN);
+  char err[160] = "packages cannot be changed here";
+  if (s->cfg.host.set_package && s->cfg.host.set_package(s->cfg.host.ctx, id, lua_toboolean(L, 2), err, sizeof err)) {
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+  lua_pushboolean(L, 0);
+  lua_pushstring(L, err);
+  return 2;
+}
+
+/* @lua engine.set_flash_strength(strength: number)
+ * How bright flashes of light such as lightning are drawn, 0 .. 1 (default 1; reduced flashing turns it down).
+ */
+static int e_set_flash_strength(lua_State *L) {
+  zb_script *s = S(L);
+  float k = (float)luaL_checknumber(L, 1);
+  if (s->cfg.host.set_flash) {
+    s->cfg.host.set_flash(s->cfg.host.ctx, k);
+  }
+  return 0;
 }
 
 void zb_script_push_luon(lua_State *L, const zb_value *v) {
@@ -721,6 +757,20 @@ static int i_state(lua_State *L) {
  */
 static int i_mode(lua_State *L) {
   lua_pushstring(L, zb_input_get_mode(S(L)->cfg.input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
+  return 1;
+}
+
+/* @lua input.capture(): string?
+ * The binding ("key:x", "mouse:left", "gamepad:a") of the last key or button pressed since the previous call, for
+ * remapping controls (pass it to input.set_user_binding); nil when nothing was pressed.
+ */
+static int i_capture(lua_State *L) {
+  char got[48];
+  if (zb_input_take_capture(S(L)->cfg.input, got, sizeof got)) {
+    lua_pushstring(L, got);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
@@ -1373,6 +1423,8 @@ void zb_script_open_api(zb_script *s) {
                                         {"log", e_log},
                                         {"hash_state", e_hash_state},
                                         {"packages", e_packages},
+                                        {"set_package_enabled", e_set_package_enabled},
+                                        {"set_flash_strength", e_set_flash_strength},
                                         {"credits", e_credits},
                                         {NULL, NULL}};
   luaL_newlib(L, engine_fns);
@@ -1392,6 +1444,7 @@ void zb_script_open_api(zb_script *s) {
                                        {"bindings", i_bindings},
                                        {"state", i_state},
                                        {"mode", i_mode},
+                                       {"capture", i_capture},
                                        {"add_stick", i_add_stick},
                                        {"add_button", i_add_button},
                                        {"set_user_binding", i_set_user_binding},

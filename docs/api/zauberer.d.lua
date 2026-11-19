@@ -55,6 +55,7 @@
 ---@field input_mode string "desktop" or "touch"
 ---@field drawable_size integer[] Drawable width and height in pixels
 ---@field seed integer The run's random seed
+---@field language string The player's preferred language ("en", "de"): the system's, or ZB_LANGUAGE
 
 ---@class Gesture
 ---@field form string The form, or "none" when the stroke is like none
@@ -125,6 +126,7 @@
 ---@field license string License of the package's code
 ---@field license_assets string License of the package's assets
 ---@field enabled boolean Whether the package is loaded
+---@field turned_off boolean Whether the player turned it off (from the next start)
 ---@field load_order integer? Position in the load order (enabled packages)
 ---@field error string? Why the package is disabled
 
@@ -290,9 +292,20 @@ function engine.quit(code) end
 ---@param height integer
 function engine.resize_window(width, height) end
 
+---How bright flashes of light such as lightning are drawn, 0 .. 1 (default 1; reduced flashing turns it down).
+---@param strength number
+function engine.set_flash_strength(strength) end
+
 ---Switches the window to fullscreen or back; scripts receive a resize event.
 ---@param on boolean
 function engine.set_fullscreen(on) end
+
+---Turns a package (a mod) on or off from the next start; the choice is kept with the player's settings. The base game cannot be turned off. Returns false and the reason when the change cannot be made.
+---@param id string
+---@param on boolean
+---@return boolean
+---@return string?
+function engine.set_package_enabled(id, on) end
 
 ---Development and test builds only: simulation speed factor (0.1 to 10).
 ---@param scale number
@@ -357,6 +370,10 @@ function input.bind(action, binding) end
 ---@param action string
 ---@return string[]
 function input.bindings(action) end
+
+---The binding ("key:x", "mouse:left", "gamepad:a") of the last key or button pressed since the previous call, for remapping controls (pass it to input.set_user_binding); nil when nothing was pressed.
+---@return string?
+function input.capture() end
 
 ---Removes all bindings of an action.
 ---@param action string

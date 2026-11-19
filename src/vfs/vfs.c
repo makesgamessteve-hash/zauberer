@@ -43,6 +43,8 @@ struct zb_vfs {
   zb_array requests; /* zb_vfs_req * */
   zb_vfs_fetcher fetcher;
   bool has_fetcher;
+  char off[ZB_VFS_MAX_OFF][ZB_VFS_ID_LEN]; /* packages the player turned off */
+  size_t off_count;
 };
 
 /* ---- Versions --------------------------------------------------------------- */
@@ -598,6 +600,36 @@ static bool walk_cb(const char *name, bool is_dir, void *user) {
   return true;
 }
 
+void zb_vfs_turn_off(zb_vfs *v, const char *id) {
+  if (!id || !*id || strlen(id) >= ZB_VFS_ID_LEN || zb_vfs_is_turned_off(v, id) || v->off_count >= ZB_VFS_MAX_OFF) {
+    return;
+  }
+  snprintf(v->off[v->off_count++], ZB_VFS_ID_LEN, "%s", id);
+}
+
+void zb_vfs_set_turned_off(zb_vfs *v, const char *id, bool off) {
+  if (off) {
+    zb_vfs_turn_off(v, id);
+    return;
+  }
+  for (size_t i = 0; i < v->off_count; ++i) {
+    if (strcmp(v->off[i], id) == 0) {
+      memmove(v->off[i], v->off[i + 1], (v->off_count - i - 1) * sizeof v->off[0]);
+      v->off_count--;
+      return;
+    }
+  }
+}
+
+bool zb_vfs_is_turned_off(const zb_vfs *v, const char *id) {
+  for (size_t i = 0; id && i < v->off_count; ++i) {
+    if (strcmp(v->off[i], id) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 zb_result zb_vfs_mount(zb_vfs *v, int api_major, int api_minor) {
   bool any_root = false;
   for (size_t r = 0; r < v->roots.len; ++r) {
@@ -634,6 +666,13 @@ zb_result zb_vfs_mount(zb_vfs *v, int api_major, int api_minor) {
       if (q->enabled && strcmp(q->id, p->id) == 0) {
         disable(p, "duplicate package id '%s' (already provided by %s)", p->id, q->root);
       }
+    }
+  }
+  /* Packages the player turned off. */
+  for (size_t i = 0; i < v->packages.len; ++i) {
+    zb_package *p = pkg_at(v, i);
+    if (p->enabled && zb_vfs_is_turned_off(v, p->id)) {
+      disable(p, "turned off");
     }
   }
   /* Scripting API compatibility. */

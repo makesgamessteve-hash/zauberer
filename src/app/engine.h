@@ -45,6 +45,7 @@ typedef struct zb_engine {
   struct zb_air *air;   /* wind and gases in the active tier */
   struct zb_tier *tier; /* the active tier: fire, water and air (the three above are its) */
   int flash;            /* frames of lightning flash left */
+  float flash_strength; /* how bright a lightning flash is, 0 .. 1 (reduced flashing) */
   int strikes_seen;     /* lightning strikes already flashed */
   uint32_t rain_sprite, snow_sprite;
   uint32_t smoke_sprite;
@@ -61,6 +62,7 @@ typedef struct zb_engine {
   int drawable_w, drawable_h;
   char assets_dir[1024];
   char user_dir[1024];
+  char language[16]; /* the player's preferred language */
   zb_input_recorder *recorder;
   zb_input_replay *replay;
   char *replay_data;

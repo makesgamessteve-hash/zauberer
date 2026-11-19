@@ -44,6 +44,17 @@ typedef struct zb_vfs zb_vfs;
 zb_vfs *zb_vfs_create(const zb_allocator *a, const zb_fs_api *fs, zb_jobs *jobs);
 void zb_vfs_destroy(zb_vfs *v);
 zb_result zb_vfs_add_root(zb_vfs *v, const char *dir);
+#define ZB_VFS_MAX_OFF 32 /* packages the player can turn off */
+#define ZB_VFS_ID_LEN 64
+
+/* Before mounting: the package with this id is turned off by the player (it
+ * is listed, disabled with the error "turned off", and packages that require
+ * it are disabled in turn). Ids that are empty, too long or beyond
+ * ZB_VFS_MAX_OFF are ignored. */
+void zb_vfs_turn_off(zb_vfs *v, const char *id);
+bool zb_vfs_is_turned_off(const zb_vfs *v, const char *id);
+/* Changes the choice (for the next mount; the current one is unchanged). */
+void zb_vfs_set_turned_off(zb_vfs *v, const char *id, bool off);
 /* Discovers, validates and orders packages and builds the overlay. Returns
  * ZB_ERR_NOT_FOUND when none of the roots exists. Problems with individual
  * packages disable them (see zb_package.error) without failing the mount. */

@@ -54,9 +54,17 @@ Ends the game after this tick; shutdown hooks run in reverse load order. The pro
 
 Test API (scenarios and Lua tests only): resizes the window.
 
+### `engine.set_flash_strength(strength: number)`
+
+How bright flashes of light such as lightning are drawn, 0 .. 1 (default 1; reduced flashing turns it down).
+
 ### `engine.set_fullscreen(on: boolean)`
 
 Switches the window to fullscreen or back; scripts receive a resize event.
+
+### `engine.set_package_enabled(id: string, on: boolean): boolean, string?`
+
+Turns a package (a mod) on or off from the next start; the choice is kept with the player's settings. The base game cannot be turned off. Returns false and the reason when the change cannot be made.
 
 ### `engine.set_time_scale(scale: number)`
 
@@ -105,6 +113,10 @@ Adds a binding such as "key:space", "keys:w,s,a,d", "mouse:left", "gamepad:left_
 ### `input.bindings(action: string): string[]`
 
 Current bindings of an action.
+
+### `input.capture(): string?`
+
+The binding ("key:x", "mouse:left", "gamepad:a") of the last key or button pressed since the previous call, for remapping controls (pass it to input.set_user_binding); nil when nothing was pressed.
 
 ### `input.clear(action: string)`
 
@@ -932,6 +944,7 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `input_mode` | `string` | "desktop" or "touch" |
 | `drawable_size` | `integer[]` | Drawable width and height in pixels |
 | `seed` | `integer` | The run's random seed |
+| `language` | `string` | The player's preferred language ("en", "de"): the system's, or ZB_LANGUAGE |
 
 ### Gesture
 
@@ -1023,6 +1036,7 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `license` | `string` | License of the package's code |
 | `license_assets` | `string` | License of the package's assets |
 | `enabled` | `boolean` | Whether the package is loaded |
+| `turned_off` | `boolean` | Whether the player turned it off (from the next start) |
 | `load_order` | `integer?` | Position in the load order (enabled packages) |
 | `error` | `string?` | Why the package is disabled |
 

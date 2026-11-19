@@ -96,6 +96,7 @@ struct zb_input {
   uint64_t last_touch_ns;
   bool any_touch_seen;
   uint8_t player;
+  char captured[48]; /* the binding of the last key or button pressed (for remapping) */
 };
 
 zb_input *zb_input_create(const zb_allocator *a) {
@@ -529,12 +530,18 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
   switch (ev->type) {
     case ZB_EV_KEY:
       if (ev->u.key.key < ZB_KEY_COUNT && !ev->u.key.repeat) {
+        if (ev->u.key.down) {
+          snprintf(in->captured, sizeof in->captured, "key:%s", zb_key_name(ev->u.key.key));
+        }
         press(&in->keys[ev->u.key.key], ev->u.key.down);
         desktop_input(in, ev->time_ns);
       }
       break;
     case ZB_EV_MOUSE_BUTTON:
       if (!ev->u.mouse_button.synthetic && ev->u.mouse_button.button < ZB_MOUSE_BUTTON_COUNT) {
+        if (ev->u.mouse_button.down) {
+          snprintf(in->captured, sizeof in->captured, "mouse:%s", zb_mouse_button_name(ev->u.mouse_button.button));
+        }
         press(&in->mouse[ev->u.mouse_button.button], ev->u.mouse_button.down);
         desktop_input(in, ev->time_ns);
       }
@@ -559,6 +566,9 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
     case ZB_EV_GAMEPAD_BUTTON: {
       pad *p = find_pad(in, ev->u.gamepad_button.id, true);
       if (p && ev->u.gamepad_button.button < ZB_PAD_BUTTON_COUNT) {
+        if (ev->u.gamepad_button.down) {
+          snprintf(in->captured, sizeof in->captured, "gamepad:%s", zb_pad_button_name(ev->u.gamepad_button.button));
+        }
         press(&p->buttons[ev->u.gamepad_button.button], ev->u.gamepad_button.down);
         desktop_input(in, ev->time_ns);
       }
@@ -774,6 +784,15 @@ uint8_t zb_input_player(const zb_input *in) { return in->player; }
 zb_input_mode zb_input_get_mode(const zb_input *in) { return in->mode; }
 
 void zb_input_set_mode(zb_input *in, zb_input_mode mode) { set_mode(in, mode); }
+
+bool zb_input_take_capture(zb_input *in, char *out, size_t len) {
+  if (!in->captured[0]) {
+    return false;
+  }
+  snprintf(out, len, "%s", in->captured);
+  in->captured[0] = '\0';
+  return true;
+}
 
 bool zb_input_take_mode_change(zb_input *in) {
   bool c = in->mode_changed;

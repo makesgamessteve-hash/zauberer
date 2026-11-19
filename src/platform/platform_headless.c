@@ -25,6 +25,11 @@ struct zb_platform {
   zb_fs_api fs;
 };
 
+void zb_platform_language(char *out, size_t len) {
+  const char *env = getenv("ZB_LANGUAGE");
+  snprintf(out, len, "%s", env && *env ? env : "en");
+}
+
 const char *zb_platform_name(void) {
 #ifdef __EMSCRIPTEN__
   return "web-node";

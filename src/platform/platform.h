@@ -30,6 +30,10 @@ void zb_platform_destroy(zb_platform *p);
 
 /* "windows", "linux", "macos", "web" or "web-node". */
 const char *zb_platform_name(void);
+/* The player's preferred language as a lower-case code ("en", "de"): the
+ * system's first preferred locale, or ZB_LANGUAGE when it is set (headless:
+ * only ZB_LANGUAGE, else "en"). */
+void zb_platform_language(char *out, size_t len);
 const zb_fs_api *zb_platform_fs(zb_platform *p);
 /* NULL when threads are unavailable (single-threaded web build). */
 const zb_thread_api *zb_platform_threads(zb_platform *p);

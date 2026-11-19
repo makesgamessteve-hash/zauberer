@@ -43,6 +43,7 @@ static void host_info(void *ctx, zb_script_info *out) {
   out->drawable_w = e->drawable_w;
   out->drawable_h = e->drawable_h;
   out->seed = e->seed;
+  out->language = e->language;
 }
 
 static double host_time(void *ctx) {
@@ -61,8 +62,16 @@ static void host_fullscreen(void *ctx, bool on) { zb_platform_set_fullscreen(((z
 static zb_result write_config(zb_engine *e) {
   char bindings[8192];
   zb_input_write_user(e->input, bindings, sizeof bindings);
-  char text[8400];
-  int n = snprintf(text, sizeof text, "return {\n  bindings = %s,\n}\n", bindings);
+  char off[ZB_VFS_MAX_OFF * (ZB_VFS_ID_LEN + 4) + 8] = "";
+  size_t used = 0;
+  for (size_t i = 0; i < zb_vfs_package_count(e->vfs); ++i) {
+    const zb_package *p = zb_vfs_package(e->vfs, i);
+    if (p->id && zb_vfs_is_turned_off(e->vfs, p->id)) {
+      used += (size_t)snprintf(off + used, sizeof off - used, "\"%s\", ", p->id);
+    }
+  }
+  char text[8400 + sizeof off];
+  int n = snprintf(text, sizeof text, "return {\n  bindings = %s,\n  packages = { off = { %s} },\n}\n", bindings, off);
   char path[1100];
   snprintf(path, sizeof path, "%s%s", e->user_dir, CONFIG_FILE);
   const zb_fs_api *fs = zb_platform_fs(e->platform);
@@ -72,6 +81,48 @@ static zb_result write_config(zb_engine *e) {
 }
 
 static zb_result host_save_bindings(void *ctx) { return write_config(ctx); }
+
+static void host_set_flash(void *ctx, float strength) {
+  ((zb_engine *)ctx)->flash_strength = strength < 0.0f ? 0.0f : strength > 1.0f ? 1.0f : strength;
+}
+
+/* Turns a package on or off from the next start (the choice is kept in config.lua). */
+static bool host_set_package(void *ctx, const char *id, bool on, char *err, size_t err_len) {
+  zb_engine *e = ctx;
+  const zb_package *p = zb_vfs_find_package(e->vfs, id);
+  if (!p) {
+    snprintf(err, err_len, "no package '%s'", id);
+    return false;
+  }
+  if (strcmp(id, "base") == 0) {
+    snprintf(err, err_len, "the base game cannot be turned off");
+    return false;
+  }
+  zb_vfs_set_turned_off(e->vfs, id, !on);
+  return write_config(e) == ZB_OK;
+}
+
+/* The packages the player turned off (config.lua), before the packages are mounted. */
+static void load_package_choices(zb_engine *e) {
+  char path[1100];
+  snprintf(path, sizeof path, "%s%s", e->user_dir, CONFIG_FILE);
+  const zb_fs_api *fs = zb_platform_fs(e->platform);
+  char *text = NULL;
+  size_t len = 0;
+  if (fs->read(fs->ctx, path, e->a, &text, &len) != ZB_OK) {
+    return;
+  }
+  zb_luon_doc doc;
+  zb_luon_error err;
+  if (zb_luon_parse(&doc, e->a, text, len, &err) == ZB_OK) {
+    const zb_value *off = zb_table_get(zb_table_get(&doc.root, "packages"), "off");
+    for (size_t i = 1; i <= zb_table_len(off); ++i) {
+      zb_vfs_turn_off(e->vfs, zb_value_str(zb_table_index(off, i), ""));
+    }
+    zb_luon_free(&doc);
+  }
+  zb_free(e->a, text);
+}
 
 static void host_user_data_changed(void *ctx) { zb_platform_user_data_sync(((zb_engine *)ctx)->platform); }
 
@@ -425,6 +476,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   e->mode = opt.test_path ? ZB_MODE_TEST : (opt.scenario_path ? ZB_MODE_SCENARIO : ZB_MODE_GAME);
   e->headless = opt.headless || e->mode == ZB_MODE_TEST;
   e->seed = opt.seed_set ? opt.seed : 0x5a617562u;
+  e->flash_strength = 1.0f;
+  zb_platform_language(e->language, sizeof e->language);
   zb_loop_init(&e->loop);
   e->platform = zb_platform_create(a);
   if (!e->platform) {
@@ -485,6 +538,7 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   zb_vfs_add_root(e->vfs, root);
   snprintf(root, sizeof root, "%smods", e->user_dir);
   zb_vfs_add_root(e->vfs, root);
+  load_package_choices(e);
   if (zb_vfs_mount(e->vfs, ZB_API_VERSION_MAJOR, ZB_API_VERSION_MINOR) != ZB_OK || zb_vfs_load_count(e->vfs) == 0) {
     snprintf(err, sizeof err, "No usable content package was found in:\n%s", e->assets_dir);
     fail(e, err);
@@ -640,6 +694,8 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   sc.host.set_time_scale = host_time_scale;
   sc.host.set_fullscreen = host_fullscreen;
   sc.host.save_bindings = host_save_bindings;
+  sc.host.set_package = host_set_package;
+  sc.host.set_flash = host_set_flash;
   sc.host.set_window_size = host_window_size;
   sc.host.sleep_ms = host_sleep;
   sc.host.user_data_changed = host_user_data_changed;
@@ -769,7 +825,8 @@ static void apply_daylight(zb_engine *e, zb_vec3 eye) {
   }
   if (e->flash > 0) {
     e->flash--;
-    d.ambient = zb_v3_add(d.ambient, zb_v3(1.2f, 1.2f, 1.3f));
+    float k = e->flash_strength;
+    d.ambient = zb_v3_add(d.ambient, zb_v3(1.2f * k, 1.2f * k, 1.3f * k));
   }
   zb_atmosphere a = d.atmosphere;
   const zb_atmosphere *cur = zb_render_atmosphere(e->render);

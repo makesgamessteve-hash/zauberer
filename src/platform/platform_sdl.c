@@ -42,6 +42,23 @@ static Uint32 g_audio_unlock_event;
 
 /* ---- Names ------------------------------------------------------------------ */
 
+void zb_platform_language(char *out, size_t len) {
+  const char *env = getenv("ZB_LANGUAGE");
+  if (env && *env) {
+    snprintf(out, len, "%s", env);
+    return;
+  }
+  snprintf(out, len, "en");
+  int count = 0;
+  SDL_Locale **locales = SDL_GetPreferredLocales(&count);
+  if (locales) {
+    if (count > 0 && locales[0] && locales[0]->language) {
+      snprintf(out, len, "%s", locales[0]->language);
+    }
+    SDL_free(locales);
+  }
+}
+
 const char *zb_platform_name(void) {
 #if defined(__EMSCRIPTEN__)
   return "web";

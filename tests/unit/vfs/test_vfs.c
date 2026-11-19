@@ -153,6 +153,33 @@ static void test_future_api(void) {
   zb_vfs_destroy(v);
 }
 
+/* spec: modding-sdk: A package turned off */
+static void test_turned_off(void) {
+  manifest("assets/base", "base", "0.1.0", "1.0", NULL);
+  manifest("mods/moths", "moths", "1.0", "1.0", "requires = { base = \"*\" }");
+  manifest("mods/needs_moths", "needs_moths", "1.0", "1.0", "requires = { moths = \"*\" }");
+  zb_vfs *v = zb_vfs_create(zb_test_alloc(), zb_memfs_api(g_fs), NULL);
+  zb_vfs_add_root(v, "assets");
+  zb_vfs_add_root(v, "mods");
+  zb_vfs_turn_off(v, "moths");
+  zb_vfs_turn_off(v, "moths"); /* (once is enough) */
+  zb_vfs_turn_off(v, "");
+  zb_vfs_turn_off(v, "an-id-that-is-much-too-long-to-be-any-package-id-at-all-really-it-is");
+  TEST_ASSERT_TRUE(zb_vfs_is_turned_off(v, "moths"));
+  TEST_ASSERT_FALSE(zb_vfs_is_turned_off(v, "base"));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_vfs_mount(v, 1, 2));
+  TEST_ASSERT_EQUAL_size_t(1, zb_vfs_load_count(v));
+  TEST_ASSERT_EQUAL_STRING("turned off", zb_vfs_find_package(v, "moths")->error);
+  TEST_ASSERT_FALSE(zb_vfs_find_package(v, "needs_moths")->enabled);
+  for (int i = 0; i < ZB_VFS_MAX_OFF + 2; ++i) { /* the list is bounded */
+    char id[16];
+    snprintf(id, sizeof id, "p%d", i);
+    zb_vfs_turn_off(v, id);
+  }
+  TEST_ASSERT_FALSE(zb_vfs_is_turned_off(v, "p40"));
+  zb_vfs_destroy(v);
+}
+
 static void test_duplicate_ids(void) {
   manifest("assets/base", "base", "0.1.0", "1.0", NULL);
   manifest("mods/base2", "base", "0.2.0", "1.0", NULL);
@@ -453,6 +480,7 @@ int main(void) {
   RUN_TEST(test_dependency_cycle);
   RUN_TEST(test_future_api);
   RUN_TEST(test_duplicate_ids);
+  RUN_TEST(test_turned_off);
   RUN_TEST(test_overlay_and_listing);
   RUN_TEST(test_path_safety);
   RUN_TEST(test_versions);

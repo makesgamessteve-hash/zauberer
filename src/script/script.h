@@ -22,6 +22,7 @@ typedef struct zb_script_info {
   const char *input_mode;
   int drawable_w, drawable_h;
   uint64_t seed;
+  const char *language; /* the player's preferred language ("en", "de") */
 } zb_script_info;
 
 /* Application-level services the scripts can use. */
@@ -36,6 +37,10 @@ typedef struct zb_script_host {
   void (*set_fullscreen)(void *ctx, bool on);
   /* Persists the user's input bindings. */
   zb_result (*save_bindings)(void *ctx);
+  /* Turns a package on or off from the next start; false with a message if it cannot be. */
+  bool (*set_package)(void *ctx, const char *id, bool on, char *err, size_t err_len);
+  /* How bright flashes of light (lightning) are, 0 .. 1. */
+  void (*set_flash)(void *ctx, float strength);
   /* Save data was written (the web build persists it to IndexedDB). */
   void (*user_data_changed)(void *ctx);
   /* Test API: resizes the window (no-op without one). */

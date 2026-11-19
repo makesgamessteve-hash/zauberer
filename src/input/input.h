@@ -70,6 +70,10 @@ zb_input_mode zb_input_get_mode(const zb_input *in);
 void zb_input_set_mode(zb_input *in, zb_input_mode mode);
 /* True once after the mode changed (cleared when read). */
 bool zb_input_take_mode_change(zb_input *in);
+/* Takes the binding ("key:x", "mouse:left", "gamepad:a") of the last key or
+ * button pressed since the previous call, for remapping controls; false when
+ * nothing was pressed. */
+bool zb_input_take_capture(zb_input *in, char *out, size_t len);
 
 /* Virtual touch controls in normalised screen coordinates (0..1). */
 int zb_input_add_stick(zb_input *in, const char *name, float cx, float cy, float radius);
