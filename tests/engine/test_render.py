@@ -72,6 +72,11 @@ class RenderTests(EngineTestCase):
         self.install_mods("xr_events")
         self.assert_ok(self.windowed("xr_emulated"))
 
+    # spec: webxr-play: HUD readable in the headset
+    # spec: webxr-play: Flying in VR
+    def test_xr_play_rendered(self):
+        self.assert_ok(self.windowed("xr_play"))
+
     # spec: rendering-core: Full HD window
     def test_full_hd_window(self):
         self.assert_ok(self.windowed("layout_fullhd", size="1920x1080"))

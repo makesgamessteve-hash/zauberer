@@ -47,6 +47,7 @@ local prologue = require("story.prologue")
 local coopplay = require("coop.play")
 local saga = require("story.saga")
 local weave = require("coop.weave")
+local xrplay = require("xr.play")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -521,7 +522,11 @@ local function flight_tick(dt)
     lim.fly = false
     game.carpet.limits = lim
   end
-  local c = coop.tick(co, game.carpet, (down or w) and still or controls.flight_input(st), dt, WORLD, net)
+  game.xrp = game.xrp or xrplay.new(game.xr_options) -- VR: reins or head, thumbsticks, gestures in the air
+  local xin = xrplay.tick(game.xrp, xr.state(), dt, game.carpet)
+  local fin = (down or w) and still or controls.flight_input(st)
+  if xin and not (down or w) then fin = xrplay.flight(fin, xin) end
+  local c = coop.tick(co, game.carpet, fin, dt, WORLD, net)
   game.carpet = c
   -- Co-op: the heirs, the Weave, the host's clock, votes and the active areas.
   if co.role ~= "none" then
@@ -544,6 +549,7 @@ local function flight_tick(dt)
   -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
   local spell = {}
   for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
+  if xin and not down then xrplay.spell(xin, spell, function(g, hand) magic.gesture(game.magic, g, hand) end) end
   if down then
     for name in pairs(spell) do spell[name] = {} end
   end
@@ -902,6 +908,7 @@ local function draw_hud(lines)
       lines[#lines + 1] = hud.credit_line(c)
     end
   end
+  if xr.state().active then return xrplay.draw_hud(assets.font, lines, hud.color) end -- (a panel low ahead)
   for i, line in ipairs(lines) do
     render.draw_text(assets.font, line, 4, 4 + (i - 1) * 9, 1, hud.color(i))
   end
@@ -995,6 +1002,7 @@ local function flight_frame()
     local eye, target = camera.view(game.chase, p, c.heading, up, dt)
     render.camera({ eye = eye, target = target, up = up, fov = 65, near = 0.5, far = 30000 })
   end
+  xrplay.frame(game.xrp, c, p, up, not game.walker and not game.camera_override, assets.mote) -- (VR: the seat)
   if game.tent then
     local tp = world.to_local(game.tent.pos)
     render.draw_model(assets.tent, { position = tp, rotation = { 0, 180 - math.deg(game.tent.heading), 0 } })

@@ -125,6 +125,21 @@ local function release(p, carpet, aim)
   return r
 end
 
+-- A recognised gesture (gesture.recognize): it shapes the weave a hand is
+-- charging (hand: "left" or "right" drew it, as in VR; nil: either), else it
+-- is the form of the free weave.
+function play.gesture(p, g, hand)
+  if p.charging and (hand == nil or p.charging.hand == hand) then
+    p.charging.gesture = g
+  elseif g.form ~= "none" then
+    p.free.form = g.form
+    p.free.until_time = p.time + FREE_TIME
+    say(p, "Form: " .. g.form .. " (" .. math.floor(g.accuracy * 100 + 0.5) .. "%)")
+  else
+    say(p, "That was no form")
+  end
+end
+
 -- One tick. states: input action states by name (see play.ACTIONS); carpet;
 -- aim: { heading, pitch }; place: the mana where the mage is. Returns the
 -- result of a cast made this tick, if any.
@@ -146,17 +161,7 @@ function play.tick(p, states, dt, carpet, aim, place)
   -- Drawing a gesture (mouse motion while the draw button is held).
   local look = st("look")
   local g = stroke.update(p.stroke, st("draw").held, look.x or 0, look.y or 0, 0, 0, dt)
-  if g then
-    if p.charging then
-      p.charging.gesture = g
-    elseif g.form ~= "none" then
-      p.free.form = g.form
-      p.free.until_time = p.time + FREE_TIME
-      say(p, "Form: " .. g.form .. " (" .. math.floor(g.accuracy * 100 + 0.5) .. "%)")
-    else
-      say(p, "That was no form")
-    end
-  end
+  if g then play.gesture(p, g) end
   -- Charging and casting with the hands.
   local result
   for _, hand in ipairs({ "left", "right" }) do

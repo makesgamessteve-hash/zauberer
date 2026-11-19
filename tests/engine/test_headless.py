@@ -384,6 +384,14 @@ class ScenarioTests(EngineTestCase):
         self.assertIn("WebXR: session started (emulated headset)", result.stdout)
         self.assertIn("WebXR: session ended after", result.stdout)
 
+    # spec: webxr-play: Controllers reach Lua
+    # spec: webxr-play: Flying in VR
+    # spec: webxr-play: Casting by drawing in the air
+    def test_xr_play(self):
+        result = self.scenario("xr_play")
+        self.assert_ok(result)
+        self.assertIn("WebXR: session started (emulated headset)", result.stdout)
+
     # spec: game-loop: Paused game keeps rendering
     def test_pause_scenario(self):
         self.assert_ok(self.scenario("pause"))
