@@ -24,7 +24,8 @@ if(UNIX)
 endif()
 
 zb_module(zb_vfs SOURCES vfs/vfs.c DEPS zb_core)
-zb_module(zb_net SOURCES net/session.c net/socket.c net/transport.c net/ws.c DEPS zb_core)
+zb_module(zb_net SOURCES net/cache.c net/lan.c net/relay.c net/relay_link.c net/session.c net/session_blob.c
+  net/socket.c net/transport.c net/ws.c DEPS zb_core)
 if(WIN32)
   target_link_libraries(zb_net PUBLIC ws2_32)
 endif()
@@ -57,6 +58,14 @@ endif()
 
 zb_module(zb_app SOURCES app/body_view.c app/creature_view.c app/daylight.c app/engine.c app/host.c app/terrain_view.c app/water_view.c app/xr.c
   DEPS zb_core zb_platform zb_vfs zb_input zb_render zb_audio zb_script)
+
+# The relay for invite codes: a small program anyone can run (not on the web).
+if(NOT EMSCRIPTEN)
+  add_executable(zauberer-relay relay/main.c)
+  zb_target_defaults(zauberer-relay)
+  target_link_libraries(zauberer-relay PRIVATE zb_net)
+  set_target_properties(zauberer-relay PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
+endif()
 
 add_executable(zauberer ${ZB_ENTRY})
 zb_target_defaults(zauberer)
