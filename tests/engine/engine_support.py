@@ -6,6 +6,7 @@ Environment:
   ZB_BIN          path of the zauberer executable (required)
   ZB_SOURCE_DIR   repository root (default: two levels above this file)
   ZB_LUA_COVERAGE when set, every run adds --lua-coverage <file>
+  ZB_TIMEOUT_SCALE multiplies the time a run may take (instrumented builds)
   ZB_RENDER_TESTS "1" enables the rendered (windowed) tests
   ZB_RUNNER       program that runs the executables (node for web-node builds)
 """
@@ -81,6 +82,8 @@ class EngineTestCase(unittest.TestCase):
         if coverage:
             cmd += ["--lua-coverage", coverage]
             timeout *= 3  # the Lua line hook makes long scenarios several times slower
+        # Instrumented builds (ASan, coverage) running the suite's parts side by side are slower still.
+        timeout *= float(os.environ.get("ZB_TIMEOUT_SCALE", "1"))
         cmd += list(args)
         full_env = dict(os.environ)
         full_env.setdefault("ZB_NO_DIALOGS", "1")
