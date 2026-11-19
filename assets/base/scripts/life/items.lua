@@ -24,10 +24,15 @@ function items.check(list)
       return nil, where .. ": weight must be 0 .. 1000 kg"
     end
     local share = { raw = true, poison = true, dirty = true } -- (chances and strengths: 0 .. 1)
-    for _, field in ipairs({ "kcal", "water", "raw", "poison", "dirty", "fuel", "thread" }) do
+    for _, field in ipairs({ "kcal", "water", "raw", "poison", "dirty", "fuel", "thread", "heals" }) do
       local v = it[field]
       if v ~= nil and (type(v) ~= "number" or v < 0 or (share[field] and v > 1)) then
         return nil, where .. ": " .. field .. " out of range"
+      end
+    end
+    for _, field in ipairs({ "contains", "mana", "cures", "conducts" }) do
+      if it[field] ~= nil and type(it[field]) ~= "table" then
+        return nil, where .. ": " .. field .. " must be a table"
       end
     end
     if it.spoils ~= nil and not items.KEPT[it.spoils] then

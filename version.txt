@@ -1,1 +1,1 @@
-Zauberer web build (single-threaded) of 5fc7036, M6 Carpet and Home.
+Zauberer web build (single-threaded) of 1e59d6b, M7 The Disciplines.

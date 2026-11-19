@@ -31,6 +31,12 @@ local condition = require("flight.condition")
 local cloak = require("flight.cloak")
 local tent = require("flight.tent")
 local home = require("player.home")
+local alchemy = require("magic.alchemy")
+local crafting = require("magic.crafting")
+local artificing = require("magic.artificing")
+local ritual = require("magic.ritual")
+local summoning = require("magic.summoning")
+local disciplines = require("magic.disciplines")
 local harvest = require("life.harvest")
 local cooking = require("life.cooking")
 local items = require("life.items")
@@ -79,6 +85,13 @@ local function setup_flight()
   game.cloak = cloak.new(back and back.cloak)
   game.tent = tent.new(back and back.tent)
   game.home_place = home.new(back and back.home)
+  game.artifacts = artificing.restore(back and back.artifacts)
+  game.ritual = ritual.new(back and back.ritual)
+  if game.summoning then summoning.dismiss(game.summoning) end
+  game.summoning = summoning.new(back and back.summoning)
+  game.disciplines = disciplines.new(back and back.disciplines)
+  game.known = {} -- the substances analysed
+  for _, id in ipairs(back and type(back.known) == "table" and back.known or {}) do game.known[id] = true end
   game.codex = codex.new(back and back.codex)
   game.survival_at = nil
   if game.fauna then
@@ -156,7 +169,16 @@ function game.save()
     survival = game.survival and survival.snapshot(game.survival), pack = game.pack and pack.snapshot(game.pack),
     bag = game.bag and bag.snapshot(game.bag), condition = game.condition and condition.snapshot(game.condition),
     cloak = game.cloak and cloak.snapshot(game.cloak), tent = tent.snapshot(game.tent),
-    home = game.home_place and home.snapshot(game.home_place),
+    artifacts = game.artifacts and artificing.snapshot(game.artifacts),
+    ritual = game.ritual and ritual.snapshot(game.ritual),
+    summoning = game.summoning and summoning.snapshot(game.summoning),
+    disciplines = game.disciplines and disciplines.snapshot(game.disciplines),
+    home = game.home_place and home.snapshot(game.home_place), known = game.known and (function()
+      local list = {}
+      for id in pairs(game.known) do list[#list + 1] = id end
+      table.sort(list)
+      return list
+    end)(),
     codex = game.codex and codex.snapshot(game.codex),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
@@ -252,6 +274,8 @@ local function home_tick(dt, st)
   local t, h = game.tent, game.home_place
   local now = world.time().time
   home.tick(h, dt)
+  disciplines.tick(game.disciplines, dt)
+  artificing.tick(game.artifacts, dt, { mage = game.magic.caster.mage, pos = t.pos })
   game.codex.focus = nil -- (nothing of the world is in sight)
   ecology.tick(game.ecology, dt, t.pos, now)
   fauna.tick(game.fauna, dt, t.pos, false, { visibility = 0, presence = 0 })
@@ -286,7 +310,68 @@ local function home_tick(dt, st)
     game.walker.pos = tent.door(t)
     return
   end
-  if input.state("cook").pressed then
+  -- Hours at the bench are lived (as sleep counts its own).
+  local function spend(hours)
+    for _, harm in ipairs(survival.tick(game.survival, hours * 3600, body)) do
+      health.hurt(game.health, harm[1], harm[2])
+    end
+    world.set_time(now + hours * 3600)
+    game.survival_at = now + hours * 3600
+  end
+  if home.offers(h, "craft") then
+    local works = {}
+    for _, cr in ipairs(crafting.crafts()) do works[#works + 1] = { craft = cr } end
+    for _, e in ipairs(artificing.enchantments()) do works[#works + 1] = { enchant = e } end
+    h.work = math.min(h.work or 1, #works)
+    if input.state("cloak_colour").pressed then h.work = h.work % #works + 1 end
+    local job = works[h.work]
+    if input.state("cook").pressed and job.craft then
+      local made, hours = crafting.craft(job.craft, game.pack, game.condition, condition)
+      if made then
+        spend(hours)
+        home.say(h, next(made) and ("Made " .. said(made)) or (job.craft.name .. ": done"))
+        game.crafted = job.craft.id
+        disciplines.practice(game.disciplines, "artificing", 5, "craft", job.craft.id)
+      else
+        home.say(h, hours)
+      end
+    elseif input.state("cook").pressed then
+      local made, why = artificing.enchant(job.enchant, { pack = game.pack, mage = game.magic.caster.mage,
+        condition = game.condition, cmod = condition, bag = game.bag, artifacts = game.artifacts,
+        factor = disciplines.factor(game.disciplines, "artificing", true) })
+      home.say(h, made and ("Enchanted: " .. job.enchant.name) or why)
+      if made then
+        game.enchanted = job.enchant.id
+        disciplines.practice(game.disciplines, "artificing", 25, "enchant", job.enchant.id)
+      end
+    end
+  end
+  if home.offers(h, "read") then -- the study: Farrokh's books
+    h.study = math.min(h.study or 1, #disciplines.LIST)
+    if input.state("cloak_colour").pressed then h.study = h.study % #disciplines.LIST + 1 end
+    if input.state("cook").pressed then
+      spend(2)
+      disciplines.study(game.disciplines, disciplines.LIST[h.study], 2)
+      home.say(h, "Two hours with Farrokh's books on " .. disciplines.LIST[h.study])
+    end
+  end
+  if home.offers(h, "brew") then
+    local list = alchemy.recipes()
+    h.recipe = math.min(h.recipe or 1, #list)
+    if input.state("cloak_colour").pressed then h.recipe = h.recipe % #list + 1 end
+    if input.state("cook").pressed then
+      local made, hours = alchemy.brew(list[h.recipe], game.pack, game.magic.caster.mage, game.known,
+        disciplines.factor(game.disciplines, "alchemy"))
+      if made then
+        spend(hours)
+        home.say(h, next(made) and ("Brewed " .. said(made)) or "Nothing came of it")
+        game.brewed = made
+        disciplines.practice(game.disciplines, "alchemy", 15, "brew", list[h.recipe].id)
+      else
+        home.say(h, hours)
+      end
+    end
+  elseif input.state("cook").pressed and not home.offers(h, "craft") and not home.offers(h, "read") then
     local made, why = cooking.cook(game.pack, t.pos, home.offers(h, "cook"))
     home.say(h, made and ("Cooked " .. said(made)) or (home.offers(h, "cook") and why or "no fire in this room"))
   end
@@ -295,6 +380,10 @@ local function home_tick(dt, st)
       local name, why = fn(game.pack, game.survival, function(item) return codex.warned(game.codex, item) end)
       home.say(h, name and ("You " .. action .. " " .. name:lower()) or why)
     end
+  end
+  if game.survival.heal then
+    health.heal(game.health, game.survival.heal)
+    game.survival.heal = nil
   end
   if input.state("sleep").pressed then
     if home.offers(h, "sleep") then
@@ -431,8 +520,12 @@ local function flight_tick(dt)
   local cast_now = magic.tick(game.magic, spell, dt, hands, { heading = hands.heading, pitch = w and w.pitch or -0.12 },
     here.loaded and here.stored or nil)
   game.last_cast = cast_now or game.last_cast
+  if cast_now and cast_now.ok then
+    disciplines.practice(game.disciplines, "spellcasting", 2, "cast", cast_now.name or "free weave")
+  end
   -- Creatures, and the motes of the magical ones that die.
   local now = world.time().time
+  local hp_before = game.health.hp
   ecology.tick(game.ecology, dt, me, now)
   local visibility, presence = cloak.seen(k, { flying = w == nil and c.pos.alt - world.ground_height(c.pos) > 3,
     speed = w and math.abs(w.speed) or c.speed, silent = condition.has(game.condition, "silent") })
@@ -444,6 +537,7 @@ local function flight_tick(dt)
     if ev.kind == "died" then smalllife.died(game.smalllife, ev.id, now) end -- carcasses rot away
   end
   smalllife.tick(game.smalllife, dt, me, now) -- mushrooms, microbes, insects
+  artificing.tick(game.artifacts, dt, { mage = game.magic.caster.mage, pos = me }) -- (artifacts at work)
   -- The Codex: what is in sight is seen, what is looked at is observed.
   local view
   if w then
@@ -523,6 +617,10 @@ local function flight_tick(dt)
       pack.say(game.pack, name and ("You " .. action .. " " .. name:lower()) or why)
     end
   end
+  if game.survival.heal then -- (a draught mends)
+    health.heal(game.health, game.survival.heal)
+    game.survival.heal = nil
+  end
   if input.state("codex").pressed then codex.browse(game.codex) end
   -- The bag: the pack's goods into its folds, and the road's needs back out.
   if input.state("stow").pressed then
@@ -539,6 +637,80 @@ local function flight_tick(dt)
     world.set_time(now + hours * 3600)
     game.survival_at = now + hours * 3600
     game.slept = hours
+  end
+  -- Ritual magic: the circle laid and channelled; what rituals done still do.
+  local rs = game.ritual
+  if w and input.state("ritual_next").pressed then
+    rs.chosen = rs.chosen % #ritual.rituals() + 1
+    pack.say(game.pack, ritual.line(rs, game.pack))
+  end
+  if w and input.state("ritual").pressed then
+    local ok, why = ritual.begin(rs, ritual.rituals()[rs.chosen], { pos = w.pos, pack = game.pack, on_foot = true,
+      daylight = world.sky(me).daylight, near_tent = game.tent ~= nil and world.distance(game.tent.pos, w.pos) < 15,
+      factor = disciplines.factor(game.disciplines, "ritual", true) })
+    pack.say(game.pack, ok and ("The circle is laid: " .. ritual.rituals()[rs.chosen].name) or why)
+  end
+  local rr = ritual.tick(rs, dt, { pos = me, mage = game.magic.caster.mage, hurt = game.health.hp < hp_before - 0.5,
+    now = now })
+  if rr and rr.done then
+    pack.say(game.pack, rr.done.name .. ": done" .. (rr.blighted and " - the land is blighted" or ""))
+    if rr.done.effect == "room" then
+      for _, room in ipairs(home.rooms()) do
+        if not game.home_place.open[room.id] then
+          home.open_room(game.home_place, room.id)
+          pack.say(game.pack, "A new room unfolds in the tent: " .. room.name)
+          break
+        end
+      end
+    end
+    game.ritual_done = rr.done.id
+    disciplines.practice(game.disciplines, "ritual", 30, "ritual", rr.done.id)
+  elseif rr and rr.broken then
+    health.hurt(game.health, "magic", rr.backlash)
+    pack.say(game.pack, rr.broken.name .. " broken (" .. rr.why .. "): it lashes back")
+  end
+  local eff = ritual.effects(rs, now)
+  if eff.rain then sim.set_weather({ rain = eff.rain, cloud = 1, storm = 0 }) end
+  if eff.rain_ended then sim.natural_weather() end
+  if eff.ward and math.floor(now) ~= math.floor(now - dt * 36) then sim.stimulus("threat", eff.ward.pos, 1, 2) end
+  -- Summoning: call (,), bond a familiar (;), dismiss (-); upkeep.
+  local sm = game.summoning
+  if input.state("summon").pressed then
+    local list = summoning.data().summons
+    local done, why
+    for _, entry in ipairs(list) do
+      done, why = summoning.call(sm, entry, me, game.magic.caster.mage,
+        disciplines.factor(game.disciplines, "summoning"))
+      if done then
+        pack.say(game.pack, "Summoned: " .. entry.name)
+        disciplines.practice(game.disciplines, "summoning", 15, "summon", entry.id)
+        break
+      end
+    end
+    if not done then pack.say(game.pack, why) end
+  end
+  if w and input.state("bond").pressed then
+    local f, why = summoning.bond(sm, w.pos, game.pack, game.magic.caster.mage, now)
+    if f then
+      ecology.release(game.ecology, f.creature)
+      pack.say(game.pack, "A " .. f.species .. " is your familiar")
+      disciplines.practice(game.disciplines, "summoning", 30, "bond", f.species)
+    else
+      pack.say(game.pack, why)
+    end
+  end
+  if input.state("dismiss").pressed then pack.say(game.pack, "Dismissed " .. summoning.dismiss(sm)) end
+  for _, name in ipairs(summoning.tick(sm, dt, game.magic.caster.mage)) do pack.say(game.pack, name .. " fades") end
+  summoning.restore_familiar(sm, me)
+  if input.state("disciplines").pressed then game.disciplines.shown = not game.disciplines.shown end
+  disciplines.tick(game.disciplines, dt)
+  do -- naturalism: what the Codex learns
+    local n = codex.counts(game.codex)
+    local learnt = n[1] + n[2] + n[3] + n[4]
+    if game.codex_learnt and learnt > game.codex_learnt then
+      for _ = 1, learnt - game.codex_learnt do disciplines.practice(game.disciplines, "naturalism", 5, "learn") end
+    end
+    game.codex_learnt = learnt
   end
   local m = game.magic.caster.mage
   motes.tick(game.motes, dt, { { pos = me, mage = m } })
@@ -610,6 +782,8 @@ local function flight_lines()
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
     bag.hud_lines(game.bag), condition.hud_lines(game.condition), cloak.hud_lines(game.cloak),
+    artificing.hud_lines(game.artifacts), game.ritual.active and { ritual.line(game.ritual, game.pack) } or {},
+    summoning.hud_lines(game.summoning, world.time().time), disciplines.hud_lines(game.disciplines),
     codex.hud_lines(game.codex),
     magic.hud_lines(game.magic), fauna.hud_lines(game.fauna), motes.hud_lines(game.motes) }
   for _, more in ipairs(parts) do
@@ -629,7 +803,7 @@ local function home_frame()
   local t, h = game.tent, game.home_place
   local floor = world.move(t.pos, 0, 0, 0, 400)
   local o = world.to_local(floor)
-  local _, i = 0, 1
+  local i = 1
   for n, r in ipairs(home.rooms()) do
     if r.id == h.room then i = n end
   end
@@ -643,8 +817,19 @@ local function home_frame()
     render.draw_sprite(assets.flame, { o[1] + math.sin(turn) * 2.6, o[2] + 0.5, o[3] - math.cos(turn) * 2.6 }, 0.7)
   end
   local lines = home.hud_lines(h)
+  if home.offers(h, "brew") then lines[#lines + 1] = alchemy.line(alchemy.recipes()[h.recipe or 1], game.pack) end
+  if home.offers(h, "read") then
+    lines[#lines + 1] = "Study: " .. disciplines.LIST[h.study or 1] .. " - K to study two hours, . for the next"
+  end
+  if home.offers(h, "craft") then
+    local nc = #crafting.crafts()
+    local w = h.work or 1
+    lines[#lines + 1] = w <= nc and crafting.line(crafting.crafts()[w], game.pack)
+      or artificing.line(artificing.enchantments()[w - nc], game.pack, game.magic.caster.mage)
+  end
   for _, more in ipairs({ health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
-    bag.hud_lines(game.bag), condition.hud_lines(game.condition), codex.hud_lines(game.codex) }) do
+    bag.hud_lines(game.bag), condition.hud_lines(game.condition), codex.hud_lines(game.codex),
+    disciplines.hud_lines(game.disciplines) }) do
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
   draw_hud(lines)
@@ -677,6 +862,17 @@ local function flight_frame()
     render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
   end
   local sights = magic.sights(game.magic)
+  if artificing.working(game.artifacts, "lantern_of_light") then -- (the lantern in the mage's hand)
+    local at = game.walker and world.move(game.walker.pos, game.walker.heading, 0.4, 0.3, 1.2)
+      or world.move(c.pos, c.heading, 0.5, 0, 1)
+    render.draw_sprite(assets.mote, world.to_local(at), 1.2)
+  end
+  if game.ritual.active then -- (the circle's points glow while it is channelled)
+    for k = 0, 7 do
+      local pt = world.move(game.ritual.active.pos, k * math.pi / 4, ritual.RADIUS, 0, 0.3)
+      render.draw_sprite(assets.mote, world.to_local(pt), 0.8)
+    end
+  end
   for _, l in ipairs(sights.lights) do render.draw_sprite(assets.mote, world.to_local(l), 2) end
   for _, mote in ipairs(game.motes.list) do render.draw_sprite(assets.mote, world.to_local(mote.pos), 0.7) end
   for _, bug in ipairs(smalllife.sights(game.smalllife)) do render.draw_sprite(assets[bug.kind], bug.pos, 1) end
@@ -756,5 +952,6 @@ _G.demo = {
   creation = creation, magic = magic, fauna = fauna, motes = motes, health = health, flight_lines = flight_lines,
   walker = walker, ecology = ecology, plants = plants, smalllife = smalllife, survival = survival,
   pack = pack, bag = bag, condition = condition, cloak = cloak, tent = tent, home = home, harvest = harvest,
-  cooking = cooking, codex = codex,
+  cooking = cooking, codex = codex, alchemy = alchemy, crafting = crafting, artificing = artificing, ritual = ritual,
+  summoning = summoning, disciplines = disciplines,
 }

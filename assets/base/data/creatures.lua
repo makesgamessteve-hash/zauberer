@@ -19,6 +19,7 @@
 --   thirst   per second while about (default 0.0015; 0: never drinks)
 --   stamina  seconds it can run before it is spent and slows (default 50)
 -- Butchering (concept 5.12): products: items and how many from a whole carcass
+-- Summoning (concept 3.4): summoned = true for beings the mage forms (never wild)
 return {
   {
     id = "wolf", products = { raw_meat = 6, hide = 1 }, stamina = 120, activity = "twilight", name = "Grey wolf", length = 1.4, mass = 40, walk = 1.6, run = 10,
@@ -71,5 +72,18 @@ return {
     resist = { impact = 0.2, smoke = 0.5 }, magical = true, mana = "storm", motes = 40,
     color = { 0.85, 0.82, 0.35 },
     density = 0.5, habitat = { open = 0.6, cold = 0.4 }, growth = 0.3, eats = { hare = 0.1 },
+  },
+  -- Summoned (magic/summoning.lua): never wild (no density), formed by the mage.
+  {
+    id = "water_elemental", summoned = true, name = "Water elemental", length = 1.6, mass = 300, walk = 1.5, run = 5,
+    diet = "herbivore", sight = 60, hearing = 60, smell = 0, health = 120, aggression = 0, fear_of_fire = 0.5,
+    fear_of_player = 0, thirst = 0, resist = { cold = 0.8, heat = 0.3, impact = 0.5 }, magical = true,
+    mana = "water", motes = 30, color = { 0.3, 0.5, 0.9 }, density = 0, habitat = {}, growth = 0,
+  },
+  {
+    id = "wisp", summoned = true, name = "Wisp", length = 0.4, mass = 0.1, walk = 2, run = 8, flies = true, cruise = 3,
+    diet = "herbivore", sight = 80, hearing = 40, smell = 0, health = 10, aggression = 0, fear_of_fire = 0,
+    fear_of_player = 0, thirst = 0, magical = true, mana = "light", motes = 8, color = { 1, 1, 0.8 },
+    density = 0, habitat = {}, growth = 0,
   },
 }
