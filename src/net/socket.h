@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
-/* Minimal non-blocking TCP sockets (POSIX and Winsock). Not available on the
- * web, where the browser's WebSocket is used instead (net/transport.h). */
+/* Minimal non-blocking TCP and UDP sockets (POSIX and Winsock). Not
+ * available on the web, where the browser's WebSocket is used instead
+ * (net/transport.h): there every function here fails. */
 #ifndef ZB_NET_SOCKET_H
 #define ZB_NET_SOCKET_H
 
@@ -25,5 +26,23 @@ int zb_sock_poll_connect(zb_socket s);
 long zb_sock_send(zb_socket s, const void *data, size_t len);
 long zb_sock_recv(zb_socket s, void *buf, size_t cap);
 void zb_sock_close(zb_socket s);
+
+/* ---- UDP (LAN discovery) ---- */
+/* Opens a non-blocking UDP socket on all interfaces (port 0 = any free port,
+ * reported in *bound_port) that may send broadcasts. The address is reusable,
+ * so several games on one machine can listen on the same port. */
+zb_socket zb_udp_open(uint16_t port, uint16_t *bound_port);
+/* Sends one datagram to a dotted IPv4 address ("255.255.255.255" broadcasts). */
+long zb_udp_send(zb_socket s, const char *address, uint16_t port, const void *data, size_t len);
+/* Receives one datagram (ZB_SOCK_WOULD_BLOCK when none is waiting); the sender's
+ * dotted address goes to from (at least 16 bytes) and its port to *from_port. */
+long zb_udp_recv(zb_socket s, void *buf, size_t cap, char *from, size_t from_len, uint16_t *from_port);
+/* Parses a dotted IPv4 address into four bytes. */
+bool zb_ipv4_parse(const char *address, uint8_t out[4]);
+
+/* ---- Time, for programs without the platform layer (the relay) ---- */
+/* A monotonic clock in nanoseconds. */
+uint64_t zb_sock_clock_ns(void);
+void zb_sock_sleep_ms(unsigned ms);
 
 #endif

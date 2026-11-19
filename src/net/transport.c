@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "core/array.h"
+#include "core/hash.h"
 #include "net/socket.h"
 #include "net/ws.h"
 
@@ -86,13 +87,30 @@ typedef struct lb_link {
   uint32_t id;
   lb_end *client;
   bool open;
+  uint64_t last_up, last_down; /* delivery time of the latest event in flight per direction */
 } lb_link;
+
+typedef struct lb_flight {
+  uint64_t at;
+  uint32_t link;
+  bool up; /* towards the listener */
+  zb_tr_event_kind kind;
+  uint8_t *data;
+  size_t len;
+} lb_flight;
 
 struct zb_loopback {
   const zb_allocator *a;
   lb_end *listener;
   zb_array links; /* lb_link */
   uint32_t next_id;
+  bool impaired;
+  zb_loopback_impairment imp;
+  zb_array flight; /* lb_flight, in sending order */
+  uint64_t rng;
+  bool checked;
+  uint64_t checked_second; /* connection drops are decided once per whole second of clock time */
+  uint32_t cuts;
 };
 
 struct lb_end {
@@ -108,12 +126,29 @@ zb_loopback *zb_loopback_create(const zb_allocator *a) {
   if (lb) {
     lb->a = a;
     zb_array_init(&lb->links, a, sizeof(lb_link));
+    zb_array_init(&lb->flight, a, sizeof(lb_flight));
   }
   return lb;
 }
 
+static void drop_flight(zb_loopback *lb, uint32_t link, bool up_only) {
+  for (size_t i = 0; i < lb->flight.len;) {
+    lb_flight *f = zb_array_at(&lb->flight, i);
+    if ((up_only && f->up) || (!up_only && f->link == link)) {
+      zb_free(lb->a, f->data);
+      zb_array_remove(&lb->flight, i);
+    } else {
+      ++i;
+    }
+  }
+}
+
 void zb_loopback_destroy(zb_loopback *lb) {
   if (lb) {
+    for (size_t i = 0; i < lb->flight.len; ++i) {
+      zb_free(lb->a, ((lb_flight *)zb_array_at(&lb->flight, i))->data);
+    }
+    zb_array_free(&lb->flight);
     zb_array_free(&lb->links);
     zb_free(lb->a, lb);
   }
@@ -129,23 +164,113 @@ static lb_link *find_link(zb_loopback *lb, uint32_t id) {
   return NULL;
 }
 
-static void lb_update(void *ctx) { (void)ctx; }
+static uint64_t lb_now(const zb_loopback *lb) { return lb->imp.clock_ns ? lb->imp.clock_ns(lb->imp.clock_ctx) : 0; }
+
+/* Hands an event to the other end of a link: at once, or after the impairment's delay. */
+static zb_result lb_deliver(zb_loopback *lb, lb_link *l, bool up, zb_tr_event_kind kind, const void *data, size_t len) {
+  if (!lb->impaired) {
+    if (up) {
+      return lb->listener ? eq_push(&lb->listener->q, kind, l->id, data, len) : ZB_ERR_STATE;
+    }
+    return eq_push(&l->client->q, kind, 1, data, len);
+  }
+  lb->rng = zb_mix64(lb->rng + 0x9e3779b97f4a7c15ull);
+  uint64_t at = lb_now(lb) + lb->imp.latency_ns + (lb->imp.jitter_ns ? lb->rng % (lb->imp.jitter_ns + 1) : 0);
+  uint64_t *last = up ? &l->last_up : &l->last_down;
+  at = at < *last ? *last : at; /* TCP keeps the order */
+  *last = at;
+  lb_flight f = {at, l->id, up, kind, NULL, len};
+  if (len) {
+    f.data = zb_alloc(lb->a, len);
+    if (!f.data) {
+      return ZB_ERR_NOMEM;
+    }
+    memcpy(f.data, data, len);
+  }
+  if (!zb_array_push(&lb->flight, &f)) {
+    zb_free(lb->a, f.data);
+    return ZB_ERR_NOMEM;
+  }
+  return ZB_OK;
+}
+
+uint32_t zb_loopback_cuts(const zb_loopback *lb) { return lb->cuts; }
+
+bool zb_loopback_cut(zb_loopback *lb, uint32_t conn) {
+  lb_link *l = find_link(lb, conn);
+  if (!l || !l->open) {
+    return false;
+  }
+  l->open = false;
+  lb->cuts++;
+  drop_flight(lb, conn, false);
+  if (lb->listener) {
+    eq_push(&lb->listener->q, ZB_TR_CLOSE, conn, NULL, 0);
+  }
+  eq_push(&l->client->q, ZB_TR_CLOSE, 1, NULL, 0);
+  return true;
+}
+
+void zb_loopback_impair(zb_loopback *lb, const zb_loopback_impairment *imp) {
+  lb->impaired = imp != NULL;
+  if (imp) {
+    lb->imp = *imp;
+    lb->rng = zb_mix64(imp->seed ^ 0x6c6f6f70ull);
+    lb->checked = false;
+  }
+}
+
+/* Cuts connections at random (impairment) and delivers the events that are due. */
+static void lb_pump(zb_loopback *lb) {
+  if (!lb->impaired && lb->flight.len == 0) {
+    return;
+  }
+  uint64_t now = lb_now(lb);
+  if (lb->impaired && lb->imp.drops_per_second > 0) {
+    uint64_t second = now / 1000000000ull;
+    if (!lb->checked) {
+      lb->checked = true;
+      lb->checked_second = second;
+    }
+    while (lb->checked_second < second) {
+      lb->checked_second++;
+      for (size_t i = 0; i < lb->links.len; ++i) {
+        lb_link *l = zb_array_at(&lb->links, i);
+        uint64_t r = zb_mix64(lb->imp.seed ^ zb_mix64(((uint64_t)l->id << 32) ^ lb->checked_second));
+        if (l->open && (double)(r >> 11) * 0x1.0p-53 < lb->imp.drops_per_second) {
+          zb_loopback_cut(lb, l->id);
+        }
+      }
+    }
+  }
+  for (size_t i = 0; i < lb->flight.len;) {
+    lb_flight *f = zb_array_at(&lb->flight, i);
+    if (f->at > now) {
+      ++i;
+      continue;
+    }
+    lb_link *l = f->up ? NULL : find_link(lb, f->link);
+    if (f->up && lb->listener) {
+      eq_push(&lb->listener->q, f->kind, f->link, f->data, f->len);
+    } else if (l) {
+      eq_push(&l->client->q, f->kind, 1, f->data, f->len);
+    }
+    zb_free(lb->a, f->data);
+    zb_array_remove(&lb->flight, i);
+  }
+}
+
+static void lb_update(void *ctx) { lb_pump(((lb_end *)ctx)->lb); }
 
 static bool lb_next(void *ctx, zb_tr_event *ev) { return eq_next(&((lb_end *)ctx)->q, ev); }
 
 static zb_result lb_send(void *ctx, uint32_t conn, const void *data, size_t len) {
   lb_end *e = ctx;
   lb_link *l = find_link(e->lb, e->is_listener ? conn : e->link);
-  if (!l || !l->open) {
+  if (!l || !l->open || !e->lb->listener) {
     return ZB_ERR_STATE;
   }
-  if (e->is_listener) {
-    return eq_push(&l->client->q, ZB_TR_MESSAGE, 1, data, len);
-  }
-  if (!e->lb->listener) {
-    return ZB_ERR_STATE;
-  }
-  return eq_push(&e->lb->listener->q, ZB_TR_MESSAGE, l->id, data, len);
+  return lb_deliver(e->lb, l, !e->is_listener, ZB_TR_MESSAGE, data, len);
 }
 
 static void lb_close(void *ctx, uint32_t conn) {
@@ -155,10 +280,8 @@ static void lb_close(void *ctx, uint32_t conn) {
     return;
   }
   l->open = false;
-  if (e->is_listener) {
-    eq_push(&l->client->q, ZB_TR_CLOSE, 1, NULL, 0);
-  } else if (e->lb->listener) {
-    eq_push(&e->lb->listener->q, ZB_TR_CLOSE, l->id, NULL, 0);
+  if (e->is_listener || e->lb->listener) {
+    lb_deliver(e->lb, l, !e->is_listener, ZB_TR_CLOSE, NULL, 0);
   }
 }
 
@@ -170,9 +293,10 @@ static void lb_destroy(void *ctx) {
       lb_link *l = zb_array_at(&lb->links, i);
       if (l->open) {
         l->open = false;
-        eq_push(&l->client->q, ZB_TR_CLOSE, 1, NULL, 0);
+        lb_deliver(lb, l, false, ZB_TR_CLOSE, NULL, 0);
       }
     }
+    drop_flight(lb, 0, true);
     lb->listener = NULL;
   } else {
     lb_close(e, 0);
@@ -225,19 +349,18 @@ zb_transport *zb_loopback_connect(zb_loopback *lb) {
   if (!e) {
     return NULL;
   }
-  lb_link link = {++lb->next_id, e, true};
-  if (eq_push(&e->q, ZB_TR_OPEN, 1, NULL, 0) != ZB_OK || !zb_array_push(&lb->links, &link)) {
-    eq_free(&e->q);
-    zb_free(lb->a, e);
-    return NULL;
-  }
-  if (eq_push(&lb->listener->q, ZB_TR_OPEN, link.id, NULL, 0) != ZB_OK) {
-    zb_array_pop(&lb->links);
+  lb_link link = {++lb->next_id, e, true, 0, 0};
+  lb_link *l = zb_array_push(&lb->links, &link);
+  if (!l) {
     eq_free(&e->q);
     zb_free(lb->a, e);
     return NULL;
   }
   e->link = link.id;
+  if (lb_deliver(lb, l, false, ZB_TR_OPEN, NULL, 0) != ZB_OK || lb_deliver(lb, l, true, ZB_TR_OPEN, NULL, 0) != ZB_OK) {
+    lb_destroy(e);
+    return NULL;
+  }
   return &e->iface;
 }
 
@@ -303,12 +426,17 @@ static void conn_free(ws_tr *t, ws_conn *c) {
 /* Moves bytes for one connection; false once it is gone. */
 static bool pump(ws_tr *t, ws_conn *c) {
   uint8_t buf[16384];
+  bool eof = false; /* the peer is gone, but what it sent before still counts */
   for (;;) {
     long n = zb_sock_recv(c->sock, buf, sizeof buf);
     if (n == ZB_SOCK_WOULD_BLOCK) {
       break;
     }
-    if (n == ZB_SOCK_CLOSED || zb_ws_feed(&c->ws, buf, (size_t)n) != ZB_OK) {
+    if (n == ZB_SOCK_CLOSED) {
+      eof = true;
+      break;
+    }
+    if (zb_ws_feed(&c->ws, buf, (size_t)n) != ZB_OK) {
       c->dead = true;
       break;
     }
@@ -331,6 +459,7 @@ static bool pump(ws_tr *t, ws_conn *c) {
     c->open = true;
     eq_push(&t->q, ZB_TR_OPEN, c->id, NULL, 0);
   }
+  c->dead = c->dead || eof;
   size_t pending;
   const uint8_t *out = zb_ws_pending(&c->ws, &pending);
   while (pending > 0) {

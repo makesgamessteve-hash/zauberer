@@ -26,6 +26,9 @@ typedef struct zb_transport {
   zb_result (*send)(void *ctx, uint32_t conn, const void *data, size_t len);
   void (*close)(void *ctx, uint32_t conn);
   void (*destroy)(void *ctx);
+  /* Optional (NULL when a transport has nothing to say): */
+  const char *(*invite_code)(void *ctx); /* hosting through a relay: the invite code, "" until known */
+  const char *(*failure)(void *ctx);     /* why the transport failed for good, "" while it works */
 } zb_transport;
 
 void zb_transport_destroy(zb_transport *t);
@@ -37,8 +40,30 @@ zb_loopback *zb_loopback_create(const zb_allocator *a);
 void zb_loopback_destroy(zb_loopback *lb);
 /* The listening side (at most one per loopback network). */
 zb_transport *zb_loopback_listen(zb_loopback *lb);
-/* A client connection to the listener. */
+/* A client connection to the listener. Connections are numbered from 1 in the
+ * order they are made; the listener sees that number as the conn id. */
 zb_transport *zb_loopback_connect(zb_loopback *lb);
+
+/* Impairment for tests: a loopback network that behaves like a slow,
+ * unreliable internet path. WebSocket runs over TCP, so messages are never
+ * lost or reordered; instead they are delayed (latency plus jitter, order
+ * kept per direction) and whole connections can drop. Deterministic: the
+ * jitter and the drops depend only on the seed and the clock readings. */
+typedef struct zb_loopback_impairment {
+  uint64_t latency_ns;     /* one-way delay of every event */
+  uint64_t jitter_ns;      /* extra delay, uniformly 0..jitter_ns */
+  double drops_per_second; /* chance that an open connection is cut, per second of clock time */
+  uint64_t seed;
+  uint64_t (*clock_ns)(void *ctx); /* required */
+  void *clock_ctx;
+} zb_loopback_impairment;
+/* Applies (or with NULL removes) impairment; events already in flight keep their times. */
+void zb_loopback_impair(zb_loopback *lb, const zb_loopback_impairment *imp);
+/* Cuts connection conn as a failing network would: both ends see it close at
+ * once and whatever was still in flight is lost. False if it is not open. */
+bool zb_loopback_cut(zb_loopback *lb, uint32_t conn);
+/* Connections cut so far (by zb_loopback_cut or by impairment). */
+uint32_t zb_loopback_cuts(const zb_loopback *lb);
 
 /* ---- WebSocket ---- */
 /* Listens on port (0 = any; the port in use is stored in *bound_port).
