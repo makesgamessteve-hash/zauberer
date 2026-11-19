@@ -33,10 +33,14 @@ if(Python3_FOUND)
     "ZB_FAILING_UNIT_FIXTURE=$<TARGET_FILE:fixture_failing_unit>"
     "ZB_NO_DIALOGS=1"
     "SDL_AUDIO_DRIVER=dummy")
-  add_test(NAME engine_headless
-    COMMAND "${Python3_EXECUTABLE}" -m unittest -v tests.engine.test_headless
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
-  set_tests_properties(engine_headless PROPERTIES ENVIRONMENT "${ZB_ENGINE_TEST_ENV}" LABELS engine TIMEOUT 6000)
+  # The headless suite runs as four parts (ZB_SHARD), so a parallel CTest finishes it sooner.
+  foreach(shard RANGE 3)
+    add_test(NAME engine_headless_${shard}
+      COMMAND "${Python3_EXECUTABLE}" -m unittest -v tests.engine.test_headless
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+    set_tests_properties(engine_headless_${shard} PROPERTIES
+      ENVIRONMENT "${ZB_ENGINE_TEST_ENV};ZB_SHARD=${shard}/4" LABELS engine TIMEOUT 6000)
+  endforeach()
   if(TARGET zauberer-relay)
     # The relay as a program: invite codes, forwarding and stopping on a signal.
     add_test(NAME relay_process

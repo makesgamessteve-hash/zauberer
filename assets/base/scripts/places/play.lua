@@ -73,7 +73,7 @@ function play.use(s, w, p, heir)
   if person then
     heir = heir or { pack = p }
     if heir.serve then return folk.serve(s.folk, P, person, heir) end
-    local line = folk.talk(s.folk, P, person, { cloak = heir.cloak, magic = heir.magic })
+    local line = folk.talk(s.folk, P, person, { cloak = heir.cloak, magic = heir.magic }, { rumour = heir.rumour })
     for _, id in ipairs({ person.culture, person.faith }) do lore.learn(s.journal, P.db, id, "talk") end
     return line
   end

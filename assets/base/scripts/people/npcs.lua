@@ -180,6 +180,7 @@ function npcs.talk(db, p, topic, ctx)
   local know = lore.knowledge(db, { culture = p.culture, faith = p.faith, realm = st and st.realm })
   local d = npcs.data()
   local intro = d.topic_intro[topic] or ""
+  if topic == "rumours" and ctx.rumour then return intro .. " " .. ctx.rumour end -- (what the story points to)
   if topic == "directions" then
     local to = ctx.to
     if not to then return "Where to? I know only these hills." end

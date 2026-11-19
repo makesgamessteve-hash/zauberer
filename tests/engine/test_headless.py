@@ -358,6 +358,12 @@ class ScenarioTests(EngineTestCase):
     def test_places_and_people(self):
         self.assert_ok(self.scenario("places_and_people"))
 
+    def test_story(self):
+        self.assert_ok(self.scenario("story"))
+
+    def test_story_bot(self):
+        self.assert_ok(self.scenario("story_bot"))
+
     # spec: simulation-tiers: The M3 exit demo
     def test_living_physics(self):
         self.assert_ok(self.scenario("living_physics"))
@@ -480,6 +486,24 @@ class FailingUnitTestFixture(unittest.TestCase):
         result = subprocess.run(runner_prefix() + [fixture], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertRegex(result.stdout, r"test_failing\.c:\d+:test_deliberate_failure:FAIL")
+
+
+def load_tests(loader, standard_tests, pattern):
+    """ZB_SHARD=i/n keeps every n-th test from i, so CTest can run the suite in parallel parts."""
+    shard = os.environ.get("ZB_SHARD")
+    if not shard:
+        return standard_tests
+    index, count = (int(part) for part in shard.split("/"))
+
+    def flatten(suite):
+        for item in suite:
+            if isinstance(item, unittest.TestSuite):
+                yield from flatten(item)
+            else:
+                yield item
+
+    tests = sorted(flatten(standard_tests), key=lambda test: test.id())
+    return unittest.TestSuite(test for n, test in enumerate(tests) if n % count == index)
 
 
 if __name__ == "__main__":

@@ -14,4 +14,8 @@ return {
     timing = "any", channel = 15, effect = "ward", hours = 12, radius = 40 },
   { id = "unfold_room", name = "Unfold a room", mana = { void = 40 }, needs = { cord = 2 },
     timing = "night", channel = 30, effect = "room" },
+  { id = "divination", name = "Divination", mana = { light = 30, void = 10 }, needs = { light_quintessence = 1 },
+    timing = "night", channel = 25, effect = "divine" },
+  { id = "calm_storm", name = "Calm the ley storm", mana = { storm = 50, void = 20 }, needs = { cord = 2 },
+    timing = "any", channel = 40, effect = "calm", hours = 4 },
 }

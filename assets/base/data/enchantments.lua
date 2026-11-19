@@ -23,4 +23,7 @@ return {
   { id = "silent_glide", name = "Silent glide", base = "carpet", upgrade = "silent_glide",
     cost = { void = 10, storm = 5 }, needs = { cord = 1 } },
   { id = "folding_knot", name = "Folding knot", base = "bag", folds = 6, cost = { void = 20 }, needs = { cord = 2 } },
+  { id = "ash_ward", name = "Ash ward", base = "staff",
+    weave = { verb = "ward", colors = { "fire", "decay" }, form = "circle" }, source = "ambient", trigger = "passive",
+    capacity = 40, drain = 0.005, cost = { water = 25, light = 15 } },
 }

@@ -45,6 +45,7 @@ local placeplay = require("places.play")
 local director = require("story.director")
 local prologue = require("story.prologue")
 local coopplay = require("coop.play")
+local saga = require("story.saga")
 local weave = require("coop.weave")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
@@ -102,6 +103,7 @@ local function setup_flight()
   game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
     game.home.pos, FOOT, game.world_options and game.world_options.history)
   game.story, game.story_saved = nil, back and back.story -- (the prologue resumes once the world is peopled)
+  game.saga, game.saga_saved = nil, back and back.saga -- (and the acts after it)
   game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
@@ -185,7 +187,7 @@ function game.save()
     disciplines = game.disciplines and disciplines.snapshot(game.disciplines),
     home = game.home_place and home.snapshot(game.home_place),
     world_places = game.world_places and placeplay.snapshot(game.world_places),
-    story = game.story and prologue.snapshot(game.story),
+    story = game.story and prologue.snapshot(game.story), saga = game.saga and saga.snapshot(game.saga),
     together = game.together and coopplay.snapshot(game.together), known = game.known and (function()
       local list = {}
       for id in pairs(game.known) do list[#list + 1] = id end
@@ -713,6 +715,7 @@ local function flight_tick(dt)
       end
     end
     game.ritual_done = rr.done.id
+    if rr.done.effect == "divine" and game.saga then saga.divine(game.saga, now, game.disciplines.tier.ritual) end
     disciplines.practice(game.disciplines, "ritual", 30, "ritual", rr.done.id)
   elseif rr and rr.broken then
     health.hurt(game.health, "magic", rr.backlash)
@@ -786,6 +789,7 @@ local function flight_tick(dt)
     local used_text
     if w and input.state("use").pressed and game.world_places.places.ready then
       local heir = { pack = game.pack, serve = st.boost and st.boost.held, cloak = k.worn and "drab" or "vivid",
+        rumour = game.saga and require("story.narrative").rumour(game.saga.N, me),
         magic = game.last_cast ~= nil,
         rest = function(hours) -- a night's lodging
           local h, harms = survival.sleep(game.survival, hours, survival.sense(me, w, 0))
@@ -824,6 +828,28 @@ local function flight_tick(dt)
       game.story_boiled = pack.count(game.pack, "boiled_water")
       if happened then pack.say(game.pack, game.story.lines[#game.story.lines]) end
       game.slept = nil
+    end
+    -- Acts II and III: after the prologue (or from the save).
+    if P.ready and not game.saga and (game.saga_saved or (game.story and game.story.beat == "done")) then
+      game.saga = saga.begin(saga.new(game.saga_saved), P, now)
+      game.saga_saved = nil
+    end
+    if game.saga then
+      local void = false
+      for _, e in pairs(game.magic.caster.book.journal) do
+        for _, col in ipairs(e.weave and e.weave.colors or {}) do void = void or col == "void" end
+      end
+      local defeated = game.saga.N.defeated and not game.saga.ending
+      local done = saga.tick(game.saga, { P = P, pos = me, now = now, dt = dt, economy = game.world_places.folk.economy,
+        heirs_power = 40 + 20 * game.disciplines.tier.spellcasting, ritual = game.disciplines.tier.ritual, void = void,
+        ash_ward = artificing.working(game.artifacts, "ash_ward"), ally = next(game.summoning.bound) ~= nil,
+        calm = ritual.effects(game.ritual, now).calm ~= nil,
+        cast = cast_now and cast_now.ok and cast_now.plan and { colours = cast_now.plan.weave.colors,
+          power = cast_now.plan.power } or nil,
+        hurt = function(harm, colour) health.hurt(game.health, colour == "fire" and "heat" or "magic", harm) end,
+        learn = function(d) disciplines.practice(game.disciplines, d, 40, "taught by the Circle") end,
+        choose = defeated and input.state("story").pressed, take = defeated and input.state("use").pressed })
+      for _, id in ipairs(done) do pack.say(game.pack, "Story: " .. id) end
     end
   end
   if w then
@@ -895,7 +921,11 @@ local function flight_lines()
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
   if game.channeling then lines[#lines + 1] = "Channeling" end
-  if game.story then
+  if game.saga then
+    for _, line in ipairs(saga.hud_lines(game.saga, (game.walker and game.walker.pos) or c.pos)) do
+      lines[#lines + 1] = line
+    end
+  elseif game.story then
     for _, line in ipairs(prologue.hud_lines(game.story)) do lines[#lines + 1] = line end
   end
   local w = game.walker

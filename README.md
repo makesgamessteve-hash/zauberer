@@ -15,7 +15,7 @@ from words, gestures, ingredients and eight colors of mana, and it acts through 
 world's simulation of heat, fire, water, air and life. Play alone, or in online co-op
 with up to three friends as the father's children, the heirs of the carpet.
 
-> **Status: M9, together.** M0–M9 are done.
+> **Status: M10, the story.** M0–M10 are done.
 >
 > - The engine runs on Linux, Windows, macOS and the web, with co-op flight over WebSockets
 >   and a WebXR spike.
@@ -43,6 +43,11 @@ with up to three friends as the father's children, the heirs of the carpet.
 > - Together: up to four heirs join by invite code through a self-hostable relay or on the
 >   LAN, ride the Weave together or split it, vote to sleep, and come back to the saved
 >   world.
+> - The story: after the prologue, a narrative director places the Circle's remnants in the
+>   world's own history, and rumours lead to them. Act II has their revelations, rival mages
+>   with domains and Azhdar's campaign of burning, blight and stolen Weaves. Act III has
+>   divination, the ash storm and the duel with Azhdar. There are four endings, and the
+>   world goes on after each of them.
 
 ## Documents
 
@@ -78,7 +83,7 @@ gamepad and touch bindings are in `assets/base/data/input.lua`):
 | Channel mana | hold V while still |
 | On foot | E steps off a carpet resting low and slow (and back on); Space jumps; Shift runs |
 | Use | Tab opens doors and chests, takes what is in them and talks with people (Shift+Tab asks for their service) |
-| Story | F5 begins the prologue in Anarvan (Vertical Slice B) |
+| Story | F5 begins the prologue in Anarvan (Vertical Slice B); Acts II and III follow on their own; when Azhdar falls, F5 shows the endings and Tab takes one |
 | Co-op | F6 splits the Weave into a carpet each or rejoins it; L in company opens or agrees to a vote to sleep |
 | Other | N new world, F1 credits, F11 fullscreen, Esc quit |
 
