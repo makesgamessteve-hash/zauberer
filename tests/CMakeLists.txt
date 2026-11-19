@@ -37,6 +37,14 @@ if(Python3_FOUND)
     COMMAND "${Python3_EXECUTABLE}" -m unittest -v tests.engine.test_headless
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
   set_tests_properties(engine_headless PROPERTIES ENVIRONMENT "${ZB_ENGINE_TEST_ENV}" LABELS engine TIMEOUT 3000)
+  if(TARGET zauberer-relay)
+    # The relay as a program: invite codes, forwarding and stopping on a signal.
+    add_test(NAME relay_process
+      COMMAND "${Python3_EXECUTABLE}" -m unittest -v tests.engine.test_relay
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+    set_tests_properties(relay_process PROPERTIES
+      ENVIRONMENT "ZB_RELAY_BIN=$<TARGET_FILE:zauberer-relay>" LABELS "engine;relay" TIMEOUT 120)
+  endif()
   if(NOT ZB_HEADLESS_ONLY)
     # Rendered tests need a GL 3.3 driver: on Linux the SDL offscreen driver with Mesa llvmpipe.
     if(UNIX AND NOT APPLE)

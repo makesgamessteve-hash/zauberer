@@ -464,13 +464,45 @@ The world's own weather at a place now (what the sky does there, whatever the sc
 
 ## net: co-op sessions
 
+### `net.blob_cached(hash: string): boolean`
+
+True when the blob cache in the user directory holds this hash (so a join can skip the transfer).
+
+### `net.blob_hash(data: string): string`
+
+The content hash used for blobs and the cache (SHA-1 as 40 hex digits).
+
+### `net.blob_load(hash: string): string?`
+
+A cached blob, checked against its hash, or nil (a damaged file is removed).
+
+### `net.blob_store(data: string): string?, string?`
+
+Stores a blob in the cache in the user directory; returns its hash, or nil and why it failed.
+
 ### `net.host(port?: integer): integer?, string?`
 
 Hosts a co-op session (desktop only); returns the port in use (port 0 or omitted picks a free one), or nil and why it failed.
 
+### `net.host_relay(url: string): boolean, string?`
+
+Hosts a co-op session through a relay at a ws:// address (also in the browser); once the relay answers, net.status().invite_code holds the code to give to friends. If the relay refuses or is lost, net.receive reports "ended" with the reason.
+
 ### `net.join(url: string): boolean, string?`
 
 Starts joining the session at a ws:// address; net.receive reports "welcome" or "ended".
+
+### `net.join_code(url: string, code: string): boolean, string?`
+
+Starts joining the session with an invite code through the relay at a ws:// address (case, spaces and dashes in the code do not matter); net.receive reports "welcome" or "ended" (with the relay's reason for unknown or expired codes and full sessions).
+
+### `net.lan_announce(on: boolean, name?: string, port?: integer): boolean, string?`
+
+Answers LAN discovery queries while hosting (desktop only; in the browser it fails with "unavailable"), with the session's name and the port to join on (default: the port of the last net.host). net.lan_announce(false) stops.
+
+### `net.lan_scan(): LanSession[]?, string?`
+
+Sessions announced on the local network (desktop only; in the browser nil and "unavailable"). Each call collects answers and asks again once a second, so the first call usually returns an empty list: call it every frame or so while showing the list. Sessions not heard from for three seconds drop out.
 
 ### `net.leave()`
 
@@ -480,9 +512,25 @@ Leaves the session (a host ends it for everyone).
 
 Messages and session events since the last call, in arrival order.
 
+### `net.rejoin(): boolean, string?`
+
+After the connection to the host was lost (net.status().can_rejoin), connects again the same way (address or invite code); within the host's grace period (30 s) this game gets its player index back. net.receive reports "welcome" or "ended" as for a join.
+
 ### `net.send(channel: string, value: any, to?: integer): boolean, string?`
 
 Sends a value (nil, booleans, numbers, strings and tables of them) on a channel to a player, or to everyone when to is omitted (clients' messages travel through the host).
+
+### `net.send_blob(to: integer, name: string, data: string): boolean, string?`
+
+Sends a large blob (such as the world bundle) to one player (clients: only to the host, 0) in flow-controlled chunks that do not hold up the channels; the receiver gets "blob_progress" events and then "blob" once the content hash matches, the sender "blob_sent" or "blob_failed".
+
+### `net.set_budget(kbps: integer, burst_kbps?: integer)`
+
+Sets the bandwidth budget per connection (default 64 kbit/s on average with bursts of up to 256 kbit/s for a second). Reliable messages count against it but are always sent.
+
+### `net.set_channel(channel: string, class: string): boolean, string?`
+
+Sets how a channel travels (the same on every player): "reliable" (the default: every message arrives) or "latest" (while a connection is over its bandwidth budget only the newest unsent message per channel and sender is kept; for snapshots and positions).
 
 ### `net.status(): NetStatus`
 
@@ -882,6 +930,18 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `y` | `number` |  |
 | `angle` | `number` | Radians from the first point to the last |
 
+### LanSession
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | The session's name |
+| `address` | `string` | The host's IPv4 address |
+| `port` | `integer` | The port to join on |
+| `url` | `string` | ws:// address for net.join |
+| `players` | `integer` | Players in the session |
+| `max_players` | `integer` | Players a session can hold |
+| `protocol` | `integer` | The host's network protocol (joining needs the same) |
+
 ### Light
 
 | Field | Type | Description |
@@ -894,10 +954,26 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `event` | `string` | "data", "joined", "left", "welcome" or "ended" |
-| `player` | `integer` | The sender (data) or the player concerned |
+| `event` | `string` | "data", "joined", "left", "welcome", "ended", "away", "back", "blob_progress", "blob", "blob_failed" or "blob_sent" |
+| `player` | `integer` | The sender (data, blobs arriving), the receiver (blobs sent) or the player concerned |
 | `channel` | `string?` | Channel name (data) |
 | `value` | `any?` | The value sent (data) |
+| `name` | `string?` | The blob's name (blob events) |
+| `received` | `integer?` | Bytes of the blob received so far (blob_progress) |
+| `total` | `integer?` | The blob's size (blob_progress, blob) |
+| `hash` | `string?` | The blob's SHA-1 in hex (blob events) |
+| `data` | `string?` | The blob (blob) |
+| `reason` | `string?` | Why a blob failed (blob_failed) |
+| `error` | `string?` | Why the session ended (ended) |
+| `mismatches` | `NetMismatch[]?` | Packages that differed (ended) |
+
+### NetMismatch
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | Package id |
+| `host` | `string` | The host's version ("" when the host does not have it enabled) |
+| `client` | `string` | This game's version ("" when it is not enabled here) |
 
 ### NetStatus
 
@@ -905,11 +981,21 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | --- | --- | --- |
 | `role` | `string` | "none", "host", "joining" or "client" |
 | `player` | `integer` | This game's player index (0 = host), -1 when not in a session |
-| `players` | `integer[]` | Player indices in the session |
+| `players` | `integer[]` | Player indices in the session (players who are away included) |
+| `away` | `integer[]` | Players whose connection was lost and who may still come back |
 | `error` | `string` | Why the last session ended or failed ("" if it did not) |
+| `mismatches` | `NetMismatch[]` | Packages that differed when the host refused the join |
+| `can_rejoin` | `boolean` | The connection was lost and net.rejoin may bring this player back |
+| `invite_code` | `string?` | The relay's invite code while hosting through a relay |
+| `lan` | `boolean` | LAN discovery queries are being answered |
 | `rtt_ms` | `integer[]` | Last round trip per player in milliseconds |
 | `sent` | `integer` | Bytes sent |
 | `received` | `integer` | Bytes received |
+| `sent_to` | `integer[]` | Bytes sent to each player (index = player + 1; clients: [1] = the host) |
+| `received_from` | `integer[]` | Bytes received from each player |
+| `kbps_out` | `integer[]` | kbit/s sent to each player over the last second |
+| `kbps_in` | `integer[]` | kbit/s received from each player over the last second |
+| `coalesced` | `integer` | Latest-only messages replaced by newer ones before they were sent |
 
 ### PackageInfo
 

@@ -343,7 +343,9 @@ static void put64(uint8_t *p, uint64_t v) {
   }
 }
 
-static void hello(uint8_t out[19], unsigned version, uint64_t seed, uint64_t packages) {
+/* A protocol 2 hello without a resume token and without packages (31 bytes). */
+static void hello(uint8_t out[31], unsigned version, uint64_t seed, uint64_t packages) {
+  memset(out, 0, 31);
   out[0] = 1; /* MSG_HELLO */
   out[1] = (uint8_t)version;
   out[2] = (uint8_t)(version >> 8);
@@ -376,19 +378,30 @@ static void test_session_protocol_errors(void) {
   zb_loopback *lb = zb_loopback_create(zb_test_alloc());
   zb_net *host = make_net(5);
   zb_net_host(host, zb_loopback_listen(lb));
-  uint8_t h[19];
-  hello(h, 1, 5, 77);
-  expect_reject(host, lb, h, 1, "malformed hello");
+  uint8_t h[31];
   hello(h, 2, 5, 77);
-  expect_reject(host, lb, h, sizeof h, "different game version (network protocol)");
-  hello(h, 1, 5, 78);
+  expect_reject(host, lb, h, 1, "malformed hello");
+  expect_reject(host, lb, h, 20, "malformed hello"); /* too short for protocol 2 */
+  hello(h, 1, 5, 77);
+  expect_reject(host, lb, h, 19, "different game version (network protocol)"); /* a protocol 1 game */
+  hello(h, 2, 5, 77);
+  h[29] = 1; /* one package announced, none there */
+  expect_reject(host, lb, h, sizeof h, "malformed hello");
+  uint8_t hp[34];
+  hello(hp, 2, 5, 77);
+  hp[29] = 1;
+  hp[31] = 1; /* id "a", then a version longer than what is left */
+  hp[32] = 'a';
+  hp[33] = 9;
+  expect_reject(host, lb, hp, sizeof hp, "malformed hello");
+  hello(h, 2, 5, 78);
   expect_reject(host, lb, h, sizeof h, "the host has a different package set");
   static const uint8_t early[] = {4, 0, 0, 0};
   expect_reject(host, lb, early, sizeof early, "hello expected");
   zb_transport *raw = zb_loopback_connect(lb);
   zb_net_update(host);
   raw->send(raw->ctx, 1, early, 0); /* empty messages are ignored */
-  hello(h, 1, 5, 77);
+  hello(h, 2, 5, 77);
   raw->send(raw->ctx, 1, h, sizeof h);
   zb_net_update(host);
   size_t n;
@@ -426,12 +439,19 @@ static void test_session_protocol_errors(void) {
   bool closed = false;
   raw_next(waiting[7], &n, &closed);
   TEST_ASSERT_TRUE(closed);
-  /* A silent client is dropped after the timeout. */
+  /* A silent client is away after the timeout and gone after the grace period. */
   g_now = 11000000000ull;
+  zb_net_update(host);
+  TEST_ASSERT_TRUE(expect_event(host, ZB_NET_EV_AWAY, &ev));
+  TEST_ASSERT_EQUAL_INT(1, ev.player);
+  TEST_ASSERT_EQUAL_UINT(0x3, zb_net_players(host));
+  TEST_ASSERT_EQUAL_UINT(0x2, zb_net_away(host));
+  g_now = 41000000000ull;
   zb_net_update(host);
   TEST_ASSERT_TRUE(expect_event(host, ZB_NET_EV_LEFT, &ev));
   TEST_ASSERT_EQUAL_INT(1, ev.player);
   TEST_ASSERT_EQUAL_UINT(0x1, zb_net_players(host));
+  TEST_ASSERT_EQUAL_UINT(0, zb_net_away(host));
   for (int i = 0; i < 8; ++i) {
     zb_transport_destroy(waiting[i]);
   }

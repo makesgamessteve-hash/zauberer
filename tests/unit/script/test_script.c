@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "core/log.h"
 #include "core/memfs.h"
+#include "net/relay.h"
 #include "net/session.h"
 #include "net/socket.h"
 #include "script/script_internal.h"
@@ -1472,6 +1473,245 @@ static void test_net_api(void) {
   zb_net_destroy(host);
 }
 
+/* spec: coop-sessions: Relay and invite codes */
+/* spec: network-hardening: Bandwidth budget */
+static void test_net_m9_unavailable(void) {
+  package("assets/base", "base", NULL, "");
+  configure();
+  F.cfg.fs = NULL;
+  start_with(&F.cfg);
+  exec(
+      "a, aerr = net.host_relay('ws://127.0.0.1:1'); b, berr = net.join_code('ws://127.0.0.1:1', 'ABCDEF');"
+      " c, cerr = net.rejoin(); d, derr = net.set_channel('s', 'latest'); net.set_budget(100);"
+      " e, eerr = net.send_blob(1, 'w', 'x'); f, ferr = net.lan_announce(true, 'x', 5);"
+      " g, gerr = net.lan_scan(); h = net.blob_hash('abc'); i = net.blob_cached(h); j = net.blob_load(h);"
+      " k, kerr = net.blob_store('x'); st = net.status()");
+  const char *names[] = {"aerr", "berr", "cerr", "derr", "eerr", "ferr", "gerr"};
+  for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i) {
+    TEST_ASSERT_EQUAL_STRING("networking is not available", gstr(names[i]));
+  }
+  TEST_ASSERT_EQUAL_STRING("a9993e364706816aba3e25717850c26c9cd0d89d", gstr("h"));
+  TEST_ASSERT_EQUAL_STRING("no user directory", gstr("kerr"));
+  exec(
+      "ok = not i and j == nil and st.can_rejoin == false and #st.away == 0 and #st.mismatches == 0"
+      " and st.lan == false and st.invite_code == nil and #st.kbps_out == 4 and st.coalesced == 0");
+  TEST_ASSERT_TRUE(gbool("ok"));
+}
+
+static uint64_t real_clock(void *ctx) {
+  (void)ctx;
+  return zb_sock_clock_ns();
+}
+
+/* Updates the relay and sessions (NULL entries skipped) for a moment. */
+static void spin(zb_relay *r, zb_net *a, zb_net *b) {
+  if (r) {
+    zb_relay_update(r);
+  }
+  if (a) {
+    zb_net_update(a);
+  }
+  if (b) {
+    zb_net_update(b);
+  }
+  zb_test_sleep_ms(1);
+}
+
+/* spec: coop-sessions: Relay and invite codes */
+/* spec: coop-sessions: Joining through the relay */
+/* spec: coop-sessions: LAN discovery */
+/* spec: coop-sessions: Package mismatches are listed */
+/* spec: coop-sessions: World bundle transfer and cache */
+/* spec: network-hardening: Reconnecting keeps the heir */
+/* spec: network-hardening: Bandwidth budget */
+static void test_net_m9_api(void) {
+  package("assets/base", "base", NULL, "");
+  configure();
+  zb_net_config nc;
+  memset(&nc, 0, sizeof nc);
+  nc.a = zb_test_alloc();
+  nc.world_seed = 3;
+  nc.clock_ns = real_clock;
+  zb_net *mine = zb_net_create(&nc);
+  F.cfg.net = mine;
+  start_with(&F.cfg);
+  /* Channels, budget and the blob cache. */
+  exec(
+      "a = net.set_channel('state', 'latest'); b, berr = net.set_channel('', 'latest');"
+      " c = pcall(net.set_channel, 'x', 'bogus'); net.set_budget(128, 512); d = pcall(net.set_budget, 0)");
+  TEST_ASSERT_TRUE(gbool("a"));
+  TEST_ASSERT_EQUAL_STRING(zb_result_str(ZB_ERR_INVALID), gstr("berr"));
+  TEST_ASSERT_FALSE(gbool("c"));
+  TEST_ASSERT_FALSE(gbool("d"));
+  exec(
+      "h = net.blob_store('bundle data'); ok = net.blob_cached(h) and net.blob_load(h) == 'bundle data'"
+      " and h == net.blob_hash('bundle data') and not net.blob_cached('nope') and net.blob_load(string.rep('0', 40))"
+      " == nil");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  /* Errors that need no network. */
+  exec(
+      "a, aerr = net.join_code('ws://127.0.0.1:1', 'O0O0O0'); b, berr = net.join_code('http://x', 'ABCDEF');"
+      " c, cerr = net.rejoin(); d, derr = net.host_relay('http://x'); e, eerr = net.lan_announce(true);"
+      " f = net.lan_announce(false); g, gerr = net.send_blob(1, 'w', 'x'); h, herr = net.send_blob(9, 'w', 'x')");
+  TEST_ASSERT_EQUAL_STRING("not an invite code: O0O0O0", gstr("aerr"));
+  TEST_ASSERT_EQUAL_STRING("not a ws:// address: http://x", gstr("berr"));
+  TEST_ASSERT_EQUAL_STRING("there is no lost session to rejoin", gstr("cerr"));
+  TEST_ASSERT_EQUAL_STRING("not a ws:// address: http://x", gstr("derr"));
+  TEST_ASSERT_EQUAL_STRING("no port to announce (host with net.host first)", gstr("eerr"));
+  TEST_ASSERT_TRUE(gbool("f"));
+  TEST_ASSERT_EQUAL_STRING(zb_result_str(ZB_ERR_STATE), gstr("gerr"));
+  TEST_ASSERT_EQUAL_STRING(zb_result_str(ZB_ERR_INVALID), gstr("herr"));
+  if (!zb_sock_supported()) {
+    exec("l, lerr = net.lan_scan()");
+    TEST_ASSERT_EQUAL_STRING("unavailable", gstr("lerr"));
+    stop();
+    zb_net_destroy(mine);
+    TEST_IGNORE_MESSAGE("no sockets in this build");
+  }
+  /* Hosting through a relay: the code appears in the status; a blob goes to the client. */
+  char err[128], url[96], code[16];
+  uint16_t port = 0;
+  zb_relay_config rc;
+  memset(&rc, 0, sizeof rc);
+  rc.a = zb_test_alloc();
+  rc.seed = 11;
+  rc.clock_ns = real_clock;
+  zb_relay *relay = zb_relay_create(&rc, zb_ws_server_create(zb_test_alloc(), 0, &port, err, sizeof err));
+  TEST_ASSERT_NOT_NULL_MESSAGE(relay, err);
+  snprintf(url, sizeof url, "ok, err = net.host_relay('ws://127.0.0.1:%u/')", (unsigned)port);
+  exec(url);
+  TEST_ASSERT_TRUE(gbool("ok"));
+  for (int i = 0; i < 3000 && !zb_net_invite_code(mine)[0]; ++i) {
+    spin(relay, mine, NULL);
+  }
+  exec("st = net.status(); code = st.invite_code");
+  TEST_ASSERT_EQUAL_size_t(6, strlen(gstr("code")));
+  snprintf(code, sizeof code, "%s", gstr("code"));
+  snprintf(url, sizeof url, "ws://127.0.0.1:%u/", (unsigned)port);
+  zb_net *guest = zb_net_create(&nc);
+  zb_net_join(guest, zb_relay_join_transport(zb_test_alloc(),
+                                             zb_ws_client_create(zb_test_alloc(), url, err, sizeof err), code));
+  for (int i = 0; i < 3000 && zb_net_role_of(guest) != ZB_NET_CLIENT; ++i) {
+    spin(relay, mine, guest);
+  }
+  TEST_ASSERT_EQUAL_INT(1, zb_net_player(guest));
+  exec("msgs = net.receive(); sent = net.send_blob(1, 'bundle', string.rep('z', 100000))");
+  TEST_ASSERT_TRUE(gbool("sent"));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_net_send_blob(guest, 0, "save", "abc", 3));
+  bool guest_got = false;
+  for (int i = 0; i < 3000; ++i) {
+    spin(relay, mine, guest);
+    zb_net_event ev;
+    while (zb_net_next(guest, &ev)) {
+      guest_got = guest_got || (ev.kind == ZB_NET_EV_BLOB && ev.len == 100000);
+    }
+    exec(
+        "for _, m in ipairs(net.receive()) do if m.event == 'blob' then got = m elseif m.event == 'blob_sent' then"
+        " done = m elseif m.event == 'blob_progress' then progress = m end end");
+    if (guest_got && gbool("done") && gbool("got")) {
+      break;
+    }
+  }
+  TEST_ASSERT_TRUE(guest_got);
+  exec(
+      "ok = got.name == 'save' and got.data == 'abc' and got.hash == net.blob_hash('abc') and got.total == 3"
+      " and got.player == 1 and done.name == 'bundle' and done.player == 1 and progress.received <= progress.total");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  /* A blob to a player who leaves fails with a reason. */
+  exec("net.send_blob(1, 'empty', '')");
+  zb_net_destroy(guest);
+  for (int i = 0; i < 3000; ++i) {
+    spin(relay, mine, NULL);
+    exec(
+        "for _, m in ipairs(net.receive()) do if m.event == 'left' then left = m elseif m.event == 'blob_failed'"
+        " then failed = m end end");
+    if (gbool("left")) {
+      break;
+    }
+  }
+  exec(
+      "st = net.status(); ok = left.player == 1 and failed.reason == 'the player left' and failed.name == 'empty'"
+      " and #st.away == 0 and st.sent_to[2] > 100000 and st.kbps_out[2] >= 0");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  /* Joining through the relay with a code from a script; losing the connection allows a rejoin. */
+  zb_net *other = zb_net_create(&nc);
+  zb_net_host(other, zb_relay_host_transport(zb_test_alloc(),
+                                             zb_ws_client_create(zb_test_alloc(), url, err, sizeof err), NULL, NULL));
+  for (int i = 0; i < 3000 && !zb_net_invite_code(other)[0]; ++i) {
+    spin(relay, other, NULL);
+  }
+  char join[160];
+  snprintf(join, sizeof join, "ok = net.join_code('%s', '%c%c%c-%c%c%c')", url, zb_net_invite_code(other)[0] | 32,
+           zb_net_invite_code(other)[1] | 32, zb_net_invite_code(other)[2] | 32, zb_net_invite_code(other)[3] | 32,
+           zb_net_invite_code(other)[4] | 32, zb_net_invite_code(other)[5] | 32);
+  exec(join);
+  TEST_ASSERT_TRUE(gbool("ok"));
+  for (int i = 0; i < 3000 && zb_net_role_of(mine) != ZB_NET_CLIENT; ++i) {
+    spin(relay, other, mine);
+  }
+  TEST_ASSERT_EQUAL_INT(ZB_NET_CLIENT, zb_net_role_of(mine));
+  zb_relay_destroy(relay);
+  for (int i = 0; i < 3000 && zb_net_role_of(mine) != ZB_NET_NONE; ++i) {
+    spin(NULL, other, mine);
+  }
+  exec(
+      "ended = nil; for _, m in ipairs(net.receive()) do if m.event == 'ended' then ended = m end end;"
+      " st = net.status(); ok = ended.error == 'the connection to the host was lost' and st.can_rejoin;"
+      " again, why = net.rejoin()");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  /* The relay is gone: the attempt fails at once or once the connection is refused. */
+  for (int i = 0; i < 3000 && zb_net_role_of(mine) != ZB_NET_NONE; ++i) {
+    spin(NULL, mine, NULL);
+  }
+  exec("st = net.status(); ok = st.role == 'none' and st.error ~= ''");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  zb_net_destroy(other);
+  /* A host with other packages refuses the script's join and lists them. */
+  zb_net_config hc = nc;
+  hc.package_hash = 999;
+  zb_net *picky = zb_net_create(&hc);
+  static const zb_net_package pk[] = {{"base", "9.9.9"}, {"extra", "1.0"}};
+  zb_net_set_packages(picky, pk, 2);
+  uint16_t pport = 0;
+  zb_net_host(picky, zb_ws_server_create(zb_test_alloc(), 0, &pport, err, sizeof err));
+  snprintf(join, sizeof join, "ok = net.join('ws://127.0.0.1:%u/')", (unsigned)pport);
+  exec(join);
+  for (int i = 0; i < 3000 && zb_net_role_of(mine) != ZB_NET_NONE; ++i) {
+    spin(NULL, picky, mine);
+  }
+  exec(
+      "ended = nil; for _, m in ipairs(net.receive()) do if m.event == 'ended' then ended = m end end;"
+      " mm = ended.mismatches; st = net.status();"
+      " ok = #mm == 2 and mm[1].id == 'base' and mm[1].host == '9.9.9' and mm[1].client == '1.0.0'"
+      " and mm[2].id == 'extra' and mm[2].client == '' and #st.mismatches == 2"
+      " and ended.error == 'the host has a different package set'");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  zb_net_destroy(picky);
+  /* LAN: a script that hosts directly announces itself and finds itself. */
+  exec("p = net.host(0); ok, why = net.lan_announce(true, 'Party')");
+  if (!gbool("ok")) {
+    stop();
+    zb_net_destroy(mine);
+    TEST_IGNORE_MESSAGE(gstr("why"));
+  }
+  bool found = false;
+  for (int i = 0; i < 2000 && !found; ++i) {
+    zb_net_update(mine);
+    exec("list = net.lan_scan(); found = #list > 0");
+    found = gbool("found");
+    zb_test_sleep_ms(1);
+  }
+  TEST_ASSERT_TRUE(found);
+  exec(
+      "s = list[1]; st = net.status(); ok = s.name == 'Party' and s.port == p and s.url == 'ws://' .. s.address .. ':'"
+      " .. p .. '/' and s.players == 1 and s.max_players == 4 and s.protocol == 2 and st.lan;"
+      " net.lan_announce(false); off = not net.status().lan");
+  TEST_ASSERT_TRUE(gbool("ok"));
+  TEST_ASSERT_TRUE(gbool("off"));
+  stop();
+  zb_net_destroy(mine);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_entry_scripts_and_require);
@@ -1505,6 +1745,8 @@ int main(void) {
   RUN_TEST(test_create_out_of_memory);
   RUN_TEST(test_net_codec);
   RUN_TEST(test_net_unavailable);
+  RUN_TEST(test_net_m9_unavailable);
   RUN_TEST(test_net_api);
+  RUN_TEST(test_net_m9_api);
   return UNITY_END();
 }

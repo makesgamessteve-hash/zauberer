@@ -5,7 +5,26 @@
 #include "net/socket.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+bool zb_ipv4_parse(const char *address, uint8_t out[4]) {
+  const char *p = address;
+  for (int i = 0; i < 4; ++i) {
+    if (*p < '0' || *p > '9') {
+      return false;
+    }
+    char *end = NULL;
+    long v = strtol(p, &end, 10);
+    if (v > 255 || end - p > 3 || *end != (i < 3 ? '.' : '\0')) {
+      return false;
+    }
+    out[i] = (uint8_t)v;
+    p = end + (i < 3);
+  }
+  return true;
+}
 
 #if defined(__EMSCRIPTEN__)
 
@@ -41,6 +60,34 @@ long zb_sock_recv(zb_socket s, void *buf, size_t cap) {
   return ZB_SOCK_CLOSED;
 }
 void zb_sock_close(zb_socket s) { (void)s; }
+zb_socket zb_udp_open(uint16_t port, uint16_t *bound_port) {
+  (void)port;
+  (void)bound_port;
+  return ZB_SOCKET_NONE;
+}
+long zb_udp_send(zb_socket s, const char *address, uint16_t port, const void *data, size_t len) {
+  (void)s;
+  (void)address;
+  (void)port;
+  (void)data;
+  (void)len;
+  return ZB_SOCK_CLOSED;
+}
+long zb_udp_recv(zb_socket s, void *buf, size_t cap, char *from, size_t from_len, uint16_t *from_port) {
+  (void)s;
+  (void)buf;
+  (void)cap;
+  (void)from;
+  (void)from_len;
+  (void)from_port;
+  return ZB_SOCK_CLOSED;
+}
+uint64_t zb_sock_clock_ns(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+}
+void zb_sock_sleep_ms(unsigned ms) { (void)ms; }
 
 #else
 
@@ -220,5 +267,81 @@ void zb_sock_close(zb_socket s) {
     close_native(native(s));
   }
 }
+
+zb_socket zb_udp_open(uint16_t port, uint16_t *bound_port) {
+  startup();
+  native_socket s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (s == NATIVE_INVALID) {
+    return ZB_SOCKET_NONE;
+  }
+  int on = 1;
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof on);
+  setsockopt(s, SOL_SOCKET, SO_BROADCAST, (const char *)&on, sizeof on);
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof addr);
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(port);
+  if (bind(s, (struct sockaddr *)&addr, sizeof addr) != 0 || !set_nonblocking(s)) {
+    close_native(s);
+    return ZB_SOCKET_NONE;
+  }
+  socklen_t len = sizeof addr;
+  if (bound_port && getsockname(s, (struct sockaddr *)&addr, &len) == 0) {
+    *bound_port = ntohs(addr.sin_port);
+  }
+  return (zb_socket)s;
+}
+
+long zb_udp_send(zb_socket s, const char *address, uint16_t port, const void *data, size_t len) {
+  uint8_t ip[4];
+  if (!zb_ipv4_parse(address, ip)) {
+    return ZB_SOCK_CLOSED;
+  }
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof addr);
+  addr.sin_family = AF_INET;
+  memcpy(&addr.sin_addr, ip, 4);
+  addr.sin_port = htons(port);
+  long n = (long)sendto(native(s), (const char *)data, LEN_ARG(len), 0, (struct sockaddr *)&addr, sizeof addr);
+  if (n < 0) {
+    return would_block() ? ZB_SOCK_WOULD_BLOCK : ZB_SOCK_CLOSED;
+  }
+  return n;
+}
+
+long zb_udp_recv(zb_socket s, void *buf, size_t cap, char *from, size_t from_len, uint16_t *from_port) {
+  struct sockaddr_in addr;
+  socklen_t alen = sizeof addr;
+  long n = (long)recvfrom(native(s), (char *)buf, LEN_ARG(cap), 0, (struct sockaddr *)&addr, &alen);
+  if (n < 0) {
+    return would_block() ? ZB_SOCK_WOULD_BLOCK : ZB_SOCK_CLOSED;
+  }
+  const uint8_t *ip = (const uint8_t *)&addr.sin_addr;
+  snprintf(from, from_len, "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+  *from_port = ntohs(addr.sin_port);
+  return n;
+}
+
+#if defined(_WIN32)
+uint64_t zb_sock_clock_ns(void) {
+  LARGE_INTEGER f, c;
+  QueryPerformanceFrequency(&f);
+  QueryPerformanceCounter(&c);
+  uint64_t q = (uint64_t)c.QuadPart, hz = (uint64_t)f.QuadPart;
+  return q / hz * 1000000000ull + q % hz * 1000000000ull / hz;
+}
+void zb_sock_sleep_ms(unsigned ms) { Sleep(ms); }
+#else
+uint64_t zb_sock_clock_ns(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+}
+void zb_sock_sleep_ms(unsigned ms) {
+  struct timespec ts = {(time_t)(ms / 1000u), (long)(ms % 1000u) * 1000000L};
+  nanosleep(&ts, NULL);
+}
+#endif
 
 #endif
