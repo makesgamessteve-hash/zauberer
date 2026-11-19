@@ -19,6 +19,7 @@ local castles = require("places.castles")
 local integrity = require("places.integrity")
 local rng = require("people.rng")
 local underground = require("places.underground")
+local setpieces = require("places.setpieces")
 
 local places = {}
 
@@ -109,6 +110,7 @@ function places.plan(P, st)
   st.seed = st.seed or rng.hash(P.db.seed, st.id)
   local ctx = places.context(P, st)
   plan = layout.plan(st, ctx)
+  if st.story == "anarvan" then setpieces.anarvan(plan, st, ctx) end
   plan.settlement = st
   plan.family = ctx.family
   for _, b in ipairs(plan.buildings) do
@@ -116,6 +118,13 @@ function places.plan(P, st)
     buildings.generate(b, ctx.family, 1)
   end
   P.plans[st.id] = plan
+  if plan.farrokh and not P.under.dungeons["sanctum:farrokh"] then -- the cellar under the loom
+    places.realise(P, plan.farrokh, 2)
+    local e, n = setpieces.hatch(plan.farrokh)
+    local g = setpieces.sanctum(places.origin(P, plan.farrokh), e, n)
+    g.closed = true -- (hidden until Farrokh opens it)
+    P.under.dungeons[g.id] = g
+  end
   return plan
 end
 

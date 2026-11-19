@@ -47,6 +47,7 @@ return {
     cistern = { size = { 6, 8 }, rooms = { { id = "cistern", share = 1, required = true } } },
     qanat_outlet = { size = { 5, 7 }, rooms = { { id = "cistern", share = 1, required = true } } },
     dock = { size = { 5, 12 }, open = true, rooms = {} },
+    pen = { size = { 7, 9 }, open = true, rooms = {} },
     tower = { size = { 7, 9 }, round = true, rooms = { { id = "hall", share = 1, required = true },
       { id = "study", share = 1, required = true, upstairs = true }, { id = "library", share = 1, upstairs = true },
       { id = "sleeping", share = 1, required = true, upstairs = true } } },

@@ -55,8 +55,10 @@ function npcs.populate(db, plan)
         local id = b.id .. "/" .. i
         local faith = st.faith
         if st.minority and s:chance(0.2) then faith = st.minority end
+        local name = language.name(lang, "person", id)
+        if b.role == "farrokh" then name, age, role, trade = "Farrokh", 59, "parent", "weaver" end
         out[#out + 1] = { id = id, home = b.id, settlement = st.id, culture = st.culture, faith = faith,
-          name = language.name(lang, "person", id), sex = s:chance(0.5) and "woman" or "man", age = age, role = role,
+          name = name, sex = s:chance(0.5) and "woman" or "man", age = age, role = role,
           profession = trade, wealth = hh.wealth or 0.5, traits = { s:pick(npcs.TRAITS), s:pick(npcs.TRAITS) },
           robe = s:int(0, 3), family = b.id, festival_day = rng.hash(db.seed, st.culture) % 30 }
       end

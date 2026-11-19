@@ -120,7 +120,8 @@ function underground.floor(U, pos, alt)
     local x, _, z = local_of(g.origin, pos)
     local y = alt - g.origin.alt
     local stair = g.stair
-    local on_stair = stair and math.abs(x - stair.x) < 1 and z <= stair.z0 and z >= stair.z1
+    local on_stair = stair and (not g.closed or y < underground.DEPTH - 2) -- (a shut hatch shuts the top of the stair)
+      and math.abs(x - stair.x) < 1 and z <= stair.z0 and z >= stair.z1
     if y < underground.DEPTH - 1.5 or on_stair then
       local best
       for _, p in ipairs(g.pieces) do

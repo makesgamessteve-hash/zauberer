@@ -393,6 +393,12 @@ local function construct_open(b)
     piece(b, { kind = "well", mat = "stone", x = 0, y = 0, z = 0, w = 1.6, h = 0.8, d = 1.6 })
     piece(b, { kind = "post", mat = "timber", x = -0.7, y = 0.8, z = 0, w = 0.15, h = 1.4, d = 0.15 })
     piece(b, { kind = "post", mat = "timber", x = 0.7, y = 0.8, z = 0, w = 0.15, h = 1.4, d = 0.15 })
+  elseif b.type == "pen" then -- a fence of posts and rails round a goat pen
+    for i = 0, 7 do
+      local a = i / 8 * 2 * math.pi
+      piece(b, { kind = "post", mat = "timber", x = math.sin(a) * b.w / 2, y = 0, z = math.cos(a) * b.d / 2, w = 0.15,
+        h = 1.1, d = 0.15 })
+    end
   else
     piece(b, { kind = "floor", mat = "timber", x = 0, y = -0.2, z = 0, w = b.w, h = 0.2, d = b.d })
     for _, cz in ipairs({ -b.d / 2 + 0.3, 0, b.d / 2 - 0.3 }) do

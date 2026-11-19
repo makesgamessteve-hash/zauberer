@@ -42,6 +42,8 @@ local cooking = require("life.cooking")
 local items = require("life.items")
 local codex = require("life.codex")
 local placeplay = require("places.play")
+local director = require("story.director")
+local prologue = require("story.prologue")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -97,6 +99,7 @@ local function setup_flight()
   -- The peopled world (made in slices as play begins), Anarvan where the carpet set out.
   game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
     game.home.pos, FOOT, game.world_options and game.world_options.history)
+  game.story, game.story_saved = nil, back and back.story -- (the prologue resumes once the world is peopled)
   game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)
@@ -178,7 +181,8 @@ function game.save()
     summoning = game.summoning and summoning.snapshot(game.summoning),
     disciplines = game.disciplines and disciplines.snapshot(game.disciplines),
     home = game.home_place and home.snapshot(game.home_place),
-    world_places = game.world_places and placeplay.snapshot(game.world_places), known = game.known and (function()
+    world_places = game.world_places and placeplay.snapshot(game.world_places),
+    story = game.story and prologue.snapshot(game.story), known = game.known and (function()
       local list = {}
       for id in pairs(game.known) do list[#list + 1] = id end
       table.sort(list)
@@ -502,6 +506,12 @@ local function flight_tick(dt)
     end
   end
   game.carpet.limits = condition.limits(game.condition) -- (wet, torn or grounded, it flies worse)
+  if game.story and not prologue.can_fly(game.story) then -- (the carpet has not chosen the heir yet)
+    local lim = {}
+    for key, v in pairs(game.carpet.limits or {}) do lim[key] = v end
+    lim.fly = false
+    game.carpet.limits = lim
+  end
   local c = coop.tick(co, game.carpet, (down or w) and still or controls.flight_input(st), dt, WORLD, net)
   game.carpet = c
   -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
@@ -607,6 +617,7 @@ local function flight_tick(dt)
     local got, why = harvest.gather(game.pack, { plants = game.plants, smalllife = game.smalllife,
       method = function(id) return codex.method(game.codex, id) end }, w.pos, now, w.heading)
     pack.say(game.pack, got and ("Gathered " .. said(got.items)) or why)
+    game.gathered_now = got ~= nil or game.gathered_now
     if got then codex.sampled(game.codex, got.sources) end
   end
   if w and input.state("campfire").pressed then
@@ -740,6 +751,7 @@ local function flight_tick(dt)
       pack.say(game.pack, game.world_places.said)
       game.world_places.said = nil
     end
+    local used_text
     if w and input.state("use").pressed and game.world_places.places.ready then
       local heir = { pack = game.pack, serve = st.boost and st.boost.held, cloak = k.worn and "drab" or "vivid",
         magic = game.last_cast ~= nil,
@@ -752,8 +764,34 @@ local function flight_tick(dt)
         end,
         heal = function(n) health.heal(game.health, n) end,
         learn = function(d) disciplines.practice(game.disciplines, d, 20, "taught") end }
-      local used = placeplay.use(game.world_places, w, game.pack, heir)
-      if used then pack.say(game.pack, used) end
+      used_text = placeplay.use(game.world_places, w, game.pack, heir)
+      if used_text then pack.say(game.pack, used_text) end
+    end
+    -- The story: begun with F5 in Anarvan (or resumed from the save), fed what the heir does.
+    local P = game.world_places.places
+    if P.ready and not game.story and (input.state("story").pressed or game.story_saved) then
+      game.story = director.start(P)
+      local saved = game.story_saved
+      game.story_saved = nil
+      if type(saved) == "table" and saved.beat then
+        for key, v in pairs(saved) do game.story[key] = v end
+      else
+        game.walker = walker.new(game.story.start, 0, FOOT)
+        w = game.walker
+        world.set_time(math.floor(now / 86400) * 86400 + 7 * 3600)
+      end
+    end
+    if game.story then
+      local ground = world.ground_height(me)
+      local before = game.story_boiled or pack.count(game.pack, "boiled_water")
+      local happened = director.tick(game.story, P, { pos = me, used = input.state("use").pressed, slept = game.slept,
+        dt = dt, now = now, set_time = world.set_time, talked_to = used_text and used_text:match("^(%a+): "),
+        found = used_text and used_text:match("^Found (.+)$"), flying = w == nil and me.alt - ground > 3,
+        book = game.magic.caster.book, pack = game.pack, gathered = game.gathered_now,
+        boiled = pack.count(game.pack, "boiled_water") > before })
+      game.story_boiled = pack.count(game.pack, "boiled_water")
+      if happened then pack.say(game.pack, game.story.lines[#game.story.lines]) end
+      game.slept = nil
     end
   end
   if w then
@@ -830,6 +868,9 @@ local function flight_lines()
     for _, line in ipairs(more) do lines[#lines + 1] = line end
   end
   if game.channeling then lines[#lines + 1] = "Channeling" end
+  if game.story then
+    for _, line in ipairs(prologue.hud_lines(game.story)) do lines[#lines + 1] = line end
+  end
   local w = game.walker
   local place = game.world_places and placeplay.line(game.world_places, w and w.pos or c.pos)
   if place then lines[#lines + 1] = place end
@@ -904,6 +945,10 @@ local function flight_frame()
     render.draw_model(assets.carpet, { position = p, rotation = carpet.rotation(c) })
   end
   placeplay.draw(game.world_places, game.walker and game.walker.pos or c.pos, assets.person)
+  if game.story and game.story.azhdar and game.story.beat == "arrival" then -- the Ash Weaver on his dark carpet
+    render.draw_model(assets.carpet, { position = world.to_local(game.story.azhdar), rotation = { 0, 45, 0 },
+      scale = 1.2 })
+  end
   local sights = magic.sights(game.magic)
   if artificing.working(game.artifacts, "lantern_of_light") then -- (the lantern in the mage's hand)
     local at = game.walker and world.move(game.walker.pos, game.walker.heading, 0.4, 0.3, 1.2)

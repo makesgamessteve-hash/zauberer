@@ -40,14 +40,20 @@ function play.snapshot(s)
   return out
 end
 
--- A book's text: one of the chronicles of the household's people.
-function play.read(s, b)
+-- A book's text: one of the chronicles of the household's people (of a war,
+-- when the book is a chronicle of that war).
+function play.read(s, b, war_id)
   local db = s.places.db
   local st = history.get(db, b.settlement)
   local culture = st and st.culture or db.culture[1].id
   local wars = db.wars or {}
-  if #wars > 0 then
+  if #wars > 0 then -- the war its realm is most remembered for, else one the world remembers
     local war = wars[(b.n or 1) % #wars + 1]
+    for _, wid in ipairs(wars) do
+      local ev = history.get(db, wid)
+      if st and (ev.winner == st.realm or ev.loser == st.realm) then war = wid break end
+    end
+    war = war_id or war
     local account = lore.war_account(db, war, culture)
     local sec = lore.learn(s.journal, db, war, "book")
     return account.title, account.lines, sec
