@@ -66,25 +66,57 @@
 ---@field y number
 ---@field angle number Radians from the first point to the last
 
+---@class LanSession
+---@field name string The session's name
+---@field address string The host's IPv4 address
+---@field port integer The port to join on
+---@field url string ws:// address for net.join
+---@field players integer Players in the session
+---@field max_players integer Players a session can hold
+---@field protocol integer The host's network protocol (joining needs the same)
+
 ---@class Light
 ---@field direction number[]? Direction the light travels
 ---@field color number[]? Light colour
 ---@field ambient number[]|number? Ambient colour
 
 ---@class NetMessage
----@field event string "data", "joined", "left", "welcome" or "ended"
----@field player integer The sender (data) or the player concerned
+---@field event string "data", "joined", "left", "welcome", "ended", "away", "back", "blob_progress", "blob", "blob_failed" or "blob_sent"
+---@field player integer The sender (data, blobs arriving), the receiver (blobs sent) or the player concerned
 ---@field channel string? Channel name (data)
 ---@field value any? The value sent (data)
+---@field name string? The blob's name (blob events)
+---@field received integer? Bytes of the blob received so far (blob_progress)
+---@field total integer? The blob's size (blob_progress, blob)
+---@field hash string? The blob's SHA-1 in hex (blob events)
+---@field data string? The blob (blob)
+---@field reason string? Why a blob failed (blob_failed)
+---@field error string? Why the session ended (ended)
+---@field mismatches NetMismatch[]? Packages that differed (ended)
+
+---@class NetMismatch
+---@field id string Package id
+---@field host string The host's version ("" when the host does not have it enabled)
+---@field client string This game's version ("" when it is not enabled here)
 
 ---@class NetStatus
 ---@field role string "none", "host", "joining" or "client"
 ---@field player integer This game's player index (0 = host), -1 when not in a session
----@field players integer[] Player indices in the session
+---@field players integer[] Player indices in the session (players who are away included)
+---@field away integer[] Players whose connection was lost and who may still come back
 ---@field error string Why the last session ended or failed ("" if it did not)
+---@field mismatches NetMismatch[] Packages that differed when the host refused the join
+---@field can_rejoin boolean The connection was lost and net.rejoin may bring this player back
+---@field invite_code string? The relay's invite code while hosting through a relay
+---@field lan boolean LAN discovery queries are being answered
 ---@field rtt_ms integer[] Last round trip per player in milliseconds
 ---@field sent integer Bytes sent
 ---@field received integer Bytes received
+---@field sent_to integer[] Bytes sent to each player (index = player + 1; clients: [1] = the host)
+---@field received_from integer[] Bytes received from each player
+---@field kbps_out integer[] kbit/s sent to each player over the last second
+---@field kbps_in integer[] kbit/s received from each player over the last second
+---@field coalesced integer Latest-only messages replaced by newer ones before they were sent
 
 ---@class PackageInfo
 ---@field id string Package id
@@ -814,17 +846,64 @@ function world.weather(pos) end
 
 net = {}
 
+---True when the blob cache in the user directory holds this hash (so a join can skip the transfer).
+---@param hash string
+---@return boolean
+function net.blob_cached(hash) end
+
+---The content hash used for blobs and the cache (SHA-1 as 40 hex digits).
+---@param data string
+---@return string
+function net.blob_hash(data) end
+
+---A cached blob, checked against its hash, or nil (a damaged file is removed).
+---@param hash string
+---@return string?
+function net.blob_load(hash) end
+
+---Stores a blob in the cache in the user directory; returns its hash, or nil and why it failed.
+---@param data string
+---@return string?
+---@return string?
+function net.blob_store(data) end
+
 ---Hosts a co-op session (desktop only); returns the port in use (port 0 or omitted picks a free one), or nil and why it failed.
 ---@param port? integer
 ---@return integer?
 ---@return string?
 function net.host(port) end
 
+---Hosts a co-op session through a relay at a ws:// address (also in the browser); once the relay answers, net.status().invite_code holds the code to give to friends. If the relay refuses or is lost, net.receive reports "ended" with the reason.
+---@param url string
+---@return boolean
+---@return string?
+function net.host_relay(url) end
+
 ---Starts joining the session at a ws:// address; net.receive reports "welcome" or "ended".
 ---@param url string
 ---@return boolean
 ---@return string?
 function net.join(url) end
+
+---Starts joining the session with an invite code through the relay at a ws:// address (case, spaces and dashes in the code do not matter); net.receive reports "welcome" or "ended" (with the relay's reason for unknown or expired codes and full sessions).
+---@param url string
+---@param code string
+---@return boolean
+---@return string?
+function net.join_code(url, code) end
+
+---Answers LAN discovery queries while hosting (desktop only; in the browser it fails with "unavailable"), with the session's name and the port to join on (default: the port of the last net.host). net.lan_announce(false) stops.
+---@param on boolean
+---@param name? string
+---@param port? integer
+---@return boolean
+---@return string?
+function net.lan_announce(on, name, port) end
+
+---Sessions announced on the local network (desktop only; in the browser nil and "unavailable"). Each call collects answers and asks again once a second, so the first call usually returns an empty list: call it every frame or so while showing the list. Sessions not heard from for three seconds drop out.
+---@return LanSession[]?
+---@return string?
+function net.lan_scan() end
 
 ---Leaves the session (a host ends it for everyone).
 function net.leave() end
@@ -833,6 +912,11 @@ function net.leave() end
 ---@return NetMessage[]
 function net.receive() end
 
+---After the connection to the host was lost (net.status().can_rejoin), connects again the same way (address or invite code); within the host's grace period (30 s) this game gets its player index back. net.receive reports "welcome" or "ended" as for a join.
+---@return boolean
+---@return string?
+function net.rejoin() end
+
 ---Sends a value (nil, booleans, numbers, strings and tables of them) on a channel to a player, or to everyone when to is omitted (clients' messages travel through the host).
 ---@param channel string
 ---@param value any
@@ -840,6 +924,26 @@ function net.receive() end
 ---@return boolean
 ---@return string?
 function net.send(channel, value, to) end
+
+---Sends a large blob (such as the world bundle) to one player (clients: only to the host, 0) in flow-controlled chunks that do not hold up the channels; the receiver gets "blob_progress" events and then "blob" once the content hash matches, the sender "blob_sent" or "blob_failed".
+---@param to integer
+---@param name string
+---@param data string
+---@return boolean
+---@return string?
+function net.send_blob(to, name, data) end
+
+---Sets the bandwidth budget per connection (default 64 kbit/s on average with bursts of up to 256 kbit/s for a second). Reliable messages count against it but are always sent.
+---@param kbps integer
+---@param burst_kbps? integer
+function net.set_budget(kbps, burst_kbps) end
+
+---Sets how a channel travels (the same on every player): "reliable" (the default: every message arrives) or "latest" (while a connection is over its bandwidth budget only the newest unsent message per channel and sender is kept; for snapshots and positions).
+---@param channel string
+---@param class string
+---@return boolean
+---@return string?
+function net.set_channel(channel, class) end
 
 ---The session's state.
 ---@return NetStatus
