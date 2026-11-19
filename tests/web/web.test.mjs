@@ -113,7 +113,10 @@ function assetRequests(requests) {
 
 /** The emulated WebXR device: an 820 x 420 layer with two 400 x 400 viewports
  * and a 10 px border; the left eye looks ahead, the right one 60 degrees up;
- * the head is at (0.1, 0.2, -0.3), turned 30 degrees to the left. */
+ * the head is at (0.1, 0.2, -0.3), turned 30 degrees to the left. A right
+ * controller with a grip pose and a four-axis gamepad (thumbstick on axes 2
+ * and 3), a left one with only a target ray and a two-axis gamepad, and a
+ * hand-less source that the bridge ignores. */
 const XR_DEVICE = {
   size: [820, 420],
   head: { position: [0.1, 0.2, -0.3], orientation: [0, Math.sin(Math.PI / 12), 0, Math.cos(Math.PI / 12)] },
@@ -122,6 +125,13 @@ const XR_DEVICE = {
       orientation: [0, 0, 0, 1] },
     { eye: 'right', viewport: { x: 410, y: 10, width: 400, height: 400 }, position: [0.032, 0, 0],
       orientation: [Math.sin(Math.PI / 6), 0, 0, Math.cos(Math.PI / 6)] },
+  ],
+  controllers: [
+    { handedness: 'right', grip: { position: [0.2, -0.3, -0.4], orientation: [0, 0, Math.sin(Math.PI / 12),
+      Math.cos(Math.PI / 12)] }, axes: [0.9, 0.9, 0.5, -0.25], buttons: [0.75, 0.25] },
+    { handedness: 'left', ray: { position: [-0.2, -0.3, -0.4], orientation: [0, 0, 0, 1] }, axes: [-0.5, 0.5],
+      buttons: [0] },
+    { handedness: 'none', ray: { position: [0, 0, 0], orientation: [0, 0, 0, 1] }, axes: [], buttons: [] },
   ],
 };
 
@@ -163,6 +173,15 @@ function installXrMock(device) {
     views: device.views.map((v) => ({ eye: v.eye, projectionMatrix: projection,
       transform: rigid(v.position, v.orientation) })),
   };
+  // Input sources: spaces are tagged with the pose the frame reports for them.
+  const inputSources = (device.controllers || []).map((c) => ({
+    handedness: c.handedness, targetRayMode: 'tracked-pointer',
+    gripSpace: c.grip ? { pose: c.grip } : undefined,
+    targetRaySpace: { pose: c.ray || c.grip },
+    gamepad: { axes: c.axes, buttons: c.buttons.map((value) => ({ value, pressed: value > 0.5 })) },
+  }));
+  const getPose = (space) => (space && space.pose ? { transform: rigid(space.pose.position,
+    space.pose.orientation) } : null);
 
   function withLayer(fn) {
     const gl = mock.gl;
@@ -207,6 +226,7 @@ function installXrMock(device) {
     constructor() {
       super();
       this.renderState = { baseLayer: null, depthNear: 0.1, depthFar: 1000 };
+      this.inputSources = inputSources;
       this.ended = false;
     }
 
@@ -232,7 +252,7 @@ function installXrMock(device) {
           });
         }
         mock.frames++;
-        callback(time, { session: this, getViewerPose: () => pose });
+        callback(time, { session: this, getViewerPose: () => pose, getPose });
       });
       return ++mock.handles;
     }
@@ -560,6 +580,7 @@ async function xrSession(isolated) {
 // spec: webxr-session: Two views in the XR layer
 // spec: webxr-session: Head pose reaches Lua
 // spec: webxr-session: Select presses an action
+// spec: webxr-play: Controllers reach Lua
 test('an emulated headset enters VR, renders both views and leaves again', () => xrSession(false));
 
 test('the threaded build enters VR the same way', { skip: !HAS_MT && 'no threaded web build' },

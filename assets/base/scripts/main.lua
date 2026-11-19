@@ -52,6 +52,7 @@ local settings = require("ui.settings")
 local access = require("ui.access")
 local menu = require("ui.menu")
 local modapi = require("mods.api")
+local xrplay = require("xr.play")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -289,7 +290,14 @@ function game.setup_ui()
     set_package = engine.set_package_enabled,
   })
   game.captions = access.captions_new()
+  game.xr_options = game.vr_options(game.settings)
   settings.listeners[#settings.listeners + 1] = function(s, name)
+    if name:match("^xr_") then -- (the VR comfort options, also for a session already running)
+      game.xr_options = game.vr_options(s)
+      if game.xrp then
+        for k, v in pairs(game.xr_options) do game.xrp.options[k] = v end
+      end
+    end
     if name == "survival" and game.survival then game.survival.preset = s.survival end
     if name == "colour_vision" and game.mode ~= "showcase" then render.palette(access.palette()) end
   end
@@ -317,6 +325,12 @@ function game.listen()
   end
   access.listen(game.captions, now, { heading = heading, strikes = sim.weather().strikes, fires = fires,
     creatures = creatures })
+end
+
+-- The VR options (xr.play) from the player's settings.
+function game.vr_options(s)
+  return { steer = s.xr_steer, snap_turn = s.xr_snap_turn, vignette = s.xr_vignette,
+    reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
 end
 
 -- Saves (in flight) and ends the game.
@@ -587,7 +601,11 @@ local function flight_tick(dt)
     lim.fly = false
     game.carpet.limits = lim
   end
-  local c = coop.tick(co, game.carpet, (down or w) and still or controls.flight_input(st), dt, WORLD, net)
+  game.xrp = game.xrp or xrplay.new(game.xr_options) -- VR: reins or head, thumbsticks, gestures in the air
+  local xin = xrplay.tick(game.xrp, xr.state(), dt, game.carpet)
+  local fin = (down or w) and still or controls.flight_input(st)
+  if xin and not (down or w) then fin = xrplay.flight(fin, xin) end
+  local c = coop.tick(co, game.carpet, fin, dt, WORLD, net)
   game.carpet = c
   -- Co-op: the heirs, the Weave, the host's clock, votes and the active areas.
   if co.role ~= "none" then
@@ -610,6 +628,7 @@ local function flight_tick(dt)
   -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
   local spell = {}
   for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
+  if xin and not down then xrplay.spell(xin, spell, function(g, hand) magic.gesture(game.magic, g, hand) end) end
   if down then
     for name in pairs(spell) do spell[name] = {} end
   end
@@ -975,6 +994,11 @@ local function draw_hud(lines)
       lines[#lines + 1] = { raw = hud.credit_line(c) }
     end
   end
+  if xr.state().active then -- (in the headset: a panel low ahead)
+    local shown = {}
+    for i, line in ipairs(lines) do shown[i] = text.of(line) end
+    return xrplay.draw_hud(assets.font, shown, hud.color)
+  end
   text.lines(assets.font, lines, hud.color)
 end
 
@@ -1077,6 +1101,7 @@ local function flight_frame()
     local eye, target = camera.view(game.chase, p, c.heading, up, dt)
     render.camera({ eye = eye, target = target, up = up, fov = access.fov(70) - 5, near = 0.5, far = 30000 })
   end
+  xrplay.frame(game.xrp, c, p, up, not game.walker and not game.camera_override, assets.mote) -- (VR: the seat)
   if game.tent then
     local tp = world.to_local(game.tent.pos)
     render.draw_model(assets.tent, { position = tp, rotation = { 0, 180 - math.deg(game.tent.heading), 0 } })

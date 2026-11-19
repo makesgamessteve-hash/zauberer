@@ -131,10 +131,32 @@ static void test_palette(void) {
   zb_image_free(zb_test_alloc(), &pal);
 }
 
+/* spec: webxr-play: Comfort vignette */
+static void test_vignette(void) {
+  /* Off: no darkening anywhere. */
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, zb_vignette_factor(0.0f, 1.0f, 1.0f));
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, zb_vignette_factor(-2.0f, 1.0f, 1.0f));
+  /* The clear centre, the dark edge, and a smooth fall in between. */
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, zb_vignette_factor(0.5f, 0.2f, -0.2f));
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, 0.5f, zb_vignette_factor(0.5f, 1.0f, 1.0f));
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, 0.0f, zb_vignette_factor(3.0f, -1.2f, 0.0f)); /* strength clamps to 1 */
+  float prev = 1.0f;
+  for (int i = 0; i <= 20; ++i) {
+    float f = zb_vignette_factor(1.0f, (float)i * 0.06f, 0.0f);
+    TEST_ASSERT_TRUE(f <= prev && f >= 0.0f);
+    prev = f;
+  }
+  float mid = zb_vignette_factor(1.0f, 0.725f, 0.0f);
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.5f, mid);
+  /* Round: the same at the same distance in any direction. */
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, zb_vignette_factor(0.7f, 0.6f, 0.0f), zb_vignette_factor(0.7f, 0.0f, -0.6f));
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_fog);
   RUN_TEST(test_sky);
   RUN_TEST(test_palette);
+  RUN_TEST(test_vignette);
   return UNITY_END();
 }

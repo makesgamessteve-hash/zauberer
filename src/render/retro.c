@@ -46,6 +46,15 @@ float zb_horizon_dip(double radius, double altitude) {
   return (float)acos(radius / (radius + altitude));
 }
 
+float zb_vignette_factor(float strength, float dx, float dy) {
+  strength = clamp01(strength);
+  if (strength <= 0.0f) {
+    return 1.0f;
+  }
+  float t = clamp01((sqrtf(dx * dx + dy * dy) - 0.35f) / 0.75f);
+  return 1.0f - strength * t * t * (3.0f - 2.0f * t);
+}
+
 void zb_palette_quantize(const zb_image *lut, const zb_image *bayer, float dither, const float rgb[3], int x, int y,
                          unsigned char out[3]) {
   float t = (float)bayer->rgba[(((size_t)(y & 7) * (size_t)bayer->width) + (size_t)(x & 7)) * 4] / 255.0f;

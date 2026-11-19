@@ -100,6 +100,100 @@ static void test_decode_rejects_bad_data(void) {
   TEST_ASSERT_TRUE(zb_xr_frame_decode(d, n, 0, &f));
 }
 
+/* The two-view frame followed by the controller block: the left controller
+ * tracked, the right one untracked with its stick and buttons. */
+static size_t make_frame_with_controllers(float *d) {
+  size_t n = make_frame(d);
+  const float left[ZB_XR_CONTROLLER_FLOATS] = {1, -0.2f, -0.4f, -0.3f, 0, 0, 0, 3, 0.5f, -0.25f, 0.75f, 0.1f};
+  const float right[ZB_XR_CONTROLLER_FLOATS] = {0, 0, 0, 0, 0, 0, 0, 0, 2.0f, -3.0f, 1.5f, -1.0f};
+  memcpy(d + n, left, sizeof left);
+  memcpy(d + n + ZB_XR_CONTROLLER_FLOATS, right, sizeof right);
+  return n + ZB_XR_CONTROLLERS_FLOATS;
+}
+
+/* spec: webxr-play: Controllers reach Lua */
+static void test_decode_controllers(void) {
+  float d[ZB_XR_MAX_FLOATS];
+  size_t n = make_frame_with_controllers(d);
+  TEST_ASSERT_EQUAL_size_t(ZB_XR_MAX_FLOATS, n);
+  zb_xr_frame f;
+  TEST_ASSERT_TRUE(zb_xr_frame_decode(d, n, 0, &f));
+  TEST_ASSERT_EQUAL_INT(2, f.view_count);
+  const zb_xr_controller *l = &f.controllers[ZB_XR_HAND_LEFT - 1], *r = &f.controllers[ZB_XR_HAND_RIGHT - 1];
+  TEST_ASSERT_TRUE(l->tracked);
+  assert_v3(zb_v3(-0.2f, -0.4f, -0.3f), l->pose.position);
+  TEST_ASSERT_FLOAT_WITHIN(EPS, 1.0f, l->pose.orientation.w); /* normalised */
+  TEST_ASSERT_FLOAT_WITHIN(EPS, 0.5f, l->axes[0]);
+  TEST_ASSERT_FLOAT_WITHIN(EPS, -0.25f, l->axes[1]);
+  TEST_ASSERT_FLOAT_WITHIN(EPS, 0.75f, l->trigger);
+  TEST_ASSERT_FLOAT_WITHIN(EPS, 0.1f, l->squeeze);
+  /* Untracked: the identity pose; the stick and buttons stay, clamped. */
+  TEST_ASSERT_FALSE(r->tracked);
+  assert_v3(zb_v3(0, 0, 0), r->pose.position);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r->pose.orientation.w);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r->axes[0]);
+  TEST_ASSERT_EQUAL_FLOAT(-1.0f, r->axes[1]);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, r->trigger);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, r->squeeze);
+  /* The M1 layout without controllers: both hands untracked and idle. */
+  n = make_frame(d);
+  TEST_ASSERT_TRUE(zb_xr_frame_decode(d, n, 0, &f));
+  for (int h = 0; h < 2; ++h) {
+    TEST_ASSERT_FALSE(f.controllers[h].tracked);
+    TEST_ASSERT_EQUAL_FLOAT(1.0f, f.controllers[h].pose.orientation.w);
+    TEST_ASSERT_EQUAL_FLOAT(0.0f, f.controllers[h].trigger);
+  }
+  zb_xr_controller idle = zb_xr_controller_idle();
+  TEST_ASSERT_FALSE(idle.tracked);
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, idle.pose.orientation.w);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, idle.axes[0] + idle.axes[1] + idle.squeeze);
+}
+
+/* spec: webxr-play: Bad controller data */
+static void test_decode_rejects_bad_controllers(void) {
+  float d[ZB_XR_MAX_FLOATS];
+  size_t n = make_frame_with_controllers(d);
+  size_t c = n - ZB_XR_CONTROLLERS_FLOATS; /* the left controller */
+  zb_xr_frame f, before;
+  memset(&f, 0x5a, sizeof f);
+  before = f;
+  struct {
+    size_t index;
+    float value;
+  } cases[] = {
+      {c, 0.5f},                               /* a tracked flag that is neither 0 nor 1 */
+      {c + ZB_XR_CONTROLLER_FLOATS, -1.0f},    /* nor for the right hand */
+      {c + 2, NAN},                            /* NaN in a controller position */
+      {c + 5, INFINITY},                       /* infinite orientation */
+      {c + 8, NAN},                            /* NaN on a thumbstick */
+      {c + ZB_XR_CONTROLLER_FLOATS + 10, NAN}, /* NaN trigger of an untracked controller */
+      {c + 7, 0.0f},                           /* tracked with a zero orientation */
+  };
+  for (size_t i = 0; i < ZB_ARRAY_LEN(cases); ++i) {
+    make_frame_with_controllers(d);
+    d[cases[i].index] = cases[i].value;
+    TEST_ASSERT_FALSE_MESSAGE(zb_xr_frame_decode(d, n, 0, &f), "malformed controller accepted");
+    TEST_ASSERT_EQUAL_MEMORY(&before, &f, sizeof f);
+  }
+  /* A partial controller block matches neither layout. */
+  make_frame_with_controllers(d);
+  TEST_ASSERT_FALSE(zb_xr_frame_decode(d, n - 1, 0, &f));
+  TEST_ASSERT_FALSE(zb_xr_frame_decode(d, c + ZB_XR_CONTROLLER_FLOATS, 0, &f));
+  /* An untracked controller may carry a zero orientation. */
+  d[c] = 0.0f;
+  d[c + 7] = 0.0f;
+  TEST_ASSERT_TRUE(zb_xr_frame_decode(d, n, 0, &f));
+  TEST_ASSERT_FALSE(f.controllers[0].tracked);
+  /* A one-view frame with controllers. */
+  float one[ZB_XR_MAX_FLOATS];
+  make_frame_with_controllers(d);
+  memcpy(one, d, (ZB_XR_HEADER_FLOATS + ZB_XR_VIEW_FLOATS) * sizeof(float));
+  memcpy(one + ZB_XR_HEADER_FLOATS + ZB_XR_VIEW_FLOATS, d + c, ZB_XR_CONTROLLERS_FLOATS * sizeof(float));
+  one[0] = 1;
+  TEST_ASSERT_TRUE(zb_xr_frame_decode(one, ZB_XR_HEADER_FLOATS + ZB_XR_VIEW_FLOATS + ZB_XR_CONTROLLERS_FLOATS, 0, &f));
+  TEST_ASSERT_TRUE(f.controllers[0].tracked);
+}
+
 static void test_emulated_headset(void) {
   zb_xr_pose head = {zb_v3(1, 2, 3), zb_quat_axis_angle(zb_v3(0, 1, 0), ZB_PI * 0.5f)};
   zb_xr_frame f;
@@ -108,6 +202,8 @@ static void test_emulated_headset(void) {
   TEST_ASSERT_EQUAL_UINT32(0, f.framebuffer);
   TEST_ASSERT_EQUAL_INT(640, f.width);
   assert_v3(head.position, f.head.position);
+  TEST_ASSERT_FALSE(f.controllers[0].tracked || f.controllers[1].tracked); /* idle controllers */
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, f.controllers[1].pose.orientation.w);
   /* Side by side. */
   TEST_ASSERT_EQUAL_INT(0, f.views[0].x);
   TEST_ASSERT_EQUAL_INT(320, f.views[0].width);
@@ -144,6 +240,8 @@ int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_decode);
   RUN_TEST(test_decode_rejects_bad_data);
+  RUN_TEST(test_decode_controllers);
+  RUN_TEST(test_decode_rejects_bad_controllers);
   RUN_TEST(test_emulated_headset);
   return UNITY_END();
 }

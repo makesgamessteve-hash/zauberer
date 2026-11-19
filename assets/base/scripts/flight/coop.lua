@@ -40,7 +40,7 @@ M.same = same
 
 local function copy_input(inp, seq)
   return { seq = seq, turn = inp.turn or 0, throttle = inp.throttle or 0, climb = inp.climb or 0,
-    boost = inp.boost or false }
+    boost = inp.boost or false, snap = inp.snap or 0, scale = inp.scale or 1 }
 end
 
 -- A carpet for a joining heir beside the host's.

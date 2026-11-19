@@ -56,6 +56,9 @@ typedef struct zb_view {
   zb_vec3 eye;
   zb_vec3 right;
   zb_vec3 up;
+  /* Explicit views: screen text (pixels of the view's canvas, origin top-left)
+   * -> the view's clip space, with z = 0. */
+  zb_mat4 text;
 } zb_view;
 
 typedef struct zb_text_vertex {
@@ -99,6 +102,7 @@ typedef struct zb_frame {
   bool palette;             /* quantise the scene to the palette */
   uint32_t lut_texture, bayer_texture;
   float dither;
+  float vignette;         /* 0 .. 1: darkens each view's edges (0 = off) */
   uint32_t atlas_texture; /* terrain material atlas */
   int atlas_layers;
   float time; /* seconds, for animated water and swaying plants */

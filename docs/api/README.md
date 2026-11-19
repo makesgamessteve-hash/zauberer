@@ -232,6 +232,14 @@ Glyph indices the font uses for text.
 
 Starts loading a PNG texture; returns its handle.
 
+### `render.vignette(strength: number|false): number`
+
+Comfort vignette: darkens the edges of every view (around each eye's optical centre in VR) by up to strength (0 .. 1; 0 or false switches it off), e.g. while the carpet turns or speeds up. Returns the strength in effect.
+
+### `render.xr_hud(distance: number|false, pixel?: number): number`
+
+Screen text in VR is drawn at the headset's resolution. false or 0 (the default) shows the canvas (one view's width, render.stats().internal_width / views, by the internal height) filling every eye's view; a distance (metres, up to 1000) puts it on a plane that far in front of the head instead, the canvas centre straight ahead, so both eyes see it in the same direction. pixel is the size of a canvas pixel on that plane in metres (default: as wide as a pixel in the middle of the view). Returns the distance in effect.
+
 ## audio: sounds and music
 
 ### `audio.decoder_bytes(voice: integer): integer`
@@ -566,9 +574,13 @@ Test API: starts or moves an emulated headset at the head pose (default: the ses
 
 Test API: a controller button event, as a headset reports it ("none" for sources without a hand).
 
+### `xr.emulate_controller(hand: "left"|"right", pose: XrPose|false, axes?: number[], trigger?: number, squeeze?: number)`
+
+Test API: the emulated headset's controller of a hand from now on, as xr.state().controllers reports it: tracked at the pose (relative to the session origin), or untracked for false; the thumbstick {x, y} (default {0, 0}, each -1 .. 1), the trigger and the squeeze (default 0, each 0 .. 1).
+
 ### `xr.state(): XrState`
 
-The WebXR session. While it runs, the camera set with render.camera is the session origin (the seat on the carpet): every eye sees the scene from the head pose relative to it, with the headset's field of view. The head pose is updated before the frame hooks of every XR frame; it is presentation data and not part of replays. A session start or end reaches the event hook as "xr_session" (value "started" or "ended"); controller buttons are bindings such as "xr:select" (see input.bind).
+The WebXR session. While it runs, the camera set with render.camera is the session origin (the seat on the carpet): every eye sees the scene from the head pose relative to it, with the headset's field of view. The head pose is updated before the frame hooks of every XR frame; it is presentation data and not part of replays. The controllers (poses, thumbsticks, trigger and squeeze of the left and right hands) are updated with it and are presentation data in the same way. A session start or end reaches the event hook as "xr_session" (value "started" or "ended"); controller buttons are bindings such as "xr:select" (see input.bind).
 
 ## test: Lua tests
 
@@ -1168,6 +1180,23 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `tilt` | `number?` | Axial tilt in degrees (23) |
 | `quality` | `string?` | "quick", "normal" or "high" |
 
+### XrController
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `tracked` | `boolean` | The pose is known this frame (else it is the session origin) |
+| `pose` | `XrPose` | Grip pose (else the target ray's) relative to the session origin |
+| `axes` | `number[]` | Thumbstick {x, y}: x to the right, y pushed forward (-1 .. 1) |
+| `trigger` | `number` | Trigger, 0 .. 1 |
+| `squeeze` | `number` | Grip squeeze, 0 .. 1 |
+
+### XrControllers
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `left` | `XrController` | The left hand's controller |
+| `right` | `XrController` | The right hand's controller |
+
 ### XrPose
 
 | Field | Type | Description |
@@ -1186,3 +1215,4 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `frames` | `integer` | XR frames rendered in the running session |
 | `size` | `integer[]` | Width and height of the XR framebuffer in pixels |
 | `head` | `XrPose` | Viewer (head) pose relative to the session origin |
+| `controllers` | `XrControllers` | The left and right controllers |

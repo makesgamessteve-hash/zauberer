@@ -46,7 +46,8 @@ function M.new(pos, heading)
   }
 end
 
--- inp: { turn = -1..1 (right +), throttle = -1..1, climb = -1..1, boost = bool }
+-- inp: { turn = -1..1 (right +), throttle = -1..1, climb = -1..1, boost = bool,
+--        snap = radians turned at once (VR snap turning, right +), scale = 0..1 top speed (VR comfort) }
 -- env: { move(pos, heading, forward, right, up) -> pos, heading; height(pos) -> metres;
 --        water(pos) -> kind?, surface, depth, east, north (optional) }
 -- c.limits (optional, from its condition): { speed, climb = factors, fly =
@@ -56,7 +57,8 @@ function M.update(c, inp, dt, env)
   local lim = c.limits or {}
   local throttle = clamp(inp.throttle or 0, -1, lim.fly == false and 0.1 or 1)
   local boosting = inp.boost and throttle >= 0 and lim.fly ~= false
-  local top = (boosting and M.BOOST_MAX or M.CRUISE_MAX) * (lim.speed or 1)
+  local scale = type(inp.scale) == "number" and inp.scale == inp.scale and clamp(inp.scale, 0, 1) or 1
+  local top = (boosting and M.BOOST_MAX or M.CRUISE_MAX) * (lim.speed or 1) * scale
   if throttle > 0 then
     local accel = boosting and M.BOOST_ACCEL or M.ACCEL
     c.speed = math.min(c.speed + accel * throttle * dt, math.max(top, c.speed))
@@ -72,6 +74,10 @@ function M.update(c, inp, dt, env)
   c.speed = clamp(c.speed, 0, M.BOOST_MAX)
   c.boosting = boosting
 
+  local snap = inp.snap
+  if type(snap) == "number" and snap == snap and snap ~= 0 then
+    c.heading = wrap(c.heading + clamp(snap, -math.pi, math.pi))
+  end
   local turn = clamp(inp.turn or 0, -1, 1)
   local rate = M.TURN_RATE * (1 - M.TURN_FALLOFF * c.speed / M.BOOST_MAX)
   c.heading = wrap(c.heading + turn * rate * dt)

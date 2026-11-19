@@ -6,6 +6,7 @@
 -- spec: webxr-session: Enter and leave
 -- spec: webxr-session: Head pose reaches Lua
 -- spec: webxr-session: Select presses an action
+-- spec: webxr-play: Controllers reach Lua
 scenario { name = "webxr session" }
 if demo then
   demo.game.set_mode("showcase")
@@ -48,6 +49,23 @@ end
 for i = 1, 4 do
   expect_near(s.head.orientation[i], q[i], 1e-5, "head orientation")
 end
+-- The controllers: the right one by its grip, its thumbstick on gamepad axes 2 and 3 (forward is up);
+-- the left one by its target ray, its thumbstick on axes 0 and 1.
+local r, l = s.controllers.right, s.controllers.left
+expect(r.tracked and l.tracked, "both controllers are tracked")
+local rq = { 0, 0, math.sin(math.pi / 12), math.cos(math.pi / 12) }
+for i = 1, 3 do
+  expect_near(r.pose.position[i], ({ 0.2, -0.3, -0.4 })[i], 1e-5, "right controller position")
+  expect_near(l.pose.position[i], ({ -0.2, -0.3, -0.4 })[i], 1e-5, "left controller position")
+end
+for i = 1, 4 do expect_near(r.pose.orientation[i], rq[i], 1e-5, "right controller orientation") end
+expect_near(r.axes[1], 0.5, 1e-6)
+expect_near(r.axes[2], 0.25, 1e-6)
+expect_near(r.trigger, 0.75, 1e-6)
+expect_near(r.squeeze, 0.25, 1e-6)
+expect_near(l.axes[1], -0.5, 1e-6)
+expect_near(l.axes[2], -0.5, 1e-6)
+expect_eq(l.trigger, 0)
 engine.log("info", "xr web: views checked")
 
 local seen

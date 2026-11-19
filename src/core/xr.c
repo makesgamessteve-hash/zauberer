@@ -26,17 +26,57 @@ static bool whole(float v, float lo, float hi, int *out) {
 
 static void copy_matrix(zb_mat4 *m, const float *src) { memcpy(m->m, src, sizeof m->m); }
 
+static float clampf(float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+zb_xr_controller zb_xr_controller_idle(void) {
+  zb_xr_controller c;
+  memset(&c, 0, sizeof c);
+  c.pose.orientation = zb_quat_identity();
+  return c;
+}
+
+/* One controller of the controller block. */
+static bool decode_controller(const float *d, zb_xr_controller *out) {
+  zb_xr_controller c = zb_xr_controller_idle();
+  if (d[0] != 0.0f && d[0] != 1.0f) {
+    return false;
+  }
+  c.tracked = d[0] == 1.0f;
+  if (c.tracked) {
+    zb_quat q = {d[4], d[5], d[6], d[7]};
+    if (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w < 1e-12f) {
+      return false;
+    }
+    c.pose.position = zb_v3(d[1], d[2], d[3]);
+    c.pose.orientation = zb_quat_normalize(q);
+  }
+  c.axes[0] = clampf(d[8], -1.0f, 1.0f);
+  c.axes[1] = clampf(d[9], -1.0f, 1.0f);
+  c.trigger = clampf(d[10], 0.0f, 1.0f);
+  c.squeeze = clampf(d[11], 0.0f, 1.0f);
+  *out = c;
+  return true;
+}
+
 bool zb_xr_frame_decode(const float *data, size_t n, uint32_t framebuffer, zb_xr_frame *out) {
   if (!data || n < ZB_XR_HEADER_FLOATS || (data[0] != 1.0f && data[0] != 2.0f)) {
     return false;
   }
   int count = (int)data[0];
-  if (n != (size_t)(ZB_XR_HEADER_FLOATS + count * ZB_XR_VIEW_FLOATS) || !all_finite(data, n)) {
+  size_t views_end = (size_t)(ZB_XR_HEADER_FLOATS + count * ZB_XR_VIEW_FLOATS);
+  bool controllers = n == views_end + ZB_XR_CONTROLLERS_FLOATS;
+  if ((n != views_end && !controllers) || !all_finite(data, n)) {
     return false;
   }
   zb_xr_frame f;
   memset(&f, 0, sizeof f);
   f.framebuffer = framebuffer;
+  for (int h = 0; h < 2; ++h) {
+    f.controllers[h] = zb_xr_controller_idle();
+    if (controllers && !decode_controller(data + views_end + (size_t)h * ZB_XR_CONTROLLER_FLOATS, &f.controllers[h])) {
+      return false;
+    }
+  }
   f.view_count = count;
   if (!whole(data[1], 1.0f, MAX_FRAMEBUFFER, &f.width) || !whole(data[2], 1.0f, MAX_FRAMEBUFFER, &f.height)) {
     return false;
@@ -99,6 +139,7 @@ void zb_xr_emulate(zb_xr_pose head, int width, int height, float ipd, zb_xr_fram
   zb_quat q = zb_quat_normalize(head.orientation); /* identity for a zero quaternion */
   out->head.position = head.position;
   out->head.orientation = q;
+  out->controllers[0] = out->controllers[1] = zb_xr_controller_idle();
   zb_vec3 right = zb_quat_rotate(q, zb_v3(1.0f, 0.0f, 0.0f));
   const float outward = tanf(50.0f * ZB_PI / 180.0f), inward = tanf(40.0f * ZB_PI / 180.0f);
   int half = out->width / 2;

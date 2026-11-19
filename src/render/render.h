@@ -64,6 +64,21 @@ void zb_render_set_eye_separation(zb_render *r, float metres);
  * rendered at the internal height with its viewport's aspect ratio, side by
  * side in the internal framebuffer. */
 void zb_render_set_views(zb_render *r, const zb_xr_view *views, int count);
+/* Screen text in explicit views is drawn after the upscale, at the
+ * resolution of each view's destination. distance 0 (the default) shows the
+ * canvas (one view's internal width x the internal height) filling every
+ * view; a distance > 0 (metres) puts it on a plane that far in front of the
+ * head instead, its centre straight ahead, so both eyes see it in the same
+ * direction. pixel is the size of a canvas pixel on that plane in metres
+ * (<= 0: as wide as a pixel at the views' centre). The head is between the
+ * eyes and looks along the first view. */
+void zb_render_set_xr_hud(zb_render *r, float distance, float pixel);
+/* The distance in effect (0: off), and the pixel size if pixel is not NULL. */
+float zb_render_xr_hud(const zb_render *r, float *pixel);
+/* Comfort vignette: darkens the edges of every view (0 .. 1, 0 = off; see
+ * zb_vignette_factor), centred on each view's optical axis. */
+void zb_render_set_vignette(zb_render *r, float strength);
+float zb_render_vignette(const zb_render *r);
 /* Presents into a backend framebuffer of width x height pixels instead of
  * the window; a size of 0 returns to the window. */
 void zb_render_set_target(zb_render *r, uint32_t framebuffer, int width, int height);

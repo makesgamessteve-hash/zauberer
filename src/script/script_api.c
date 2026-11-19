@@ -1005,6 +1005,44 @@ static int r_pin_time(lua_State *L) {
   return 0;
 }
 
+/* A strength or distance argument: a number, or false for 0. */
+static float number_or_false(lua_State *L, int arg) {
+  if (lua_isboolean(L, arg) && !lua_toboolean(L, arg)) {
+    return 0.0f;
+  }
+  lua_Number v = luaL_checknumber(L, arg);
+  luaL_argcheck(L, v >= 0.0 && isfinite(v), arg, "must be a finite number >= 0");
+  return (float)v;
+}
+
+/* @lua render.vignette(strength: number|false): number
+ * Comfort vignette: darkens the edges of every view (around each eye's optical centre in VR) by up to
+ * strength (0 .. 1; 0 or false switches it off), e.g. while the carpet turns or speeds up. Returns the
+ * strength in effect.
+ */
+static int r_vignette(lua_State *L) {
+  zb_render *r = S(L)->cfg.render;
+  zb_render_set_vignette(r, number_or_false(L, 1));
+  lua_pushnumber(L, zb_render_vignette(r));
+  return 1;
+}
+
+/* @lua render.xr_hud(distance: number|false, pixel?: number): number
+ * Screen text in VR is drawn at the headset's resolution. false or 0 (the default) shows the canvas
+ * (one view's width, render.stats().internal_width / views, by the internal height) filling every eye's
+ * view; a distance (metres, up to 1000) puts it on a plane that far in front of the head instead, the
+ * canvas centre straight ahead, so both eyes see it in the same direction. pixel is the size of a canvas
+ * pixel on that plane in metres (default: as wide as a pixel in the middle of the view). Returns the
+ * distance in effect.
+ */
+static int r_xr_hud(lua_State *L) {
+  zb_render *r = S(L)->cfg.render;
+  float pixel = lua_isnoneornil(L, 2) ? 0.0f : number_or_false(L, 2);
+  zb_render_set_xr_hud(r, number_or_false(L, 1), pixel);
+  lua_pushnumber(L, zb_render_xr_hud(r, NULL));
+  return 1;
+}
+
 /* @lua render.internal_height(height?: integer): integer
  * Gets or sets the internal rendering height (default 360).
  */
@@ -1473,6 +1511,8 @@ void zb_script_open_api(zb_script *s) {
                                         {"atmosphere", r_atmosphere},
                                         {"palette", r_palette},
                                         {"internal_height", r_internal_height},
+                                        {"vignette", r_vignette},
+                                        {"xr_hud", r_xr_hud},
                                         {"draw_model", r_draw_model},
                                         {"draw_sprite", r_draw_sprite},
                                         {"draw_text", r_draw_text},

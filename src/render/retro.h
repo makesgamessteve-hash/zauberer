@@ -37,6 +37,11 @@ zb_vec3 zb_sky_color(const zb_atmosphere *a, zb_vec3 ray);
 float zb_horizon_dip(double radius, double altitude);
 /* Palette colour of an RGB value (0..1) at framebuffer pixel (x, y) (origin
  * bottom-left, as gl_FragCoord), dithered with the 8x8 Bayer image. */
+/* Brightness factor (0 .. 1) of the comfort vignette at an offset (dx, dy)
+ * from a view's optical centre, in half-view units (1 at the view's edge
+ * along each axis): 1 inside the clear centre (0.35), falling smoothly to
+ * 1 - strength from 1.1 outwards. strength is clamped to 0 .. 1; 0 is off. */
+float zb_vignette_factor(float strength, float dx, float dy);
 void zb_palette_quantize(const zb_image *lut, const zb_image *bayer, float dither, const float rgb[3], int x, int y,
                          unsigned char out[3]);
 

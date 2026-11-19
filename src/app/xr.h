@@ -11,11 +11,12 @@
 struct zb_engine;
 
 typedef struct zb_engine_xr {
-  zb_xr_state state;         /* what scripts see */
-  bool device_available;     /* the browser can start a session */
-  bool in_frame;             /* an XR frame is running the engine step */
-  zb_xr_pose emulated_head;  /* head pose of an emulated session */
-  const char *pending_event; /* "started" or "ended", for the scripts */
+  zb_xr_state state;                        /* what scripts see */
+  bool device_available;                    /* the browser can start a session */
+  bool in_frame;                            /* an XR frame is running the engine step */
+  zb_xr_pose emulated_head;                 /* head pose of an emulated session */
+  zb_xr_controller emulated_controllers[2]; /* left, right controllers of an emulated session */
+  const char *pending_event;                /* "started" or "ended", for the scripts */
 } zb_engine_xr;
 
 /* Registers the engine with the platform's WebXR bridge and sets the
@@ -33,5 +34,9 @@ void zb_engine_xr_status(struct zb_engine *e, zb_xr_status status);
 /* Test API: starts or moves an emulated headset session; NULL ends it. No
  * effect while a real headset presents. */
 void zb_engine_xr_emulate(struct zb_engine *e, const zb_xr_pose *head);
+/* Test API: the emulated headset's controller of a hand (ZB_XR_HAND_LEFT or
+ * ZB_XR_HAND_RIGHT), used by its frames from now on (also visible at once
+ * while an emulated session runs); other hands are ignored. */
+void zb_engine_xr_emulate_controller(struct zb_engine *e, int hand, const zb_xr_controller *c);
 
 #endif
