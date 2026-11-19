@@ -15,7 +15,7 @@ from words, gestures, ingredients and eight colors of mana, and it acts through 
 world's simulation of heat, fire, water, air and life. Play alone, or in online co-op
 with up to three friends as the father's children, the heirs of the carpet.
 
-> **Status: M10, the story.** M0–M10 are done.
+> **Status: 1.0 release candidate (M11).** M0–M11 are done.
 >
 > - The engine runs on Linux, Windows, macOS and the web, with co-op flight over WebSockets
 >   and a WebXR spike.
@@ -48,6 +48,10 @@ with up to three friends as the father's children, the heirs of the carpet.
 >   with domains and Azhdar's campaign of burning, blight and stolen Weaves. Act III has
 >   divination, the ash storm and the duel with Azhdar. There are four endings, and the
 >   world goes on after each of them.
+> - Release: English and German, accessibility settings (remapping, toggle instead of hold,
+>   gesture assist, colour glyphs and colour-vision palettes, text size and contrast, reduced
+>   flashing, sound captions, story markers, survival presets), a menu on Escape, the game's
+>   API for mods with an example mod, and release packages for every platform.
 
 ## Documents
 
@@ -57,7 +61,8 @@ with up to three friends as the father's children, the heirs of the carpet.
 | [Implementation plan](docs/implementation-plan.md) | Architecture, technology stack, repository layout, quality strategy, milestone roadmap M0–M11, decisions, risks, open questions |
 | [OpenSpec specs](openspec/specs/) | The capability specs as they stand; every change that made them is in `openspec/changes/archive/` |
 | [Lua API reference](docs/api/README.md) | Every function scripts can call (generated from the C bindings; type stubs in `docs/api/zauberer.d.lua`) |
-| [Creating packages](docs/modding/packages.md) | Package layout, `package.lua`, scripts, hooks, data, credits and testing a mod |
+| [Creating packages](docs/modding/packages.md) | Package layout, `package.lua`, scripts, hooks, data, languages, credits and testing a mod |
+| [The game's API for mods](docs/modding/game-api.md) and [the example mod](docs/modding/example-mod.md) | `zauberer.add_item`, HUD lines, work every tick; `examples/lantern-moths` |
 | [Changelog](CHANGELOG.md) | What changed in each release, starting with 1.0.0-rc.1 (milestones M0–M11) |
 | [Cutting a release](docs/release.md) | Version, changelog, gates, desktop and web packages, signing, checksums, web deploy and tag |
 
@@ -87,7 +92,8 @@ gamepad and touch bindings are in `assets/base/data/input.lua`):
 | Use | Tab opens doors and chests, takes what is in them and talks with people (Shift+Tab asks for their service) |
 | Story | F5 begins the prologue in Anarvan (Vertical Slice B); Acts II and III follow on their own; when Azhdar falls, F5 shows the endings and Tab takes one |
 | Co-op | F6 splits the Weave into a carpet each or rejoins it; L in company opens or agrees to a vote to sleep |
-| Other | N new world, F1 credits, F11 fullscreen, Esc quit |
+| Menu | Esc opens the menu: settings (language, accessibility), controls (remapping), packages (mods), credits, save and quit |
+| Other | N new world, F1 credits, F11 fullscreen |
 
 Co-op: run the relay (`zauberer-relay --port 47821`, built next to the game) where every
 player can reach it; the host calls `net.host_relay("ws://<relay>:47821")` and gives the
