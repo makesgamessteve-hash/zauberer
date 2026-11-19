@@ -168,7 +168,8 @@ do
   local salt_hills = economy.price(db, hills, "salt", true, cell_of)
   expect(salt_coast < salt_hills, "salt cheap on the coast (" .. salt_coast .. "), dear in the hills ("
     .. salt_hills .. ")")
-  expect(economy.price(db, hills, "copper_ore", false, cell_of) <= economy.price(db, coast, "copper_ore", false, cell_of))
+  expect(economy.price(db, hills, "copper_ore", false, cell_of)
+    <= economy.price(db, coast, "copper_ore", false, cell_of))
   expect(economy.price(db, coast, "salt", true, cell_of) >= economy.price(db, coast, "salt", false, cell_of))
   expect_eq(economy.price(db, coast, "coin", true), 1)
   db.by_id[coast.id], db.by_id[hills.id] = nil, nil
