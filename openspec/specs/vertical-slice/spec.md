@@ -12,3 +12,10 @@ The base game SHALL let a player, in one session near the start: scare a wolf pa
 #### Scenario: Vertical Slice A
 - **WHEN** the slice is played through with the hands, the spellbook and the bindings of the base game
 - **THEN** the wolves run from the fire, the fire spreads and is put out, the storm bird falls and its storm mana is collected, the deep water stops the mage, the frozen water carries the mage out from the shore, and the carpet flies on with the player alive
+
+### Requirement: Vertical Slice B
+Begun with F5, the prologue in Anarvan (set piece: Farrokh's house with the hidden sanctum, qanat, pen, orchards) SHALL run through chores, Azhdar's arrival, the handover, hiding while the village burns, the ashes and burial, the sanctum, the carpet bonding (it does not fly before), the first flight, survival and leaving the valley.
+
+#### Scenario: Vertical Slice B
+- **WHEN** the slice is played through
+- **THEN** every beat follows from what the heir does, the village is laid in ashes, the Primer's weaves are learnt, and the carpet flies only once bonded
