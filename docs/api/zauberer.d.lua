@@ -1097,6 +1097,11 @@ function mana.ley(pos) end
 ---@param amount number
 function mana.release(pos, color, amount) end
 
+---Sets the ley network's strength (0 .. 1; the story weakens or restores it) and returns the strength before. Mana flows from lines and nexuses in proportion.
+---@param strength number
+---@return number
+function mana.set_ley_strength(strength) end
+
 ---
 ---@return ManaStats
 function mana.stats() end

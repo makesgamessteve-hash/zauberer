@@ -168,9 +168,28 @@ static int m_ley(lua_State *L) {
   return 1;
 }
 
+/* @lua mana.set_ley_strength(strength: number): number
+ * Sets the ley network's strength (0 .. 1; the story weakens or restores it)
+ * and returns the strength before. Mana flows from lines and nexuses in
+ * proportion.
+ */
+static int m_set_ley_strength(lua_State *L) {
+  zb_world *w = zb_script_from(L)->world;
+  double before = zb_world_ley(w)->strength;
+  zb_world_set_ley_strength(w, luaL_checknumber(L, 1));
+  lua_pushnumber(L, before);
+  return 1;
+}
+
 void zb_script_open_mana(zb_script *s) {
-  static const luaL_Reg fns[] = {{"colors", m_colors}, {"at", m_at},   {"draw", m_draw}, {"release", m_release},
-                                 {"stats", m_stats},   {"ley", m_ley}, {NULL, NULL}};
+  static const luaL_Reg fns[] = {{"colors", m_colors},
+                                 {"at", m_at},
+                                 {"draw", m_draw},
+                                 {"release", m_release},
+                                 {"stats", m_stats},
+                                 {"ley", m_ley},
+                                 {"set_ley_strength", m_set_ley_strength},
+                                 {NULL, NULL}};
   lua_newtable(s->L);
   luaL_setfuncs(s->L, fns, 0);
   lua_setglobal(s->L, "mana");

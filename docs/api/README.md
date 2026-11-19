@@ -656,6 +656,10 @@ The ley network near a place (anywhere on the planet).
 
 Gives mana back to the field at a place (0 .. 1e6): motes dissolving, spells fading.
 
+### `mana.set_ley_strength(strength: number): number`
+
+Sets the ley network's strength (0 .. 1; the story weakens or restores it) and returns the strength before. Mana flows from lines and nexuses in proportion.
+
 ### `mana.stats(): ManaStats`
 
 

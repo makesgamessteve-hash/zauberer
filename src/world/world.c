@@ -91,6 +91,10 @@ void zb_world_destroy(zb_world *w) {
 
 const zb_planet *zb_world_planet(const zb_world *w) { return &w->planet; }
 const zb_ley *zb_world_ley(const zb_world *w) { return &w->ley; }
+
+void zb_world_set_ley_strength(zb_world *w, double strength) {
+  w->ley.strength = strength < 0.0 ? 0.0 : (strength > 1.0 ? 1.0 : strength);
+}
 const zb_terrain *zb_world_terrain(const zb_world *w) { return &w->terrain; }
 const zb_world_bundle *zb_world_get_bundle(const zb_world *w) { return w->terrain.bundle; }
 zb_stream *zb_world_stream(zb_world *w) { return w->stream; }

@@ -32,6 +32,8 @@ void zb_world_destroy(zb_world *w);
 const zb_planet *zb_world_planet(const zb_world *w);
 const zb_terrain *zb_world_terrain(const zb_world *w);
 const zb_ley *zb_world_ley(const zb_world *w); /* the world's ley lines and nexuses */
+/* Sets the ley network's strength (0 .. 1): it weakens or is restored over the story. */
+void zb_world_set_ley_strength(zb_world *w, double strength);
 /* The created world's bundle, or NULL for the noise world. */
 const struct zb_world_bundle *zb_world_get_bundle(const zb_world *w);
 zb_stream *zb_world_stream(zb_world *w);
