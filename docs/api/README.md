@@ -158,7 +158,7 @@ Draws a model this frame (call from a frame hook).
 
 ### `render.draw_sprite(sprite: integer, position: number[], scale?: number, time?: number)`
 
-Draws a camera-facing sprite; the animation frame follows time (default: simulation time).
+Draws a camera-facing sprite; the animation frame follows time (default: the pinned render time if pinned, else simulation time).
 
 ### `render.draw_text(font: integer, text: string, x: number, y: number, scale?: number, color?: number[])`
 

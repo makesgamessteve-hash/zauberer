@@ -109,6 +109,8 @@ bool zb_render_daylight(const zb_render *r);
 /* Holds the animation time at seconds (photos and golden images), or lets it
  * run again when seconds is negative. */
 void zb_render_pin_time(zb_render *r, double seconds);
+/* The pinned time in seconds, or -1 when time is not pinned. */
+double zb_render_pinned_time(const zb_render *r);
 /* Plant billboards (zb_foliage_instance) uploaded once, e.g. per chunk. */
 uint32_t zb_render_upload_foliage(zb_render *r, const zb_foliage_instance *instances, size_t count);
 void zb_render_release_foliage(zb_render *r, uint32_t foliage);

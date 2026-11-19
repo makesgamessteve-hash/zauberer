@@ -676,6 +676,8 @@ void zb_render_set_time(zb_render *r, double seconds) {
 void zb_render_set_daylight(zb_render *r, bool on) { r->daylight = on; }
 bool zb_render_daylight(const zb_render *r) { return r->daylight; }
 
+double zb_render_pinned_time(const zb_render *r) { return r->time_pinned ? r->time : -1.0; }
+
 void zb_render_pin_time(zb_render *r, double seconds) {
   r->time_pinned = seconds >= 0.0;
   r->time = seconds >= 0.0 ? seconds : r->time;

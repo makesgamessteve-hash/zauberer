@@ -988,7 +988,8 @@ static int r_draw_model(lua_State *L) {
 }
 
 /* @lua render.draw_sprite(sprite: integer, position: number[], scale?: number, time?: number)
- * Draws a camera-facing sprite; the animation frame follows time (default: simulation time).
+ * Draws a camera-facing sprite; the animation frame follows time (default: the pinned render
+ * time if pinned, else simulation time).
  */
 static int r_draw_sprite(lua_State *L) {
   zb_script *s = S(L);
@@ -996,7 +997,9 @@ static int r_draw_sprite(lua_State *L) {
   luaL_checktype(L, 2, LUA_TTABLE);
   zb_vec3 pos = vec_at(L, 2, zb_v3(0, 0, 0));
   float scale = (float)luaL_optnumber(L, 3, 1.0);
-  double t = luaL_optnumber(L, 4, s->cfg.host.sim_time ? s->cfg.host.sim_time(s->cfg.host.ctx) : 0.0);
+  double pinned = zb_render_pinned_time(s->cfg.render);
+  double t = luaL_optnumber(
+      L, 4, pinned >= 0.0 ? pinned : (s->cfg.host.sim_time ? s->cfg.host.sim_time(s->cfg.host.ctx) : 0.0));
   zb_render_draw_sprite(s->cfg.render, h, pos, scale, t);
   return 0;
 }

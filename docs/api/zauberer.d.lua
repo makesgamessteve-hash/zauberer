@@ -389,7 +389,7 @@ function render.daylight(on) end
 ---@param transform? Transform
 function render.draw_model(model, transform) end
 
----Draws a camera-facing sprite; the animation frame follows time (default: simulation time).
+---Draws a camera-facing sprite; the animation frame follows time (default: the pinned render time if pinned, else simulation time).
 ---@param sprite integer
 ---@param position number[]
 ---@param scale? number
