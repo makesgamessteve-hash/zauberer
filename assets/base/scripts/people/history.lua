@@ -142,6 +142,30 @@ function history.snapshot(db)
   return out
 end
 
+-- The whole database as plain tables, with what peopling wrote beside the
+-- schema (the regions' peoples, faiths and realms, roads, borders, wars,
+-- eras, the story): kept with a save where it cannot be made again quickly.
+local DERIVED = { by_id = true, lang_cache = true, sim = true, dungeon_sites = true, caravans = true,
+  factions = true }
+
+function history.save(db)
+  local out = {}
+  for k, v in pairs(db) do
+    if not DERIVED[k] then out[k] = v end
+  end
+  return out
+end
+
+-- A database from history.save (nil if it is not one).
+function history.load(saved)
+  local db = history.restore(saved)
+  if not db then return nil end
+  for k, v in pairs(saved) do
+    if db[k] == nil and not DERIVED[k] then db[k] = v end
+  end
+  return db
+end
+
 function history.restore(saved)
   if type(saved) ~= "table" or type(saved.year) ~= "number" or type(saved.events) ~= "table" then return nil end
   local db = history.new(saved.year, saved.variant)

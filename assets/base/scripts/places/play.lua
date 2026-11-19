@@ -18,11 +18,11 @@ local play = {}
 -- Sets up places for a game. saved: what the save kept (deltas, journal);
 -- seed: the world's; anchor: where the story begins; env: the walker's
 -- ground (gets structure and blocked).
-function play.setup(saved, seed, anchor, env)
+function play.setup(saved, seed, anchor, env, variant)
   saved = type(saved) == "table" and saved or {}
   local s = { places = places.new(saved.places), journal = lore.new(saved.journal), said = nil,
-    folk = folk.new(saved.folk) }
-  places.begin(s.places, seed, anchor)
+    folk = folk.new(saved.folk), variant = saved.variant or variant or "settled" }
+  places.begin(s.places, seed, anchor, s.variant, type(saved.history) == "table" and history.load(saved.history) or nil)
   if env then
     env.structure = function(pos, alt)
       if not s.places.ready then return nil end
@@ -34,7 +34,10 @@ function play.setup(saved, seed, anchor, env)
 end
 
 function play.snapshot(s)
-  return { places = places.snapshot(s.places), journal = lore.snapshot(s.journal), folk = folk.snapshot(s.folk) }
+  local out = { places = places.snapshot(s.places), journal = lore.snapshot(s.journal), folk = folk.snapshot(s.folk),
+    variant = s.variant }
+  if s.variant == "rise" and s.places.ready then out.history = history.save(s.places.db) end -- (too long to make again)
+  return out
 end
 
 -- A book's text: one of the chronicles of the household's people.

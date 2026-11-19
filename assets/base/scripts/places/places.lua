@@ -44,10 +44,16 @@ function places.snapshot(P)
   return { deltas = P.deltas }
 end
 
--- Begins peopling the world (in slices, see places.tick).
-function places.begin(P, seed, anchor)
-  P.seed = seed
-  P.job = job.new(chronicle.settled_world, seed, { anchor = anchor })
+-- Begins peopling the world (in slices, see places.tick): the Settled world
+-- (variant "settled") or Rise and fall ("rise"); a history kept with the save
+-- (saved) is taken as it is.
+function places.begin(P, seed, anchor, variant, saved)
+  P.seed, P.variant = seed, variant or "settled"
+  if saved then
+    P.job = job.new(function() return saved, land.sample(seed) end)
+  else
+    P.job = job.new(chronicle.settled_world, seed, { anchor = anchor, variant = P.variant })
+  end
   P.ready = false
 end
 

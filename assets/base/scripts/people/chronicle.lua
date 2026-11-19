@@ -57,8 +57,10 @@ function chronicle.write(db, grid, opts)
     { name = "the Age of Kingdoms", from = now - depth // 2, to = now - 150 },
     { name = "the Present Age", from = now - 150, to = now },
   }
+  local rise = db.variant == "rise and fall" -- (the simulation wrote the wars, ruins and settling itself)
   -- Peoples settle their cradles and spread; places are founded as they come.
   for _, cu in ipairs(db.culture) do
+    if rise then break end
     cu.settled = now - depth - s:int(0, 200)
     history.event(db, { year = cu.settled, kind = "settling", participants = { cu.id }, place = cu.cradle,
       importance = 0.9, title = "the " .. cu.name .. " settle their homeland" })
@@ -69,7 +71,8 @@ function chronicle.write(db, grid, opts)
     job.pace(0.5)
     local cu = history.get(db, st.culture)
     local cost = db.cell_settled[st.cell] or far
-    st.founded = math.min(now - 5, cu.settled + math.floor(cost / math.max(far, 1) * depth * 0.8) + s:int(0, 60))
+    st.founded = math.min(now - 5, (cu.settled or (now - depth))
+      + math.floor(cost / math.max(far, 1) * depth * 0.8) + s:int(0, 60))
     history.event(db, { year = st.founded, kind = "founding", participants = { st.culture, st.id },
       place = st.id, importance = st.type == "city" and 0.8 or 0.2, title = st.name .. " is founded" })
     if cost > far * 0.6 and s:chance(0.15) then
@@ -99,6 +102,7 @@ function chronicle.write(db, grid, opts)
   -- Realms: dynasties, rulers, deeds and tombs.
   for _, p in ipairs(db.polity) do
     job.pace(5)
+    if p.fallen then goto continue end
     local capital = p.capital and history.get(db, p.capital)
     local founded = capital and (capital.founded + s:int(10, 300)) or (now - s:int(200, 600))
     founded = math.min(founded, now - 60)
@@ -145,10 +149,11 @@ function chronicle.write(db, grid, opts)
     end
     p.dynasty = dyn.id
     p.ruler = db.figure[#db.figure].id
+    ::continue::
   end
   -- Wars along today's borders; the side holding the field today won.
-  db.wars = {}
-  for _, b in ipairs(db.borders) do
+  if not rise then db.wars = {} end
+  for _, b in ipairs(rise and {} or db.borders) do
     local pa, pb = history.get(db, b.a), history.get(db, b.b)
     local wars = s:int(0, 2)
     for k = 1, wars do
@@ -216,8 +221,10 @@ function chronicle.write(db, grid, opts)
   end
   -- Ruins: places that fell, each for a cause.
   for _, st in ipairs(db.settlement) do
-    if st.type ~= "city" and st.type ~= "caravanserai" and s:chance(chronicle.RUINS) then
-      local cause = s:pick(d.peoples.ruin_causes)
+    local sim_cause = rise and db.cell_ruin[st.cell]
+    if st.type ~= "city" and st.type ~= "caravanserai" and (sim_cause and s:chance(0.5) or (not rise
+      and s:chance(chronicle.RUINS))) then
+      local cause = sim_cause or s:pick(d.peoples.ruin_causes)
       st.ruined = true
       st.population = 0
       local fell = st.founded + s:int(10, math.max(11, now - st.founded - 1))
@@ -229,8 +236,12 @@ function chronicle.write(db, grid, opts)
     end
   end
   -- Artifacts with a provenance.
-  for i = 1, math.min(8, #db.polity) do
-    local p = db.polity[i]
+  local living = {}
+  for _, p in ipairs(db.polity) do
+    if not p.fallen then living[#living + 1] = p end
+  end
+  for i = 1, math.min(8, #living) do
+    local p = living[i]
     local maker = person(db, p.culture, "maker" .. i, s, p.founded + s:int(0, 100), "master weaver")
     local art = history.add(db, "artifact", { name = s:pick({ "the Star Carpet", "the Horn of Dawn", "the Lapis Seal",
       "the Ember Crown", "the Loom of Hours", "the Silver Falcon" }) .. " of " .. p.name, made_by = maker.id,

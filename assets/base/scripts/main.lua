@@ -96,7 +96,7 @@ local function setup_flight()
   game.codex = codex.new(back and back.codex)
   -- The peopled world (made in slices as play begins), Anarvan where the carpet set out.
   game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
-    game.home.pos, FOOT)
+    game.home.pos, FOOT, game.world_options and game.world_options.history)
   game.survival_at = nil
   if game.fauna then
     fauna.clear(game.fauna)

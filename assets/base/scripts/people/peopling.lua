@@ -365,6 +365,12 @@ local function realms(db, grid, s)
         "a tax on looms", "guest right is law" }) } })
   end
   for id, k in pairs(owner) do db.cell_realm[id] = db.polity[k].id end
+  peopling.borders(db, grid)
+end
+
+-- The borders between realms (each pair once, with a region on each side)
+-- and their neighbours.
+function peopling.borders(db, grid)
   for _, p in ipairs(db.polity) do -- neighbours (for wars and trade)
     p.neighbours = {}
   end
@@ -393,6 +399,49 @@ local function realms(db, grid, s)
   end
 end
 
+-- The polities of Rise and fall: every realm the simulation made (the fallen
+-- ones too, for the history that names them), the living ones holding the
+-- land; its wars get battlefields, battles and grudges.
+function peopling.realms_from_simulation(db, grid, s)
+  local d = peopling.data()
+  local sim = db.sim
+  local by_key = {}
+  for _, r in ipairs(sim.realms) do
+    local cu = history.get(db, r.culture)
+    local faith = history.get(db, db.cell_faith[r.capital] or db.faith[1].id)
+    local ptype = r.dead and "kingdom" or ((r.cells >= 45 and "empire") or (r.cells <= 6 and "city-state")
+      or (cu.subsistence == "herding" and "nomad confederation") or "kingdom")
+    local p = history.add(db, "polity", { name = r.name, type = ptype, culture = cu.id, faith = faith.id,
+      capital_cell = r.capital, cells = math.max(r.cells, 0), title = d.peoples.titles[ptype], fallen = r.dead,
+      mages = faith.magic == "an abomination" and "mages are hunted" or "mages need a licence", founded = r.founded,
+      laws = { "mages need a licence", "a tithe of the harvest" }, neighbours = {} })
+    by_key[r.key] = p
+  end
+  for id, key in pairs(sim.owner) do
+    if db.cell_culture[id] and by_key[key] and not by_key[key].fallen then db.cell_realm[id] = by_key[key].id end
+  end
+  peopling.borders(db, grid)
+  for _, wid in ipairs(db.wars) do
+    local war = history.get(db, wid)
+    local w, l = by_key[war.winner_key], by_key[war.loser_key]
+    war.winner, war.loser = w.id, l.id
+    war.participants = { w.id, l.id }
+    local field = grid.cells[war.place]
+    local site = history.add(db, "site", { kind = "battlefield", cell = field.id, war = war.id,
+      name = "the field of " .. language.name(peopling.speech(db, w.culture), "settlement", war.id),
+      pos = land.point(grid, field, 0.5, 0.5) })
+    local battle = history.event(db, { year = war.battle_year, kind = "battle", cause = war.id,
+      participants = { w.id, l.id }, place = site.id, importance = 0.7, winner = w.id, loser = l.id,
+      fallen = war.fallen, title = "the battle of " .. site.name })
+    war.battle, war.site, site.battle = battle.id, site.id, battle.id
+    history.refer(db, site.id)
+    history.refer(db, war.id)
+    l.grudges = l.grudges or {}
+    table.insert(l.grudges, { against = w.id, war = war.id })
+  end
+  local _ = s
+end
+
 local function settlement_type(db, c, nth, s, realm_capital, border)
   local cu = history.get(db, db.cell_culture[c.id])
   if nth == 1 and realm_capital then return "city" end
@@ -414,7 +463,9 @@ end
 local function settlements(db, grid, s)
   local d = peopling.data()
   local capital_cell = {}
-  for _, p in ipairs(db.polity) do capital_cell[p.capital_cell] = p end
+  for _, p in ipairs(db.polity) do
+    if not p.fallen then capital_cell[p.capital_cell] = p end
+  end
   local border = {}
   for _, b in ipairs(db.borders) do border[b.cell], border[b.other] = true, true end
   local ids = {}
@@ -472,7 +523,7 @@ local function settlements(db, grid, s)
     end
   end
   for _, p in ipairs(db.polity) do -- a realm whose capital region had no site: its biggest place
-    if not p.capital then
+    if not p.capital and not p.fallen then
       local best
       for _, st in ipairs(db.settlement) do
         if st.realm == p.id and (not best or st.population > best.population) then best = st end
@@ -518,7 +569,7 @@ local function roads(db, grid, s)
       link(list[i], best, "road")
     end
   end
-  for _, b in ipairs(db.borders) do -- trade routes between neighbouring capitals
+  for _, b in ipairs(db.borders or {}) do -- trade routes between neighbouring capitals
     local pa, pb = history.get(db, b.a), history.get(db, b.b)
     if pa.capital and pb.capital then
       link(history.get(db, pa.capital), history.get(db, pb.capital), "trade route")
@@ -567,11 +618,17 @@ function peopling.settle(seed, opts)
   opts = opts or {}
   local grid = land.sample(seed)
   local s = rng.new(seed, "peopling")
-  local db = history.new(opts.year or (1100 + seed % 400), "settled")
+  local db = history.new(opts.year or (1100 + seed % 400), opts.variant == "rise" and "rise and fall" or "settled")
   db.seed = seed
   cultures(db, grid, s, opts)
-  faiths(db, grid, s)
-  realms(db, grid, s)
+  if opts.variant == "rise" then
+    require("people.simulation").run(db, grid, opts)
+    faiths(db, grid, s)
+    peopling.realms_from_simulation(db, grid, s)
+  else
+    faiths(db, grid, s)
+    realms(db, grid, s)
+  end
   settlements(db, grid, s)
   roads(db, grid, s)
   return db, grid

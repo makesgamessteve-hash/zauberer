@@ -6,9 +6,15 @@ local M = {}
 M.PIECES = 2   -- pieces of work per step (a deep-time step, an erosion pass, a month of climate)
 M.SPIN = 0.25  -- globe turns per second, in radians
 
+-- options: world.create's, and history ("settled", the default, or "rise":
+-- the Rise and fall simulation peoples the world when it is first played).
 function M.new(options)
-  local ok, err = world.create(options)
-  return { ok = ok, err = err, spin = 0, progress = nil, finished = false }
+  local planet = {}
+  for k, v in pairs(options or {}) do
+    if k ~= "history" then planet[k] = v end
+  end
+  local ok, err = world.create(planet)
+  return { ok = ok, err = err, spin = 0, progress = nil, finished = false, history = (options or {}).history }
 end
 
 function M.tick(s, dt)
