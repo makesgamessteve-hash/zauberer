@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Starting the game over
-The reset key (F9 by default) SHALL ask first: pressed once, the HUD says to press it again; pressed again within five seconds, the game SHALL start over as at its first start. Starting over SHALL delete every saved game, keep only the player's settings in the save data and the configuration (bindings, packages) as it is, save nothing of the game left, and make the world, the simulation and the scripts anew without leaving the window. It SHALL be refused, with the reason shown, in a co-op session and in tests and scenarios.
+The reset key (F9) SHALL ask first and, pressed again within five seconds, start the game over as at its first start: every saved game deleted, only the settings kept in the save data, the configuration unchanged, nothing of the old game saved, and the world, simulation and scripts made anew in the same window. It SHALL be refused, with the reason shown, in a co-op session and in tests and scenarios.
 
 #### Scenario: The reset key asks first
 - **WHEN** the reset key is pressed once, then again within five seconds, then once more after the time ran out
