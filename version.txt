@@ -1,2 +1,1 @@
-Zauberer web build (single-threaded) of 260ea37, 1.0.0-rc.1 with mouse capture and the reset key.
-Published 2026-11-20T14:35Z.
+Zauberer web build (single-threaded) of 2e343cd, 1.0.0-rc.1: people are seen, the terrain is textured in the browser.
