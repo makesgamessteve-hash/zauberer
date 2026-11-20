@@ -71,6 +71,7 @@ return {
   credits = { type = "button", bind = { "key:f1", "gamepad:back", "touch:button:credits" } },
   fullscreen = { type = "button", bind = { "key:f11" } },
   new_world = { type = "button", bind = { "key:n", "gamepad:y" } },
+  reset = { type = "button", bind = { "key:f9" } }, -- start the game over (pressed twice)
   confirm = { type = "button", bind = { "key:return", "key:space", "gamepad:a", "touch:button:confirm" } },
   quit = { type = "button", bind = { "key:escape", "gamepad:start" } },
 }
