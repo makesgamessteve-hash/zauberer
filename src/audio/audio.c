@@ -385,6 +385,16 @@ void zb_audio_stop(zb_audio *au, uint32_t handle) {
   unlock(au);
 }
 
+void zb_audio_stop_all(zb_audio *au) {
+  lock(au);
+  for (int i = 0; i < ZB_AUDIO_VOICES; ++i) {
+    if (au->voices[i].active) {
+      voice_release(au, &au->voices[i]);
+    }
+  }
+  unlock(au);
+}
+
 void zb_audio_set_voice_volume(zb_audio *au, uint32_t handle, float volume) {
   lock(au);
   voice *v = voice_from(au, handle);

@@ -430,6 +430,32 @@ test('music starts at the first user gesture', async () => {
   }
 });
 
+// spec: input-actions: The mouse is captured in the browser
+test('a click captures the mouse; the capturing click is not the game\'s', async () => {
+  const g = await open();
+  try {
+    await waitForFrames(g);
+    const page = g.page;
+    await page.evaluate(() => {
+      window.zbDowns = 0;
+      document.getElementById('canvas').addEventListener('pointerdown', () => { window.zbDowns++; });
+    });
+    assert.equal(await page.evaluate(() => document.getElementById('capture').hidden), false, 'the hint shows');
+    await page.mouse.click(300, 300);
+    await waitFor(() => page.evaluate(() => document.pointerLockElement === document.getElementById('canvas')),
+      'the pointer lock');
+    assert.equal(await page.evaluate(() => window.zbDowns), 0, 'the capturing click did not reach the game');
+    assert.equal(await page.evaluate(() => document.getElementById('capture').hidden), true, 'the hint hides');
+    await page.mouse.click(300, 300);
+    assert.equal(await page.evaluate(() => window.zbDowns), 1, 'later clicks are the game\'s');
+    await page.evaluate(() => document.exitPointerLock());
+    await waitFor(() => page.evaluate(() => !document.getElementById('capture').hidden), 'the hint again');
+    assert.deepEqual(g.errors, []);
+  } finally {
+    await g.close();
+  }
+});
+
 // spec: platform-targets: Data persists across runs
 test('save data persists in IndexedDB across page loads', async () => {
   const dist = makeDist();

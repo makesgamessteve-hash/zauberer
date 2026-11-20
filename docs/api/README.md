@@ -50,6 +50,10 @@ Development builds: keeps state across hot reloads; it is passed to the package'
 
 Ends the game after this tick; shutdown hooks run in reverse load order. The process exits with code (default 0).
 
+### `engine.reset(keep?: string[]): boolean, string?`
+
+Starts the game over as at its first start, after this tick: every saved game is deleted, the save data keeps only the keys named in keep (the player's settings, say), and the scripts, the world and the simulation are made anew. The configuration (bindings, packages) is kept. False with a reason when it cannot be: in a co-op session, in tests and scenarios.
+
 ### `engine.resize_window(width: integer, height: integer)`
 
 Test API (scenarios and Lua tests only): resizes the window.

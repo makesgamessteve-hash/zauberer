@@ -94,7 +94,11 @@ gamepad and touch bindings are in `assets/base/data/input.lua`):
 | Story | F5 begins the prologue in Anarvan (Vertical Slice B); Acts II and III follow on their own; when Azhdar falls, F5 shows the endings and Tab takes one |
 | Co-op | F6 splits the Weave into a carpet each or rejoins it; L in company opens or agrees to a vote to sleep |
 | Menu | Esc opens the menu: settings (language, accessibility), controls (remapping), packages (mods), credits, save and quit |
+| Start over | F9, then F9 again within five seconds: the game starts again as at its first start (saved games are deleted; settings, controls and packages are kept) |
 | Other | N new world, F1 credits, F11 fullscreen |
+
+In the browser, click the game to capture the mouse (the view then turns as far as you move it);
+Esc lets it go again.
 
 Co-op: run the relay (`zauberer-relay --port 47821`, built next to the game) where every
 player can reach it; the host calls `net.host_relay("ws://<relay>:47821")` and gives the

@@ -178,6 +178,14 @@ static void test_play_and_stop_loop(void) {
   TEST_ASSERT_EQUAL_INT(ZB_VOICE_STOPPED, zb_audio_voice_state(au, 0));
   TEST_ASSERT_EQUAL_INT(ZB_VOICE_STOPPED, zb_audio_voice_state(au, 0xFFu));
   zb_audio_tick(au, 1.0); /* ignored with a device */
+  /* Stopping everything (the game starting over). */
+  uint32_t a = zb_audio_play(au, "sounds/short.wav", &d);
+  uint32_t b = zb_audio_play(au, "sounds/short.wav", &d);
+  settle();
+  zb_audio_stop_all(au);
+  TEST_ASSERT_EQUAL_INT(ZB_VOICE_STOPPED, zb_audio_voice_state(au, a));
+  TEST_ASSERT_EQUAL_INT(ZB_VOICE_STOPPED, zb_audio_voice_state(au, b));
+  TEST_ASSERT_EQUAL_size_t(0, zb_audio_active_voices(au));
   zb_audio_destroy(au);
 }
 

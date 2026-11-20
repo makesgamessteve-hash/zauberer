@@ -59,6 +59,9 @@ typedef struct zb_script_host {
    * false with a message if the world cannot be made (the bundle stays the
    * caller's). NULL: scripts keep a private world. */
   bool (*use_bundle)(void *ctx, struct zb_world_bundle *bundle, char *err, size_t err_len);
+  /* Starts the game over (as at its first start) after this tick: saved games
+   * are deleted and the scripts made anew; false with a reason if it cannot be. */
+  bool (*reset)(void *ctx, char *err, size_t err_len);
 } zb_script_host;
 
 typedef struct zb_script_config {

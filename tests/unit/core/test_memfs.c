@@ -103,10 +103,54 @@ static void test_oom(void) {
   }
 }
 
+/* spec: world-persistence: Reset to the first start */
+static void test_remove_tree(void) {
+  zb_memfs *m = zb_memfs_create(zb_test_alloc());
+  const zb_fs_api *fs = zb_memfs_api(m);
+  zb_memfs_put(m, "user/saves/one/world.lua", "1", 1);
+  zb_memfs_put(m, "user/saves/one/regions/0.bin", "2", 1);
+  zb_memfs_put(m, "user/saves/two/world.lua", "3", 1);
+  zb_memfs_put(m, "user/save.lua", "4", 1);
+  fs->mkdirs(fs->ctx, "user/saves/empty");
+  fs->mkdirs(fs->ctx, "user/saves/one/deep");
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_fs_remove_tree(fs, zb_test_alloc(), "user/saves"));
+  zb_fs_stat st;
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_NOT_FOUND, fs->stat(fs->ctx, "user/saves", &st));
+  TEST_ASSERT_EQUAL_INT(ZB_OK, fs->stat(fs->ctx, "user/save.lua", &st)); /* (beside it: kept) */
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_fs_remove_tree(fs, zb_test_alloc(), "user/saves")); /* nothing there */
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_fs_remove_tree(fs, zb_test_alloc(), "user/save.lua")); /* a file */
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_NOT_FOUND, fs->stat(fs->ctx, "user/save.lua", &st));
+  /* A folder is only removed when empty; a folder made inside another keeps it. */
+  fs->mkdirs(fs->ctx, "p/q");
+  zb_memfs_put(m, "r/s", "5", 1);
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_STATE, fs->remove(fs->ctx, "p"));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_STATE, fs->remove(fs->ctx, "r"));
+  /* Too deep: left alone. */
+  zb_memfs_put(m, "d/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/f", "6", 1);
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_fs_remove_tree(fs, zb_test_alloc(), "d"));
+  zb_memfs_destroy(m);
+}
+
+static void test_remove_tree_oom(void) {
+  for (long budget = 0; budget < 40; ++budget) {
+    zb_memfs *m = zb_memfs_create(zb_test_alloc());
+    const zb_fs_api *fs = zb_memfs_api(m);
+    zb_memfs_put(m, "t/a/x", "1", 1);
+    zb_memfs_put(m, "t/b", "2", 1);
+    zb_failing_allocator f;
+    const zb_allocator *a = zb_failing_init(&f, zb_test_alloc(), budget);
+    zb_result r = zb_fs_remove_tree(fs, a, "t");
+    TEST_ASSERT_TRUE(r == ZB_OK || r == ZB_ERR_NOMEM);
+    zb_memfs_destroy(m);
+  }
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_put_read_stat_list);
   RUN_TEST(test_path_join);
   RUN_TEST(test_oom);
+  RUN_TEST(test_remove_tree);
+  RUN_TEST(test_remove_tree_oom);
   return UNITY_END();
 }

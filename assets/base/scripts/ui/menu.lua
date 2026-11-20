@@ -15,7 +15,7 @@ menu.ACTIONS = { quit = true, steer = true, confirm = true }
 
 -- The controls the player can remap, in menu order.
 menu.REMAP = { "steer", "climb", "boost", "cast_left", "cast_right", "draw", "verb", "color", "color2", "channel",
-  "mount", "jump", "use", "sleep", "stow", "unstow", "cloak", "tent", "codex", "story", "weave" }
+  "mount", "jump", "use", "sleep", "stow", "unstow", "cloak", "tent", "codex", "story", "weave", "reset" }
 
 local function yes_no(v) return v and "on" or "off" end
 

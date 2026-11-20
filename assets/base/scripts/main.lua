@@ -53,6 +53,7 @@ local access = require("ui.access")
 local menu = require("ui.menu")
 local modapi = require("mods.api")
 local xrplay = require("xr.play")
+local reset = require("ui.reset")
 
 local game = { mode = "flight", state = state.new(), fullscreen = false, hud = true, save_name = "default" }
 local AUTOSAVE_TICKS = 5 * 60 * 60 -- every five minutes of flight
@@ -969,7 +970,18 @@ local function create_tick(dt)
   end
 end
 
+-- The reset key, pressed twice: the game starts over as at its first start
+-- (the settings are kept; everything else is the engine's to throw away).
+game.reset = reset.new()
+local function reset_tick()
+  local st = input.state("reset")
+  reset.tick(game.reset, st and st.pressed, engine.time(), function()
+    return engine.reset({ settings.KEY })
+  end)
+end
+
 engine.on("tick", function(dt)
+  reset_tick()
   if game.mode == "flight" then
     flight_tick(dt)
   elseif game.mode == "create" then
@@ -988,6 +1000,9 @@ local function draw_hud(lines)
     return
   end
   for _, line in ipairs(access.caption_lines(game.captions, world.time().time)) do lines[#lines + 1] = line end
+  for i, line in ipairs(reset.lines(game.reset, engine.time(), reset.key_name(input.bindings("reset")))) do
+    table.insert(lines, i, line)
+  end
   if game.state.credits then
     lines[#lines + 1] = "Credits:"
     for _, c in ipairs(game.credits or {}) do

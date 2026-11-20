@@ -7,6 +7,7 @@
 #include "app/body_view.h"
 #include "app/creature_view.h"
 #include "app/water_view.h"
+#include "core/fs.h"
 #include "core/hash.h"
 #include "core/log.h"
 #include "core/luon.h"
@@ -451,6 +452,162 @@ static void fail(zb_engine *e, const char *message) { zb_platform_show_error(e->
 
 /* ---- Creation --------------------------------------------------------------------- */
 
+/* The world (the engine's noise world), its terrain view and the active tier:
+ * heat and fire, surface water, wind and gases (concept 5.15: 384 m desktop,
+ * 256 m web, 160 m touch). Made at the start and again when the game is reset. */
+static bool start_sim(zb_engine *e, char *err, size_t err_len) {
+  e->world = make_world(e, NULL, err, err_len);
+  if (!e->world) {
+    return false;
+  }
+  e->terrain_view = zb_terrain_view_create(e->a, e->render, e->vfs, "textures/terrain/atlas.lua", NULL);
+#ifdef __EMSCRIPTEN__
+  double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 256.0;
+#else
+  double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 384.0;
+#endif
+  zb_tier_config tc = {e->a, e->world, e->materials, active, e->seed, world_clock, e->platform};
+  e->tier = e->terrain_view ? zb_tier_create(&tc) : NULL;
+  if (!e->tier) {
+    snprintf(err, err_len, "out of memory");
+    return false;
+  }
+  e->fire = zb_tier_fire(e->tier);
+  e->water = zb_tier_water(e->tier);
+  e->air = zb_tier_air(e->tier);
+  return true;
+}
+
+static void stop_sim(zb_engine *e) {
+  zb_tier_destroy(e->tier);
+  e->tier = NULL;
+  e->fire = NULL;
+  e->water = NULL;
+  e->air = NULL;
+  zb_terrain_view_destroy(e->terrain_view);
+  e->terrain_view = NULL;
+  zb_world_destroy(e->world);
+  e->world = NULL;
+  if (e->bundle) {
+    zb_world_bundle_free(e->bundle);
+    zb_free(e->a, e->bundle);
+    e->bundle = NULL;
+  }
+}
+
+/* Asks for the game to start over after this tick (engine.reset): only in
+ * play (not in tests or scenarios) and not in a co-op session. */
+static bool host_reset(void *ctx, char *err, size_t err_len) {
+  zb_engine *e = ctx;
+  if (e->mode != ZB_MODE_GAME) {
+    snprintf(err, err_len, "only in play");
+    return false;
+  }
+  if (zb_net_role_of(e->net) != ZB_NET_NONE) {
+    snprintf(err, err_len, "not in a co-op session");
+    return false;
+  }
+  e->reset_pending = true;
+  return true;
+}
+
+/* The packages' scripts with the engine's services: made at the start and
+ * again when the game is reset. */
+static bool start_scripts(zb_engine *e, char *err, size_t err_len) {
+  zb_script_config sc;
+  memset(&sc, 0, sizeof sc);
+  sc.a = e->a;
+  sc.vfs = e->vfs;
+  sc.input = e->input;
+  sc.render = e->render;
+  sc.audio = e->audio;
+  sc.fs = zb_platform_fs(e->platform);
+  sc.user_dir = e->user_dir;
+  sc.host.ctx = e;
+  sc.host.quit = host_quit;
+  sc.host.get_info = host_info;
+  sc.host.sim_time = host_time;
+  sc.host.tick_count = host_ticks;
+  sc.host.set_paused = host_pause;
+  sc.host.set_time_scale = host_time_scale;
+  sc.host.set_fullscreen = host_fullscreen;
+  sc.host.save_bindings = host_save_bindings;
+  sc.host.set_package = host_set_package;
+  sc.host.set_flash = host_set_flash;
+  sc.host.set_window_size = host_window_size;
+  sc.host.sleep_ms = host_sleep;
+  sc.host.user_data_changed = host_user_data_changed;
+  sc.host.use_bundle = host_use_bundle;
+  sc.host.reset = host_reset;
+  zb_engine_xr_attach(e, &sc.host);
+  sc.seed = e->seed;
+  sc.world = e->world;
+  sc.materials = e->materials;
+  sc.fire = e->fire;
+  sc.water = e->water;
+  sc.air = e->air;
+  sc.weather = zb_tier_weather(e->tier);
+  sc.tier = e->tier;
+  sc.net = e->net;
+  sc.jobs = e->jobs;
+  sc.test_api = e->mode != ZB_MODE_GAME;
+#if defined(ZB_DEV)
+  sc.dev = true;
+#endif
+#if defined(ZB_DEV) || !defined(NDEBUG)
+  sc.instruction_budget = ZB_SCRIPT_DEFAULT_BUDGET;
+#endif
+  sc.coverage_path = e->opt.lua_coverage_path;
+  e->script = zb_script_create(&sc, err, err_len);
+  if (!e->script) {
+    return false;
+  }
+  zb_script_run_packages(e->script);
+  e->scripts_ready = true;
+  zb_script_init_hooks(e->script);
+  if (zb_input_take_mode_change(e->input)) {
+    zb_script_event(e->script, "input_mode", 0, 0, zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
+  }
+  return true;
+}
+
+/* The game starts over as at its first start: the scripts end (without their
+ * shutdown hooks: nothing is saved), sounds stop, saved games are deleted (the
+ * scripts already cut their save data down to what is kept), and the world,
+ * the simulation and the scripts are made anew. */
+static void reset_game(zb_engine *e) {
+  e->reset_pending = false;
+  zb_info("resetting the game to its first start");
+  zb_script_destroy(e->script);
+  e->script = NULL;
+  e->scripts_ready = false;
+  zb_audio_stop_all(e->audio);
+  const zb_fs_api *fs = zb_platform_fs(e->platform);
+  static const char *const folders[] = {"saves", "worlds"};
+  for (size_t i = 0; i < sizeof folders / sizeof folders[0]; ++i) {
+    char path[1100];
+    snprintf(path, sizeof path, "%s%s", e->user_dir, folders[i]);
+    zb_result r = zb_fs_remove_tree(fs, e->a, path);
+    if (r != ZB_OK) {
+      zb_warn("could not delete %s (%s)", path, zb_result_str(r));
+    }
+  }
+  zb_platform_user_data_sync(e->platform);
+  stop_sim(e);
+  zb_loop_set_paused(&e->loop, false);
+  zb_loop_set_time_scale(&e->loop, 1.0);
+  e->flash = 0;
+  e->strikes_seen = 0;
+  char err[1600];
+  if (!start_sim(e, err, sizeof err) || !start_scripts(e, err, sizeof err)) {
+    fail(e, err);
+    e->quit = true;
+    e->exit_code = 1;
+    return;
+  }
+  zb_info("the game was reset");
+}
+
 zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   *out = NULL;
   zb_options opt;
@@ -614,33 +771,16 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   load_materials(e);
 
   /* World: planet, terrain and chunk streaming around the scripts' focus points. */
-  e->world = make_world(e, NULL, err, sizeof err);
-  if (!e->world) {
+  if (!start_sim(e, err, sizeof err)) {
     fail(e, err);
     return ZB_HOST_FAILURE;
   }
-  e->terrain_view = zb_terrain_view_create(a, e->render, e->vfs, "textures/terrain/atlas.lua", NULL);
-  if (!e->terrain_view) {
-    return ZB_HOST_FAILURE;
-  }
-  /* The active tier (concept 5.15: 384 m desktop, 256 m web, 160 m touch): heat
-   * and fire (with the material registry), and surface water. */
-#ifdef __EMSCRIPTEN__
-  double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 256.0;
-#else
-  double active = zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? 160.0 : 384.0;
-#endif
-  zb_tier_config tc = {a, e->world, e->materials, active, e->seed, world_clock, e->platform};
-  e->tier = zb_tier_create(&tc);
   e->water_view = zb_water_view_create(a, e->render);
   e->body_view = e->materials ? zb_body_view_create(a, e->render, e->materials) : NULL;
   e->creature_view = zb_creature_view_create(a, e->render);
-  if (!e->tier || !e->water_view || (e->materials && !e->body_view) || !e->creature_view) {
+  if (!e->water_view || (e->materials && !e->body_view) || !e->creature_view) {
     return ZB_HOST_FAILURE;
   }
-  e->fire = zb_tier_fire(e->tier);
-  e->water = zb_tier_water(e->tier);
-  e->air = zb_tier_air(e->tier);
   e->smoke_sprite = zb_render_load_sprite(e->render, "sprites/smoke.lua");
   e->rain_sprite = zb_render_load_sprite(e->render, "sprites/rain.lua");
   e->snow_sprite = zb_render_load_sprite(e->render, "sprites/snow.lua");
@@ -676,59 +816,9 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
   }
 
   /* Scripts. */
-  zb_script_config sc;
-  memset(&sc, 0, sizeof sc);
-  sc.a = a;
-  sc.vfs = e->vfs;
-  sc.input = e->input;
-  sc.render = e->render;
-  sc.audio = e->audio;
-  sc.fs = fs;
-  sc.user_dir = e->user_dir;
-  sc.host.ctx = e;
-  sc.host.quit = host_quit;
-  sc.host.get_info = host_info;
-  sc.host.sim_time = host_time;
-  sc.host.tick_count = host_ticks;
-  sc.host.set_paused = host_pause;
-  sc.host.set_time_scale = host_time_scale;
-  sc.host.set_fullscreen = host_fullscreen;
-  sc.host.save_bindings = host_save_bindings;
-  sc.host.set_package = host_set_package;
-  sc.host.set_flash = host_set_flash;
-  sc.host.set_window_size = host_window_size;
-  sc.host.sleep_ms = host_sleep;
-  sc.host.user_data_changed = host_user_data_changed;
-  sc.host.use_bundle = host_use_bundle;
-  zb_engine_xr_attach(e, &sc.host);
-  sc.seed = e->seed;
-  sc.world = e->world;
-  sc.materials = e->materials;
-  sc.fire = e->fire;
-  sc.water = e->water;
-  sc.air = e->air;
-  sc.weather = zb_tier_weather(e->tier);
-  sc.tier = e->tier;
-  sc.net = e->net;
-  sc.jobs = e->jobs;
-  sc.test_api = e->mode != ZB_MODE_GAME;
-#if defined(ZB_DEV)
-  sc.dev = true;
-#endif
-#if defined(ZB_DEV) || !defined(NDEBUG)
-  sc.instruction_budget = ZB_SCRIPT_DEFAULT_BUDGET;
-#endif
-  sc.coverage_path = opt.lua_coverage_path;
-  e->script = zb_script_create(&sc, err, sizeof err);
-  if (!e->script) {
+  if (!start_scripts(e, err, sizeof err)) {
     fail(e, err);
     return ZB_HOST_FAILURE;
-  }
-  zb_script_run_packages(e->script);
-  e->scripts_ready = true;
-  zb_script_init_hooks(e->script);
-  if (zb_input_take_mode_change(e->input)) {
-    zb_script_event(e->script, "input_mode", 0, 0, zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
   }
   e->overlay_font = zb_render_load_font(e->render, "fonts/pixel.lua");
 
@@ -1049,6 +1139,9 @@ static void run_scenario(zb_engine *e) {
 }
 
 zb_host_status zb_engine_iterate(zb_engine *e) {
+  if (e->reset_pending && !e->xr.in_frame) {
+    reset_game(e);
+  }
   if (e->quit) {
     return finish(e);
   }
@@ -1060,7 +1153,7 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
   if (e->mode == ZB_MODE_SCENARIO) {
     run_scenario(e);
   } else if (e->headless) {
-    for (unsigned i = 0; i < HEADLESS_BATCH && !e->quit; ++i) {
+    for (unsigned i = 0; i < HEADLESS_BATCH && !e->quit && !e->reset_pending; ++i) {
       if (e->opt.ticks >= 0 && e->steps >= (uint64_t)e->opt.ticks) {
         e->quit = true;
         break;
@@ -1069,7 +1162,7 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
     }
   } else {
     unsigned n = zb_loop_advance(&e->loop, now);
-    for (unsigned i = 0; i < n && !e->quit; ++i) {
+    for (unsigned i = 0; i < n && !e->quit && !e->reset_pending; ++i) {
       if (e->opt.ticks >= 0 && e->ticks >= (uint64_t)e->opt.ticks) {
         e->quit = true;
         break;

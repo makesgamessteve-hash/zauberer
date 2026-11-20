@@ -44,6 +44,8 @@ zb_play_desc zb_play_defaults(void);
 /* Returns a voice handle (never 0), or 0 when all voices are busy. */
 uint32_t zb_audio_play(zb_audio *au, const char *path, const zb_play_desc *desc);
 void zb_audio_stop(zb_audio *au, uint32_t voice);
+/* Stops every voice (the game starting over). */
+void zb_audio_stop_all(zb_audio *au);
 void zb_audio_set_voice_volume(zb_audio *au, uint32_t voice, float volume);
 zb_voice_state zb_audio_voice_state(const zb_audio *au, uint32_t voice);
 /* Decoder memory held by a streaming voice (0 for decoded sounds). */

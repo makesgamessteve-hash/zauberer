@@ -68,6 +68,7 @@ typedef struct zb_engine {
   char *replay_data;
   uint32_t overlay_font;
   bool scripts_ready;
+  bool reset_pending; /* the game starts over before the next tick (engine.reset) */
   bool first_frame_shown;
   uint64_t steps; /* ticks plus paused steps (headless and scenario modes) */
   /* Replay state hashes: expected (from <replay>.hashes) and recorded. */

@@ -17,7 +17,7 @@ endfunction()
 
 zb_module(zb_core SOURCES
   core/alloc.c core/array.c core/base.c core/cli.c core/hash.c core/jobs.c core/keys.c
-  core/deflate.c core/dmath.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c core/registry.c core/sha1.c core/xr.c
+  core/deflate.c core/dmath.c core/fs.c core/log.c core/loop.c core/luon.c core/math.c core/memfs.c core/registry.c core/sha1.c core/xr.c
   PRIVATE_DEPS zb_thirdparty_impl)
 if(UNIX)
   target_link_libraries(zb_core PUBLIC m)

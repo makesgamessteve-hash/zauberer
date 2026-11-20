@@ -293,6 +293,53 @@ static int e_quit(lua_State *L) {
   return 0;
 }
 
+static void push_save_table(lua_State *L);
+static int s_flush(lua_State *L);
+
+/* @lua engine.reset(keep?: string[]): boolean, string?
+ * Starts the game over as at its first start, after this tick: every saved game
+ * is deleted, the save data keeps only the keys named in keep (the player's
+ * settings, say), and the scripts, the world and the simulation are made anew.
+ * The configuration (bindings, packages) is kept. False with a reason when it
+ * cannot be: in a co-op session, in tests and scenarios.
+ */
+static int e_reset(lua_State *L) {
+  zb_script *s = S(L);
+  if (!lua_isnoneornil(L, 1)) {
+    luaL_checktype(L, 1, LUA_TTABLE);
+  }
+  char err[160] = "not available here";
+  if (!s->cfg.host.reset || !s->cfg.host.reset(s->cfg.host.ctx, err, sizeof err)) {
+    lua_pushboolean(L, false);
+    lua_pushstring(L, err);
+    return 2;
+  }
+  /* The save data cut down to the kept keys, written now. */
+  push_save_table(L);
+  int old = lua_gettop(L);
+  lua_newtable(L);
+  int kept = lua_gettop(L);
+  if (lua_istable(L, 1)) {
+    lua_Integer n = luaL_len(L, 1);
+    for (lua_Integer i = 1; i <= n; ++i) {
+      if (lua_rawgeti(L, 1, i) == LUA_TSTRING) {
+        lua_pushvalue(L, -1);
+        lua_gettable(L, old);
+        lua_settable(L, kept);
+      } else {
+        lua_pop(L, 1);
+      }
+    }
+  }
+  lua_setfield(L, LUA_REGISTRYINDEX, REG_SAVE);
+  lua_pop(L, 1);
+  lua_pushcfunction(L, s_flush);
+  lua_call(L, 0, 1);
+  lua_pop(L, 1);
+  lua_pushboolean(L, true);
+  return 1;
+}
+
 /* @lua engine.time(): number
  * Simulation time in seconds (ticks / 60). Use it instead of wall-clock time.
  */
@@ -1464,6 +1511,7 @@ void zb_script_open_api(zb_script *s) {
                                         {"set_package_enabled", e_set_package_enabled},
                                         {"set_flash_strength", e_set_flash_strength},
                                         {"credits", e_credits},
+                                        {"reset", e_reset},
                                         {NULL, NULL}};
   luaL_newlib(L, engine_fns);
   lua_pushstring(L, ZB_VERSION);

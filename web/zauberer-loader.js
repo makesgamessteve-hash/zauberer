@@ -171,6 +171,44 @@
   }
   ['pointerdown', 'keydown', 'touchend'].forEach(function (t) { window.addEventListener(t, unlockAudio, true); });
 
+  // Mouse capture (pointer lock): a click on the game captures the mouse, so
+  // the view turns with it and the cursor stays on the page; Escape (the
+  // browser) lets it go again. The click that captures is not the game's (it
+  // would cast); while the mouse is free a line says how to capture it.
+  // Touch and pen are never captured.
+  var captureHint = $('capture');
+  var german = /^de\b/i.test(navigator.language || '');
+  captureHint.textContent = german ? 'Klicken, um die Maus zu fangen \u00b7 Esc gibt sie frei'
+                                   : 'Click to capture the mouse \u00b7 Esc releases it';
+  var finePointer = !window.matchMedia || window.matchMedia('(any-pointer: fine)').matches;
+  var swallowUp = false;
+  function mouseCaptured() { return document.pointerLockElement === canvas; }
+  function updateCaptureHint() {
+    captureHint.hidden = mouseCaptured() || !finePointer || !Module.calledRun || !$('error').hidden;
+  }
+  window.zbCaptureMouse = function () {
+    try {
+      var p = canvas.requestPointerLock();
+      if (p && p.catch) p.catch(function () { /* refused: the hint stays */ });
+    } catch (e) { /* no pointer lock in this browser */ }
+  };
+  window.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'mouse' || e.target !== canvas || mouseCaptured() || !Module.calledRun) return;
+    finePointer = true;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    swallowUp = true;
+    window.zbCaptureMouse();
+  }, true);
+  window.addEventListener('pointerup', function (e) {
+    if (swallowUp && e.pointerType === 'mouse') {
+      swallowUp = false;
+      e.stopImmediatePropagation();
+    }
+  }, true);
+  document.addEventListener('pointerlockchange', updateCaptureHint);
+  document.addEventListener('pointerlockerror', updateCaptureHint);
+
   // WebXR: the engine's bridge (web/lib_zauberer.js) reports whether a headset
   // can present; the button starts an immersive session (a user gesture).
   var xrButton = $('xr');
@@ -204,6 +242,7 @@
     }],
     onRuntimeInitialized: function () {
       $('status').hidden = true;
+      setTimeout(updateCaptureHint, 0);
       var sync = Module.FS.syncfs;
       Module.FS.syncfs = function (populate, callback) {
         return sync.call(Module.FS, populate, function (err) {

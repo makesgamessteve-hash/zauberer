@@ -29,6 +29,10 @@ typedef struct zb_fs_api {
   zb_result (*remove)(void *ctx, const char *path);
 } zb_fs_api;
 
+/* Removes a file or a folder with everything in it (up to 16 levels deep).
+ * ZB_OK also when nothing was there. */
+zb_result zb_fs_remove_tree(const zb_fs_api *fs, const zb_allocator *a, const char *path);
+
 /* Joins two path parts with a single '/' into out; returns false if it does not fit. */
 bool zb_path_join(char *out, size_t out_len, const char *a, const char *b);
 

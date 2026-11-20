@@ -467,6 +467,39 @@ class ScenarioTests(EngineTestCase):
     def test_touch_first_device(self):
         self.assert_ok(self.scenario("touch_mode", env={"ZB_TOUCH_PRIMARY": "1"}))
 
+    # spec: world-persistence: Reset to the first start
+    def test_reset_to_the_first_start(self):
+        record = self.tmp / "reset.zbrec"
+        self.assert_ok(self.scenario("record_reset", "--record", str(record)))
+        Path(str(record) + ".hashes").unlink()
+        # A game played before: its save, an old world file, the settings and other save data.
+        self.assert_ok(self.scenario("persistence_save"))
+        self.assertTrue((self.user_dir / "saves" / "default" / "world.lua").is_file())
+        (self.user_dir / "worlds").mkdir()
+        (self.user_dir / "worlds" / "old.zbw").write_bytes(b"\0")
+        store = self.user_dir / "save.lua"
+        text = store.read_text(encoding="utf-8")
+        self.assertIn('"default"', text)
+        store.write_text(text.replace("return {", 'return {["settings"]={["text_size"]=2,},["probe"]=1,', 1),
+                         encoding="utf-8")
+        config = (self.user_dir / "config.lua").read_text(encoding="utf-8") \
+            if (self.user_dir / "config.lua").exists() else None
+        # Played again: the reset key pressed twice (the replay), the game starts over and goes on.
+        result = self.run_engine("--headless", "--replay", str(record))
+        self.assert_ok(result)
+        out = result.stdout
+        self.assertIn("resetting the game to its first start", out)
+        self.assertIn("the game was reset", out)
+        self.assertLess(out.index("the game was reset"), out.rindex("[info]"), "the game went on")
+        self.assertFalse((self.user_dir / "saves" / "default").exists(), "the saved game is deleted")
+        self.assertFalse((self.user_dir / "worlds").exists())
+        text = store.read_text(encoding="utf-8")
+        self.assertIn('["text_size"]=2', text, "the settings are kept")
+        self.assertNotIn("probe", text)
+        self.assertNotIn('"default"', text, "no game to continue")
+        if config is not None:
+            self.assertEqual((self.user_dir / "config.lua").read_text(encoding="utf-8"), config)
+
     def test_recording_from_a_scenario(self):
         record = self.tmp / "rec.zbrec"
         result = self.scenario("record_demo", "--record", str(record), "--seed", "7")

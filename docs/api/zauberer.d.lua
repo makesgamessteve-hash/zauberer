@@ -299,6 +299,12 @@ function engine.preserve(state) end
 ---@param code? integer
 function engine.quit(code) end
 
+---Starts the game over as at its first start, after this tick: every saved game is deleted, the save data keeps only the keys named in keep (the player's settings, say), and the scripts, the world and the simulation are made anew. The configuration (bindings, packages) is kept. False with a reason when it cannot be: in a co-op session, in tests and scenarios.
+---@param keep? string[]
+---@return boolean
+---@return string?
+function engine.reset(keep) end
+
 ---Test API (scenarios and Lua tests only): resizes the window.
 ---@param width integer
 ---@param height integer

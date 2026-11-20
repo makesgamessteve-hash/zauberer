@@ -185,7 +185,26 @@ static zb_result mem_remove(void *ctx, const char *path) {
       return ZB_OK;
     }
   }
-  return ZB_ERR_NOT_FOUND;
+  /* An empty folder: only the folders made for it are dropped. */
+  size_t n = strlen(path);
+  for (size_t i = 0; i < m->files.len; ++i) {
+    mem_file *f = zb_array_at(&m->files, i);
+    if (strncmp(f->path, path, n) == 0 && f->path[n] == '/') {
+      return ZB_ERR_STATE;
+    }
+  }
+  zb_result r = ZB_ERR_NOT_FOUND;
+  for (size_t i = m->dirs.len; i-- > 0;) {
+    char *d = *(char **)zb_array_at(&m->dirs, i);
+    if (strcmp(d, path) == 0) {
+      zb_free(m->a, d);
+      zb_array_remove(&m->dirs, i);
+      r = ZB_OK;
+    } else if (strncmp(d, path, n) == 0 && d[n] == '/') {
+      return ZB_ERR_STATE;
+    }
+  }
+  return r;
 }
 
 zb_memfs *zb_memfs_create(const zb_allocator *a) {

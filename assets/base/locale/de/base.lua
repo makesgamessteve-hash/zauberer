@@ -15,6 +15,12 @@ return {
   ["Credits"] = "Mitwirkende",
   ["Credits:"] = "Mitwirkende:",
   ["Save and quit"] = "Speichern und beenden",
+  -- Starting the game over (the reset key)
+  ["Press %s again to start the game over (settings are kept)"] =
+    "%s noch einmal drücken, um das Spiel von vorn zu beginnen (die Einstellungen bleiben)",
+  ["The game cannot start over: %s"] = "Das Spiel kann nicht von vorn beginnen: %s",
+  ["not in a co-op session"] = "nicht in einer gemeinsamen Sitzung",
+  ["only in play"] = "nur im Spiel",
   ["Escape: back"] = "Escape: zurück",
   ["Up and down: choose, Enter: open, Escape: back"] = "Hoch und runter: wählen, Enter: öffnen, Escape: zurück",
   ["Up and down: choose, left and right: change, Enter: set, Escape: back"] =
