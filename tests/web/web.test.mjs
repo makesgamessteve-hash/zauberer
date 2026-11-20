@@ -302,6 +302,17 @@ function installXrMock(device) {
 
 // spec: platform-targets: Static host without isolation headers
 // spec: platform-targets: Each preset produces a runnable artifact
+// spec: platform-targets: Assets read at start are there in the browser
+test('the terrain atlas is there when the engine starts in the browser', async () => {
+  const g = await open();
+  try {
+    await waitForFrames(g);
+    assert.deepEqual(g.logs.filter((l) => /atlas\.lua|unexpected end of input/.test(l)), []);
+  } finally {
+    await g.close();
+  }
+});
+
 test('desktop page without isolation runs the single-threaded build', async () => {
   const g = await open();
   try {

@@ -6,6 +6,6 @@ return {
   frame_height = 13,
   frames = 4,
   fps = 1,
-  pivot = { 0.5, 1.0 },
+  pivot = { 0.5, 0.0 },
   size = { 0.9, 1.7 },
 }

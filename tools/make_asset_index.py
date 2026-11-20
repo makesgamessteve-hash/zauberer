@@ -29,7 +29,8 @@ from tool_common import EXIT_ERROR, EXIT_OK, REPO_ROOT, ToolError, glob_match
 HEADER = "# zauberer asset index v1"
 INDEX_NAME = "index.tsv"
 BOOT_PATTERNS = ("*/package.lua", "*/credits.lua", "*/scripts/**", "*/data/**",
-                 "*/locale/**", "*/shaders/**", "*/fonts/*.lua", "*/sprites/*.lua")
+                 "*/locale/**", "*/shaders/**", "*/fonts/*.lua", "*/sprites/*.lua",
+                 "*/textures/terrain/*")  # (read while the engine starts: the terrain view's atlas)
 
 
 @dataclass(frozen=True)

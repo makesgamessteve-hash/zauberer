@@ -222,7 +222,7 @@ def people(out_dir):
         fh.write("return {\n")
         fh.write('  texture = "sprites/person.png",\n')
         fh.write("  frame_width = %d,\n  frame_height = %d,\n  frames = %d,\n  fps = 1,\n" % (w, h, len(ROBES)))
-        fh.write("  pivot = { 0.5, 1.0 },\n  size = { 0.9, 1.7 },\n")
+        fh.write("  pivot = { 0.5, 0.0 },\n  size = { 0.9, 1.7 },\n")
         fh.write("}\n")
 
 
