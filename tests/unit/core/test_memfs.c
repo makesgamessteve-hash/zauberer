@@ -116,8 +116,8 @@ static void test_remove_tree(void) {
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_fs_remove_tree(fs, zb_test_alloc(), "user/saves"));
   zb_fs_stat st;
   TEST_ASSERT_EQUAL_INT(ZB_ERR_NOT_FOUND, fs->stat(fs->ctx, "user/saves", &st));
-  TEST_ASSERT_EQUAL_INT(ZB_OK, fs->stat(fs->ctx, "user/save.lua", &st)); /* (beside it: kept) */
-  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_fs_remove_tree(fs, zb_test_alloc(), "user/saves")); /* nothing there */
+  TEST_ASSERT_EQUAL_INT(ZB_OK, fs->stat(fs->ctx, "user/save.lua", &st));                 /* (beside it: kept) */
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_fs_remove_tree(fs, zb_test_alloc(), "user/saves"));    /* nothing there */
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_fs_remove_tree(fs, zb_test_alloc(), "user/save.lua")); /* a file */
   TEST_ASSERT_EQUAL_INT(ZB_ERR_NOT_FOUND, fs->stat(fs->ctx, "user/save.lua", &st));
   /* A folder is only removed when empty; a folder made inside another keeps it. */
