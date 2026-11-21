@@ -74,10 +74,13 @@ local function press(action)
   input.inject(action, 1, 0, 1)
   step(2)
   ticks = ticks + 2
+  if pulse and ticks % 30 < 2 then pulse() end
 end
+local pulse -- (watch, set below: called every half second, whatever the bot is doing)
 local function tick_once()
   step(1)
   ticks = ticks + 1
+  if pulse and ticks % 30 == 0 then pulse() end
 end
 local function wait(seconds, cond)
   for _ = 1, math.floor(seconds * 60) do
@@ -249,6 +252,7 @@ end
 -- ---- watching --------------------------------------------------------------
 local last_place, last_beat, last_status, met = nil, nil, -1, {}
 local species_seen = {}
+local taken_seen = {}
 local function watch()
   local line = place_line()
   if line and line ~= last_place and not line:match("%d+%.%d km") then log("PLACE", line) end
@@ -265,6 +269,14 @@ local function watch()
   for _, n in ipairs(game.health.news or {}) do
     local key = "HURT" .. n.text .. math.floor(world.time().time / 300)
     if not seen_lines[key] then seen_lines[key] = true log("HURT", n.text) end
+  end
+  for harm, total in pairs(game.health.taken or {}) do
+    local before = taken_seen[harm] or 0
+    if total - before >= 5 then
+      taken_seen[harm] = total
+      log("HARM", string.format("%s: %d (health %d)%s", harm, math.floor(total - before + 0.5),
+        math.ceil(game.health.hp), last_place and (", " .. last_place) or ""))
+    end
   end
   if game.health.down and not seen_lines["down" .. math.floor(world.time().time / 600)] then
     seen_lines["down" .. math.floor(world.time().time / 600)] = true
@@ -287,6 +299,7 @@ local function watch()
       game.story and (", story: " .. game.story.beat) or ""))
   end
 end
+pulse = watch
 local function wait_watch(seconds, cond)
   local n = math.floor(seconds * 60 / 30)
   for _ = 1, math.max(1, n) do
@@ -328,10 +341,10 @@ local function play_prologue()
   local S = game.story
   local where = S.places
   local started = world.time().time
-  local last_beat, tries = nil, 0
+  local beat_now, tries = nil, 0
   while S.beat ~= "done" and ticks < BUDGET and world.time().time - started < 3 * 86400 do
     local b = S.beat
-    if b ~= last_beat then last_beat, tries = b, 0 end
+    if b ~= beat_now then beat_now, tries = b, 0 end
     tries = tries + 1
     if tries == 30 then trouble("no way on at '" .. b .. "' after 30 tries") end
     watch()
