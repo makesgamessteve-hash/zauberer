@@ -627,12 +627,19 @@ local function play_prologue()
     elseif b == "sanctum" then
       local g = where.sanctum
       for _, p in ipairs(g.pieces) do
-        if p.treasure and not p.taken then
-          local at = world.move(g.origin, 0, p.z + 1.2, p.x, 0)
-          at.alt = g.origin.alt
-          walk_to(at, 1.2, "a shelf in the sanctum", 20)
-          face(world.move(g.origin, 0, p.z, p.x, 0))
-          press("use")
+        if p.treasure and not p.taken and not p.gone then
+          -- From whichever side of the shelf can be reached.
+          for _, side in ipairs({ { 0, 1.2 }, { 0, -1.2 }, { 1.2, 0 }, { -1.2, 0 } }) do
+            local at = world.move(g.origin, 0, p.z + side[2], p.x + side[1], 0)
+            at.alt = g.origin.alt
+            if walk_to(at, 0.8, "a shelf in the sanctum", 15) then
+              local shelf = world.move(g.origin, 0, p.z, p.x, 0)
+              shelf.alt = g.origin.alt
+              face(shelf)
+              press("use")
+              if p.taken or p.gone then break end
+            end
+          end
         end
       end
       wait_watch(1)

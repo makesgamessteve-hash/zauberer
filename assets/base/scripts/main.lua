@@ -922,10 +922,10 @@ local function flight_tick(dt)
       game.slept = nil
       -- The carpet that chose the heir is the rug in their arms: unrolled
       -- beside them once they are up in the open air.
-      if prologue.can_fly(game.story) and not game.story.unrolled and w
-        and w.pos.alt > world.ground_height(w.pos) - health.SHELTER then
+      if prologue.can_fly(game.story) and not game.story.unrolled and w and w.grounded
+        and w.pos.alt > world.ground_height(w.pos) - 0.5 then -- (up out of the cellar, off its stair)
         local spot = world.move(w.pos, w.heading, 1.5, 0)
-        spot.alt = world.ground_height(spot) + carpet.CLEARANCE
+        spot.alt = w.pos.alt + carpet.CLEARANCE
         game.carpet.pos, game.carpet.speed, game.carpet.heading = spot, 0, w.heading
         game.story.unrolled = true
         pack.say(game.pack, "You unroll the rug: it hovers beside you, waiting")
