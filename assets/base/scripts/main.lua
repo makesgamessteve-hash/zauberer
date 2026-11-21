@@ -264,6 +264,7 @@ engine.on("init", function()
     if player then
       game.save_name = saved
       game.restore = type(player) == "table" and player or nil
+      print("continuing " .. saved)
     else
       print("could not load the game " .. saved .. ": " .. tostring(err))
     end
@@ -395,6 +396,26 @@ function game.delete_save(name)
   return true
 end
 
+-- Saves on its own (every few minutes of play, at each turn of the story,
+-- before sleep, when the page is hidden): only the host in company, never
+-- while the heir lies defeated (it is done once they are up). A line on the
+-- HUD says it was saved.
+game.AUTOSAVE_SHOWN = 2 -- seconds the line stays
+function game.autosave(why)
+  if game.mode ~= "flight" or not game.carpet or (game.coop and game.coop.role == "client") then return false end
+  if game.health and game.health.down then
+    game.autosave_due = why
+    return false
+  end
+  game.autosave_due = nil
+  local ok = game.save()
+  if ok then
+    game.saved_at = engine.time()
+    print("autosaved (" .. tostring(why) .. ")")
+  end
+  return ok
+end
+
 -- Opens the menu in play (the heir's actions idle; alone, the world held).
 function game.open_menu()
   if not game.menu.open then
@@ -416,7 +437,7 @@ function game.on_focus(on)
     end
     if game.mode == "flight" and game.menu then
       game.open_menu()
-      if engine.info().platform == "web" and game.coop.role ~= "client" then game.save() end
+      if engine.info().platform == "web" then game.autosave("hidden") end
     end
   elseif game.muted_volume ~= nil then
     audio.group_volume("master", game.muted_volume)
@@ -598,7 +619,7 @@ end
 local function flight_tick(dt)
   game.flight_ticks = (game.flight_ticks or 0) + 1
   if game.flight_ticks % AUTOSAVE_TICKS == 0 then
-    game.save()
+    game.autosave("time")
   end
   game.setup_ui()
   local st = controls.read()
@@ -779,6 +800,7 @@ local function flight_tick(dt)
     events = creature_events,
     heard = effects.take_events(fx), cast = cast_now, wards = function(kind) return effects.warded(fx, kind) end })
   if fate == "defeated" then sim.spare_player(60, 300) end -- (what brought the player down turns away)
+  if fate == "revived" and game.autosave_due then game.autosave(game.autosave_due) end
   if fate == "revived" then
     local spot, moved = health.safe_spot(game.home.pos, fauna.hunter_near)
     if moved then
@@ -871,6 +893,7 @@ local function flight_tick(dt)
       coopplay.ask(T, co, net, "vote", { kind = "sleep", now = now })
     end
   elseif w and input.state("sleep").pressed and not game.health.down then
+    game.autosave("sleep")
     local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
     for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
     world.set_time(now + hours * 3600)
@@ -1014,7 +1037,10 @@ local function flight_tick(dt)
         book = game.magic.caster.book, pack = game.pack, gathered = game.gathered_now,
         boiled = pack.count(game.pack, "boiled_water") > before })
       game.story_boiled = pack.count(game.pack, "boiled_water")
-      if happened then pack.say(game.pack, game.story.lines[#game.story.lines]) end
+      if happened then
+        pack.say(game.pack, game.story.lines[#game.story.lines])
+        game.autosave("story")
+      end
       game.slept = nil
       -- The carpet that chose the heir is the rug in their arms: unrolled
       -- beside them once they are up in the open air.
@@ -1048,6 +1074,7 @@ local function flight_tick(dt)
         learn = function(d) disciplines.practice(game.disciplines, d, 40, "taught by the Circle") end,
         choose = defeated and input.state("story").pressed, take = defeated and input.state("use").pressed })
       for _, id in ipairs(done) do pack.say(game.pack, "Story: " .. id) end
+      if #done > 0 then game.autosave("story") end
     end
   end
   if w then
@@ -1135,6 +1162,9 @@ local function flight_lines()
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
   local stage = world.chunk_stage((game.walker and game.walker.pos) or c.pos) or 0
   if stage < 2 then lines[#lines + 1] = string.format("Loading the land: %d%%", math.max(0, stage) * 50) end
+  if game.saved_at and engine.time() - game.saved_at < game.AUTOSAVE_SHOWN then
+    lines[#lines + 1] = "Game saved"
+  end
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
     bag.hud_lines(game.bag), condition.hud_lines(game.condition), cloak.hud_lines(game.cloak),
     artificing.hud_lines(game.artifacts), game.ritual.active and { ritual.line(game.ritual, game.pack) } or {},

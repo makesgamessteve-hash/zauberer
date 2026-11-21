@@ -205,6 +205,13 @@ class ScenarioTests(EngineTestCase):
     def test_day_and_night(self):
         self.assert_ok(self.scenario("day_and_night"))
 
+    # spec: world-persistence: Progress survives a lost game
+    def test_autosave_survives_a_lost_game(self):
+        self.assert_ok(self.scenario("autosave"))  # (it ends without quitting, as if cut off)
+        result = self.run_engine("--headless", "--ticks", "30")
+        self.assert_ok(result)
+        self.assertIn("continuing auto", result.stdout)
+
     # spec: world-persistence: Save and continue
     def test_save_and_continue(self):
         self.assert_ok(self.scenario("persistence_save"))
