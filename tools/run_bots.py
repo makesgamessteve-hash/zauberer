@@ -33,8 +33,9 @@ def run(n: int, args: argparse.Namespace) -> str:
         result = subprocess.run([args.bin, "--assets", str(ROOT / "assets"), "--user-dir", str(Path(tmp) / "user"),
                                  "--headless", "--seed", str(n), "--scenario", str(scenario)],
                                 capture_output=True, text=True, errors="replace", timeout=args.timeout)
-    lines = [line.split("[lua] ", 1)[1] for line in result.stdout.splitlines() if "[lua] BOT" in line]
-    errors = [line for line in (result.stdout + result.stderr).splitlines() if "[error]" in line]
+    output = result.stdout + result.stderr  # (the engine logs to stderr)
+    lines = [line.split("[lua] ", 1)[1] for line in output.splitlines() if "[lua] BOT" in line]
+    errors = [line for line in output.splitlines() if "[error]" in line]
     path = out / f"run-{n:02d}-{style}.log"
     path.write_text("\n".join(lines + errors) + "\n", encoding="utf-8")
     return f"run {n} ({style}): {len(lines)} lines, {len(errors)} errors, exit {result.returncode}"
