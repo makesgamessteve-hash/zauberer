@@ -109,16 +109,22 @@ local function walk_to(target, reach, why, seconds)
     if d < reach then return true end
     -- The way: towards the target, or the nearest heading round a wall (the game's own wall test).
     local want = bearing(w.pos, target)
+    local going_in = places.at(P, target) ~= nil
+    local inside = places.at(P, w.pos) ~= nil
     for _, off in ipairs(OFFSETS) do
       local h = want + off * side_bias
-      local probe = world.move(w.pos, h, math.min(2.5, d), 0, 0)
-      if not places.blocked(P, w.pos, probe, w.pos.alt) then want = h break end
+      local probe = world.move(w.pos, h, math.min(3, d), 0, 0)
+      if not places.blocked(P, w.pos, probe, w.pos.alt)
+        and (going_in or inside or not places.at(P, probe)) then -- (round houses, not through them)
+        want = h
+        break
+      end
     end
     local diff = wrap(want - w.heading)
     local turn = math.max(-1, math.min(1, diff * 2))
     local fwd = math.abs(diff) < 0.6 and 1 or 0.2
     if d < best - 0.3 then best, since = d, 0 else since = since + 1 end
-    if w.bumped and since % 30 == 1 then press("use") end
+    if w.bumped and since % 30 == 1 and (going_in or inside) then press("use") end -- (a door on the way)
     if since > 240 then -- four seconds without getting nearer: a step aside, and round the other way
       side_bias = -side_bias
       local side = rand() < 0.5 and 1 or -1
@@ -131,7 +137,10 @@ local function walk_to(target, reach, why, seconds)
     tick_once()
     if ticks > BUDGET then return false end
   end
-  trouble("could not walk to " .. (why or "a place"))
+  local w = game.walker
+  trouble("could not walk to " .. (why or "a place") .. (w and string.format(
+    " (%.0f m short%s%s%s)", dist(w.pos, target), w.blocked and ", water too deep" or "",
+    w.bumped and ", against a wall" or "", places.at(P, w.pos) and ", inside a building" or "") or ""))
   return false
 end
 
