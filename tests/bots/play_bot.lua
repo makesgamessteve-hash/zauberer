@@ -70,13 +70,13 @@ local rs = engine.info().seed % 2147483647 + 1
 local function rand() rs = (rs * 48271) % 2147483647 return rs / 2147483647 end
 
 -- ---- acting ----------------------------------------------------------------
+local pulse -- (watch, set below: called every half second, whatever the bot is doing)
 local function press(action)
   input.inject(action, 1, 0, 1)
   step(2)
   ticks = ticks + 2
   if pulse and ticks % 30 < 2 then pulse() end
 end
-local pulse -- (watch, set below: called every half second, whatever the bot is doing)
 local function tick_once()
   step(1)
   ticks = ticks + 1
