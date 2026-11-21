@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/fs.h"
 #include "core/log.h"
 #include "world/bundle.h"
 #include "world/delta.h"
@@ -343,6 +344,31 @@ static int w_saves(lua_State *L) {
   return 1;
 }
 
+/* @lua world.delete_save(name: string): boolean, string?
+ * Deletes the saved game <name> (its folder under saves/); false and a
+ * message for an invalid name or a save that cannot be removed.
+ */
+static int w_delete_save(lua_State *L) {
+  zb_script *s = S(L);
+  const char *name = luaL_checkstring(L, 1);
+  if (!zb_script_valid_name(name)) {
+    return fail2(L, "save names use letters, digits, - and _");
+  }
+  if (!s->cfg.fs) {
+    return fail2(L, "no file system");
+  }
+  char dir[600];
+  snprintf(dir, sizeof dir, "%ssaves/%s", s->cfg.user_dir ? s->cfg.user_dir : "", name);
+  if (zb_fs_remove_tree(s->cfg.fs, s->cfg.a, dir) != ZB_OK) {
+    return fail2(L, "the save could not be removed");
+  }
+  if (s->cfg.host.user_data_changed) {
+    s->cfg.host.user_data_changed(s->cfg.host.ctx);
+  }
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
 /* @lua world.remove_plants(pos: PlanetPos, radius: number): integer
  * Removes the plants within radius metres (up to 256) of a position from the
  * loaded chunks; the edit is kept with the world (and saved). Returns how many.
@@ -387,6 +413,7 @@ void zb_script_open_save(zb_script *s) {
   static const luaL_Reg fns[] = {{"save_game", w_save_game},
                                  {"load_game", w_load_game},
                                  {"saves", w_saves},
+                                 {"delete_save", w_delete_save},
                                  {"remove_plants", w_remove_plants},
                                  {"cut_plant", w_cut_plant},
                                  {"set_surface", w_set_surface},

@@ -25,6 +25,12 @@ class StartupTests(EngineTestCase):
         self.assertIn("state hash at tick 600:", result.stdout)
         self.assertNotIn("renderer:", result.stdout, "no graphics context in headless mode")
 
+    # spec: game-flow: First start and later starts
+    def test_a_players_game_begins_at_the_title(self):
+        result = self.run_engine("--headless", "--ticks", "30")
+        self.assert_ok(result)
+        self.assertIn("title shown", result.stdout)
+
     # spec: platform-targets: Missing content folder
     def test_missing_content_folder(self):
         missing = self.tmp / "nowhere" / "assets"
@@ -366,6 +372,9 @@ class ScenarioTests(EngineTestCase):
 
     def test_menu(self):
         self.assert_ok(self.scenario("menu"))
+
+    def test_title(self):
+        self.assert_ok(self.scenario("title"))
 
     def test_german(self):
         self.assert_ok(self.scenario("german"))

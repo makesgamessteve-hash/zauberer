@@ -209,6 +209,13 @@ function game.save()
   local ok, err = world.save_game(game.save_name, player)
   if ok then
     save.set("world", game.save_name)
+    -- What the title lists: the game day, and the order they were last played in.
+    local info = save.get("save_info")
+    info = type(info) == "table" and info or {}
+    local seq = (save.get("save_seq") or 0) + 1
+    info[game.save_name] = { day = math.floor(world.time().time / 86400) + 1, seq = seq }
+    save.set("save_info", info)
+    save.set("save_seq", seq)
     save.flush()
   else
     print("could not save the game " .. game.save_name .. ": " .. tostring(err))
@@ -265,6 +272,11 @@ engine.on("init", function()
   if input.mode() == "touch" then
     setup_touch()
   end
+  if engine.info().play and game.mode == "flight" then -- a player's game begins at the title
+    menu.open_title(game.menu)
+    access.block(true)
+    print("title shown")
+  end
 end)
 
 local function handle(ev)
@@ -289,6 +301,14 @@ function game.setup_ui()
     resume = function() access.block(false) end,
     packages = engine.packages,
     set_package = engine.set_package_enabled,
+    continue = function() end, -- (the game last played is already loaded)
+    new_world = function() game.set_mode("create") end,
+    saves = function() return game.saves_list() end,
+    load = function(name) return game.load_save(name) end,
+    delete = function(name) return game.delete_save(name) end,
+    current = function() return save.get("world") end,
+    version = engine.info().version,
+    can_quit = engine.info().platform ~= "web", -- (a page is closed, not quit)
   })
   game.captions = access.captions_new()
   game.xr_options = game.vr_options(game.settings)
@@ -332,6 +352,47 @@ end
 function game.vr_options(s)
   return { steer = s.xr_steer, snap_turn = s.xr_snap_turn, vignette = s.xr_vignette,
     reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
+end
+
+-- The saved games, newest first: { name, day }.
+function game.saves_list()
+  local info = save.get("save_info")
+  info = type(info) == "table" and info or {}
+  local list = {}
+  for _, name in ipairs(world.saves()) do
+    local i = type(info[name]) == "table" and info[name] or {}
+    list[#list + 1] = { name = name, day = i.day, seq = i.seq or 0 }
+  end
+  table.sort(list, function(a, b) return a.seq > b.seq or (a.seq == b.seq and a.name < b.name) end)
+  return list
+end
+
+-- Plays another saved game (the one being played is saved first).
+function game.load_save(name)
+  if game.mode == "flight" and game.carpet then game.save() end
+  local player, err = world.load_game(name)
+  if not player then return false, err end
+  game.save_name = name
+  game.restore = type(player) == "table" and player or nil
+  save.set("world", name)
+  save.flush()
+  game.set_mode("flight")
+  return true
+end
+
+-- Deletes a saved game (not the one being played).
+function game.delete_save(name)
+  if name == game.save_name then return false, "This game is being played" end
+  local ok, err = world.delete_save(name)
+  if not ok then return false, err end
+  local info = save.get("save_info")
+  if type(info) == "table" then
+    info[name] = nil
+    save.set("save_info", info)
+  end
+  if save.get("world") == name then save.set("world", nil) end
+  save.flush()
+  return true
 end
 
 -- Opens the menu in play (the heir's actions idle; alone, the world held).
@@ -1072,6 +1133,8 @@ end
 local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
+  local stage = world.chunk_stage((game.walker and game.walker.pos) or c.pos) or 0
+  if stage < 2 then lines[#lines + 1] = string.format("Loading the land: %d%%", math.max(0, stage) * 50) end
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
     bag.hud_lines(game.bag), condition.hud_lines(game.condition), cloak.hud_lines(game.cloak),
     artificing.hud_lines(game.artifacts), game.ritual.active and { ritual.line(game.ritual, game.pack) } or {},

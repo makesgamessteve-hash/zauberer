@@ -56,6 +56,7 @@
 ---@field drawable_size integer[] Drawable width and height in pixels
 ---@field seed integer The run's random seed
 ---@field language string The player's preferred language ("en", "de"): the system's, or ZB_LANGUAGE
+---@field play boolean A player's game (not a test, a scenario or a replay)
 
 ---@class Gesture
 ---@field form string The form, or "none" when the stroke is like none
@@ -683,6 +684,12 @@ function world.cut_plant(id) end
 ---@param amount number
 ---@return integer
 function world.deform(pos, radius, amount) end
+
+---Deletes the saved game <name> (its folder under saves/); false and a message for an invalid name or a save that cannot be removed.
+---@param name string
+---@return boolean
+---@return string?
+function world.delete_save(name) end
 
 ---Great-circle distance at sea level in metres.
 ---@param a PlanetPos

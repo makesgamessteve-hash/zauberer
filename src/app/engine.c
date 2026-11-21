@@ -45,6 +45,7 @@ static void host_info(void *ctx, zb_script_info *out) {
   out->drawable_h = e->drawable_h;
   out->seed = e->seed;
   out->language = e->language;
+  out->play = e->mode == ZB_MODE_GAME && e->replay == NULL;
 }
 
 static double host_time(void *ctx) {

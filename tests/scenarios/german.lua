@@ -18,6 +18,20 @@ end
 game.menu.page = "main"
 input.inject("quit", 1, 1)
 step(3)
+-- The title and its pages (a saved game to list).
+game.save_name = "deutsch"
+game.save()
+require("ui.menu").open_title(game.menu)
+step(3)
+game.menu.chosen = game.saves_list()[1]
+for _, page in ipairs({ "load", "save", "confirm", "title" }) do
+  game.menu.page, game.menu.at = page, 1
+  step(3)
+end
+game.menu.note = "This game is being played"
+step(3)
+require("ui.menu").close(game.menu)
+step(3)
 local missed = {}
 for _, text in ipairs(i18n.collect(false)) do
   local value = text:match("^%(value%) (.*)$")

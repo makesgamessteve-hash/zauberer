@@ -27,6 +27,7 @@ static zb_script *S(lua_State *L) { return zb_script_from(L); }
  * @field drawable_size integer[] Drawable width and height in pixels
  * @field seed integer The run's random seed
  * @field language string The player's preferred language ("en", "de"): the system's, or ZB_LANGUAGE
+ * @field play boolean A player's game (not a test, a scenario or a replay)
  *
  * @luaclass PackageInfo
  * @field id string Package id
@@ -277,6 +278,8 @@ static int e_info(lua_State *L) {
   lua_setfield(L, -2, "seed");
   lua_pushstring(L, info.language && *info.language ? info.language : "en");
   lua_setfield(L, -2, "language");
+  lua_pushboolean(L, info.play);
+  lua_setfield(L, -2, "play");
   return 1;
 }
 

@@ -41,15 +41,45 @@ menu.LABELS = {
   xr_stabiliser = "VR horizon stabiliser",
 }
 
--- s: the settings table; hooks: { quit(), resume(), packages(), set_package(id, on) }.
+-- s: the settings table; hooks: { quit(), resume(), packages(), set_package(id, on), and for the
+-- title: continue(), new_world(), saves() -> { { name, day } } newest first, load(name),
+-- delete(name) -> ok, why, current() -> the save being played, version, can_quit }.
 function menu.new(s, hooks)
-  return { open = false, page = "main", at = 1, s = s, hooks = hooks or {}, hold = 0, last = 0, capture = nil,
-    note = nil }
+  return { open = false, page = "main", home = "main", at = 1, s = s, hooks = hooks or {}, hold = 0, last = 0,
+    capture = nil, note = nil }
+end
+
+-- Opens the title: the game's first page (continue, a new world, a saved game, settings, credits, quit).
+function menu.open_title(m)
+  m.open, m.page, m.home, m.at, m.capture, m.note = true, "title", "title", 1, nil, nil
+end
+
+local function save_line(entry)
+  return entry.day and string.format("%s, day %d", entry.name, entry.day) or entry.name
 end
 
 local function items(m)
   local out = {}
-  if m.page == "main" then
+  if m.page == "title" then
+    local h = m.hooks
+    local saves = h.saves and h.saves() or {}
+    out[1] = { label = m.started and "Continue" or (h.current and h.current() and "Continue" or "New game"),
+      go = "continue" }
+    out[#out + 1] = { label = "Create a world", go = "new_world" }
+    if #saves > 0 then out[#out + 1] = { label = "Load game", page = "load" } end
+    out[#out + 1] = { label = "Settings", page = "settings" }
+    out[#out + 1] = { label = "Controls", page = "controls" }
+    out[#out + 1] = { label = "Credits", page = "credits" }
+    if h.can_quit ~= false then out[#out + 1] = { label = "Quit", go = "quit" } end
+  elseif m.page == "load" then
+    for _, e in ipairs((m.hooks.saves and m.hooks.saves()) or {}) do
+      out[#out + 1] = { save = e, raw = save_line(e), page = "save" }
+    end
+  elseif m.page == "save" then
+    out = { { label = "Play", go = "load" }, { label = "Delete", page = "confirm" }, { label = "Back", go = "back" } }
+  elseif m.page == "confirm" then
+    out = { { label = "No, keep it", go = "back" }, { label = "Yes, delete it", go = "delete" } }
+  elseif m.page == "main" then
     out = { { label = "Resume", go = "resume" }, { label = "Settings", page = "settings" },
       { label = "Controls", page = "controls" }, { label = "Packages", page = "packages" },
       { label = "Credits", page = "credits" }, { label = "Save and quit", go = "quit" } }
@@ -71,18 +101,29 @@ end
 
 function menu.toggle(m)
   m.open = not m.open
-  m.page, m.at, m.capture, m.note = "main", 1, nil, nil
+  m.page, m.home, m.at, m.capture, m.note = "main", "main", 1, nil, nil
   return m.open
 end
+
+-- Closes the menu (and the title) and goes on playing.
+function menu.close(m)
+  m.open, m.page, m.home = false, "main", "main"
+  if m.hooks.resume then m.hooks.resume() end
+end
+
+local UP = { save = "load", confirm = "save" } -- (the pages under a saved game)
 
 local function back(m)
   if m.capture then
     m.capture = nil
   elseif m.page == "main" then
-    m.open = false
-    if m.hooks.resume then m.hooks.resume() end
+    menu.close(m)
+  elseif m.page == "title" then
+    return -- (the title is left by choosing)
+  elseif UP[m.page] then
+    m.page, m.at = UP[m.page], 1
   else
-    m.page, m.at = "main", 1
+    m.page, m.at = m.home, 1
   end
 end
 
@@ -104,11 +145,35 @@ function menu.rebind(current, binding)
 end
 
 local function activate(m, item, step)
-  if item.go == "resume" then
+  local h = m.hooks
+  if item.go == "resume" or item.go == "back" then
     back(m)
   elseif item.go == "quit" then
-    if m.hooks.quit then m.hooks.quit() end
+    if h.quit then h.quit() end
+  elseif item.go == "continue" then
+    m.started = true
+    menu.close(m)
+    if h.continue then h.continue() end
+  elseif item.go == "new_world" then
+    m.started = true
+    menu.close(m)
+    if h.new_world then h.new_world() end
+  elseif item.go == "load" then
+    local ok, why = h.load(m.chosen.name)
+    if ok then
+      m.started = true
+      menu.close(m)
+    else
+      m.note = why
+    end
+  elseif item.go == "delete" then
+    local ok, why = h.delete(m.chosen.name)
+    m.note = ok and nil or why
+    m.page, m.at = "load", 1
+    if not ok then return end
+    if #((h.saves and h.saves()) or {}) == 0 then m.page = "title" end
   elseif item.page then
+    if item.save then m.chosen = item.save end
     m.page, m.at = item.page, 1
   elseif item.setting then
     settings.step(m.s, item.setting, step or 1)
@@ -156,8 +221,10 @@ end
 function menu.lines(m, credits)
   local out = {}
   local title = { main = "Menu", settings = "Settings", controls = "Controls", packages = "Packages",
-    credits = "Credits" }
+    credits = "Credits", title = "Zauberer", load = "Load game", save = m.chosen and { raw = m.chosen.name },
+    confirm = m.chosen and { raw = string.format(i18n.t("Delete %s?"), m.chosen.name) } }
   out[1] = title[m.page]
+  if m.page == "title" and m.hooks.version then out[#out + 1] = { raw = "v" .. m.hooks.version } end
   if m.page == "credits" then
     for _, line in ipairs(credits or {}) do out[#out + 1] = line end
     out[#out + 1] = "Escape: back"
@@ -173,6 +240,8 @@ function menu.lines(m, credits)
       local b = m.capture == item.action and i18n.t("press a key or button") or
         table.concat(input.bindings(item.action) or {}, ", ")
       out[#out + 1] = { raw = mark .. item.action .. ": " .. b }
+    elseif item.save then
+      out[#out + 1] = { raw = mark .. item.raw }
     elseif item.package then
       local p = item.package
       out[#out + 1] = { raw = mark .. p.id .. " " .. (p.version or "") .. ": " ..
@@ -184,11 +253,11 @@ function menu.lines(m, credits)
   end
   if m.note then out[#out + 1] = m.note end
   if input.mode() == "touch" then
-    out[#out + 1] = m.page == "main" and "Stick up and down: choose, OK: open, Menu: back"
-      or "Stick up and down: choose, left and right: change, OK: set, Menu: back"
+    out[#out + 1] = m.page == "settings" and "Stick up and down: choose, left and right: change, OK: set, Menu: back"
+      or "Stick up and down: choose, OK: open, Menu: back"
   else
-    out[#out + 1] = m.page == "main" and "Up and down: choose, Enter: open, Escape: back"
-      or "Up and down: choose, left and right: change, Enter: set, Escape: back"
+      out[#out + 1] = m.page == "settings" and "Up and down: choose, left and right: change, Enter: set, Escape: back"
+      or "Up and down: choose, Enter: open, Escape: back"
   end
   return out
 end

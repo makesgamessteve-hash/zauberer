@@ -23,6 +23,7 @@ typedef struct zb_script_info {
   int drawable_w, drawable_h;
   uint64_t seed;
   const char *language; /* the player's preferred language ("en", "de") */
+  bool play;            /* a player's game (not a test, a scenario or a replay) */
 } zb_script_info;
 
 /* Application-level services the scripts can use. */

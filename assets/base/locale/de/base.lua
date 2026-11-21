@@ -291,6 +291,11 @@ return {
   -- ---- The story ---------------------------------------------------------------------------
   ["Story: %s"] = "Geschichte: %s",
   ["Story: ..."] = "Geschichte: ...",
+  ["Zauberer"] = "Zauberer", ["Continue"] = "Weiterspielen", ["New game"] = "Neues Spiel", ["Create a world"] = "Eine Welt erschaffen",
+  ["Load game"] = "Spiel laden", ["Play"] = "Spielen", ["Delete"] = "Löschen", ["Back"] = "Zurück",
+  ["Quit"] = "Beenden", ["No, keep it"] = "Nein, behalten", ["Yes, delete it"] = "Ja, löschen",
+  ["Delete %s?"] = "%s löschen?", ["%s, day %d"] = "%s, Tag %d", ["This game is being played"] = "Dieses Spiel läuft gerade",
+  ["Loading the land: %d%%"] = "Das Land wird geladen: %d%%",
   ["Do your chores and talk to Farrokh"] = "Erledige deine Arbeiten und sprich mit Farrokh",
   ["Next: %s, %d m to the %s"] = "Als Nächstes: %s, %d m nach %s",
   ["Next: %s, here"] = "Als Nächstes: %s, hier",
