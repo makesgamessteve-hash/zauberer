@@ -1,0 +1,175 @@
+BOT d1 08:01 START   style story, seed 1
+BOT d1 08:01 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:01 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:02 SAY     Codex: Grass observed
+BOT d1 07:04 SAY     Codex: Umbrella acacia observed
+BOT d1 07:07 SAY     Taken dried meat 4, flatbread 1
+BOT d1 07:07 SAY     Empty
+BOT d1 07:14 SAY     Kesam: Yes? What do you want?
+BOT d1 07:17 SAY     Codex: Coconut palm observed
+BOT d1 07:20 SAY     Bhimuget: Peace be with you, child of the road.
+BOT d1 07:20 SAY     Bhimuget: They say... Sekheho builds an observatory, they say.
+BOT d1 07:22 SAY     The door opens
+BOT d1 07:22 STORY   You fill the jar at the qanat outlet
+BOT d1 07:22 SAY     The door closes
+BOT d1 07:35 SAY     Empty
+BOT d1 07:53 SAY     Empty
+BOT d1 08:04 SAY     The door closes
+BOT d1 08:05 SAY     The door opens
+BOT d1 08:06 SAY     Bhimuget: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 08:06 SAY     Bhimuget: In the old days... In the year 962 the faithless men of Sohtashta rose against us over raids. At the Pass of Sorrow the armies of Kadesh won a glorious victory; their dead lay in thousands.
+BOT d1 08:11 SAY     Podin: Good day, traveller.
+BOT d1 08:12 SAY     Khaarii: You are not from here.
+BOT d1 08:13 SAY     Khaarii: They say... the war of Liimerashta and Nunezshahr, they say.
+BOT d1 08:13 SAY     Khaarii: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 08:13 SAY     Khaarii: In the old days... In the year 1062 the faithless men of Sohtashta rose against us over trade. At the Ashen Plain the armies of Kadesh won a glorious victory; their dead lay in thousands.
+BOT d1 08:13 SAY     Khaarii: As for the gods... We hold the crane and the rose sacred.
+BOT d1 08:14 SAY     Khaarii: There is a song we sing: They sing of Chaana, who led us to victory.
+BOT d1 08:16 SAY     Codex: Fern observed
+BOT d1 08:33 SAY     Taken dried meat 8
+BOT d1 08:33 SAY     Empty
+BOT d1 08:45 SAY     The door closes
+BOT d1 08:45 SAY     The door opens
+BOT d1 09:00 STATUS  on foot, hp 100, food 70, water 70, rest 76, Anarvan (village) 0.0 km, story: village
+BOT d1 09:23 SAY     The door opens
+BOT d1 09:24 SAY     The door closes
+BOT d1 09:36 STUCK   could not walk to the qanat outlet (4 m short, against a wall)
+BOT d1 09:36 DO      walks to the goat pen
+BOT d1 09:43 SEE     storm_bird
+BOT d1 09:44 PLACE   pen, Anarvan
+BOT d1 09:44 STORY   The goats crowd round for their fodder
+BOT d1 09:48 PLACE   pen, Anarvan
+BOT d1 09:49 DO      walks to the orchard
+BOT d1 10:05 SAY     Codex: Dead tree observed
+BOT d1 10:57 SAY     Codex: Honey bee observed
+BOT d1 12:00 STATUS  on foot, hp 100, food 56, water 55, rest 52, Anarvan (village) 0.0 km, story: village
+BOT d1 12:03 PLACE   weaver, Anarvan
+BOT d1 12:03 SAY     Farrokh: Good day, traveller.
+BOT d1 12:03 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 12:04 SAY     Vaahechur: Good day, traveller.
+BOT d1 12:04 SAY     Vaahechur: They say... the war of Liimerashta and Nunezshahr, they say.
+BOT d1 12:05 SAY     Vaahechur: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 12:05 SAY     Taken coin 5
+BOT d1 12:05 SAY     Empty
+BOT d1 12:07 SAY     Taken dried meat 1, dyed cloth 1
+BOT d1 12:11 STUCK   could not walk to the orchard (85 m short, against a wall, inside a building)
+BOT d1 12:12 DO      walks to the orchard
+BOT d1 13:26 SAY     Vaahechur: In the old days... In the year 1089 the faithless men of Sohtashta rose against us over revenge. At the Weeping Bridge the armies of Dhaadhrashta won a glorious victory; their dead lay in thousands.
+BOT d1 13:26 SAY     Vaahechur: As for the gods... Magic is a sacred gift to us.
+BOT d1 13:26 SAY     Bebiin: You are not from here.
+BOT d1 13:27 SAY     Khavan: Yes? What do you want?
+BOT d1 13:27 SAY     Gajukhe: Good day, traveller.
+BOT d1 13:27 SAY     Gajukhe: They say... Nahamush builds a garden of four parts, they say.
+BOT d1 13:27 SAY     Kagi: Good day, traveller.
+BOT d1 13:28 SAY     Kagi: They say... Nahamush builds a garden of four parts, they say.
+BOT d1 13:28 SAY     Kagi: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 14:56 STUCK   could not walk to the orchard (85 m short, against a wall, inside a building)
+BOT d1 14:57 DO      walks to the orchard
+BOT d1 15:00 STATUS  on foot, hp 100, food 43, water 42, rest 33, weaver, Anarvan, story: village
+BOT d1 16:33 SAY     Codex: Brown hare observed
+BOT d1 17:41 STUCK   could not walk to the orchard (85 m short, against a wall, inside a building)
+BOT d1 17:42 SAY     You eat flatbread
+BOT d1 17:42 DO      eats
+BOT d1 17:42 SAY     You drink river water
+BOT d1 17:42 DO      drinks
+BOT d1 17:42 DO      walks to the orchard
+BOT d1 18:00 STATUS  on foot, hp 100, food 55, water 50, rest 15, weaver, Anarvan, story: village
+BOT d1 18:00 SAY     Kagi: In the old days... In the year 830 the faithless men of Sohtashta rose against us over revenge. At the Pass of Sorrow the armies of Viichtesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:01 SAY     Gajukhe: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 18:01 SAY     Gajukhe: In the old days... In the year 1062 the faithless men of Sohtashta rose against us over trade. At the Ashen Plain the armies of Kadesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:01 SAY     Khavan: They say... Nahamush builds a garden of four parts, they say.
+BOT d1 18:02 SAY     Khavan: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 18:02 SAY     Bebiin: They say... Sekheho builds an observatory, they say.
+BOT d1 18:02 SAY     Bebiin: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 18:03 SAY     Farrokh: They say... Sekheho builds an observatory, they say.
+BOT d1 18:03 SAY     Farrokh: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 18:04 SAY     Vaahechur: There is a song we sing: They sing of Chaana, who led us to victory.
+BOT d1 18:04 SAY     Vaahechur: I know nothing of that.
+BOT d1 18:05 SAY     Vaahechur: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 19:25 SAY     Tiiti: Good day, traveller.
+BOT d1 19:26 SAY     Tiiti: They say... the war of Liimerashta and Nunezshahr, they say.
+BOT d1 19:26 SAY     Tiiti: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 19:26 SAY     Tiiti: In the old days... In the year 1089 the faithless men of Sohtashta rose against us over revenge. At the Weeping Bridge the armies of Dhaadhrashta won a glorious victory; their dead lay in thousands.
+BOT d1 19:27 SAY     Tiiti: As for the gods... Magic is a sacred gift to us.
+BOT d1 19:27 SAY     Tiiti: There is a song we sing: They sing of Chaana, who led us to victory.
+BOT d1 19:27 SAY     Liibhabham: Yes? What do you want?
+BOT d1 19:28 SAY     Liibhabham: They say... Sekheho builds an observatory, they say.
+BOT d1 19:28 SAY     Liibhabham: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 19:42 SAY     Codex: Grey wolf observed - it may attack!
+BOT d1 20:04 SAY     Lalagor: Welcome, welcome! Sit, there is tea.
+BOT d1 20:04 SAY     Chige: You are not from here.
+BOT d1 20:04 SAY     Chige: They say... Nahamush builds a garden of four parts, they say.
+BOT d1 20:05 SAY     Chige: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d1 20:06 SAY     Chige: In the old days... In the year 900 the faithless men of Viichtesh rose against us over succession. At the Red Plain the armies of Sohtashta won a glorious victory; their dead lay in thousands.
+BOT d1 20:06 SAY     Chige: As for the gods... We hold the crane and the rose sacred.
+BOT d1 20:18 HARM    heat: 6 (health 94), weaver, Anarvan
+BOT d1 20:19 HARM    heat: 6 (health 88), weaver, Anarvan
+BOT d1 20:20 HARM    heat: 6 (health 82), weaver, Anarvan
+BOT d1 20:21 HARM    heat: 6 (health 76), weaver, Anarvan
+BOT d1 20:22 HARM    heat: 6 (health 70), weaver, Anarvan
+BOT d1 20:23 HARM    heat: 6 (health 64), weaver, Anarvan
+BOT d1 20:24 HARM    heat: 6 (health 58), weaver, Anarvan
+BOT d1 20:25 HARM    heat: 6 (health 52), weaver, Anarvan
+BOT d1 20:26 HARM    heat: 6 (health 46), weaver, Anarvan
+BOT d1 20:26 HARM    heat: 6 (health 40), weaver, Anarvan
+BOT d1 20:27 SAY     You drink river water
+BOT d1 20:27 DO      drinks
+BOT d1 20:27 DO      walks to the orchard
+BOT d1 20:27 HARM    heat: 6 (health 34), weaver, Anarvan
+BOT d1 20:28 HARM    heat: 6 (health 28), weaver, Anarvan
+BOT d1 20:29 HARM    heat: 6 (health 23), weaver, Anarvan
+BOT d1 20:30 HARM    heat: 6 (health 17), weaver, Anarvan
+BOT d1 20:31 SAY     Taken lamp oil 3, salt 4, wool 3, coin 1
+BOT d1 20:31 HARM    heat: 6 (health 11), weaver, Anarvan
+BOT d1 20:32 HARM    heat: 6 (health 5), weaver, Anarvan
+BOT d1 20:33 HURT    You are defeated (heat)
+BOT d1 20:33 DOWN    the heir is defeated
+BOT d1 20:35 HURT    You get up again
+BOT d1 20:35 DO      flies to the ground (0.0 km)
+BOT d1 20:45 DO      steps off the carpet
+BOT d1 20:45 DO      walks to the orchard
+BOT d1 21:00 STATUS  on foot, hp 67, food 43, water 57, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 23:09 STUCK   could not walk to the orchard (85 m short)
+BOT d1 23:09 SAY     The door opens
+BOT d1 23:10 SAY     You eat dried meat
+BOT d1 23:10 DO      eats
+BOT d1 23:10 DO      walks to the orchard
+BOT d1 23:24 SAY     Codex: Red deer observed
+BOT d2 00:00 STATUS  on foot, hp 100, food 40, water 41, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 01:33 STUCK   could not walk to the orchard (85 m short)
+BOT d2 01:33 SAY     Empty
+BOT d2 01:33 SAY     You eat dried meat
+BOT d2 01:33 DO      eats
+BOT d2 01:33 SAY     nothing to drink
+BOT d2 01:34 DO      walks to the orchard
+BOT d2 03:00 STATUS  on foot, hp 100, food 37, water 25, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 03:57 STUCK   could not walk to the orchard (85 m short)
+BOT d2 03:57 SAY     The door closes
+BOT d2 03:57 SAY     You eat dried meat
+BOT d2 03:57 DO      eats
+BOT d2 03:57 SAY     nothing to drink
+BOT d2 03:58 DO      walks to the orchard
+BOT d2 04:54 PLACE   weaver, Anarvan
+BOT d2 04:54 SAY     Kesam: They say... Sekheho builds an observatory, they say.
+BOT d2 04:58 SAY     Kesam: If you are going to Shotnagar, it is 1 days' ride to the east.
+BOT d2 05:03 PLACE   weaver, Anarvan
+BOT d2 06:00 STATUS  on foot, hp 100, food 35, water 9, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 06:22 STUCK   could not walk to the orchard (85 m short, against a wall)
+BOT d2 06:22 SAY     Empty
+BOT d2 06:23 SAY     You eat dried meat
+BOT d2 06:23 DO      eats
+BOT d2 06:23 SAY     nothing to drink
+BOT d2 06:23 DO      walks to the orchard
+BOT d2 07:59 SAY     Empty
+BOT d2 07:59 SAY     You eat dried meat
+BOT d2 07:59 DO      eats
+BOT d2 08:00 SAY     nothing to drink
+BOT d2 08:00 STUCK   the prologue stalled at 'village'
+BOT d2 08:00 END     after 150008 ticks; prologue village; saga -; hp 100; codex 10 entries
+BOT d2 08:00 END     trouble x1: could not walk to the qanat outlet (4 m short, against a wall)
+BOT d2 08:00 END     trouble x1: could not walk to the orchard (85 m short, against a wall)
+BOT d2 08:00 END     trouble x4: could not walk to the orchard (85 m short, against a wall, inside a building)
+BOT d2 08:00 END     trouble x3: could not walk to the orchard (85 m short)
+BOT d2 08:00 END     trouble x1: the prologue stalled at 'village'

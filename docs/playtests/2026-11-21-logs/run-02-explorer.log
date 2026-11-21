@@ -1,0 +1,99 @@
+BOT d1 07:57 START   style explorer, seed 2
+BOT d1 07:57 PLACE   Anarvan (village) 0.0 km
+BOT d1 07:57 DO      flies about before the story (explorer)
+BOT d1 07:57 DO      flies to somewhere new (1.9 km)
+BOT d1 08:21 DO      flies to somewhere new (2.5 km)
+BOT d1 08:52 DO      flies to home (3.6 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 75, water 75, rest 83, Anarvan (village) 2.9 km
+BOT d1 09:33 SAY     Codex: Grass observed
+BOT d1 09:34 DO      steps off the carpet
+BOT d1 09:34 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:03 SAY     Codex: Umbrella acacia observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:12 STORY   You fill the jar at the qanat outlet
+BOT d1 07:17 SAY     Taima: Yes? What do you want?
+BOT d1 07:21 SAY     Geyai: You are not from here.
+BOT d1 07:22 SAY     Geyai: They say... Niqwaar falls to abandonment, they say.
+BOT d1 08:14 SAY     Geyai: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 08:14 SAY     Geyai: I know nothing of that.
+BOT d1 08:14 SAY     Geyai: As for the gods... Magic is an abomination to us.
+BOT d1 08:20 SAY     Taima: They say... the battle of Field of the Three Banners, they say.
+BOT d1 08:21 SAY     Taima: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 09:35 STUCK   could not walk to the qanat outlet (4 m short, against a wall)
+BOT d1 09:36 DO      walks to the goat pen
+BOT d1 09:44 PLACE   pen, Anarvan
+BOT d1 09:44 STORY   The goats crowd round for their fodder
+BOT d1 09:48 PLACE   pen, Anarvan
+BOT d1 09:48 DO      walks to the orchard
+BOT d1 12:00 STATUS  on foot, hp 100, food 48, water 47, rest 41, Anarvan (village) 0.0 km, story: village
+BOT d1 12:10 STUCK   could not walk to the orchard (86 m short)
+BOT d1 12:10 SAY     Taken dried meat 4, lamp oil 3, silk 1
+BOT d1 12:11 DO      walks to the orchard
+BOT d1 13:31 SAY     Codex: Brown hare observed
+BOT d1 14:35 STUCK   could not walk to the orchard (85 m short)
+BOT d1 14:35 SAY     The door opens
+BOT d1 14:36 SAY     You eat dried meat
+BOT d1 14:36 DO      eats
+BOT d1 14:36 SAY     You drink river water
+BOT d1 14:36 DO      drinks
+BOT d1 14:36 DO      walks to the orchard
+BOT d1 15:00 STATUS  on foot, hp 100, food 45, water 50, rest 16, Anarvan (village) 0.0 km, story: village
+BOT d1 15:46 SAY     Codex: Red deer observed
+BOT d1 16:57 STUCK   could not walk to the orchard (86 m short)
+BOT d1 16:57 SAY     You eat dried meat
+BOT d1 16:57 DO      eats
+BOT d1 16:57 SAY     You drink river water
+BOT d1 16:57 DO      drinks
+BOT d1 16:58 DO      walks to the orchard
+BOT d1 17:31 SEE     storm_bird
+BOT d1 18:00 STATUS  on foot, hp 100, food 41, water 53, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 19:19 STUCK   could not walk to the orchard (86 m short)
+BOT d1 19:19 SAY     Taken flatbread 4, coin 4
+BOT d1 19:19 SAY     You eat flatbread
+BOT d1 19:19 DO      eats
+BOT d1 19:19 DO      walks to the orchard
+BOT d1 20:23 PLACE   weaver, Anarvan
+BOT d1 20:23 SAY     Empty
+BOT d1 21:00 STATUS  on foot, hp 100, food 50, water 36, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 21:43 STUCK   could not walk to the orchard (85 m short)
+BOT d1 21:43 SAY     Empty
+BOT d1 21:44 SAY     nothing to drink
+BOT d1 21:44 DO      walks to the orchard
+BOT d1 23:19 PLACE   weaver, Anarvan
+BOT d1 23:19 SAY     Empty
+BOT d2 00:00 STATUS  on foot, hp 100, food 33, water 18, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 00:07 STUCK   could not walk to the orchard (85 m short, against a wall)
+BOT d2 00:07 SAY     Taken lamp oil 4, wool 2, coin 6
+BOT d2 00:08 SAY     You eat flatbread
+BOT d2 00:08 DO      eats
+BOT d2 00:08 SAY     nothing to drink
+BOT d2 00:08 DO      walks to the orchard
+BOT d2 02:29 STUCK   could not walk to the orchard (85 m short)
+BOT d2 02:29 SAY     The door opens
+BOT d2 02:29 SAY     nothing to drink
+BOT d2 02:30 DO      walks to the orchard
+BOT d2 03:00 STATUS  on foot, hp 100, food 41, water 1, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 03:22 PLACE   weaver, Anarvan
+BOT d2 03:22 SAY     Empty
+BOT d2 04:27 HARM    poison: 5 (health 95), Anarvan (village) 0.0 km
+BOT d2 04:50 SAY     Empty
+BOT d2 04:50 SAY     You eat flatbread
+BOT d2 04:50 DO      eats
+BOT d2 04:50 SAY     nothing to drink
+BOT d2 04:50 DO      walks to the orchard
+BOT d2 05:42 HARM    poison: 5 (health 90), Anarvan (village) 0.0 km
+BOT d2 05:53 PLACE   weaver, Anarvan
+BOT d2 05:53 SAY     Empty
+BOT d2 06:00 STATUS  on foot, hp 89, food 50, water 0, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 06:23 SAY     The door closes
+BOT d2 06:23 SAY     nothing to drink
+BOT d2 06:23 STUCK   the prologue stalled at 'village'
+BOT d2 06:23 END     after 150006 ticks; prologue village; saga -; hp 88; codex 6 entries
+BOT d2 06:23 END     trouble x4: could not walk to the orchard (86 m short)
+BOT d2 06:23 END     trouble x1: could not walk to the qanat outlet (4 m short, against a wall)
+BOT d2 06:23 END     trouble x1: could not walk to the orchard (85 m short, against a wall)
+BOT d2 06:23 END     trouble x3: could not walk to the orchard (85 m short)
+BOT d2 06:23 END     trouble x1: the prologue stalled at 'village'

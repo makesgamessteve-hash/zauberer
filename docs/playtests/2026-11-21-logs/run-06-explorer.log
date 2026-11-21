@@ -1,0 +1,285 @@
+BOT d1 07:41 START   style explorer, seed 6
+BOT d1 07:41 PLACE   Anarvan (village) 0.0 km
+BOT d1 07:41 DO      flies about before the story (explorer)
+BOT d1 07:41 DO      flies to somewhere new (2.4 km)
+BOT d1 08:10 DO      flies to somewhere new (1.9 km)
+BOT d1 08:34 DO      flies to home (3.4 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 74, water 74, rest 81, Anarvan (village) 0.9 km
+BOT d1 09:11 PLACE   home, Anarvan
+BOT d1 09:13 SAY     Codex: Umbrella acacia observed
+BOT d1 09:14 DO      steps off the carpet
+BOT d1 09:14 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:03 SAY     Codex: Grass observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:19 STORY   You fill the jar at the qanat outlet
+BOT d1 07:26 SAY     Codex: Coconut palm observed
+BOT d1 07:39 SAY     Codex: Fern observed
+BOT d1 08:39 SAY     Codex: Honey bee observed
+BOT d1 09:35 STUCK   could not walk to the qanat outlet (5 m short)
+BOT d1 09:36 DO      walks to the goat pen
+BOT d1 09:43 STORY   The goats crowd round for their fodder
+BOT d1 09:44 DO      walks to the orchard
+BOT d1 09:44 PLACE   pen, Anarvan
+BOT d1 09:50 SAY     Codex: Butterfly observed
+BOT d1 10:26 STORY   You pick three pomegranates
+BOT d1 10:26 DO      looks for Farrokh (work)
+BOT d1 10:26 DO      walks to Farrokh's door
+BOT d1 10:46 PLACE   weaver, Anarvan
+BOT d1 10:46 SAY     The door opens
+BOT d1 10:47 SAY     Taken dyed cloth 1, coin 9
+BOT d1 10:47 STORY   You tie knots at the loom: the pattern grows under your fingers
+BOT d1 10:48 SAY     Empty
+BOT d1 10:51 SAY     The door closes
+BOT d1 11:21 STUCK   could not walk to Farrokh (18 m short, against a wall, inside a building)
+BOT d1 11:30 STUCK   could not walk to Farrokh (18 m short, against a wall, inside a building)
+BOT d1 11:37 SEE     storm_bird
+BOT d1 11:39 STUCK   could not walk to Farrokh (17 m short, against a wall, inside a building)
+BOT d1 11:48 STUCK   could not walk to Farrokh (17 m short, against a wall, inside a building)
+BOT d1 11:57 STUCK   could not walk to Farrokh (17 m short, against a wall, inside a building)
+BOT d1 12:00 STATUS  on foot, hp 100, food 49, water 48, rest 43, weaver, Anarvan, story: village
+BOT d1 12:04 SAY     Pomeng: Good day, traveller.
+BOT d1 12:05 SAY     Bukachu: Good day, traveller.
+BOT d1 12:05 SAY     Bukachu: They say... Miigeshaam builds a stone bridge, they say.
+BOT d1 12:05 SAY     Bukachu: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 12:06 STUCK   could not walk to Farrokh (19 m short, against a wall, inside a building)
+BOT d1 12:06 SAY     Bukachu: I know nothing of that.
+BOT d1 12:13 STUCK   could not walk to Farrokh (5 m short, against a wall, inside a building)
+BOT d1 12:15 DO      looks for Farrokh (eat)
+BOT d1 12:15 DO      walks to Farrokh's door
+BOT d1 12:17 SAY     The door opens
+BOT d1 12:17 SAY     The door closes
+BOT d1 12:31 SAY     Farrokh: You are not from here.
+BOT d1 18:30 SAY     Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 BEAT    prologue: arrival
+BOT d1 18:30 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 18:30 STORY   Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 STATUS  on foot, hp 100, food 46, water 46, rest 39, weaver, Anarvan, story: arrival
+BOT d1 18:30 SAY     Farrokh: They say... Hidapen builds an observatory, they say.
+BOT d1 18:30 SAY     Farrokh: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 18:30 SAY     Farrokh: I know nothing of that.
+BOT d1 18:31 SAY     The door opens
+BOT d1 18:31 SAY     The door closes
+BOT d1 18:32 STORY   Azhdar: "Give me the Weave!" No one understands him.
+BOT d1 18:42 SAY     Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 BEAT    prologue: handover
+BOT d1 18:42 STORY   Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 DO      runs to hide in the cellar
+BOT d1 18:42 DO      walks to Farrokh's door
+BOT d1 18:43 SAY     Miteyun: Good day, traveller.
+BOT d1 18:43 SAY     Miteyun: They say... Miigeshaam builds a stone bridge, they say.
+BOT d1 18:44 SAY     Miteyun: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 18:44 SAY     Miteyun: I know nothing of that.
+BOT d1 18:44 SAY     Miteyun: As for the gods... We keep the faith of Milvanch; we pray at dawn and dusk and bury our dead by earth graves.
+BOT d1 18:45 SAY     The door closes
+BOT d1 18:47 SAY     Yitsihu: Good day, traveller.
+BOT d1 18:47 SAY     Yitsihu: They say... Susu builds a great library, they say.
+BOT d1 18:48 SAY     Yitsihu: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 18:48 SAY     The door opens
+BOT d1 19:12 SAY     Yitsihu: I know nothing of that.
+BOT d1 19:13 SAY     Yitsihu: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 19:14 SAY     Yitsihu: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:14 SAY     Yitsihu: There is nothing that needs doing, thank the gods.
+BOT d1 19:16 SAY     Miteyun: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 20:12 SAY     Codex: Dead tree observed
+BOT d1 21:00 STATUS  on foot, hp 100, food 35, water 34, rest 22, weaver, Anarvan, story: handover
+BOT d1 21:17 STUCK   could not walk to Farrokh's door (8 m short, against a wall, inside a building)
+BOT d1 21:43 STUCK   could not walk to inside Farrokh's house (5 m short, against a wall, inside a building)
+BOT d1 22:17 STUCK   could not walk to the hatch (4 m short, inside a building)
+BOT d1 22:34 STUCK   could not walk to the foot of the cellar stair (9 m short, against a wall, inside a building)
+BOT d1 22:35 SAY     You eat pomegranate
+BOT d1 22:35 DO      eats
+BOT d1 22:35 SAY     You drink river water
+BOT d1 22:35 DO      drinks
+BOT d1 22:36 DO      runs to hide in the cellar
+BOT d1 22:36 DO      walks to Farrokh's door
+BOT d1 23:05 SAY     The hatch closes over you. The cellar is warded.
+BOT d1 23:05 BEAT    prologue: hiding
+BOT d1 23:05 STORY   The hatch closes over you. The cellar is warded.
+BOT d1 23:05 STORY   Fire roars over the roofs.
+BOT d1 23:05 SAY     You eat pomegranate
+BOT d1 23:05 DO      eats
+BOT d1 23:16 STORY   Screams in the street.
+BOT d1 23:22 HARM    heat: 7 (health 94), Anarvan (village) 0.0 km
+BOT d1 23:23 HARM    heat: 8 (health 85), Anarvan (village) 0.0 km
+BOT d1 23:23 HARM    heat: 10 (health 75), Anarvan (village) 0.0 km
+BOT d1 23:23 HARM    heat: 10 (health 65), Anarvan (village) 0.0 km
+BOT d1 23:23 HARM    heat: 10 (health 55), Anarvan (village) 0.0 km
+BOT d1 23:24 HARM    heat: 10 (health 45), Anarvan (village) 0.0 km
+BOT d1 23:24 HARM    heat: 10 (health 35), Anarvan (village) 0.0 km
+BOT d1 23:24 HARM    heat: 10 (health 25), Anarvan (village) 0.0 km
+BOT d1 23:25 HARM    heat: 19 (health 6), Anarvan (village) 0.0 km
+BOT d1 23:25 HURT    You are defeated (heat)
+BOT d1 23:25 HARM    heat: 5 (health 0), Anarvan (village) 0.0 km
+BOT d1 23:25 DOWN    the heir is defeated
+BOT d1 23:27 STORY   Farrokh's magic flares, blue and bright, and is gone.
+BOT d1 23:27 HURT    You get up again
+BOT d1 23:32 HARM    heat: 10 (health 41), Anarvan (village) 0.0 km
+BOT d1 23:32 HARM    heat: 5 (health 36), Anarvan (village) 0.0 km
+BOT d1 23:32 HARM    heat: 12 (health 23), Anarvan (village) 0.0 km
+BOT d1 23:32 HARM    heat: 5 (health 18), Anarvan (village) 0.0 km
+BOT d1 23:32 HARM    heat: 12 (health 6), Anarvan (village) 0.0 km
+BOT d1 23:33 HARM    heat: 5 (health 1), Anarvan (village) 0.0 km
+BOT d1 23:33 HURT    You are defeated (heat)
+BOT d1 23:33 DOWN    the heir is defeated
+BOT d1 23:35 HURT    You get up again
+BOT d1 23:37 STORY   Azhdar burns carpet after carpet: "Where is it?"
+BOT d1 23:40 HARM    heat: 8 (health 43), Anarvan (village) 0.0 km
+BOT d1 23:40 HARM    heat: 8 (health 35), Anarvan (village) 0.0 km
+BOT d1 23:40 HARM    heat: 11 (health 24), Anarvan (village) 0.0 km
+BOT d1 23:41 HARM    heat: 11 (health 13), Anarvan (village) 0.0 km
+BOT d1 23:41 HARM    heat: 11 (health 3), Anarvan (village) 0.0 km
+BOT d1 23:41 HURT    You are defeated (heat)
+BOT d1 23:41 DOWN    the heir is defeated
+BOT d1 23:43 HURT    You get up again
+BOT d1 23:48 HARM    heat: 5 (health 47), Anarvan (village) 0.0 km
+BOT d1 23:48 STORY   "It is near. I feel it near." Then hoofbeats, and silence.
+BOT d1 23:48 HARM    heat: 7 (health 41), Anarvan (village) 0.0 km
+BOT d1 23:49 HARM    heat: 7 (health 34), Anarvan (village) 0.0 km
+BOT d1 23:49 HARM    heat: 6 (health 28), Anarvan (village) 0.0 km
+BOT d1 23:49 HARM    heat: 6 (health 21), Anarvan (village) 0.0 km
+BOT d1 23:50 HARM    heat: 6 (health 15), Anarvan (village) 0.0 km
+BOT d1 23:50 HARM    heat: 6 (health 9), Anarvan (village) 0.0 km
+BOT d1 23:50 HARM    heat: 6 (health 3), Anarvan (village) 0.0 km
+BOT d1 23:50 HURT    You are defeated (heat)
+BOT d1 23:50 DOWN    the heir is defeated
+BOT d1 23:52 HURT    You get up again
+BOT d1 23:58 HARM    heat: 7 (health 46), Anarvan (village) 0.0 km
+BOT d1 23:58 HARM    heat: 7 (health 40), Anarvan (village) 0.0 km
+BOT d1 23:59 HARM    heat: 6 (health 33), Anarvan (village) 0.0 km
+BOT d2 06:00 SAY     Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 BEAT    prologue: ashes
+BOT d2 06:00 STORY   Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 STATUS  on the carpet, hp 32, food 45, water 49, rest 2, Anarvan (village) 0.0 km, story: ashes
+BOT d2 06:00 DO      climbs out of the cellar
+BOT d2 06:00 DO      flies to the ground (0.0 km)
+BOT d2 06:00 DO      steps off the carpet
+BOT d2 06:00 DO      walks to the ruins of the house
+BOT d2 06:00 HARM    heat: 7 (health 26), Anarvan (village) 0.0 km
+BOT d2 06:01 HARM    heat: 7 (health 19), Anarvan (village) 0.0 km
+BOT d2 06:01 HARM    heat: 9 (health 9), Anarvan (village) 0.0 km
+BOT d2 06:02 HURT    You are defeated (heat)
+BOT d2 06:02 HARM    heat: 9 (health 0), Anarvan (village) 0.0 km
+BOT d2 06:02 DOWN    the heir is defeated
+BOT d2 06:04 HURT    You get up again
+BOT d2 06:04 DO      goes back down into the cellar
+BOT d2 06:04 DO      flies to the ground (0.0 km)
+BOT d2 06:05 HURT    You get up again
+BOT d2 06:09 DO      steps off the carpet
+BOT d2 06:09 DO      walks to Farrokh's door
+BOT d2 06:10 HARM    heat: 6 (health 45), Anarvan (village) 0.0 km
+BOT d2 06:11 HARM    heat: 6 (health 39), Anarvan (village) 0.0 km
+BOT d2 06:12 HARM    heat: 5 (health 34), Anarvan (village) 0.0 km
+BOT d2 06:13 HARM    heat: 6 (health 28), Anarvan (village) 0.0 km
+BOT d2 06:14 HARM    heat: 7 (health 21), Anarvan (village) 0.0 km
+BOT d2 06:15 HARM    heat: 5 (health 16), Anarvan (village) 0.0 km
+BOT d2 06:15 HARM    heat: 7 (health 9), Anarvan (village) 0.0 km
+BOT d2 06:15 HURT    You are defeated (impact)
+BOT d2 06:15 HARM    impact: 8 (health 0), Anarvan (village) 0.0 km
+BOT d2 06:15 DOWN    the heir is defeated
+BOT d2 06:17 HURT    You get up again
+BOT d2 06:18 DO      goes back down into the cellar
+BOT d2 06:18 DO      flies to the ground (0.0 km)
+BOT d2 06:22 DO      steps off the carpet
+BOT d2 06:22 DO      walks to Farrokh's door
+BOT d2 06:28 HARM    heat: 6 (health 46), Anarvan (village) 0.0 km
+BOT d2 06:29 HARM    impact: 9 (health 32), Anarvan (village) 0.0 km
+BOT d2 06:29 HARM    heat: 9 (health 28), Anarvan (village) 0.0 km
+BOT d2 06:29 PLACE   weaver, Anarvan
+BOT d2 06:29 HARM    heat: 23 (health 5), weaver, Anarvan
+BOT d2 06:30 HURT    You are defeated (heat)
+BOT d2 06:30 DOWN    the heir is defeated
+BOT d2 06:31 HURT    You get up again
+BOT d2 06:32 DO      goes back down into the cellar
+BOT d2 06:32 DO      flies to the ground (0.0 km)
+BOT d2 06:36 DO      steps off the carpet
+BOT d2 06:36 DO      walks to Farrokh's door
+BOT d2 06:42 HARM    heat: 6 (health 54), Anarvan (village) 0.0 km
+BOT d2 06:43 HARM    impact: 9 (health 43), Anarvan (village) 0.0 km
+BOT d2 06:43 HARM    heat: 5 (health 39), Anarvan (village) 0.0 km
+BOT d2 06:43 PLACE   weaver, Anarvan
+BOT d2 06:43 HARM    heat: 22 (health 18), weaver, Anarvan
+BOT d2 06:44 HURT    You are defeated (heat)
+BOT d2 06:44 HARM    heat: 17 (health 0), weaver, Anarvan
+BOT d2 06:44 DOWN    the heir is defeated
+BOT d2 06:45 HURT    You are defeated (heat)
+BOT d2 06:45 HURT    You get up again
+BOT d2 06:47 DO      goes back down into the cellar
+BOT d2 06:47 DO      flies to the ground (0.0 km)
+BOT d2 06:51 DO      steps off the carpet
+BOT d2 06:51 DO      walks to Farrokh's door
+BOT d2 06:57 HARM    impact: 9 (health 44), Anarvan (village) 0.0 km
+BOT d2 06:57 HARM    heat: 7 (health 39), Anarvan (village) 0.0 km
+BOT d2 06:58 PLACE   weaver, Anarvan
+BOT d2 06:58 HARM    heat: 10 (health 29), weaver, Anarvan
+BOT d2 06:58 HARM    heat: 10 (health 19), weaver, Anarvan
+BOT d2 06:58 HARM    heat: 10 (health 9), weaver, Anarvan
+BOT d2 06:59 HURT    You are defeated (heat)
+BOT d2 06:59 HARM    heat: 9 (health 0), weaver, Anarvan
+BOT d2 06:59 DOWN    the heir is defeated
+BOT d2 07:00 HURT    You are defeated (heat)
+BOT d2 07:00 DOWN    the heir is defeated
+BOT d2 07:00 HURT    You get up again
+BOT d2 07:03 DO      goes back down into the cellar
+BOT d2 07:03 DO      flies to the ground (0.0 km)
+BOT d2 07:06 DO      steps off the carpet
+BOT d2 07:06 DO      walks to Farrokh's door
+BOT d2 07:10 HARM    impact: 9 (health 44), Anarvan (village) 0.0 km
+BOT d2 07:10 PLACE   weaver, Anarvan
+BOT d2 07:11 HARM    heat: 10 (health 34), weaver, Anarvan
+BOT d2 07:11 HARM    heat: 5 (health 29), weaver, Anarvan
+BOT d2 07:11 HARM    heat: 5 (health 24), weaver, Anarvan
+BOT d2 07:12 HARM    heat: 5 (health 18), weaver, Anarvan
+BOT d2 07:12 HARM    heat: 5 (health 13), weaver, Anarvan
+BOT d2 07:13 SAY     The cellar is larger than a cellar should be.
+BOT d2 07:13 BEAT    prologue: sanctum
+BOT d2 07:13 STORY   The cellar is larger than a cellar should be.
+BOT d2 07:17 SAY     Codex: Red deer observed
+BOT d2 07:17 SAY     Naturalism: Apprentice
+BOT d2 07:28 STUCK   could not walk to a shelf in the sanctum (8 m short, against a wall)
+BOT d2 07:36 SAY     Found the Primer
+BOT d2 07:36 STORY   Farrokh's Primer: Kindle, Light and Lift
+BOT d2 07:37 SAY     Found the endless bag
+BOT d2 07:38 STORY   The endless bag: it opens into a fold larger than a house
+BOT d2 07:38 SAY     You eat pomegranate
+BOT d2 07:38 DO      eats
+BOT d2 07:45 SAY     Found Farrokh's letter
+BOT d2 07:45 SAY     The rug is warm. Sleep on it.
+BOT d2 07:45 BEAT    prologue: carpet
+BOT d2 07:45 STORY   A letter in Farrokh's hand. It breaks off. (Journal)
+BOT d2 07:45 STORY   The rug is warm. Sleep on it.
+BOT d2 07:52 DO      lies down on the rug to sleep
+BOT d2 15:52 SAY     In a dream the carpet chooses you. It stirs under your hands.
+BOT d2 15:52 BEAT    prologue: flying
+BOT d2 15:52 STORY   In a dream the carpet chooses you. It stirs under your hands.
+BOT d2 15:52 STATUS  on foot, hp 36, food 24, water 20, rest 99, Anarvan (village) 0.0 km, story: flying
+BOT d2 16:03 STUCK   the carpet would not take the heir
+BOT d2 16:03 SAY     nothing to eat
+BOT d2 16:03 SAY     You drink river water
+BOT d2 16:03 DO      drinks
+BOT d2 16:03 STUCK   the carpet would not take the heir
+BOT d2 16:04 SAY     nothing to drink
+BOT d2 16:04 STUCK   the carpet would not take the heir
+BOT d2 16:21 STUCK   no way on at 'flying' after 30 tries
+BOT d2 18:00 STATUS  on foot, hp 100, food 15, water 31, rest 86, Anarvan (village) 0.0 km, story: flying
+BOT d2 21:00 STATUS  on foot, hp 100, food 2, water 18, rest 67, Anarvan (village) 0.0 km, story: flying
+BOT d3 00:00 STATUS  on foot, hp 97, food 0, water 6, rest 48, Anarvan (village) 0.0 km, story: flying
+BOT d3 00:59 HARM    poison: 5 (health 95), Anarvan (village) 0.0 km
+BOT d3 02:15 HARM    poison: 5 (health 90), Anarvan (village) 0.0 km
+BOT d3 02:26 STUCK   the prologue stalled at 'flying'
+BOT d3 02:26 END     after 150006 ticks; prologue flying; saga -; hp 90; codex 13 entries
+BOT d3 02:26 END     trouble x1: could not walk to Farrokh (5 m short, against a wall, inside a building)
+BOT d3 02:26 END     trouble x1: could not walk to a shelf in the sanctum (8 m short, against a wall)
+BOT d3 02:26 END     trouble x1: could not walk to the foot of the cellar stair (9 m short, against a wall, inside a building)
+BOT d3 02:26 END     trouble x2: could not walk to Farrokh (18 m short, against a wall, inside a building)
+BOT d3 02:26 END     trouble x3: could not walk to Farrokh (17 m short, against a wall, inside a building)
+BOT d3 02:26 END     trouble x945: the carpet would not take the heir
+BOT d3 02:26 END     trouble x1: no way on at 'flying' after 30 tries
+BOT d3 02:26 END     trouble x1: could not walk to the hatch (4 m short, inside a building)
+BOT d3 02:26 END     trouble x1: could not walk to Farrokh (19 m short, against a wall, inside a building)
+BOT d3 02:26 END     trouble x1: the prologue stalled at 'flying'
+BOT d3 02:26 END     trouble x1: could not walk to Farrokh's door (8 m short, against a wall, inside a building)
+BOT d3 02:26 END     trouble x1: could not walk to inside Farrokh's house (5 m short, against a wall, inside a building)
+BOT d3 02:26 END     trouble x1: could not walk to the qanat outlet (5 m short)

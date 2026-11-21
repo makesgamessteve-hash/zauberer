@@ -1,0 +1,219 @@
+BOT d1 08:07 START   style story, seed 5
+BOT d1 08:07 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:07 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:01 SAY     Codex: Grass observed
+BOT d1 07:07 SAY     Fiitunud: You are not from here.
+BOT d1 07:07 SAY     Fiitunud: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 07:07 SAY     Fiitunud: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 07:08 SAY     Fiitunud: I know nothing of that.
+BOT d1 07:08 SAY     The door opens
+BOT d1 07:08 SAY     The door closes
+BOT d1 07:13 SAY     Witun: You are not from here.
+BOT d1 07:15 STORY   You fill the jar at the qanat outlet
+BOT d1 08:18 SAY     Fiitunud: As for the gods... Magic is a sacred gift to us.
+BOT d1 08:18 SAY     Fiitunud: I know nothing of that.
+BOT d1 08:19 SAY     Ramab: Good day, traveller.
+BOT d1 08:19 SAY     Ramab: They say... Tanisha builds a canal, they say.
+BOT d1 08:20 SAY     Ramab: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 08:22 SAY     Ziikad: State your business.
+BOT d1 08:22 SAY     Ziikad: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 08:23 SAY     Ziikad: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 08:23 SAY     Ziikad: I know nothing of that.
+BOT d1 08:24 SAY     Witun: They say... Tanisha builds a canal, they say.
+BOT d1 09:00 STATUS  on foot, hp 100, food 70, water 70, rest 76, Anarvan (village) 0.0 km, story: village
+BOT d1 09:32 STUCK   could not walk to the qanat outlet (3 m short, against a wall)
+BOT d1 09:32 DO      walks to the goat pen
+BOT d1 09:37 SAY     Codex: Umbrella acacia observed
+BOT d1 09:40 PLACE   pen, Anarvan
+BOT d1 09:40 STORY   The goats crowd round for their fodder
+BOT d1 09:44 PLACE   pen, Anarvan
+BOT d1 09:45 DO      walks to the orchard
+BOT d1 09:46 SAY     Taken lamp oil 4, dates 4, coin 1
+BOT d1 09:46 SAY     Empty
+BOT d1 09:55 SAY     Taken salt 1
+BOT d1 09:55 PLACE   weaver, Anarvan
+BOT d1 10:29 SEE     storm_bird
+BOT d1 12:00 STATUS  on foot, hp 100, food 55, water 55, rest 52, Anarvan (village) 0.0 km, story: village
+BOT d1 12:06 STUCK   could not walk to the orchard (85 m short, against a wall)
+BOT d1 12:06 SAY     Taken dyed cloth 1
+BOT d1 12:07 DO      walks to the orchard
+BOT d1 13:51 SEE     fox
+BOT d1 14:01 SAY     Codex: Red deer observed
+BOT d1 14:03 HARM    heat: 5 (health 95), Anarvan (village) 0.0 km
+BOT d1 14:04 HARM    heat: 5 (health 90), Anarvan (village) 0.0 km
+BOT d1 14:04 HARM    heat: 10 (health 80), Anarvan (village) 0.0 km
+BOT d1 14:04 HARM    heat: 10 (health 70), Anarvan (village) 0.0 km
+BOT d1 14:05 HARM    heat: 10 (health 60), Anarvan (village) 0.0 km
+BOT d1 14:05 HARM    heat: 10 (health 50), Anarvan (village) 0.0 km
+BOT d1 14:05 HARM    heat: 10 (health 40), Anarvan (village) 0.0 km
+BOT d1 14:05 HARM    heat: 10 (health 30), Anarvan (village) 0.0 km
+BOT d1 14:06 HARM    heat: 10 (health 20), Anarvan (village) 0.0 km
+BOT d1 14:06 HARM    heat: 15 (health 5), Anarvan (village) 0.0 km
+BOT d1 14:06 HURT    You are defeated (heat)
+BOT d1 14:06 DOWN    the heir is defeated
+BOT d1 14:08 HURT    You get up again
+BOT d1 14:09 DO      flies to the ground (0.0 km)
+BOT d1 14:10 HURT    You get up again
+BOT d1 14:18 DO      steps off the carpet
+BOT d1 14:18 DO      walks to the orchard
+BOT d1 14:19 HARM    heat: 8 (health 51), Anarvan (village) 0.0 km
+BOT d1 14:19 HARM    heat: 22 (health 29), Anarvan (village) 0.0 km
+BOT d1 14:19 HURT    You are defeated (heat)
+BOT d1 14:19 HARM    heat: 28 (health 0), Anarvan (village) 0.0 km
+BOT d1 14:19 DOWN    the heir is defeated
+BOT d1 14:20 HURT    You are defeated (heat)
+BOT d1 14:20 DOWN    the heir is defeated
+BOT d1 14:21 HURT    You get up again
+BOT d1 14:22 DO      flies to the ground (0.0 km)
+BOT d1 14:31 DO      steps off the carpet
+BOT d1 14:31 DO      walks to the orchard
+BOT d1 14:32 HARM    heat: 6 (health 49), Anarvan (village) 0.0 km
+BOT d1 14:32 HARM    heat: 15 (health 34), Anarvan (village) 0.0 km
+BOT d1 14:33 HARM    heat: 15 (health 19), Anarvan (village) 0.0 km
+BOT d1 14:33 HARM    heat: 15 (health 4), Anarvan (village) 0.0 km
+BOT d1 14:33 HURT    You are defeated (heat)
+BOT d1 14:33 DOWN    the heir is defeated
+BOT d1 14:35 HURT    You are defeated (heat)
+BOT d1 14:35 HURT    You get up again
+BOT d1 14:36 DO      flies to the ground (0.0 km)
+BOT d1 14:45 DO      steps off the carpet
+BOT d1 14:45 DO      walks to the orchard
+BOT d1 14:47 HARM    heat: 7 (health 52), Anarvan (village) 0.0 km
+BOT d1 14:47 HARM    heat: 6 (health 46), Anarvan (village) 0.0 km
+BOT d1 14:47 HARM    heat: 6 (health 39), Anarvan (village) 0.0 km
+BOT d1 14:47 HARM    heat: 6 (health 33), Anarvan (village) 0.0 km
+BOT d1 14:48 HARM    heat: 5 (health 28), Anarvan (village) 0.0 km
+BOT d1 14:48 HARM    heat: 9 (health 19), Anarvan (village) 0.0 km
+BOT d1 14:49 HARM    heat: 8 (health 11), Anarvan (village) 0.0 km
+BOT d1 14:50 HARM    heat: 8 (health 3), Anarvan (village) 0.0 km
+BOT d1 14:50 HURT    You are defeated (heat)
+BOT d1 14:50 DOWN    the heir is defeated
+BOT d1 14:52 HURT    You get up again
+BOT d1 14:52 DO      flies to the ground (0.0 km)
+BOT d1 15:00 STATUS  on the carpet, hp 52, food 41, water 39, rest 29, Anarvan (village) 0.0 km, story: village
+BOT d1 15:02 DO      steps off the carpet
+BOT d1 15:02 DO      walks to the orchard
+BOT d1 15:04 HARM    heat: 7 (health 51), Anarvan (village) 0.0 km
+BOT d1 15:05 HARM    heat: 6 (health 45), Anarvan (village) 0.0 km
+BOT d1 15:07 HARM    heat: 5 (health 40), Anarvan (village) 0.0 km
+BOT d1 15:10 HARM    heat: 5 (health 34), Anarvan (village) 0.0 km
+BOT d1 17:04 SAY     Codex: Storm bird observed
+BOT d1 17:24 SAY     Codex: Red fox observed
+BOT d1 17:25 STUCK   could not walk to the orchard (86 m short)
+BOT d1 17:26 SAY     You eat dates
+BOT d1 17:26 DO      eats
+BOT d1 17:26 SAY     You drink river water
+BOT d1 17:26 DO      drinks
+BOT d1 17:26 DO      eats
+BOT d1 17:26 DO      walks to the orchard
+BOT d1 17:38 PLACE   weaver, Anarvan
+BOT d1 17:56 SAY     Taken dates 1, wool 2
+BOT d1 17:56 SAY     Empty
+BOT d1 18:00 STATUS  on foot, hp 100, food 28, water 44, rest 6, weaver, Anarvan, story: village
+BOT d1 19:08 SAY     Zudiiwiin: Good day, traveller.
+BOT d1 19:08 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 19:08 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 19:09 SAY     Zudiiwiin: I know nothing of that.
+BOT d1 19:09 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d1 19:10 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:12 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d1 19:15 SAY     Taken dried meat 4, lamp oil 4
+BOT d1 19:16 SAY     Empty
+BOT d1 19:49 SAY     Empty
+BOT d1 20:01 STUCK   could not walk to the orchard (81 m short, against a wall, inside a building)
+BOT d1 20:01 SAY     You eat dried meat
+BOT d1 20:01 DO      eats
+BOT d1 20:01 SAY     You drink river water
+BOT d1 20:01 DO      drinks
+BOT d1 20:01 DO      eats
+BOT d1 20:01 DO      walks to the orchard
+BOT d1 20:18 SAY     Empty
+BOT d1 20:58 SAY     Empty
+BOT d1 21:00 STATUS  on foot, hp 100, food 40, water 50, rest 0, weaver, Anarvan, story: village
+BOT d1 21:40 SAY     Empty
+BOT d1 22:26 SAY     Empty
+BOT d1 22:39 STUCK   could not walk to the orchard (81 m short, against a wall, inside a building)
+BOT d1 22:39 SAY     You eat dried meat
+BOT d1 22:39 DO      eats
+BOT d1 22:40 DO      walks to the orchard
+BOT d1 22:44 SAY     Zudiiwiin: I know nothing of that.
+BOT d1 22:45 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d1 22:45 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 22:46 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d1 22:46 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 22:46 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 22:52 SAY     Empty
+BOT d1 23:18 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d1 23:18 SAY     Zudiiwiin: I know nothing of that.
+BOT d1 23:19 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 23:19 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d1 23:19 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 23:20 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 23:35 SAY     Empty
+BOT d1 23:44 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 23:44 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d1 23:44 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 23:45 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 23:45 SAY     Zudiiwiin: I know nothing of that.
+BOT d1 23:45 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d1 23:55 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 23:55 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d1 23:56 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 23:56 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 23:56 SAY     Zudiiwiin: I know nothing of that.
+BOT d1 23:57 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d2 00:00 STATUS  on foot, hp 100, food 39, water 37, rest 0, weaver, Anarvan, story: village
+BOT d2 00:24 SAY     Empty
+BOT d2 00:41 SAY     Empty
+BOT d2 01:06 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d2 01:07 SAY     Zudiiwiin: I know nothing of that.
+BOT d2 01:07 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d2 01:08 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 01:08 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d2 01:09 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d2 01:14 SAY     Empty
+BOT d2 01:15 STUCK   could not walk to the orchard (81 m short, against a wall, inside a building)
+BOT d2 01:15 SAY     You eat dried meat
+BOT d2 01:15 DO      eats
+BOT d2 01:15 SAY     nothing to drink
+BOT d2 01:16 DO      walks to the orchard
+BOT d2 01:56 SAY     Zudiiwiin: I know nothing of that.
+BOT d2 01:56 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d2 01:57 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 01:57 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d2 01:58 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d2 01:58 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d2 02:20 SAY     Empty
+BOT d2 02:32 SAY     Zudiiwiin: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d2 02:32 SAY     Zudiiwiin: I know nothing of that.
+BOT d2 02:33 SAY     Zudiiwiin: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 02:33 SAY     Zudiiwiin: There is nothing that needs doing, thank the gods.
+BOT d2 02:34 SAY     Zudiiwiin: They say... Wubaqad builds a garden of four parts, they say.
+BOT d2 02:34 SAY     Zudiiwiin: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d2 02:44 SAY     Empty
+BOT d2 03:00 STATUS  on foot, hp 100, food 38, water 23, rest 0, weaver, Anarvan, story: village
+BOT d2 03:52 STUCK   could not walk to the orchard (73 m short, against a wall, inside a building)
+BOT d2 03:52 SAY     You eat dates
+BOT d2 03:52 DO      eats
+BOT d2 03:52 SAY     nothing to drink
+BOT d2 03:53 DO      eats
+BOT d2 03:53 DO      walks to the orchard
+BOT d2 06:00 STATUS  on foot, hp 100, food 27, water 10, rest 0, weaver, Anarvan, story: village
+BOT d2 06:30 STUCK   could not walk to the orchard (73 m short, against a wall, inside a building)
+BOT d2 06:31 SAY     You eat dates
+BOT d2 06:31 DO      eats
+BOT d2 06:31 SAY     nothing to drink
+BOT d2 06:31 SAY     nothing to eat
+BOT d2 06:31 DO      walks to the orchard
+BOT d2 07:59 SAY     nothing to eat
+BOT d2 08:00 SAY     nothing to drink
+BOT d2 08:00 STUCK   the prologue stalled at 'village'
+BOT d2 08:00 END     after 150008 ticks; prologue village; saga -; hp 100; codex 7 entries
+BOT d2 08:00 END     trouble x3: could not walk to the orchard (81 m short, against a wall, inside a building)
+BOT d2 08:00 END     trouble x1: the prologue stalled at 'village'
+BOT d2 08:00 END     trouble x1: could not walk to the qanat outlet (3 m short, against a wall)
+BOT d2 08:00 END     trouble x1: could not walk to the orchard (86 m short)
+BOT d2 08:00 END     trouble x2: could not walk to the orchard (73 m short, against a wall, inside a building)
+BOT d2 08:00 END     trouble x1: could not walk to the orchard (85 m short, against a wall)

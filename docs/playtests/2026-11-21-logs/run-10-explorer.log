@@ -1,0 +1,175 @@
+BOT d1 08:48 START   style explorer, seed 10
+BOT d1 08:48 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:48 DO      flies about before the story (explorer)
+BOT d1 08:48 DO      flies to somewhere new (2.9 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 79, water 79, rest 88, Anarvan (village) 1.1 km
+BOT d1 09:23 DO      flies to somewhere new (2.7 km)
+BOT d1 09:56 DO      flies to home (2.0 km)
+BOT d1 10:19 PLACE   shrine, Anarvan
+BOT d1 10:20 PLACE   home, Anarvan
+BOT d1 10:20 SAY     Codex: Grass observed
+BOT d1 10:21 DO      steps off the carpet
+BOT d1 10:21 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:00 SEE     hare
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:05 SAY     Codex: Umbrella acacia observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:12 STORY   You fill the jar at the qanat outlet
+BOT d1 07:15 SAY     Kewilung: Keep your hands where I can see them.
+BOT d1 07:16 SAY     Kewilung: They say... Daberit builds a canal, they say.
+BOT d1 07:16 SAY     Kewilung: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d1 07:16 SAY     Kewilung: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d1 07:17 SAY     Kewilung: As for the gods... Magic is a power to be licensed to us.
+BOT d1 07:17 SAY     Kewilung: There is a song we sing: They sing of Saitopai, who led us to victory.
+BOT d1 08:03 SAY     Codex: Fern observed
+BOT d1 08:08 SAY     Kewilung: I know nothing of that.
+BOT d1 08:08 SAY     Kewilung: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 08:08 SAY     Kewilung: There is nothing that needs doing, thank the gods.
+BOT d1 08:09 SAY     Kewilung: They say... Daberit builds a canal, they say.
+BOT d1 08:09 SAY     Kewilung: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d1 08:09 SAY     Kewilung: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d1 09:34 STUCK   could not walk to the qanat outlet (3 m short, against a wall)
+BOT d1 09:35 DO      walks to the goat pen
+BOT d1 09:42 STORY   The goats crowd round for their fodder
+BOT d1 09:43 DO      walks to the orchard
+BOT d1 09:43 PLACE   pen, Anarvan
+BOT d1 10:13 STORY   You pick three pomegranates
+BOT d1 10:13 SEE     storm_bird
+BOT d1 10:13 DO      looks for Farrokh (work)
+BOT d1 10:13 DO      walks to Farrokh's door
+BOT d1 11:28 SAY     Codex: Wild boar observed
+BOT d1 12:00 STATUS  on foot, hp 100, food 49, water 48, rest 43, Anarvan (village) 0.0 km, story: village
+BOT d1 12:04 SAY     Codex: Coconut palm observed
+BOT d1 12:15 SAY     Codex: Brown hare observed
+BOT d1 12:39 STUCK   could not walk to Farrokh's door (62 m short, against a wall)
+BOT d1 12:39 SAY     Taken salt 4, healing herbs 2, coin 5
+BOT d1 12:39 SAY     Empty
+BOT d1 12:43 SAY     Codex: Red deer observed
+BOT d1 13:02 SAY     Yapaishu: Keep your hands where I can see them.
+BOT d1 13:02 SAY     Yapaishu: They say... Haajazaan builds an observatory, they say.
+BOT d1 13:02 SAY     Yapaishu: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d1 13:03 SAY     Yapaishu: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d1 13:06 STUCK   could not walk to inside Farrokh's house (61 m short, against a wall)
+BOT d1 13:13 SAY     Taken healing herbs 1, coin 4
+BOT d1 13:14 SAY     Empty
+BOT d1 13:41 STUCK   could not walk to Farrokh (66 m short, against a wall)
+BOT d1 13:50 STUCK   could not walk to Farrokh (66 m short, against a wall)
+BOT d1 13:59 STUCK   could not walk to Farrokh (65 m short, against a wall)
+BOT d1 14:08 STUCK   could not walk to Farrokh (65 m short, against a wall)
+BOT d1 14:17 STUCK   could not walk to Farrokh (65 m short, against a wall)
+BOT d1 14:36 SAY     You eat pomegranate
+BOT d1 14:36 DO      eats
+BOT d1 14:36 DO      looks for Farrokh (work)
+BOT d1 14:36 DO      walks to Farrokh's door
+BOT d1 15:00 STATUS  on foot, hp 100, food 48, water 39, rest 23, Anarvan (village) 0.0 km, story: village
+BOT d1 17:12 STUCK   could not walk to Farrokh's door (56 m short, against a wall)
+BOT d1 17:12 SAY     Empty
+BOT d1 17:39 STUCK   could not walk to inside Farrokh's house (59 m short, against a wall)
+BOT d1 18:00 STATUS  on foot, hp 100, food 35, water 27, rest 5, Anarvan (village) 0.0 km, story: village
+BOT d1 18:24 STUCK   could not walk to Farrokh (75 m short, against a wall)
+BOT d1 18:33 STUCK   could not walk to Farrokh (75 m short, against a wall)
+BOT d1 18:42 STUCK   could not walk to Farrokh (75 m short, against a wall)
+BOT d1 19:09 STUCK   could not walk to Farrokh (74 m short, against a wall)
+BOT d1 19:10 SAY     You eat pomegranate
+BOT d1 19:10 DO      eats
+BOT d1 19:10 SAY     You drink river water
+BOT d1 19:10 DO      drinks
+BOT d1 19:10 DO      looks for Farrokh (eat)
+BOT d1 19:10 DO      walks to Farrokh's door
+BOT d1 21:00 STATUS  on foot, hp 100, food 34, water 38, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 21:46 STUCK   could not walk to Farrokh's door (56 m short, against a wall)
+BOT d1 21:46 SAY     Piyo: Good day, traveller.
+BOT d1 21:47 SAY     Empty
+BOT d1 22:01 SAY     Piyo: They say... Daberit builds a canal, they say.
+BOT d1 22:01 SAY     Piyo: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d1 22:09 SAY     Piyo: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d1 22:09 SAY     Piyo: As for the gods... Magic is a power to be licensed to us.
+BOT d1 22:13 STUCK   could not walk to inside Farrokh's house (59 m short, against a wall)
+BOT d1 22:14 SAY     Piyo: There is a song we sing: They sing of Saitopai, who led us to victory.
+BOT d1 22:14 SAY     Piyo: I know nothing of that.
+BOT d1 22:14 SAY     Piyo: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 22:15 SAY     Piyo: There is nothing that needs doing, thank the gods.
+BOT d1 22:15 SAY     Piyo: They say... Daberit builds a canal, they say.
+BOT d1 22:15 SAY     Piyo: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d1 22:43 SAY     Tewaitsu: State your business.
+BOT d1 22:43 SAY     Tewaitsu: They say... Haajazaan builds an observatory, they say.
+BOT d1 22:49 STUCK   could not walk to Farrokh (63 m short, against a wall)
+BOT d1 22:49 SAY     Tewaitsu: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d1 22:50 SAY     Tewaitsu: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d1 22:50 SAY     Tewaitsu: As for the gods... Magic is a power to be licensed to us.
+BOT d1 22:50 SAY     Tewaitsu: There is a song we sing: They sing of Saitopai, who led us to victory.
+BOT d1 22:51 SAY     Tewaitsu: I know nothing of that.
+BOT d1 22:51 SAY     Tewaitsu: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 22:51 SAY     Tewaitsu: There is nothing that needs doing, thank the gods.
+BOT d1 22:58 STUCK   could not walk to Farrokh (59 m short, against a wall)
+BOT d1 23:06 SAY     Piyo: I know nothing of that.
+BOT d1 23:06 SAY     Piyo: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 23:07 STUCK   could not walk to Farrokh (59 m short, against a wall)
+BOT d1 23:11 SAY     Piyo: There is nothing that needs doing, thank the gods.
+BOT d1 23:11 SAY     Piyo: They say... Daberit builds a canal, they say.
+BOT d1 23:15 SAY     Piyo: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d1 23:15 SAY     Piyo: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d1 23:16 STUCK   could not walk to Farrokh (59 m short, against a wall)
+BOT d1 23:24 SAY     Piyo: As for the gods... Magic is a power to be licensed to us.
+BOT d1 23:24 SAY     Piyo: There is a song we sing: They sing of Saitopai, who led us to victory.
+BOT d1 23:42 SAY     Piyo: I know nothing of that.
+BOT d1 23:42 SAY     Piyo: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 23:43 SAY     You eat pomegranate
+BOT d1 23:44 DO      eats
+BOT d1 23:44 SAY     You drink river water
+BOT d1 23:44 DO      drinks
+BOT d1 23:44 SAY     nothing to eat
+BOT d1 23:44 DO      looks for Farrokh (sleep)
+BOT d1 23:44 DO      walks to Farrokh's door
+BOT d2 00:00 STATUS  on foot, hp 100, food 33, water 50, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 02:20 STUCK   could not walk to Farrokh's door (56 m short, against a wall)
+BOT d2 02:20 SAY     Tewaitsu: They say... Haajazaan builds an observatory, they say.
+BOT d2 02:21 SAY     Tewaitsu: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d2 02:21 SAY     Tewaitsu: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d2 02:21 SAY     Tewaitsu: As for the gods... Magic is a power to be licensed to us.
+BOT d2 02:22 SAY     Tewaitsu: There is a song we sing: They sing of Saitopai, who led us to victory.
+BOT d2 02:22 SAY     Tewaitsu: I know nothing of that.
+BOT d2 02:22 SAY     Tewaitsu: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 02:23 SAY     Tewaitsu: There is nothing that needs doing, thank the gods.
+BOT d2 02:28 SAY     Piyo: There is nothing that needs doing, thank the gods.
+BOT d2 02:28 SAY     Piyo: They say... Daberit builds a canal, they say.
+BOT d2 02:31 SAY     Piyo: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d2 02:32 SAY     Piyo: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d2 02:47 STUCK   could not walk to inside Farrokh's house (59 m short, against a wall)
+BOT d2 02:51 SAY     Piyo: As for the gods... Magic is a power to be licensed to us.
+BOT d2 02:51 SAY     Piyo: There is a song we sing: They sing of Saitopai, who led us to victory.
+BOT d2 03:00 STATUS  on foot, hp 100, food 21, water 37, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 03:06 SAY     Piyo: I know nothing of that.
+BOT d2 03:06 SAY     Piyo: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 03:21 SAY     Piyo: There is nothing that needs doing, thank the gods.
+BOT d2 03:21 SAY     Piyo: They say... Daberit builds a canal, they say.
+BOT d2 03:36 SAY     Piyo: If you are going to Laogicheng, it is 2 days' ride to the west.
+BOT d2 03:36 SAY     Piyo: In the old days... In the year 738 the faithless men of Baansen rose against us over revenge. At the Pass of Sorrow the armies of Taynguu won a glorious victory; their dead lay in thousands.
+BOT d2 03:45 SAY     Piyo: As for the gods... Magic is a power to be licensed to us.
+BOT d2 03:45 SAY     Piyo: There is a song we sing: They sing of Saitopai, who led us to victory.
+BOT d2 03:48 SAY     Piyo: I know nothing of that.
+BOT d2 03:49 SAY     Piyo: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 04:17 SAY     nothing to eat
+BOT d2 04:17 SAY     nothing to drink
+BOT d2 04:18 DO      looks for Farrokh (sleep)
+BOT d2 04:18 DO      walks to Farrokh's door
+BOT d2 06:00 STATUS  on foot, hp 100, food 8, water 25, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 06:27 SAY     Empty
+BOT d2 06:27 SAY     nothing to eat
+BOT d2 06:27 SAY     nothing to drink
+BOT d2 06:27 STUCK   the prologue stalled at 'village'
+BOT d2 06:27 END     after 150066 ticks; prologue village; saga -; hp 100; codex 10 entries
+BOT d2 06:27 END     trouble x1: could not walk to the qanat outlet (3 m short, against a wall)
+BOT d2 06:27 END     trouble x3: could not walk to Farrokh's door (56 m short, against a wall)
+BOT d2 06:27 END     trouble x1: could not walk to Farrokh's door (62 m short, against a wall)
+BOT d2 06:27 END     trouble x1: could not walk to inside Farrokh's house (61 m short, against a wall)
+BOT d2 06:27 END     trouble x1: the prologue stalled at 'village'
+BOT d2 06:27 END     trouble x2: could not walk to Farrokh (66 m short, against a wall)
+BOT d2 06:27 END     trouble x1: could not walk to Farrokh (74 m short, against a wall)
+BOT d2 06:27 END     trouble x5: could not walk to Farrokh (75 m short, against a wall)
+BOT d2 06:27 END     trouble x13: could not walk to Farrokh (59 m short, against a wall)
+BOT d2 06:27 END     trouble x6: could not walk to Farrokh (65 m short, against a wall)
+BOT d2 06:27 END     trouble x1: could not walk to Farrokh (63 m short, against a wall)
+BOT d2 06:27 END     trouble x3: could not walk to inside Farrokh's house (59 m short, against a wall)

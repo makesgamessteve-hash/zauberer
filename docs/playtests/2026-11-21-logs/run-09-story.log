@@ -1,0 +1,113 @@
+BOT d1 08:04 START   style story, seed 9
+BOT d1 08:04 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:04 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:03 SAY     Codex: Umbrella acacia observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:08 SEE     storm_bird
+BOT d1 07:09 SAY     Codex: Grass observed
+BOT d1 07:10 SAY     Taafaaz: We do not want trouble.
+BOT d1 07:11 SAY     Pekhana: Keep your hands where I can see them.
+BOT d1 07:11 SAY     Pekhana: They say... Faasibum builds a great library, they say.
+BOT d1 07:11 SAY     Pekhana: If you are going to Namchand, it is 5 hours' walk to the north.
+BOT d1 07:12 SAY     Pekhana: I know nothing of that.
+BOT d1 07:15 STORY   You fill the jar at the qanat outlet
+BOT d1 07:17 SAY     Codex: Fern observed
+BOT d1 08:03 SAY     Codex: Honey bee observed
+BOT d1 08:07 SAY     Codex: Coconut palm observed
+BOT d1 08:25 SAY     Khana: Keep your hands where I can see them.
+BOT d1 08:26 SAY     Khana: They say... Bojiin builds a garden of four parts, they say.
+BOT d1 08:26 SAY     Khana: If you are going to Namchand, it is 5 hours' walk to the north.
+BOT d1 08:26 SAY     Khana: I know nothing of that.
+BOT d1 08:27 SAY     Khana: As for the gods... Magic is a power to be licensed to us.
+BOT d1 08:28 SAY     Vanad: State your business.
+BOT d1 08:29 SAY     Vanad: They say... Faasibum builds a great library, they say.
+BOT d1 09:00 STATUS  on foot, hp 100, food 70, water 70, rest 76, Anarvan (village) 0.0 km, story: village
+BOT d1 09:12 SAY     Moni: Keep your hands where I can see them.
+BOT d1 09:12 SAY     Moni: They say... Bojiin builds a garden of four parts, they say.
+BOT d1 09:34 STUCK   could not walk to the qanat outlet (3 m short, against a wall)
+BOT d1 09:35 DO      walks to the goat pen
+BOT d1 09:42 PLACE   pen, Anarvan
+BOT d1 09:43 STORY   The goats crowd round for their fodder
+BOT d1 09:47 PLACE   pen, Anarvan
+BOT d1 09:47 DO      walks to the orchard
+BOT d1 12:00 STATUS  on foot, hp 100, food 54, water 53, rest 50, Anarvan (village) 0.0 km, story: village
+BOT d1 12:08 STUCK   could not walk to the orchard (87 m short)
+BOT d1 12:08 SAY     The door opens
+BOT d1 12:09 DO      walks to the orchard
+BOT d1 12:15 SAY     Codex: Red deer observed
+BOT d1 14:29 STUCK   could not walk to the orchard (86 m short)
+BOT d1 14:29 SAY     You drink river water
+BOT d1 14:29 DO      drinks
+BOT d1 14:30 DO      walks to the orchard
+BOT d1 15:00 STATUS  on foot, hp 100, food 38, water 56, rest 24, Anarvan (village) 0.0 km, story: village
+BOT d1 15:01 PLACE   weaver, Anarvan
+BOT d1 15:01 SAY     Taken dried meat 2, silk 1, coin 5
+BOT d1 15:02 SAY     Empty
+BOT d1 15:36 SAY     Codex: Brown hare observed
+BOT d1 15:52 SAY     Empty
+BOT d1 15:52 PLACE   weaver, Anarvan
+BOT d1 16:45 PLACE   weaver, Anarvan
+BOT d1 16:57 STUCK   could not walk to the orchard (86 m short)
+BOT d1 16:58 SAY     You eat dried meat
+BOT d1 16:58 DO      eats
+BOT d1 16:58 DO      walks to the orchard
+BOT d1 18:00 STATUS  on foot, hp 100, food 34, water 39, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 19:19 STUCK   could not walk to the orchard (86 m short)
+BOT d1 19:19 SAY     You eat dried meat
+BOT d1 19:19 DO      eats
+BOT d1 19:19 SAY     You drink river water
+BOT d1 19:19 DO      drinks
+BOT d1 19:20 SAY     nothing to eat
+BOT d1 19:20 DO      walks to the orchard
+BOT d1 21:00 STATUS  on foot, hp 100, food 30, water 41, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 21:43 SAY     nothing to eat
+BOT d1 21:43 SAY     nothing to drink
+BOT d1 21:43 DO      walks to the orchard
+BOT d2 00:00 STATUS  on foot, hp 100, food 14, water 24, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 00:08 STUCK   could not walk to the orchard (85 m short, against a wall)
+BOT d2 00:08 SAY     Empty
+BOT d2 00:08 SAY     nothing to eat
+BOT d2 00:08 SAY     nothing to drink
+BOT d2 00:08 DO      walks to the orchard
+BOT d2 02:13 PLACE   weaver, Anarvan
+BOT d2 02:13 SAY     Nuzibaad: State your business.
+BOT d2 02:13 SAY     Nuzibaad: They say... Bojiin builds a garden of four parts, they say.
+BOT d2 02:13 SAY     Nuzibaad: If you are going to Namchand, it is 5 hours' walk to the north.
+BOT d2 02:14 SAY     Nuzibaad: I know nothing of that.
+BOT d2 02:14 SAY     Nuzibaad: As for the gods... Magic is a power to be licensed to us.
+BOT d2 02:16 SAY     Nuzibaad: At the market here, salt 10, spices 40, flatbread 5, rug 14 coins.
+BOT d2 02:16 SAY     Empty
+BOT d2 02:19 SAY     Nuzibaad: There is nothing that needs doing, thank the gods.
+BOT d2 02:31 STUCK   could not walk to the orchard (85 m short, against a wall, inside a building)
+BOT d2 02:32 SAY     nothing to eat
+BOT d2 02:32 SAY     nothing to drink
+BOT d2 02:32 DO      walks to the orchard
+BOT d2 03:00 STATUS  on foot, hp 100, food 0, water 7, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 04:41 HARM    poison: 5 (health 95), Anarvan (village) 0.0 km
+BOT d2 04:54 SAY     The door opens
+BOT d2 04:55 SAY     nothing to eat
+BOT d2 04:55 SAY     nothing to drink
+BOT d2 04:55 DO      walks to the orchard
+BOT d2 05:35 HARM    poison: 5 (health 90), Anarvan (village) 0.0 km
+BOT d2 06:00 STATUS  on foot, hp 88, food 0, water 0, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 06:30 HARM    poison: 5 (health 85), Anarvan (village) 0.0 km
+BOT d2 07:16 SAY     The door closes
+BOT d2 07:16 SAY     nothing to eat
+BOT d2 07:17 SAY     nothing to drink
+BOT d2 07:17 DO      walks to the orchard
+BOT d2 07:25 HARM    poison: 5 (health 80), Anarvan (village) 0.0 km
+BOT d2 07:59 SAY     Taken salt 1, flatbread 4, wool 1, coin 10
+BOT d2 07:59 SAY     You eat flatbread
+BOT d2 08:00 DO      eats
+BOT d2 08:00 SAY     nothing to drink
+BOT d2 08:00 STUCK   the prologue stalled at 'village'
+BOT d2 08:00 END     after 150008 ticks; prologue village; saga -; hp 77; codex 8 entries
+BOT d2 08:00 END     trouble x1: the prologue stalled at 'village'
+BOT d2 08:00 END     trouble x1: could not walk to the orchard (85 m short, against a wall)
+BOT d2 08:00 END     trouble x1: could not walk to the qanat outlet (3 m short, against a wall)
+BOT d2 08:00 END     trouble x1: could not walk to the orchard (85 m short, against a wall, inside a building)
+BOT d2 08:00 END     trouble x6: could not walk to the orchard (86 m short)
+BOT d2 08:00 END     trouble x1: could not walk to the orchard (87 m short)

@@ -1,0 +1,1159 @@
+BOT d1 07:59 START   style camper, seed 8
+BOT d1 08:00 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:00 DO      flies about before the story (camper)
+BOT d1 08:00 DO      flies to somewhere new (2.6 km)
+BOT d1 08:31 DO      flies to somewhere new (1.5 km)
+BOT d1 08:53 DO      flies to home (1.6 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 75, water 75, rest 83, Anarvan (village) 0.9 km
+BOT d1 09:13 SAY     Codex: Grass observed
+BOT d1 09:14 DO      steps off the carpet
+BOT d1 09:14 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:06 SAY     Empty
+BOT d1 07:11 SAY     The door opens
+BOT d1 07:11 STORY   You fill the jar at the qanat outlet
+BOT d1 07:11 SAY     The door closes
+BOT d1 07:12 SAY     Codex: Umbrella acacia observed
+BOT d1 07:16 SAY     Bhibhiir: Good day, traveller.
+BOT d1 07:16 SAY     Bhibhiir: They say... Guga builds a garden of four parts, they say.
+BOT d1 07:16 SAY     Bhibhiir: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 07:16 SAY     Bhibhiir: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 07:17 SAY     Bhibhiir: As for the gods... We hold the lion and the rose sacred.
+BOT d1 07:19 SAY     Taken salt 1
+BOT d1 07:20 SAY     Empty
+BOT d1 08:14 SAY     Gaataan: Good day, traveller.
+BOT d1 08:14 SAY     Gaataan: They say... Guga builds a garden of four parts, they say.
+BOT d1 08:15 SAY     Gaataan: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 08:15 SAY     Gaataan: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 08:15 SAY     Gaataan: As for the gods... Magic is a sacred gift to us.
+BOT d1 08:16 SAY     Gaataan: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 08:16 SAY     Gaataan: I know nothing of that.
+BOT d1 08:17 SAY     Khotum: Good day, traveller.
+BOT d1 08:18 SAY     Khotum: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 08:18 SAY     Khotum: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 08:18 SAY     Khotum: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 08:18 SAY     Khotum: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 08:19 SAY     Khotum: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 08:22 SAY     The door closes
+BOT d1 08:22 SAY     The door opens
+BOT d1 08:28 SAY     Hidhar: Yes? What do you want?
+BOT d1 08:30 SAY     Hidhar: They say... Begin builds a garden of four parts, they say.
+BOT d1 09:10 SAY     Numenom: Yes? What do you want?
+BOT d1 09:10 SAY     Numenom: They say... Begin builds a garden of four parts, they say.
+BOT d1 09:10 SAY     Numenom: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 09:11 SAY     Tibhot: Yes? What do you want?
+BOT d1 09:11 SAY     Tibhot: They say... Begin builds a garden of four parts, they say.
+BOT d1 09:11 SAY     Tibhot: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 09:12 SAY     Tibhot: In the old days... In the year 279 the faithless men of Bezesh rose against us over land. At the Pass of Wolves the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 09:14 SAY     The door opens
+BOT d1 09:14 SAY     The door closes
+BOT d1 09:35 STUCK   could not walk to the qanat outlet (4 m short)
+BOT d1 09:36 DO      walks to the goat pen
+BOT d1 09:43 STORY   The goats crowd round for their fodder
+BOT d1 09:44 DO      walks to the orchard
+BOT d1 09:44 PLACE   pen, Anarvan
+BOT d1 10:05 SEE     wolf
+BOT d1 10:08 HURT    Bitten!
+BOT d1 10:08 HARM    impact: 12 (health 88), Anarvan (village) 0.0 km
+BOT d1 10:09 HARM    impact: 12 (health 76), Anarvan (village) 0.0 km
+BOT d1 10:10 HURT    Bitten!
+BOT d1 10:10 HARM    impact: 12 (health 64), Anarvan (village) 0.0 km
+BOT d1 10:12 HARM    impact: 12 (health 52), Anarvan (village) 0.0 km
+BOT d1 10:13 HARM    impact: 12 (health 40), Anarvan (village) 0.0 km
+BOT d1 10:14 PLACE   weaver, Anarvan
+BOT d1 10:15 SAY     Codex: Butterfly observed
+BOT d1 10:15 HURT    Bitten!
+BOT d1 10:15 HARM    impact: 12 (health 28), weaver, Anarvan
+BOT d1 10:16 HARM    impact: 12 (health 16), weaver, Anarvan
+BOT d1 10:17 HARM    impact: 12 (health 4), weaver, Anarvan
+BOT d1 10:19 HURT    You are defeated (impact)
+BOT d1 10:19 DOWN    the heir is defeated
+BOT d1 10:20 HURT    Bitten!
+BOT d1 10:20 HURT    You are defeated (impact)
+BOT d1 10:20 DOWN    the heir is defeated
+BOT d1 10:20 HURT    You get up again
+BOT d1 10:21 DO      flies to the ground (0.0 km)
+BOT d1 10:25 DO      steps off the carpet
+BOT d1 10:25 DO      walks to the orchard
+BOT d1 10:27 HURT    Bitten!
+BOT d1 10:27 HARM    impact: 16 (health 39), Anarvan (village) 0.0 km
+BOT d1 10:28 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 10:30 HURT    Bitten!
+BOT d1 10:30 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 10:31 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 10:32 HURT    You are defeated (impact)
+BOT d1 10:32 DOWN    the heir is defeated
+BOT d1 10:34 HURT    You get up again
+BOT d1 10:34 DO      flies to the ground (0.0 km)
+BOT d1 10:35 HURT    You get up again
+BOT d1 10:39 DO      steps off the carpet
+BOT d1 10:39 DO      walks to the orchard
+BOT d1 10:40 HURT    Bitten!
+BOT d1 10:40 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 10:43 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 10:44 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 10:45 HURT    Bitten!
+BOT d1 10:45 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 10:46 HURT    You are defeated (impact)
+BOT d1 10:46 DOWN    the heir is defeated
+BOT d1 10:48 HURT    You get up again
+BOT d1 10:48 DO      flies to the ground (0.0 km)
+BOT d1 10:53 DO      steps off the carpet
+BOT d1 10:53 DO      walks to the orchard
+BOT d1 10:55 HURT    Bitten!
+BOT d1 10:55 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 10:57 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 10:58 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 10:59 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 11:00 HURT    Bitten!
+BOT d1 11:01 HURT    You are defeated (impact)
+BOT d1 11:01 DOWN    the heir is defeated
+BOT d1 11:02 HURT    You get up again
+BOT d1 11:03 DO      flies to the ground (0.0 km)
+BOT d1 11:08 DO      steps off the carpet
+BOT d1 11:08 DO      walks to the orchard
+BOT d1 11:09 HURT    Bitten!
+BOT d1 11:09 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 11:10 HURT    Bitten!
+BOT d1 11:10 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 11:11 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 11:13 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 11:14 HURT    You are defeated (impact)
+BOT d1 11:14 DOWN    the heir is defeated
+BOT d1 11:15 HURT    Bitten!
+BOT d1 11:15 HURT    You are defeated (impact)
+BOT d1 11:16 HURT    You get up again
+BOT d1 11:16 DO      flies to the ground (0.0 km)
+BOT d1 11:21 DO      steps off the carpet
+BOT d1 11:21 DO      walks to the orchard
+BOT d1 11:22 HURT    Bitten!
+BOT d1 11:22 HARM    impact: 14 (health 38), Anarvan (village) 0.0 km
+BOT d1 11:24 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 11:25 HURT    Bitten!
+BOT d1 11:25 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 11:27 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 11:28 HURT    You are defeated (impact)
+BOT d1 11:28 DOWN    the heir is defeated
+BOT d1 11:30 HURT    Bitten!
+BOT d1 11:30 HURT    You are defeated (impact)
+BOT d1 11:30 DOWN    the heir is defeated
+BOT d1 11:30 HURT    You get up again
+BOT d1 11:30 DO      flies to the ground (0.0 km)
+BOT d1 11:35 DO      steps off the carpet
+BOT d1 11:35 DO      walks to the orchard
+BOT d1 11:36 HURT    Bitten!
+BOT d1 11:36 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 11:38 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 11:40 HURT    Bitten!
+BOT d1 11:40 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 11:41 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 11:42 HURT    You are defeated (impact)
+BOT d1 11:42 DOWN    the heir is defeated
+BOT d1 11:44 HURT    You get up again
+BOT d1 11:44 DO      flies to the ground (0.0 km)
+BOT d1 11:45 HURT    You get up again
+BOT d1 11:49 DO      steps off the carpet
+BOT d1 11:49 DO      walks to the orchard
+BOT d1 11:50 HURT    Bitten!
+BOT d1 11:50 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 11:51 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 11:53 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 11:55 HURT    Bitten!
+BOT d1 11:55 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 11:56 HURT    You are defeated (impact)
+BOT d1 11:56 DOWN    the heir is defeated
+BOT d1 11:58 HURT    You get up again
+BOT d1 11:58 DO      flies to the ground (0.0 km)
+BOT d1 12:00 STATUS  on the carpet, hp 50, food 51, water 50, rest 45, Anarvan (village) 0.0 km, story: village
+BOT d1 12:03 DO      steps off the carpet
+BOT d1 12:03 DO      walks to the orchard
+BOT d1 12:04 HURT    Bitten!
+BOT d1 12:04 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 12:05 HURT    Bitten!
+BOT d1 12:06 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 12:07 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 12:08 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 12:10 HURT    Bitten!
+BOT d1 12:10 HURT    You are defeated (impact)
+BOT d1 12:10 DOWN    the heir is defeated
+BOT d1 12:10 SAY     Codex: Brown hare observed
+BOT d1 12:11 HURT    You get up again
+BOT d1 12:12 DO      flies to the ground (0.0 km)
+BOT d1 12:17 DO      steps off the carpet
+BOT d1 12:17 DO      walks to the orchard
+BOT d1 12:18 HURT    Bitten!
+BOT d1 12:18 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 12:20 HURT    Bitten!
+BOT d1 12:20 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 12:21 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 12:22 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 12:24 HURT    You are defeated (impact)
+BOT d1 12:24 DOWN    the heir is defeated
+BOT d1 12:25 HURT    Bitten!
+BOT d1 12:25 HURT    You are defeated (impact)
+BOT d1 12:25 HURT    You get up again
+BOT d1 12:26 DO      flies to the ground (0.0 km)
+BOT d1 12:31 DO      steps off the carpet
+BOT d1 12:31 DO      walks to the orchard
+BOT d1 12:32 HURT    Bitten!
+BOT d1 12:32 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 12:33 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 12:35 HURT    Bitten!
+BOT d1 12:35 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 12:36 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 12:37 HURT    You are defeated (impact)
+BOT d1 12:37 DOWN    the heir is defeated
+BOT d1 12:39 HURT    You get up again
+BOT d1 12:40 HURT    You get up again
+BOT d1 12:40 DO      flies to the ground (0.0 km)
+BOT d1 12:44 DO      steps off the carpet
+BOT d1 12:44 DO      walks to the orchard
+BOT d1 12:45 HURT    Bitten!
+BOT d1 12:45 HARM    impact: 15 (health 38), Anarvan (village) 0.0 km
+BOT d1 12:46 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 12:48 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 12:49 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 12:50 HURT    Bitten!
+BOT d1 12:50 HURT    You are defeated (impact)
+BOT d1 12:50 DOWN    the heir is defeated
+BOT d1 12:52 HURT    You get up again
+BOT d1 12:53 DO      flies to the ground (0.0 km)
+BOT d1 12:57 DO      steps off the carpet
+BOT d1 12:57 DO      walks to the orchard
+BOT d1 12:58 HURT    Bitten!
+BOT d1 12:58 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 13:00 HURT    Bitten!
+BOT d1 13:01 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 13:02 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 13:03 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 13:05 HURT    Bitten!
+BOT d1 13:05 HURT    You are defeated (impact)
+BOT d1 13:05 DOWN    the heir is defeated
+BOT d1 13:07 HURT    You get up again
+BOT d1 13:07 DO      flies to the ground (0.0 km)
+BOT d1 13:12 DO      steps off the carpet
+BOT d1 13:12 DO      walks to the orchard
+BOT d1 13:13 HURT    Bitten!
+BOT d1 13:13 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 13:14 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 13:15 HURT    Bitten!
+BOT d1 13:16 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 13:17 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 13:18 HURT    You are defeated (impact)
+BOT d1 13:18 DOWN    the heir is defeated
+BOT d1 13:20 HURT    Bitten!
+BOT d1 13:20 HURT    You are defeated (impact)
+BOT d1 13:20 DOWN    the heir is defeated
+BOT d1 13:20 HURT    You get up again
+BOT d1 13:20 DO      flies to the ground (0.0 km)
+BOT d1 13:25 DO      steps off the carpet
+BOT d1 13:25 DO      walks to the orchard
+BOT d1 13:26 HURT    Bitten!
+BOT d1 13:26 HARM    impact: 14 (health 38), Anarvan (village) 0.0 km
+BOT d1 13:27 SAY     Codex: Fern observed
+BOT d1 13:27 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 13:29 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 13:30 HURT    Bitten!
+BOT d1 13:30 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 13:31 HURT    You are defeated (impact)
+BOT d1 13:31 DOWN    the heir is defeated
+BOT d1 13:33 HURT    You get up again
+BOT d1 13:34 DO      flies to the ground (0.0 km)
+BOT d1 13:35 HURT    You get up again
+BOT d1 13:38 DO      steps off the carpet
+BOT d1 13:38 DO      walks to the orchard
+BOT d1 13:40 HURT    Bitten!
+BOT d1 13:40 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 13:42 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 13:43 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 13:44 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 13:45 HURT    Bitten!
+BOT d1 13:46 HURT    You are defeated (impact)
+BOT d1 13:46 DOWN    the heir is defeated
+BOT d1 13:47 HURT    You get up again
+BOT d1 13:48 DO      flies to the ground (0.0 km)
+BOT d1 13:53 DO      steps off the carpet
+BOT d1 13:53 DO      walks to the orchard
+BOT d1 13:54 HURT    Bitten!
+BOT d1 13:54 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 13:55 HURT    Bitten!
+BOT d1 13:55 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 13:56 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 13:58 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 13:59 HURT    You are defeated (impact)
+BOT d1 13:59 DOWN    the heir is defeated
+BOT d1 14:00 HURT    Bitten!
+BOT d1 14:00 HURT    You are defeated (impact)
+BOT d1 14:00 DOWN    the heir is defeated
+BOT d1 14:01 HURT    You get up again
+BOT d1 14:01 DO      flies to the ground (0.0 km)
+BOT d1 14:06 DO      steps off the carpet
+BOT d1 14:06 DO      walks to the orchard
+BOT d1 14:08 HURT    Bitten!
+BOT d1 14:08 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 14:10 HURT    Bitten!
+BOT d1 14:10 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 14:11 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 14:12 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 14:13 HURT    You are defeated (impact)
+BOT d1 14:13 DOWN    the heir is defeated
+BOT d1 14:15 HURT    Bitten!
+BOT d1 14:15 HURT    You are defeated (impact)
+BOT d1 14:15 HURT    You get up again
+BOT d1 14:16 DO      flies to the ground (0.0 km)
+BOT d1 14:20 DO      steps off the carpet
+BOT d1 14:20 DO      walks to the orchard
+BOT d1 14:22 HURT    Bitten!
+BOT d1 14:22 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 14:23 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 14:25 HURT    Bitten!
+BOT d1 14:25 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 14:26 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 14:26 SAY     Codex: Coconut palm observed
+BOT d1 14:27 HURT    You are defeated (impact)
+BOT d1 14:27 DOWN    the heir is defeated
+BOT d1 14:29 HURT    You get up again
+BOT d1 14:29 DO      flies to the ground (0.0 km)
+BOT d1 14:30 HURT    You get up again
+BOT d1 14:34 DO      steps off the carpet
+BOT d1 14:34 DO      walks to the orchard
+BOT d1 14:36 HURT    Bitten!
+BOT d1 14:36 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 14:37 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 14:39 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 14:40 HURT    Bitten!
+BOT d1 14:40 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 14:41 HURT    You are defeated (impact)
+BOT d1 14:41 DOWN    the heir is defeated
+BOT d1 14:43 HURT    You get up again
+BOT d1 14:43 DO      flies to the ground (0.0 km)
+BOT d1 14:48 DO      steps off the carpet
+BOT d1 14:48 DO      walks to the orchard
+BOT d1 14:49 HURT    Bitten!
+BOT d1 14:49 HARM    impact: 15 (health 38), Anarvan (village) 0.0 km
+BOT d1 14:50 HURT    Bitten!
+BOT d1 14:51 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 14:53 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 14:54 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 14:55 HURT    Bitten!
+BOT d1 14:55 HURT    You are defeated (impact)
+BOT d1 14:55 DOWN    the heir is defeated
+BOT d1 14:57 HURT    You get up again
+BOT d1 14:58 DO      flies to the ground (0.0 km)
+BOT d1 15:00 STATUS  on the carpet, hp 50, food 36, water 35, rest 22, Anarvan (village) 0.0 km, story: village
+BOT d1 15:02 DO      steps off the carpet
+BOT d1 15:02 DO      walks to the orchard
+BOT d1 15:03 HURT    Bitten!
+BOT d1 15:03 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 15:05 HURT    Bitten!
+BOT d1 15:06 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 15:07 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 15:08 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 15:09 HURT    You are defeated (impact)
+BOT d1 15:09 DOWN    the heir is defeated
+BOT d1 15:10 HURT    Bitten!
+BOT d1 15:10 HURT    You are defeated (impact)
+BOT d1 15:10 DOWN    the heir is defeated
+BOT d1 15:11 HURT    You get up again
+BOT d1 15:12 DO      flies to the ground (0.0 km)
+BOT d1 15:16 DO      steps off the carpet
+BOT d1 15:16 DO      walks to the orchard
+BOT d1 15:18 HURT    Bitten!
+BOT d1 15:18 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 15:19 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 15:20 HURT    Bitten!
+BOT d1 15:21 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 15:22 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 15:23 HURT    You are defeated (impact)
+BOT d1 15:23 DOWN    the heir is defeated
+BOT d1 15:25 HURT    Bitten!
+BOT d1 15:25 HURT    You are defeated (impact)
+BOT d1 15:25 HURT    You get up again
+BOT d1 15:25 DO      flies to the ground (0.0 km)
+BOT d1 15:30 DO      steps off the carpet
+BOT d1 15:30 DO      walks to the orchard
+BOT d1 15:32 HURT    Bitten!
+BOT d1 15:32 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 15:33 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 15:34 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 15:35 HURT    Bitten!
+BOT d1 15:36 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 15:37 HURT    You are defeated (impact)
+BOT d1 15:37 DOWN    the heir is defeated
+BOT d1 15:39 HURT    You get up again
+BOT d1 15:39 DO      flies to the ground (0.0 km)
+BOT d1 15:40 HURT    You get up again
+BOT d1 15:44 DO      steps off the carpet
+BOT d1 15:44 DO      walks to the orchard
+BOT d1 15:45 HURT    Bitten!
+BOT d1 15:45 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 15:46 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 15:48 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 15:49 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 15:50 HURT    Bitten!
+BOT d1 15:50 HURT    You are defeated (impact)
+BOT d1 15:50 DOWN    the heir is defeated
+BOT d1 15:52 HURT    You get up again
+BOT d1 15:53 DO      flies to the ground (0.0 km)
+BOT d1 15:57 DO      steps off the carpet
+BOT d1 15:57 DO      walks to the orchard
+BOT d1 15:59 HURT    Bitten!
+BOT d1 15:59 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 16:00 HURT    Bitten!
+BOT d1 16:01 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 16:02 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 16:04 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 16:05 HURT    Bitten!
+BOT d1 16:05 HURT    You are defeated (impact)
+BOT d1 16:05 DOWN    the heir is defeated
+BOT d1 16:07 HURT    You get up again
+BOT d1 16:08 DO      flies to the ground (0.0 km)
+BOT d1 16:12 DO      steps off the carpet
+BOT d1 16:12 DO      walks to the orchard
+BOT d1 16:13 HURT    Bitten!
+BOT d1 16:13 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 16:14 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 16:15 HURT    Bitten!
+BOT d1 16:16 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 16:17 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 16:19 HURT    You are defeated (impact)
+BOT d1 16:19 DOWN    the heir is defeated
+BOT d1 16:20 HURT    Bitten!
+BOT d1 16:20 HURT    You are defeated (impact)
+BOT d1 16:20 DOWN    the heir is defeated
+BOT d1 16:20 HURT    You get up again
+BOT d1 16:21 STUCK   no way on at 'village' after 30 tries
+BOT d1 16:21 DO      flies to the ground (0.0 km)
+BOT d1 16:26 DO      steps off the carpet
+BOT d1 16:26 DO      walks to the orchard
+BOT d1 16:26 HURT    Bitten!
+BOT d1 16:26 HARM    impact: 15 (health 38), Anarvan (village) 0.0 km
+BOT d1 16:27 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 16:29 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 16:30 HURT    Bitten!
+BOT d1 16:30 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 16:32 HURT    You are defeated (impact)
+BOT d1 16:32 DOWN    the heir is defeated
+BOT d1 16:34 HURT    You get up again
+BOT d1 16:34 DO      flies to the ground (0.0 km)
+BOT d1 16:35 HURT    You get up again
+BOT d1 16:39 DO      steps off the carpet
+BOT d1 16:39 DO      walks to the orchard
+BOT d1 16:40 HURT    Bitten!
+BOT d1 16:40 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 16:41 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 16:43 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 16:44 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 16:45 HURT    Bitten!
+BOT d1 16:45 HURT    You are defeated (impact)
+BOT d1 16:45 DOWN    the heir is defeated
+BOT d1 16:47 HURT    You get up again
+BOT d1 16:47 DO      flies to the ground (0.0 km)
+BOT d1 16:52 DO      steps off the carpet
+BOT d1 16:52 DO      walks to the orchard
+BOT d1 16:53 HURT    Bitten!
+BOT d1 16:53 HARM    impact: 14 (health 38), Anarvan (village) 0.0 km
+BOT d1 16:54 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 16:55 HURT    Bitten!
+BOT d1 16:56 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 16:57 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 16:58 HURT    You are defeated (impact)
+BOT d1 16:58 DOWN    the heir is defeated
+BOT d1 17:00 HURT    Bitten!
+BOT d1 17:00 HURT    You are defeated (impact)
+BOT d1 17:00 DOWN    the heir is defeated
+BOT d1 17:00 HURT    You get up again
+BOT d1 17:01 DO      flies to the ground (0.0 km)
+BOT d1 17:05 DO      steps off the carpet
+BOT d1 17:05 DO      walks to the orchard
+BOT d1 17:06 HURT    Bitten!
+BOT d1 17:06 HARM    impact: 14 (health 38), Anarvan (village) 0.0 km
+BOT d1 17:09 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 17:10 HURT    Bitten!
+BOT d1 17:10 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 17:11 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 17:12 HURT    You are defeated (impact)
+BOT d1 17:12 DOWN    the heir is defeated
+BOT d1 17:14 HURT    You get up again
+BOT d1 17:15 HURT    You get up again
+BOT d1 17:15 DO      flies to the ground (0.0 km)
+BOT d1 17:19 DO      steps off the carpet
+BOT d1 17:19 DO      walks to the orchard
+BOT d1 17:21 HURT    Bitten!
+BOT d1 17:21 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 17:22 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 17:23 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 17:25 HURT    Bitten!
+BOT d1 17:25 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 17:26 HURT    You are defeated (impact)
+BOT d1 17:26 DOWN    the heir is defeated
+BOT d1 17:28 HURT    You get up again
+BOT d1 17:28 DO      flies to the ground (0.0 km)
+BOT d1 17:33 DO      steps off the carpet
+BOT d1 17:33 DO      walks to the orchard
+BOT d1 17:34 HURT    Bitten!
+BOT d1 17:34 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 17:35 HURT    Bitten!
+BOT d1 17:36 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 17:37 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 17:39 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 17:40 HURT    Bitten!
+BOT d1 17:40 HURT    You are defeated (impact)
+BOT d1 17:40 DOWN    the heir is defeated
+BOT d1 17:42 HURT    You get up again
+BOT d1 17:42 DO      flies to the ground (0.0 km)
+BOT d1 17:47 DO      steps off the carpet
+BOT d1 17:47 DO      walks to the orchard
+BOT d1 17:49 HURT    Bitten!
+BOT d1 17:49 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 17:49 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 17:50 HURT    Bitten!
+BOT d1 17:51 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 17:52 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 17:54 HURT    You are defeated (impact)
+BOT d1 17:54 DOWN    the heir is defeated
+BOT d1 17:55 HURT    Bitten!
+BOT d1 17:55 HURT    You are defeated (impact)
+BOT d1 17:55 HURT    You get up again
+BOT d1 17:56 DO      flies to the ground (0.0 km)
+BOT d1 18:00 STATUS  on the carpet, hp 50, food 21, water 20, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 18:01 DO      steps off the carpet
+BOT d1 18:01 DO      walks to the orchard
+BOT d1 18:02 HURT    Bitten!
+BOT d1 18:02 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 18:04 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 18:05 HURT    Bitten!
+BOT d1 18:06 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 18:07 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 18:09 HURT    You are defeated (impact)
+BOT d1 18:09 DOWN    the heir is defeated
+BOT d1 18:10 HURT    Bitten!
+BOT d1 18:10 HURT    You are defeated (impact)
+BOT d1 18:10 DOWN    the heir is defeated
+BOT d1 18:10 HURT    You get up again
+BOT d1 18:11 DO      flies to the ground (0.0 km)
+BOT d1 18:16 DO      steps off the carpet
+BOT d1 18:16 DO      walks to the orchard
+BOT d1 18:17 HURT    Bitten!
+BOT d1 18:17 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 18:19 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 18:20 HURT    Bitten!
+BOT d1 18:20 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 18:22 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 18:23 HURT    You are defeated (impact)
+BOT d1 18:23 DOWN    the heir is defeated
+BOT d1 18:25 HURT    Bitten!
+BOT d1 18:25 HURT    You are defeated (impact)
+BOT d1 18:25 HURT    You get up again
+BOT d1 18:25 DO      flies to the ground (0.0 km)
+BOT d1 18:30 DO      steps off the carpet
+BOT d1 18:30 DO      walks to the orchard
+BOT d1 18:32 HURT    Bitten!
+BOT d1 18:32 HARM    impact: 14 (health 40), Anarvan (village) 0.0 km
+BOT d1 18:34 HARM    impact: 12 (health 28), Anarvan (village) 0.0 km
+BOT d1 18:35 HURT    Bitten!
+BOT d1 18:35 HARM    impact: 12 (health 16), Anarvan (village) 0.0 km
+BOT d1 18:37 HARM    impact: 12 (health 4), Anarvan (village) 0.0 km
+BOT d1 18:38 HURT    You are defeated (impact)
+BOT d1 18:38 DOWN    the heir is defeated
+BOT d1 18:40 HURT    You get up again
+BOT d1 18:41 DO      flies to the ground (0.0 km)
+BOT d1 18:45 DO      steps off the carpet
+BOT d1 18:45 DO      walks to the orchard
+BOT d1 18:46 HURT    Bitten!
+BOT d1 18:46 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 18:49 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 18:50 HURT    Bitten!
+BOT d1 18:50 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 18:51 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 18:52 HURT    You are defeated (impact)
+BOT d1 18:52 DOWN    the heir is defeated
+BOT d1 18:54 HURT    You get up again
+BOT d1 18:55 HURT    You get up again
+BOT d1 18:55 DO      flies to the ground (0.0 km)
+BOT d1 18:59 DO      steps off the carpet
+BOT d1 18:59 DO      walks to the orchard
+BOT d1 19:01 HURT    Bitten!
+BOT d1 19:01 HARM    impact: 15 (health 39), Anarvan (village) 0.0 km
+BOT d1 19:03 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 19:04 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 19:05 HURT    Bitten!
+BOT d1 19:05 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 19:07 HURT    You are defeated (impact)
+BOT d1 19:07 DOWN    the heir is defeated
+BOT d1 19:09 HURT    You get up again
+BOT d1 19:09 DO      flies to the ground (0.0 km)
+BOT d1 19:10 HURT    You get up again
+BOT d1 19:14 DO      steps off the carpet
+BOT d1 19:14 DO      walks to the orchard
+BOT d1 19:15 HURT    Bitten!
+BOT d1 19:15 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 19:17 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 19:18 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 19:20 HURT    Bitten!
+BOT d1 19:20 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 19:21 HURT    You are defeated (impact)
+BOT d1 19:21 DOWN    the heir is defeated
+BOT d1 19:23 HURT    You get up again
+BOT d1 19:24 DO      flies to the ground (0.0 km)
+BOT d1 19:28 DO      steps off the carpet
+BOT d1 19:28 DO      walks to the orchard
+BOT d1 19:29 HURT    Bitten!
+BOT d1 19:29 HARM    impact: 14 (health 39), Anarvan (village) 0.0 km
+BOT d1 19:30 HURT    Bitten!
+BOT d1 19:32 HARM    impact: 12 (health 27), Anarvan (village) 0.0 km
+BOT d1 19:33 HARM    impact: 12 (health 15), Anarvan (village) 0.0 km
+BOT d1 19:34 HARM    impact: 12 (health 3), Anarvan (village) 0.0 km
+BOT d1 19:35 HURT    Bitten!
+BOT d1 19:35 HURT    You are defeated (impact)
+BOT d1 19:35 DOWN    the heir is defeated
+BOT d1 19:37 HURT    You get up again
+BOT d1 19:38 DO      flies to the ground (0.0 km)
+BOT d1 19:42 DO      steps off the carpet
+BOT d1 19:42 DO      walks to the orchard
+BOT d1 19:45 HURT    Bitten!
+BOT d1 19:45 HARM    impact: 14 (health 40), Anarvan (village) 0.0 km
+BOT d1 19:46 HARM    impact: 12 (health 28), Anarvan (village) 0.0 km
+BOT d1 19:48 HARM    impact: 12 (health 16), Anarvan (village) 0.0 km
+BOT d1 19:49 HARM    impact: 12 (health 4), Anarvan (village) 0.0 km
+BOT d1 19:50 HURT    Bitten!
+BOT d1 19:50 HURT    You are defeated (impact)
+BOT d1 19:50 DOWN    the heir is defeated
+BOT d1 19:52 HURT    You get up again
+BOT d1 19:53 DO      flies to the ground (0.0 km)
+BOT d1 19:57 DO      steps off the carpet
+BOT d1 19:57 DO      walks to the orchard
+BOT d1 20:00 HURT    Bitten!
+BOT d1 20:00 HARM    impact: 15 (health 40), Anarvan (village) 0.0 km
+BOT d1 20:01 HARM    impact: 12 (health 28), Anarvan (village) 0.0 km
+BOT d1 20:01 HARM    impact: 12 (health 16), Anarvan (village) 0.0 km
+BOT d1 20:03 HARM    impact: 12 (health 4), Anarvan (village) 0.0 km
+BOT d1 20:04 HURT    You are defeated (impact)
+BOT d1 20:04 DOWN    the heir is defeated
+BOT d1 20:05 HURT    Bitten!
+BOT d1 20:05 HURT    You are defeated (impact)
+BOT d1 20:06 HURT    You get up again
+BOT d1 20:06 DO      flies to the ground (0.0 km)
+BOT d1 20:11 DO      steps off the carpet
+BOT d1 20:11 DO      walks to the orchard
+BOT d1 20:14 HURT    Bitten!
+BOT d1 20:14 HARM    impact: 15 (health 41), Anarvan (village) 0.0 km
+BOT d1 20:15 HURT    Bitten!
+BOT d1 20:16 HARM    impact: 12 (health 29), Anarvan (village) 0.0 km
+BOT d1 20:17 HARM    impact: 12 (health 17), Anarvan (village) 0.0 km
+BOT d1 20:18 HARM    impact: 12 (health 5), Anarvan (village) 0.0 km
+BOT d1 20:28 HURT    You are defeated (impact)
+BOT d1 20:28 HURT    Bitten!
+BOT d1 20:28 HARM    impact: 8 (health 0), Anarvan (village) 0.0 km
+BOT d1 20:28 DOWN    the heir is defeated
+BOT d1 20:30 HURT    You get up again
+BOT d1 20:30 DO      flies to the ground (0.0 km)
+BOT d1 20:35 DO      steps off the carpet
+BOT d1 20:35 DO      walks to the orchard
+BOT d1 20:37 HURT    Bitten!
+BOT d1 20:37 HARM    impact: 12 (health 40), Anarvan (village) 0.0 km
+BOT d1 20:38 HARM    impact: 12 (health 28), Anarvan (village) 0.0 km
+BOT d1 20:39 HARM    impact: 12 (health 16), Anarvan (village) 0.0 km
+BOT d1 20:40 HURT    Bitten!
+BOT d1 20:40 HARM    impact: 12 (health 4), Anarvan (village) 0.0 km
+BOT d1 20:41 HURT    You are defeated (impact)
+BOT d1 20:41 DOWN    the heir is defeated
+BOT d1 20:43 HURT    You get up again
+BOT d1 20:44 DO      flies to the ground (0.0 km)
+BOT d1 20:45 HURT    You get up again
+BOT d1 20:48 DO      steps off the carpet
+BOT d1 20:48 DO      walks to the orchard
+BOT d1 20:52 HURT    Bitten!
+BOT d1 20:52 HARM    impact: 15 (health 41), Anarvan (village) 0.0 km
+BOT d1 20:53 HARM    impact: 12 (health 29), Anarvan (village) 0.0 km
+BOT d1 20:54 HARM    impact: 12 (health 17), Anarvan (village) 0.0 km
+BOT d1 20:55 HURT    Bitten!
+BOT d1 20:55 HARM    impact: 12 (health 5), Anarvan (village) 0.0 km
+BOT d1 20:56 HURT    You are defeated (impact)
+BOT d1 20:56 DOWN    the heir is defeated
+BOT d1 20:58 HURT    You get up again
+BOT d1 20:59 DO      flies to the ground (0.0 km)
+BOT d1 21:00 STATUS  on the carpet, hp 50, food 6, water 4, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d1 21:03 DO      steps off the carpet
+BOT d1 21:03 DO      walks to the orchard
+BOT d1 21:07 HURT    Bitten!
+BOT d1 21:07 HARM    impact: 16 (health 42), Anarvan (village) 0.0 km
+BOT d1 21:08 HARM    impact: 12 (health 30), Anarvan (village) 0.0 km
+BOT d1 21:09 HARM    impact: 12 (health 18), Anarvan (village) 0.0 km
+BOT d1 21:10 HURT    Bitten!
+BOT d1 21:10 HARM    impact: 12 (health 6), Anarvan (village) 0.0 km
+BOT d1 21:17 HURT    You are defeated (impact)
+BOT d1 21:17 HURT    Bitten!
+BOT d1 21:17 HARM    impact: 6 (health 0), Anarvan (village) 0.0 km
+BOT d1 21:17 DOWN    the heir is defeated
+BOT d1 21:19 HURT    You get up again
+BOT d1 21:20 HURT    You get up again
+BOT d1 21:20 DO      flies to the ground (0.0 km)
+BOT d1 21:24 DO      steps off the carpet
+BOT d1 21:24 DO      walks to the orchard
+BOT d1 21:27 HURT    Bitten!
+BOT d1 21:27 HARM    impact: 12 (health 40), Anarvan (village) 0.0 km
+BOT d1 21:28 HARM    impact: 12 (health 28), Anarvan (village) 0.0 km
+BOT d1 21:29 HARM    impact: 12 (health 16), Anarvan (village) 0.0 km
+BOT d1 21:30 HURT    Bitten!
+BOT d1 21:31 HARM    impact: 12 (health 4), Anarvan (village) 0.0 km
+BOT d1 21:31 HURT    You are defeated (impact)
+BOT d1 21:31 DOWN    the heir is defeated
+BOT d1 21:33 HURT    You get up again
+BOT d1 21:34 DO      flies to the ground (0.0 km)
+BOT d1 21:35 HURT    You get up again
+BOT d1 21:39 DO      steps off the carpet
+BOT d1 21:39 DO      walks to the orchard
+BOT d1 21:42 HURT    Bitten!
+BOT d1 21:42 HARM    impact: 16 (health 41), Anarvan (village) 0.0 km
+BOT d1 21:43 HARM    impact: 12 (health 29), Anarvan (village) 0.0 km
+BOT d1 21:44 HARM    impact: 12 (health 17), Anarvan (village) 0.0 km
+BOT d1 21:45 HURT    Bitten!
+BOT d1 21:45 HARM    impact: 12 (health 5), Anarvan (village) 0.0 km
+BOT d1 21:52 HURT    You are defeated (impact)
+BOT d1 21:52 HURT    Bitten!
+BOT d1 21:52 DOWN    the heir is defeated
+BOT d1 21:54 HURT    You get up again
+BOT d1 21:54 DO      flies to the ground (0.0 km)
+BOT d1 21:55 HURT    You get up again
+BOT d1 21:59 DO      steps off the carpet
+BOT d1 21:59 DO      walks to the orchard
+BOT d1 22:02 HURT    Bitten!
+BOT d1 22:02 HARM    impact: 16 (health 38), Anarvan (village) 0.0 km
+BOT d1 22:03 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 22:04 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 22:05 HURT    Bitten!
+BOT d1 22:05 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 22:06 HURT    You are defeated (impact)
+BOT d1 22:06 DOWN    the heir is defeated
+BOT d1 22:08 HURT    You get up again
+BOT d1 22:08 DO      flies to the ground (0.0 km)
+BOT d1 22:13 DO      steps off the carpet
+BOT d1 22:13 DO      walks to the orchard
+BOT d1 22:15 HURT    Bitten!
+BOT d1 22:15 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d1 22:16 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 22:17 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 22:18 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d1 22:19 HURT    You are defeated (impact)
+BOT d1 22:19 DOWN    the heir is defeated
+BOT d1 22:20 HURT    Bitten!
+BOT d1 22:20 HURT    You are defeated (impact)
+BOT d1 22:20 DOWN    the heir is defeated
+BOT d1 22:21 HURT    You get up again
+BOT d1 22:22 DO      flies to the ground (0.0 km)
+BOT d1 22:27 DO      steps off the carpet
+BOT d1 22:27 DO      walks to the orchard
+BOT d1 22:31 HURT    Bitten!
+BOT d1 22:31 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d1 22:31 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 22:32 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d1 22:33 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d1 22:34 HURT    You are defeated (impact)
+BOT d1 22:34 DOWN    the heir is defeated
+BOT d1 22:35 HURT    Bitten!
+BOT d1 22:35 HURT    You are defeated (impact)
+BOT d1 22:36 HURT    You get up again
+BOT d1 22:37 DO      flies to the ground (0.0 km)
+BOT d1 22:41 DO      steps off the carpet
+BOT d1 22:41 DO      walks to the orchard
+BOT d1 22:45 HURT    Bitten!
+BOT d1 22:45 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d1 22:46 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 22:47 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d1 22:48 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d1 22:55 HURT    You are defeated (impact)
+BOT d1 22:55 HURT    Bitten!
+BOT d1 22:55 DOWN    the heir is defeated
+BOT d1 22:57 HURT    You get up again
+BOT d1 22:57 DO      flies to the ground (0.0 km)
+BOT d1 23:00 HARM    poison: 5 (health 50), Anarvan (village) 0.0 km
+BOT d1 23:02 DO      steps off the carpet
+BOT d1 23:02 DO      walks to the orchard
+BOT d1 23:05 HURT    Bitten!
+BOT d1 23:05 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d1 23:06 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 23:07 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d1 23:08 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d1 23:09 HURT    You are defeated (impact)
+BOT d1 23:09 DOWN    the heir is defeated
+BOT d1 23:10 HURT    Bitten!
+BOT d1 23:10 HURT    You are defeated (impact)
+BOT d1 23:10 DOWN    the heir is defeated
+BOT d1 23:10 HURT    You get up again
+BOT d1 23:11 DO      flies to the ground (0.0 km)
+BOT d1 23:16 DO      steps off the carpet
+BOT d1 23:16 DO      walks to the orchard
+BOT d1 23:19 HURT    Bitten!
+BOT d1 23:19 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d1 23:20 HURT    Bitten!
+BOT d1 23:20 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 23:21 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d1 23:22 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d1 23:23 HURT    You are defeated (impact)
+BOT d1 23:23 DOWN    the heir is defeated
+BOT d1 23:25 HURT    Bitten!
+BOT d1 23:25 HURT    You are defeated (impact)
+BOT d1 23:25 HURT    You get up again
+BOT d1 23:26 DO      flies to the ground (0.0 km)
+BOT d1 23:26 SAY     Codex: Storm bird observed
+BOT d1 23:30 DO      steps off the carpet
+BOT d1 23:30 DO      walks to the orchard
+BOT d1 23:34 HURT    Bitten!
+BOT d1 23:34 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d1 23:35 HURT    Bitten!
+BOT d1 23:35 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 23:36 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d1 23:37 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d1 23:38 HURT    You are defeated (impact)
+BOT d1 23:38 DOWN    the heir is defeated
+BOT d1 23:40 HURT    Bitten!
+BOT d1 23:40 HURT    You are defeated (impact)
+BOT d1 23:40 DOWN    the heir is defeated
+BOT d1 23:40 HURT    You get up again
+BOT d1 23:41 DO      flies to the ground (0.0 km)
+BOT d1 23:45 DO      steps off the carpet
+BOT d1 23:45 DO      walks to the orchard
+BOT d1 23:48 HURT    Bitten!
+BOT d1 23:48 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d1 23:49 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d1 23:50 HURT    Bitten!
+BOT d1 23:51 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d1 23:52 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 00:00 STATUS  on foot, hp 1, food 0, water 0, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 00:00 HARM    poison: 5 (health 1), Anarvan (village) 0.0 km
+BOT d2 00:01 HURT    You are defeated (impact)
+BOT d2 00:01 HURT    Bitten!
+BOT d2 00:01 DOWN    the heir is defeated
+BOT d2 00:03 HURT    You get up again
+BOT d2 00:04 DO      flies to the ground (0.0 km)
+BOT d2 00:08 DO      steps off the carpet
+BOT d2 00:08 DO      walks to the orchard
+BOT d2 00:11 HURT    Bitten!
+BOT d2 00:11 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 00:12 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 00:13 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 00:14 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 00:15 HURT    Bitten!
+BOT d2 00:15 HURT    You are defeated (impact)
+BOT d2 00:15 DOWN    the heir is defeated
+BOT d2 00:17 HURT    You get up again
+BOT d2 00:17 DO      flies to the ground (0.0 km)
+BOT d2 00:22 DO      steps off the carpet
+BOT d2 00:22 DO      walks to the orchard
+BOT d2 00:25 HURT    Bitten!
+BOT d2 00:25 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 00:27 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 00:28 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 00:29 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 00:30 HURT    Bitten!
+BOT d2 00:35 PLACE   weaver, Anarvan
+BOT d2 00:38 HURT    You are defeated (impact)
+BOT d2 00:38 HURT    Bitten!
+BOT d2 00:38 DOWN    the heir is defeated
+BOT d2 00:40 HURT    You get up again
+BOT d2 00:40 DO      flies to the ground (0.0 km)
+BOT d2 00:45 DO      steps off the carpet
+BOT d2 00:45 DO      walks to the orchard
+BOT d2 00:48 HURT    Bitten!
+BOT d2 00:48 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 00:49 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 00:50 HURT    Bitten!
+BOT d2 00:50 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 00:51 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 00:52 HURT    You are defeated (impact)
+BOT d2 00:52 DOWN    the heir is defeated
+BOT d2 00:54 HURT    You get up again
+BOT d2 00:55 HURT    You get up again
+BOT d2 00:55 DO      flies to the ground (0.0 km)
+BOT d2 00:59 DO      steps off the carpet
+BOT d2 00:59 DO      walks to the orchard
+BOT d2 01:02 HARM    poison: 5 (health 50), Anarvan (village) 0.0 km
+BOT d2 01:03 HURT    Bitten!
+BOT d2 01:03 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 01:04 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 01:05 HURT    Bitten!
+BOT d2 01:05 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 01:06 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 01:07 HURT    You are defeated (impact)
+BOT d2 01:07 DOWN    the heir is defeated
+BOT d2 01:09 HURT    You get up again
+BOT d2 01:10 HURT    You get up again
+BOT d2 01:10 DO      flies to the ground (0.0 km)
+BOT d2 01:14 DO      steps off the carpet
+BOT d2 01:14 DO      walks to the orchard
+BOT d2 01:17 HURT    Bitten!
+BOT d2 01:17 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 01:19 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 01:20 HURT    Bitten!
+BOT d2 01:20 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 01:21 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 01:22 HURT    You are defeated (impact)
+BOT d2 01:22 DOWN    the heir is defeated
+BOT d2 01:24 HURT    You get up again
+BOT d2 01:25 HURT    You get up again
+BOT d2 01:25 DO      flies to the ground (0.0 km)
+BOT d2 01:29 DO      steps off the carpet
+BOT d2 01:29 DO      walks to the orchard
+BOT d2 01:33 HURT    Bitten!
+BOT d2 01:33 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 01:34 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 01:35 HURT    Bitten!
+BOT d2 01:35 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 01:36 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 01:37 HURT    You are defeated (impact)
+BOT d2 01:37 DOWN    the heir is defeated
+BOT d2 01:39 HURT    You get up again
+BOT d2 01:40 HURT    You get up again
+BOT d2 01:40 DO      flies to the ground (0.0 km)
+BOT d2 01:44 DO      steps off the carpet
+BOT d2 01:44 DO      walks to the orchard
+BOT d2 01:48 HURT    Bitten!
+BOT d2 01:48 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 01:49 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 01:50 HURT    Bitten!
+BOT d2 01:50 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 01:51 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 01:52 HURT    You are defeated (impact)
+BOT d2 01:52 DOWN    the heir is defeated
+BOT d2 01:53 HURT    You get up again
+BOT d2 01:55 HURT    You get up again
+BOT d2 01:55 DO      flies to the ground (0.0 km)
+BOT d2 01:59 DO      steps off the carpet
+BOT d2 01:59 DO      walks to the orchard
+BOT d2 02:02 HURT    Bitten!
+BOT d2 02:02 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 02:04 HARM    poison: 5 (health 26), Anarvan (village) 0.0 km
+BOT d2 02:04 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 02:05 HURT    Bitten!
+BOT d2 02:05 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 02:06 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 02:12 HURT    You are defeated (impact)
+BOT d2 02:12 HURT    Bitten!
+BOT d2 02:12 DOWN    the heir is defeated
+BOT d2 02:14 HURT    You get up again
+BOT d2 02:14 DO      flies to the ground (0.0 km)
+BOT d2 02:15 HURT    You get up again
+BOT d2 02:19 DO      steps off the carpet
+BOT d2 02:19 DO      walks to the orchard
+BOT d2 02:22 HURT    Bitten!
+BOT d2 02:22 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 02:22 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 02:24 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 02:25 HURT    Bitten!
+BOT d2 02:25 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 02:26 HURT    You are defeated (impact)
+BOT d2 02:26 DOWN    the heir is defeated
+BOT d2 02:28 HURT    You get up again
+BOT d2 02:28 DO      flies to the ground (0.0 km)
+BOT d2 02:33 DO      steps off the carpet
+BOT d2 02:33 DO      walks to the orchard
+BOT d2 02:36 HURT    Bitten!
+BOT d2 02:36 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 02:37 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 02:39 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 02:40 HURT    Bitten!
+BOT d2 02:40 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 02:41 HURT    You are defeated (impact)
+BOT d2 02:41 DOWN    the heir is defeated
+BOT d2 02:43 HURT    You get up again
+BOT d2 02:43 DO      flies to the ground (0.0 km)
+BOT d2 02:48 DO      steps off the carpet
+BOT d2 02:48 DO      walks to the orchard
+BOT d2 02:52 HURT    Bitten!
+BOT d2 02:52 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 02:53 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 02:54 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 02:55 HURT    Bitten!
+BOT d2 02:55 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 02:56 HURT    You are defeated (impact)
+BOT d2 02:56 DOWN    the heir is defeated
+BOT d2 02:58 HURT    You get up again
+BOT d2 02:59 DO      flies to the ground (0.0 km)
+BOT d2 03:00 STATUS  on the carpet, hp 50, food 0, water 0, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 03:03 DO      steps off the carpet
+BOT d2 03:03 DO      walks to the orchard
+BOT d2 03:05 HARM    poison: 5 (health 50), Anarvan (village) 0.0 km
+BOT d2 03:06 HURT    Bitten!
+BOT d2 03:06 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 03:07 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 03:09 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 03:10 HURT    Bitten!
+BOT d2 03:10 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 03:19 HURT    You are defeated (impact)
+BOT d2 03:19 HURT    Bitten!
+BOT d2 03:19 DOWN    the heir is defeated
+BOT d2 03:20 HURT    You are defeated (impact)
+BOT d2 03:20 HURT    Bitten!
+BOT d2 03:20 DOWN    the heir is defeated
+BOT d2 03:21 HURT    You get up again
+BOT d2 03:22 DO      flies to the ground (0.0 km)
+BOT d2 03:26 DO      steps off the carpet
+BOT d2 03:26 DO      walks to the orchard
+BOT d2 03:29 HURT    Bitten!
+BOT d2 03:29 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 03:30 HURT    Bitten!
+BOT d2 03:31 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 03:31 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 03:32 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 03:33 HURT    You are defeated (impact)
+BOT d2 03:33 DOWN    the heir is defeated
+BOT d2 03:35 HURT    Bitten!
+BOT d2 03:35 HURT    You are defeated (impact)
+BOT d2 03:35 HURT    You get up again
+BOT d2 03:36 DO      flies to the ground (0.0 km)
+BOT d2 03:40 DO      steps off the carpet
+BOT d2 03:40 DO      walks to the orchard
+BOT d2 03:44 HURT    Bitten!
+BOT d2 03:44 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 03:45 HURT    Bitten!
+BOT d2 03:45 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 03:46 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 03:47 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 03:48 HURT    You are defeated (impact)
+BOT d2 03:48 DOWN    the heir is defeated
+BOT d2 03:50 HURT    You get up again
+BOT d2 03:51 DO      flies to the ground (0.0 km)
+BOT d2 03:55 DO      steps off the carpet
+BOT d2 03:55 DO      walks to the orchard
+BOT d2 03:59 HURT    Bitten!
+BOT d2 03:59 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 04:00 HURT    Bitten!
+BOT d2 04:00 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 04:01 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 04:02 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 04:05 HARM    poison: 5 (health 1), Anarvan (village) 0.0 km
+BOT d2 04:11 HURT    You are defeated (impact)
+BOT d2 04:11 HURT    Bitten!
+BOT d2 04:11 DOWN    the heir is defeated
+BOT d2 04:13 HURT    You get up again
+BOT d2 04:14 DO      flies to the ground (0.0 km)
+BOT d2 04:15 HURT    You get up again
+BOT d2 04:19 DO      steps off the carpet
+BOT d2 04:19 DO      walks to the orchard
+BOT d2 04:21 HURT    Bitten!
+BOT d2 04:21 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 04:22 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 04:23 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 04:24 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d2 04:25 HURT    Bitten!
+BOT d2 04:25 HURT    You are defeated (impact)
+BOT d2 04:25 DOWN    the heir is defeated
+BOT d2 04:27 HURT    You get up again
+BOT d2 04:27 DO      flies to the ground (0.0 km)
+BOT d2 04:32 DO      steps off the carpet
+BOT d2 04:32 DO      walks to the orchard
+BOT d2 04:35 HURT    Bitten!
+BOT d2 04:35 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 04:36 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 04:37 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 04:38 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 04:40 HURT    Bitten!
+BOT d2 04:43 SAY     Codex: Red deer observed
+BOT d2 04:45 PLACE   weaver, Anarvan
+BOT d2 04:47 HURT    You are defeated (impact)
+BOT d2 04:47 HURT    Bitten!
+BOT d2 04:47 DOWN    the heir is defeated
+BOT d2 04:49 HURT    You get up again
+BOT d2 04:49 DO      flies to the ground (0.0 km)
+BOT d2 04:50 HURT    You get up again
+BOT d2 04:54 DO      steps off the carpet
+BOT d2 04:54 DO      walks to the orchard
+BOT d2 04:57 HURT    Bitten!
+BOT d2 04:57 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 04:58 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 04:59 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 05:00 HURT    Bitten!
+BOT d2 05:00 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 05:05 HARM    poison: 5 (health 1), Anarvan (village) 0.0 km
+BOT d2 05:07 HURT    You are defeated (impact)
+BOT d2 05:07 HURT    Bitten!
+BOT d2 05:07 DOWN    the heir is defeated
+BOT d2 05:09 HURT    You get up again
+BOT d2 05:09 DO      flies to the ground (0.0 km)
+BOT d2 05:10 HURT    You get up again
+BOT d2 05:14 DO      steps off the carpet
+BOT d2 05:14 DO      walks to the orchard
+BOT d2 05:17 HURT    Bitten!
+BOT d2 05:17 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 05:18 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 05:19 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 05:20 HURT    Bitten!
+BOT d2 05:20 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 05:21 HURT    You are defeated (impact)
+BOT d2 05:21 DOWN    the heir is defeated
+BOT d2 05:22 HURT    You get up again
+BOT d2 05:23 DO      flies to the ground (0.0 km)
+BOT d2 05:28 DO      steps off the carpet
+BOT d2 05:28 DO      walks to the orchard
+BOT d2 05:31 HURT    Bitten!
+BOT d2 05:31 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 05:32 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 05:34 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 05:34 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 05:35 HURT    Bitten!
+BOT d2 05:42 HURT    You are defeated (impact)
+BOT d2 05:42 HURT    Bitten!
+BOT d2 05:42 DOWN    the heir is defeated
+BOT d2 05:43 HURT    You get up again
+BOT d2 05:44 DO      flies to the ground (0.0 km)
+BOT d2 05:45 HURT    You get up again
+BOT d2 05:49 DO      steps off the carpet
+BOT d2 05:49 DO      walks to the orchard
+BOT d2 05:51 HURT    Bitten!
+BOT d2 05:51 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 05:52 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 05:53 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 05:54 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 05:55 HURT    Bitten!
+BOT d2 05:55 HURT    You are defeated (impact)
+BOT d2 05:55 DOWN    the heir is defeated
+BOT d2 05:57 HURT    You get up again
+BOT d2 05:57 DO      flies to the ground (0.0 km)
+BOT d2 06:00 STATUS  on the carpet, hp 50, food 0, water 0, rest 0, Anarvan (village) 0.0 km, story: village
+BOT d2 06:02 DO      steps off the carpet
+BOT d2 06:02 DO      walks to the orchard
+BOT d2 06:06 HURT    Bitten!
+BOT d2 06:06 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 06:07 HARM    poison: 5 (health 38), Anarvan (village) 0.0 km
+BOT d2 06:10 HURT    Bitten!
+BOT d2 06:10 HARM    impact: 12 (health 25), Anarvan (village) 0.0 km
+BOT d2 06:16 HURT    Bitten!
+BOT d2 06:16 HARM    impact: 12 (health 13), Anarvan (village) 0.0 km
+BOT d2 06:17 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 06:19 HURT    You are defeated (poison)
+BOT d2 06:19 DOWN    the heir is defeated
+BOT d2 06:20 HURT    You are defeated (poison)
+BOT d2 06:20 DOWN    the heir is defeated
+BOT d2 06:21 HURT    You get up again
+BOT d2 06:21 DO      flies to the ground (0.0 km)
+BOT d2 06:26 DO      steps off the carpet
+BOT d2 06:26 DO      walks to the orchard
+BOT d2 06:28 HURT    Bitten!
+BOT d2 06:28 HARM    impact: 12 (health 38), Anarvan (village) 0.0 km
+BOT d2 06:29 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 06:30 HURT    Bitten!
+BOT d2 06:30 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 06:32 HARM    impact: 12 (health 1), Anarvan (village) 0.0 km
+BOT d2 06:33 HURT    You are defeated (impact)
+BOT d2 06:33 DOWN    the heir is defeated
+BOT d2 06:35 HURT    You get up again
+BOT d2 06:35 DO      flies to the ground (0.0 km)
+BOT d2 06:40 DO      steps off the carpet
+BOT d2 06:40 DO      walks to the orchard
+BOT d2 06:41 HURT    Bitten!
+BOT d2 06:41 HARM    impact: 13 (health 38), Anarvan (village) 0.0 km
+BOT d2 06:42 HARM    impact: 12 (health 26), Anarvan (village) 0.0 km
+BOT d2 06:44 HARM    impact: 12 (health 14), Anarvan (village) 0.0 km
+BOT d2 06:45 HURT    Bitten!
+BOT d2 06:45 HARM    impact: 12 (health 2), Anarvan (village) 0.0 km
+BOT d2 06:45 SAY     nothing to eat
+BOT d2 06:45 SAY     You drink river water
+BOT d2 06:45 DO      drinks
+BOT d2 06:45 DO      turns on the wolf and casts
+BOT d2 06:46 STUCK   the prologue stalled at 'village'
+BOT d2 06:46 END     after 150062 ticks; prologue village; saga -; hp 2; codex 10 entries
+BOT d2 06:46 END     trouble x1: could not walk to the qanat outlet (4 m short)
+BOT d2 06:46 END     trouble x1: the prologue stalled at 'village'
+BOT d2 06:46 END     trouble x1: no way on at 'village' after 30 tries

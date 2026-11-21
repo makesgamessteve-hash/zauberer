@@ -1,0 +1,211 @@
+BOT d1 08:22 START   style hunter, seed 7
+BOT d1 08:22 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:22 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:02 SAY     Codex: Coconut palm observed
+BOT d1 07:07 SAY     Empty
+BOT d1 07:11 SAY     Gitirin: You are not from here.
+BOT d1 07:12 SAY     Gitirin: They say... Lecheye builds an observatory, they say.
+BOT d1 07:12 SAY     Gitirin: If you are going to Baapterh, it is 2 days' ride to the north.
+BOT d1 07:12 SAY     Gitirin: I know nothing of that.
+BOT d1 07:15 SAY     The door opens
+BOT d1 07:15 SAY     The door closes
+BOT d1 07:20 STORY   You fill the jar at the qanat outlet
+BOT d1 07:44 SAY     Empty
+BOT d1 07:48 SAY     Codex: Grass observed
+BOT d1 07:49 PLACE   qanat outlet, Anarvan
+BOT d1 07:50 DO      walks to the goat pen
+BOT d1 08:09 SAY     Empty
+BOT d1 08:18 SAY     Tiibhakan: Yes? What do you want?
+BOT d1 08:18 SAY     Tiibhakan: They say... Ghilir builds a great library, they say.
+BOT d1 08:18 SAY     Tiibhakan: If you are going to Baapterh, it is 2 days' ride to the north.
+BOT d1 08:19 SAY     Tiibhakan: I know nothing of that.
+BOT d1 08:19 SEE     storm_bird
+BOT d1 08:19 SAY     Tiibhakan: As for the gods... We hold the horse and the pomegranate sacred.
+BOT d1 08:25 SAY     Gitirin: As for the gods... We keep the faith of Pagse; we pray at every new moon and bury our dead by water burial.
+BOT d1 08:25 SAY     Gitirin: I know nothing of that.
+BOT d1 08:26 SAY     Gitirin: At the market here, salt 10, spices 10, flatbread 5, rug 80 coins.
+BOT d1 08:51 SAY     The door closes
+BOT d1 08:51 SAY     The door opens
+BOT d1 09:00 STATUS  on foot, hp 100, food 71, water 70, rest 76, qanat outlet, Anarvan, story: village
+BOT d1 09:17 SAY     Codex: Fern observed
+BOT d1 09:33 SAY     The door closes
+BOT d1 09:34 SAY     The door opens
+BOT d1 09:49 SAY     Empty
+BOT d1 10:10 SAY     The door closes
+BOT d1 10:11 SAY     The door opens
+BOT d1 10:26 SAY     The door closes
+BOT d1 10:26 SAY     The door opens
+BOT d1 10:30 STUCK   could not walk to the goat pen (41 m short, inside a building)
+BOT d1 10:30 DO      walks to the goat pen
+BOT d1 10:58 SAY     The door closes
+BOT d1 10:59 SAY     The door opens
+BOT d1 11:10 SAY     Empty
+BOT d1 11:34 SAY     Codex: Kapok observed
+BOT d1 11:34 SAY     The door closes
+BOT d1 11:35 SAY     The door opens
+BOT d1 12:00 STATUS  on foot, hp 100, food 57, water 57, rest 56, qanat outlet, Anarvan, story: village
+BOT d1 12:12 SAY     Gitirin: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Bharulat!
+BOT d1 12:12 SAY     Gitirin: They say... Lecheye builds an observatory, they say.
+BOT d1 12:12 SAY     Gitirin: If you are going to Baapterh, it is 2 days' ride to the north.
+BOT d1 12:13 SAY     Gitirin: I know nothing of that.
+BOT d1 12:13 SAY     Gitirin: As for the gods... We keep the faith of Pagse; we pray at every new moon and bury our dead by water burial.
+BOT d1 12:13 SAY     Empty
+BOT d1 12:21 SAY     The door closes
+BOT d1 12:21 SAY     The door opens
+BOT d1 12:52 SAY     The door closes
+BOT d1 12:53 SAY     The door opens
+BOT d1 13:04 SAY     The door closes
+BOT d1 13:05 SAY     The door opens
+BOT d1 13:08 STUCK   could not walk to the goat pen (41 m short, inside a building)
+BOT d1 13:09 DO      walks to the goat pen
+BOT d1 13:30 SAY     The door opens
+BOT d1 13:30 SAY     The door closes
+BOT d1 13:42 SAY     The door opens
+BOT d1 13:42 SAY     The door closes
+BOT d1 14:02 SAY     The door opens
+BOT d1 14:02 SAY     The door closes
+BOT d1 14:22 SAY     The door opens
+BOT d1 14:22 SAY     The door closes
+BOT d1 14:29 SAY     Empty
+BOT d1 14:58 SAY     The door opens
+BOT d1 14:58 SAY     The door closes
+BOT d1 15:00 STATUS  on foot, hp 100, food 44, water 44, rest 36, qanat outlet, Anarvan, story: village
+BOT d1 15:10 SAY     The door opens
+BOT d1 15:10 SAY     The door closes
+BOT d1 15:35 SAY     The door opens
+BOT d1 15:36 SAY     The door closes
+BOT d1 15:45 STUCK   could not walk to the goat pen (40 m short, against a wall, inside a building)
+BOT d1 15:46 DO      walks to the goat pen
+BOT d1 15:54 SAY     Empty
+BOT d1 16:03 SAY     The door closes
+BOT d1 16:03 SAY     The door opens
+BOT d1 16:40 SAY     The door closes
+BOT d1 16:40 SAY     The door opens
+BOT d1 17:03 SAY     The door closes
+BOT d1 17:03 SAY     The door opens
+BOT d1 17:31 SAY     The door closes
+BOT d1 17:31 SAY     The door opens
+BOT d1 17:38 SAY     Empty
+BOT d1 17:55 SAY     The door closes
+BOT d1 17:55 SAY     The door opens
+BOT d1 18:00 STATUS  on foot, hp 100, food 31, water 30, rest 16, qanat outlet, Anarvan, story: village
+BOT d1 18:16 SAY     Jesar: Yes? What do you want?
+BOT d1 18:20 SAY     The door closes
+BOT d1 18:21 SAY     The door opens
+BOT d1 18:22 STUCK   could not walk to the goat pen (40 m short, against a wall, inside a building)
+BOT d1 18:23 SAY     nothing to eat
+BOT d1 18:23 SAY     You drink river water
+BOT d1 18:23 DO      drinks
+BOT d1 18:23 DO      walks to the goat pen
+BOT d1 18:39 SAY     Empty
+BOT d1 18:57 SAY     The door opens
+BOT d1 18:57 SAY     The door closes
+BOT d1 19:18 SAY     Empty
+BOT d1 19:49 SAY     The door opens
+BOT d1 19:49 SAY     The door closes
+BOT d1 20:20 SAY     Daabam: Yes? What do you want?
+BOT d1 20:21 SAY     Daabam: They say... Ghilir builds a great library, they say.
+BOT d1 20:21 SAY     Daabam: If you are going to Baapterh, it is 2 days' ride to the north.
+BOT d1 20:23 SAY     Pajaam: Good day, traveller.
+BOT d1 20:23 SAY     Pajaam: They say... Ghilir builds a great library, they say.
+BOT d1 20:24 SAY     Pajaam: If you are going to Baapterh, it is 2 days' ride to the north.
+BOT d1 20:24 SAY     Pajaam: I know nothing of that.
+BOT d1 20:24 SAY     Pajaam: As for the gods... We keep the faith of Pagse; we pray at every new moon and bury our dead by water burial.
+BOT d1 20:25 SAY     Gitirin: I know nothing of that.
+BOT d1 20:26 SAY     Empty
+BOT d1 20:27 SAY     Gitirin: At the market here, salt 10, spices 10, flatbread 5, rug 80 coins.
+BOT d1 20:27 SAY     Gitirin: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Bharulat!
+BOT d1 20:44 SAY     The door closes
+BOT d1 20:44 SAY     The door opens
+BOT d1 21:00 STUCK   could not walk to the goat pen (40 m short, against a wall, inside a building)
+BOT d1 21:00 SAY     The door closes
+BOT d1 21:00 STATUS  on foot, hp 100, food 18, water 37, rest 0, qanat outlet, Anarvan, story: village
+BOT d1 21:00 SAY     nothing to eat
+BOT d1 21:00 SAY     You drink river water
+BOT d1 21:00 DO      drinks
+BOT d1 21:00 DO      walks to the goat pen
+BOT d1 21:00 SAY     The door opens
+BOT d1 21:26 SAY     The door closes
+BOT d1 21:26 SAY     The door opens
+BOT d1 21:50 SAY     Empty
+BOT d1 22:13 SAY     Dhiire: Good day, traveller.
+BOT d1 22:13 SAY     Dhiire: They say... Lecheye builds an observatory, they say.
+BOT d1 22:14 SAY     Dhiire: If you are going to Baapterh, it is 2 days' ride to the north.
+BOT d1 22:14 SAY     Daabam: I know nothing of that.
+BOT d1 22:14 SAY     Daabam: As for the gods... We hold the horse and the pomegranate sacred.
+BOT d1 22:40 SAY     The door closes
+BOT d1 22:40 SAY     The door opens
+BOT d1 22:48 SAY     Empty
+BOT d1 23:26 SAY     The door closes
+BOT d1 23:26 SAY     The door opens
+BOT d1 23:36 SAY     nothing to eat
+BOT d1 23:36 DO      walks to the goat pen
+BOT d1 23:49 SAY     The door opens
+BOT d1 23:49 SAY     The door closes
+BOT d2 00:00 STATUS  on foot, hp 100, food 5, water 44, rest 0, qanat outlet, Anarvan, story: village
+BOT d2 00:13 SAY     Empty
+BOT d2 00:29 SAY     The door opens
+BOT d2 00:30 SAY     The door closes
+BOT d2 00:45 SAY     The door opens
+BOT d2 00:45 SAY     The door closes
+BOT d2 01:02 SAY     The door opens
+BOT d2 01:02 SAY     The door closes
+BOT d2 01:18 SAY     Empty
+BOT d2 01:31 SAY     The door opens
+BOT d2 01:31 SAY     The door closes
+BOT d2 02:08 SAY     Empty
+BOT d2 02:12 SAY     nothing to eat
+BOT d2 02:12 SAY     nothing to drink
+BOT d2 02:12 DO      walks to the goat pen
+BOT d2 02:28 SAY     The door opens
+BOT d2 02:28 SAY     The door closes
+BOT d2 02:40 SAY     The door opens
+BOT d2 02:40 SAY     The door closes
+BOT d2 03:00 STATUS  on foot, hp 98, food 0, water 30, rest 0, qanat outlet, Anarvan, story: village
+BOT d2 03:00 SAY     Empty
+BOT d2 03:25 SAY     Empty
+BOT d2 03:34 SAY     The door opens
+BOT d2 03:34 SAY     The door closes
+BOT d2 04:07 SAY     The door opens
+BOT d2 04:07 SAY     The door closes
+BOT d2 04:15 SAY     Empty
+BOT d2 04:30 HARM    poison: 5 (health 95), qanat outlet, Anarvan
+BOT d2 04:37 SAY     The door opens
+BOT d2 04:37 SAY     The door closes
+BOT d2 04:49 SAY     nothing to eat
+BOT d2 04:49 SAY     nothing to drink
+BOT d2 04:49 DO      walks to the goat pen
+BOT d2 04:58 SAY     The door opens
+BOT d2 04:58 SAY     The door closes
+BOT d2 05:13 SAY     Empty
+BOT d2 05:23 SAY     The door opens
+BOT d2 05:23 SAY     The door closes
+BOT d2 05:47 SAY     The door opens
+BOT d2 05:47 SAY     The door closes
+BOT d2 05:54 SAY     Empty
+BOT d2 06:00 STATUS  on foot, hp 93, food 0, water 17, rest 0, qanat outlet, Anarvan, story: village
+BOT d2 06:04 SAY     The door opens
+BOT d2 06:04 SAY     The door closes
+BOT d2 06:16 SAY     The door opens
+BOT d2 06:16 SAY     The door closes
+BOT d2 06:31 SAY     The door opens
+BOT d2 06:32 SAY     The door closes
+BOT d2 06:47 SAY     Codex: Honey bee observed
+BOT d2 07:04 SAY     The door opens
+BOT d2 07:04 SAY     The door closes
+BOT d2 07:20 SAY     Empty
+BOT d2 07:26 SAY     nothing to eat
+BOT d2 07:26 SAY     nothing to drink
+BOT d2 07:27 DO      walks to the goat pen
+BOT d2 07:50 HARM    poison: 5 (health 90), qanat outlet, Anarvan
+BOT d2 07:51 SAY     The door opens
+BOT d2 07:51 SAY     The door closes
+BOT d2 07:59 SAY     nothing to eat
+BOT d2 08:00 SAY     nothing to drink
+BOT d2 08:00 STUCK   the prologue stalled at 'village'
+BOT d2 08:00 END     after 150008 ticks; prologue village; saga -; hp 90; codex 7 entries
+BOT d2 08:00 END     trouble x1: the prologue stalled at 'village'
+BOT d2 08:00 END     trouble x7: could not walk to the goat pen (40 m short, against a wall, inside a building)
+BOT d2 08:00 END     trouble x2: could not walk to the goat pen (41 m short, inside a building)

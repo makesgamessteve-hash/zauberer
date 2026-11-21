@@ -1,0 +1,322 @@
+BOT d1 08:30 START   style hunter, seed 3
+BOT d1 08:30 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:30 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:00 SEE     hare
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:02 SAY     Codex: Grass observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:10 SAY     Kewilu: Yes? What do you want?
+BOT d1 07:11 SAY     Kewilu: They say... Sabiwis builds a canal, they say.
+BOT d1 07:11 SAY     Kewilu: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 07:11 SAY     Tegao: State your business.
+BOT d1 07:12 SAY     Tegao: They say... Mazukhe builds a great library, they say.
+BOT d1 07:12 SAY     Tegao: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 07:12 SAY     Tegao: In the old days... In the year 622 the faithless men of Pehukoku rose against us over trade. At the Weeping Gate the armies of Daoguo won a glorious victory; their dead lay in thousands.
+BOT d1 07:23 STORY   You fill the jar at the qanat outlet
+BOT d1 07:23 SAY     Codex: Fern observed
+BOT d1 08:25 SAY     Maidichai: You are not from here.
+BOT d1 08:25 SAY     Maidichai: They say... Zestan falls to magic, they say.
+BOT d1 08:27 SAY     Tatsadun: We do not want trouble.
+BOT d1 08:27 SAY     Tatsadun: They say... Mazukhe builds a great library, they say.
+BOT d1 08:27 SAY     Tatsadun: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 08:28 SAY     Tatsadun: In the old days... In the year 485 the faithless men of Pehukoku rose against us over land. At Field of the Seven Banners the armies of Waolokoku won a glorious victory; their dead lay in thousands.
+BOT d1 08:28 SAY     Tatsadun: As for the gods... Magic is an abomination to us.
+BOT d1 08:28 SAY     Gelochung: We do not want trouble.
+BOT d1 08:28 SAY     Gelochung: They say... Zestan falls to magic, they say.
+BOT d1 08:29 SAY     Gelochung: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 08:29 SAY     Gelochung: In the old days... In the year 622 the faithless men of Pehukoku rose against us over trade. At the Weeping Gate the armies of Daoguo won a glorious victory; their dead lay in thousands.
+BOT d1 09:00 STATUS  on foot, hp 100, food 71, water 70, rest 76, Anarvan (village) 0.0 km, story: village
+BOT d1 09:00 SEE     storm_bird
+BOT d1 09:10 SAY     Tiwimong: State your business.
+BOT d1 09:11 SAY     Tiwimong: They say... Zestan falls to magic, they say.
+BOT d1 09:11 SAY     Tiwimong: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 09:11 SAY     Tiwimong: In the old days... In the year 622 the faithless men of Pehukoku rose against us over trade. At the Weeping Gate the armies of Daoguo won a glorious victory; their dead lay in thousands.
+BOT d1 09:11 SAY     Tiwimong: As for the gods... Magic is an abomination to us.
+BOT d1 09:12 SAY     Tiwimong: There is a song we sing: They sing of Paiwiju, who led us to victory.
+BOT d1 09:12 SAY     Mimaitsaing: Keep your hands where I can see them.
+BOT d1 09:35 STUCK   could not walk to the qanat outlet (4 m short, against a wall)
+BOT d1 09:36 DO      walks to the goat pen
+BOT d1 09:41 SAY     Codex: Umbrella acacia observed
+BOT d1 09:44 PLACE   pen, Anarvan
+BOT d1 09:44 STORY   The goats crowd round for their fodder
+BOT d1 09:48 PLACE   pen, Anarvan
+BOT d1 09:48 DO      walks to the orchard
+BOT d1 10:06 STORY   You pick three pomegranates
+BOT d1 10:07 DO      looks for Farrokh (work)
+BOT d1 10:07 DO      walks to Farrokh's door
+BOT d1 10:26 PLACE   weaver, Anarvan
+BOT d1 10:26 SAY     The door opens
+BOT d1 10:27 SAY     The door closes
+BOT d1 10:31 SAY     Taken wool 2
+BOT d1 10:31 SAY     Empty
+BOT d1 10:42 SAY     Codex: Honey bee observed
+BOT d1 10:52 SAY     Codex: Red fox observed
+BOT d1 11:01 SAY     The door closes
+BOT d1 11:01 SAY     The door opens
+BOT d1 11:02 STUCK   could not walk to Farrokh (33 m short, against a wall, inside a building)
+BOT d1 11:11 STUCK   could not walk to Farrokh (33 m short, against a wall, inside a building)
+BOT d1 11:19 SAY     The door opens
+BOT d1 11:19 STUCK   could not walk to Farrokh (33 m short, against a wall, inside a building)
+BOT d1 11:32 SAY     The door closes
+BOT d1 11:41 SAY     The door opens
+BOT d1 11:54 DO      looks for Farrokh (work)
+BOT d1 11:54 DO      walks to Farrokh's door
+BOT d1 12:00 STATUS  on foot, hp 100, food 56, water 55, rest 53, weaver, Anarvan, story: village
+BOT d1 12:13 SAY     Taken flatbread 3, coin 3
+BOT d1 12:13 SAY     Empty
+BOT d1 12:19 SAY     Codex: Brown hare observed
+BOT d1 12:34 STUCK   could not walk to Farrokh (7 m short, against a wall)
+BOT d1 12:36 PLACE   qanat outlet, Anarvan
+BOT d1 12:42 STUCK   could not walk to Farrokh (27 m short, against a wall, inside a building)
+BOT d1 12:51 STUCK   could not walk to Farrokh (27 m short, against a wall, inside a building)
+BOT d1 12:54 SAY     Empty
+BOT d1 12:59 STUCK   could not walk to Farrokh (27 m short, against a wall, inside a building)
+BOT d1 13:12 SAY     Tiwimong: I know nothing of that.
+BOT d1 13:16 SAY     The door opens
+BOT d1 13:17 STUCK   could not walk to Farrokh (10 m short, against a wall, inside a building)
+BOT d1 13:23 SAY     Empty
+BOT d1 13:26 STUCK   could not walk to Farrokh (7 m short)
+BOT d1 13:27 DO      looks for Farrokh (work)
+BOT d1 13:27 DO      walks to Farrokh's door
+BOT d1 13:35 SAY     The door closes
+BOT d1 13:36 SAY     The door opens
+BOT d1 13:39 SAY     Empty
+BOT d1 13:56 SAY     Codex: Coconut palm observed
+BOT d1 13:59 STUCK   could not walk to inside Farrokh's house (2 m short, against a wall)
+BOT d1 14:06 SAY     Empty
+BOT d1 14:10 SAY     Hayeken: State your business.
+BOT d1 14:10 SAY     Hayeken: They say... Zestan falls to magic, they say.
+BOT d1 14:11 SAY     Hayeken: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 14:11 SAY     Hayeken: In the old days... In the year 622 the faithless men of Pehukoku rose against us over trade. At the Weeping Gate the armies of Daoguo won a glorious victory; their dead lay in thousands.
+BOT d1 14:11 SAY     Hayeken: As for the gods... We hold the crane and the cypress sacred.
+BOT d1 14:11 SAY     Hayeken: There is a song we sing: They sing of Paiwiju, who led us to victory.
+BOT d1 14:12 SAY     Hayeken: I know nothing of that.
+BOT d1 14:31 STUCK   could not walk to Farrokh (6 m short, against a wall)
+BOT d1 14:37 SAY     Shapaogun: Yes? What do you want?
+BOT d1 14:37 SAY     Shapaogun: They say... Sabiwis builds a canal, they say.
+BOT d1 14:37 SAY     Shapaogun: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 14:37 SAY     Shapaogun: In the old days... In the year 681 the faithless men of Wunguo rose against us over raids. At the Pass of Wolves the armies of Pehukoku won a glorious victory; their dead lay in thousands.
+BOT d1 14:38 SAY     Shapaogun: As for the gods... We keep the faith of Bychtazar; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 14:38 SAY     Shapaogun: There is a song we sing: They sing of Tsaibe, who led us to victory.
+BOT d1 14:38 SAY     Shapaogun: I know nothing of that.
+BOT d1 14:38 STUCK   could not walk to Farrokh (3 m short, against a wall)
+BOT d1 14:38 SAY     Shapaogun: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 14:39 SAY     Shapaogun: There is nothing that needs doing, thank the gods.
+BOT d1 14:47 STUCK   could not walk to Farrokh (2 m short, against a wall)
+BOT d1 14:56 STUCK   could not walk to Farrokh (2 m short, against a wall)
+BOT d1 15:00 STATUS  on foot, hp 100, food 42, water 41, rest 31, Anarvan (village) 0.0 km, story: village
+BOT d1 15:01 SAY     Farrokh: Keep your hands where I can see them.
+BOT d1 18:30 SAY     Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 BEAT    prologue: arrival
+BOT d1 18:30 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 18:30 STORY   Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 STATUS  on foot, hp 100, food 41, water 40, rest 31, Anarvan (village) 0.0 km, story: arrival
+BOT d1 18:30 SAY     Baolisao: We do not want trouble.
+BOT d1 18:30 SAY     Baolisao: They say... Mazukhe builds a great library, they say.
+BOT d1 18:30 SAY     Wuda: Keep your hands where I can see them.
+BOT d1 18:31 SAY     Wuda: They say... Zestan falls to magic, they say.
+BOT d1 18:32 STORY   Azhdar: "Give me the Weave!" No one understands him.
+BOT d1 18:33 STUCK   could not walk to Farrokh (2 m short, against a wall)
+BOT d1 18:41 SAY     You drink river water
+BOT d1 18:41 DO      drinks
+BOT d1 18:42 SAY     Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 BEAT    prologue: handover
+BOT d1 18:42 STORY   Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 DO      runs to hide in the cellar
+BOT d1 18:42 DO      walks to Farrokh's door
+BOT d1 19:05 SAY     Codex: Red deer observed
+BOT d1 19:08 SAY     The door closes
+BOT d1 19:09 SAY     The door opens
+BOT d1 19:12 SAY     Empty
+BOT d1 19:21 SAY     Shudaon: Keep your hands where I can see them.
+BOT d1 19:22 SAY     Hayeken: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:22 SAY     Hayeken: There is nothing that needs doing, thank the gods.
+BOT d1 19:22 SAY     Hayeken: They say... Zestan falls to magic, they say.
+BOT d1 19:31 STUCK   could not walk to inside Farrokh's house (2 m short, against a wall)
+BOT d1 19:36 SAY     Empty
+BOT d1 20:04 SAY     The door closes
+BOT d1 20:04 SAY     The door opens
+BOT d1 20:05 STUCK   could not walk to the hatch (8 m short, against a wall)
+BOT d1 20:21 STUCK   could not walk to the foot of the cellar stair (2 m short)
+BOT d1 20:21 SAY     You eat flatbread
+BOT d1 20:21 DO      eats
+BOT d1 20:22 DO      runs to hide in the cellar
+BOT d1 20:22 DO      walks to Farrokh's door
+BOT d1 20:24 SAY     The door closes
+BOT d1 20:24 SAY     The door opens
+BOT d1 20:27 SAY     Empty
+BOT d1 20:32 PLACE   weaver, Anarvan
+BOT d1 20:46 SAY     The door opens
+BOT d1 20:58 SAY     The door closes
+BOT d1 21:00 STATUS  on foot, hp 100, food 55, water 49, rest 13, weaver, Anarvan, story: handover
+BOT d1 21:02 SAY     The door opens
+BOT d1 21:06 STUCK   could not walk to the hatch (5 m short, against a wall, inside a building)
+BOT d1 21:10 SAY     The door closes
+BOT d1 21:24 STUCK   could not walk to the foot of the cellar stair (2 m short, against a wall, inside a building)
+BOT d1 21:25 DO      runs to hide in the cellar
+BOT d1 21:25 DO      walks to Farrokh's door
+BOT d1 21:40 SAY     The door opens
+BOT d1 21:48 SAY     The door closes
+BOT d1 22:00 SAY     The door opens
+BOT d1 22:05 STUCK   could not walk to the hatch (5 m short, against a wall, inside a building)
+BOT d1 22:21 STUCK   could not walk to the foot of the cellar stair (2 m short, against a wall, inside a building)
+BOT d1 22:22 DO      runs to hide in the cellar
+BOT d1 22:22 DO      walks to Farrokh's door
+BOT d1 22:24 SAY     The door closes
+BOT d1 22:24 SAY     The door opens
+BOT d1 22:56 SAY     Farrokh: They say... Sabiwis builds a canal, they say.
+BOT d1 22:57 SAY     Farrokh: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d1 23:09 SAY     The door opens
+BOT d1 23:09 SAY     The door closes
+BOT d1 23:21 STUCK   could not walk to the hatch (5 m short, against a wall, inside a building)
+BOT d1 23:37 STUCK   could not walk to the foot of the cellar stair (2 m short, against a wall, inside a building)
+BOT d1 23:37 SAY     You drink river water
+BOT d1 23:37 DO      drinks
+BOT d1 23:38 DO      runs to hide in the cellar
+BOT d1 23:38 DO      walks to Farrokh's door
+BOT d1 23:39 SAY     The door closes
+BOT d1 23:40 SAY     The door opens
+BOT d2 00:00 STATUS  on foot, hp 100, food 42, water 55, rest 0, weaver, Anarvan, story: handover
+BOT d2 00:06 SAY     Farrokh: In the old days... In the year 383 the faithless men of Pehukoku rose against us over succession. At the Pass of Ravens the armies of Wunguo won a glorious victory; their dead lay in thousands.
+BOT d2 00:10 SAY     Farrokh: As for the gods... We hold the crane and the cypress sacred.
+BOT d2 00:11 SEE     fox
+BOT d2 00:18 STUCK   could not walk to the hatch (5 m short, inside a building)
+BOT d2 00:34 STUCK   could not walk to the foot of the cellar stair (1 m short, against a wall, inside a building)
+BOT d2 00:35 SAY     You eat flatbread
+BOT d2 00:35 DO      eats
+BOT d2 00:36 DO      runs to hide in the cellar
+BOT d2 00:36 DO      walks to Farrokh's door
+BOT d2 00:37 SAY     The door closes
+BOT d2 00:37 SAY     The door opens
+BOT d2 00:52 SAY     Farrokh: There is a song we sing: They sing of Tsaibe, who led us to victory.
+BOT d2 00:56 SAY     Farrokh: I know nothing of that.
+BOT d2 01:32 STUCK   could not walk to the foot of the cellar stair (1 m short, against a wall, inside a building)
+BOT d2 01:33 DO      runs to hide in the cellar
+BOT d2 01:33 DO      walks to Farrokh's door
+BOT d2 01:47 SAY     The door closes
+BOT d2 01:47 SAY     The door opens
+BOT d2 02:00 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 02:04 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d2 02:08 SAY     Farrokh: They say... Sabiwis builds a canal, they say.
+BOT d2 02:11 SAY     Farrokh: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d2 02:47 DO      runs to hide in the cellar
+BOT d2 02:47 DO      walks to Farrokh's door
+BOT d2 02:48 SAY     The door closes
+BOT d2 02:48 SAY     The door opens
+BOT d2 03:00 STATUS  on foot, hp 100, food 53, water 42, rest 0, weaver, Anarvan, story: handover
+BOT d2 03:19 SAY     Farrokh: In the old days... In the year 383 the faithless men of Pehukoku rose against us over succession. At the Pass of Ravens the armies of Wunguo won a glorious victory; their dead lay in thousands.
+BOT d2 03:22 SAY     Farrokh: As for the gods... We hold the crane and the cypress sacred.
+BOT d2 03:44 STUCK   could not walk to the foot of the cellar stair (1 m short, against a wall, inside a building)
+BOT d2 03:45 SAY     nothing to drink
+BOT d2 03:46 DO      runs to hide in the cellar
+BOT d2 03:46 DO      walks to Farrokh's door
+BOT d2 03:47 SAY     The door closes
+BOT d2 03:47 SAY     The door opens
+BOT d2 04:30 STUCK   could not walk to the hatch (5 m short, inside a building)
+BOT d2 04:47 SAY     nothing to drink
+BOT d2 04:48 DO      runs to hide in the cellar
+BOT d2 04:48 DO      walks to Farrokh's door
+BOT d2 04:50 SAY     The door opens
+BOT d2 04:50 SAY     The door closes
+BOT d2 05:01 SAY     Farrokh: There is a song we sing: They sing of Tsaibe, who led us to victory.
+BOT d2 05:03 SAY     Farrokh: I know nothing of that.
+BOT d2 05:05 SAY     The door closes
+BOT d2 05:14 SAY     Chebushing: Keep your hands where I can see them.
+BOT d2 05:15 SAY     Hejaitsun: State your business.
+BOT d2 05:15 SAY     Hejaitsun: They say... Mazukhe builds a great library, they say.
+BOT d2 05:15 SAY     Hejaitsun: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d2 05:17 SAY     Hejaitsun: In the old days... In the year 622 the faithless men of Pehukoku rose against us over trade. At the Weeping Gate the armies of Daoguo won a glorious victory; their dead lay in thousands.
+BOT d2 05:17 SAY     Shaidasen: State your business.
+BOT d2 05:18 SAY     Shaidasen: They say... Sabiwis builds a canal, they say.
+BOT d2 05:18 SAY     Shaidasen: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d2 05:29 STUCK   could not walk to the hatch (4 m short, against a wall, inside a building)
+BOT d2 05:45 SAY     nothing to drink
+BOT d2 05:46 DO      runs to hide in the cellar
+BOT d2 05:46 DO      walks to Farrokh's door
+BOT d2 05:47 SAY     The door opens
+BOT d2 05:47 SAY     The door closes
+BOT d2 06:00 STATUS  on foot, hp 100, food 40, water 28, rest 0, weaver, Anarvan, story: handover
+BOT d2 06:18 SAY     Hejaitsun: As for the gods... Magic is an abomination to us.
+BOT d2 06:19 SAY     Chebushing: They say... Mazukhe builds a great library, they say.
+BOT d2 06:19 SAY     Hejaitsun: There is a song we sing: They sing of Tsaibe, who led us to victory.
+BOT d2 06:20 SAY     Hejaitsun: I know nothing of that.
+BOT d2 06:20 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 06:34 STUCK   could not walk to the hatch (4 m short, against a wall, inside a building)
+BOT d2 06:51 SAY     You eat flatbread
+BOT d2 06:51 DO      eats
+BOT d2 06:51 SAY     nothing to drink
+BOT d2 06:52 DO      runs to hide in the cellar
+BOT d2 06:52 DO      walks to Farrokh's door
+BOT d2 06:54 SAY     Codex: Butterfly observed
+BOT d2 06:57 SAY     The door opens
+BOT d2 06:58 SAY     The door closes
+BOT d2 07:07 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d2 07:24 SAY     The door closes
+BOT d2 07:24 SAY     The door opens
+BOT d2 07:36 STUCK   could not walk to the hatch (4 m short, against a wall, inside a building)
+BOT d2 07:53 SAY     nothing to drink
+BOT d2 07:54 DO      runs to hide in the cellar
+BOT d2 07:54 DO      walks to Farrokh's door
+BOT d2 07:59 SAY     The door closes
+BOT d2 08:00 SAY     The door opens
+BOT d2 08:14 SAY     The door opens
+BOT d2 08:14 SAY     Chebushing: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d2 08:14 SAY     Chebushing: In the old days... In the year 485 the faithless men of Pehukoku rose against us over land. At Field of the Seven Banners the armies of Waolokoku won a glorious victory; their dead lay in thousands.
+BOT d2 08:15 SAY     Hejaitsun: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d2 08:15 SAY     Hejaitsun: There is nothing that needs doing, thank the gods.
+BOT d2 08:18 SAY     Shaidasen: In the old days... In the year 681 the faithless men of Wunguo rose against us over raids. At the Pass of Wolves the armies of Pehukoku won a glorious victory; their dead lay in thousands.
+BOT d2 08:22 SAY     The door closes
+BOT d2 08:26 SAY     The door opens
+BOT d2 08:55 SAY     nothing to drink
+BOT d2 08:56 DO      runs to hide in the cellar
+BOT d2 08:56 DO      walks to Farrokh's door
+BOT d2 09:00 STATUS  on foot, hp 100, food 52, water 15, rest 0, weaver, Anarvan, story: handover
+BOT d2 09:01 SAY     The door closes
+BOT d2 09:02 SAY     The door opens
+BOT d2 09:18 SAY     Hejaitsun: They say... Mazukhe builds a great library, they say.
+BOT d2 09:19 SAY     Chebushing: As for the gods... We keep the faith of Bychtazar; we pray five times a day and bury our dead by cliff tombs.
+BOT d2 09:20 SAY     Hejaitsun: If you are going to Shapen, it is 2 days' ride to the south.
+BOT d2 09:20 SAY     Hejaitsun: In the old days... In the year 622 the faithless men of Pehukoku rose against us over trade. At the Weeping Gate the armies of Daoguo won a glorious victory; their dead lay in thousands.
+BOT d2 09:23 SAY     The door opens
+BOT d2 09:27 SAY     The door closes
+BOT d2 09:39 SAY     The door opens
+BOT d2 09:39 SAY     The door closes
+BOT d2 09:44 SAY     Codex: Butterfly studied
+BOT d2 09:57 SAY     nothing to drink
+BOT d2 09:58 DO      runs to hide in the cellar
+BOT d2 09:58 DO      walks to Farrokh's door
+BOT d2 10:02 SAY     Codex: Honey bee studied
+BOT d2 10:02 SAY     Naturalism: Apprentice
+BOT d2 10:21 SAY     Empty
+BOT d2 10:29 SAY     The door opens
+BOT d2 10:30 SAY     The door closes
+BOT d2 10:51 SAY     The door closes
+BOT d2 10:51 SAY     The door opens
+BOT d2 10:56 STUCK   could not walk to the foot of the cellar stair (1 m short, inside a building)
+BOT d2 10:56 SAY     nothing to drink
+BOT d2 10:57 DO      runs to hide in the cellar
+BOT d2 10:57 DO      walks to Farrokh's door
+BOT d2 11:29 SAY     nothing to drink
+BOT d2 11:29 STUCK   the prologue stalled at 'handover'
+BOT d2 11:29 END     after 150026 ticks; prologue handover; saga -; hp 100; codex 10 entries
+BOT d2 11:29 END     trouble x2: could not walk to inside Farrokh's house (2 m short, against a wall)
+BOT d2 11:29 END     trouble x1: the prologue stalled at 'handover'
+BOT d2 11:29 END     trouble x7: could not walk to the hatch (5 m short, against a wall, inside a building)
+BOT d2 11:29 END     trouble x4: could not walk to Farrokh (27 m short, against a wall, inside a building)
+BOT d2 11:29 END     trouble x3: could not walk to Farrokh (2 m short, against a wall)
+BOT d2 11:29 END     trouble x1: could not walk to Farrokh (7 m short)
+BOT d2 11:29 END     trouble x2: could not walk to the hatch (5 m short, inside a building)
+BOT d2 11:29 END     trouble x1: could not walk to Farrokh (7 m short, against a wall)
+BOT d2 11:29 END     trouble x1: could not walk to the qanat outlet (4 m short, against a wall)
+BOT d2 11:29 END     trouble x5: could not walk to the foot of the cellar stair (2 m short, against a wall, inside a building)
+BOT d2 11:29 END     trouble x1: could not walk to Farrokh (6 m short, against a wall)
+BOT d2 11:29 END     trouble x1: could not walk to Farrokh (3 m short, against a wall)
+BOT d2 11:29 END     trouble x7: could not walk to Farrokh (33 m short, against a wall, inside a building)
+BOT d2 11:29 END     trouble x1: could not walk to the foot of the cellar stair (1 m short, inside a building)
+BOT d2 11:29 END     trouble x5: could not walk to the hatch (4 m short, against a wall, inside a building)
+BOT d2 11:29 END     trouble x1: could not walk to Farrokh (10 m short, against a wall, inside a building)
+BOT d2 11:29 END     trouble x1: could not walk to the hatch (8 m short, against a wall)
+BOT d2 11:29 END     trouble x1: could not walk to the foot of the cellar stair (2 m short)
+BOT d2 11:29 END     trouble x8: could not walk to the foot of the cellar stair (1 m short, against a wall, inside a building)

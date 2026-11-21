@@ -1,0 +1,103 @@
+BOT d1 07:33 START   style camper, seed 4
+BOT d1 07:33 PLACE   Anarvan (village) 0.0 km
+BOT d1 07:33 DO      flies about before the story (camper)
+BOT d1 07:33 DO      flies to somewhere new (2.1 km)
+BOT d1 08:00 DO      flies to somewhere new (2.2 km)
+BOT d1 08:27 DO      flies to home (4.3 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 74, water 74, rest 81, Anarvan (village) 1.2 km
+BOT d1 09:14 PLACE   home, Anarvan
+BOT d1 09:14 SEE     hare
+BOT d1 09:14 SEE     storm_bird
+BOT d1 09:15 SAY     Codex: Grass observed
+BOT d1 09:15 PLACE   weaver, Anarvan
+BOT d1 09:16 DO      steps off the carpet
+BOT d1 09:16 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:03 SAY     Codex: Coconut palm observed
+BOT d1 07:06 SAY     The door opens
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:08 SAY     Codex: Fern observed
+BOT d1 07:11 STORY   You fill the jar at the qanat outlet
+BOT d1 07:12 SAY     Kemuekat: You are not from here.
+BOT d1 07:12 SAY     Kemuekat: They say... Nuenuel builds a great library, they say.
+BOT d1 07:13 SAY     Kemuekat: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 07:13 SAY     Kemuekat: In the old days... In the year 1064 the faithless men of Mevisveylik rose against us over land. At Field of the Seven Banners the armies of Mzitsleti won a glorious victory; their dead lay in thousands.
+BOT d1 07:13 SAY     Kemuekat: As for the gods... Magic is a sacred gift to us.
+BOT d1 07:16 SAY     Togik: You are not from here.
+BOT d1 07:16 SAY     Togik: They say... Vabusha builds a garden of four parts, they say.
+BOT d1 07:23 SAY     Taken flatbread 2, lamp oil 2
+BOT d1 07:43 SAY     Empty
+BOT d1 07:55 SAY     Empty
+BOT d1 08:06 SAY     Kemuekat: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 08:07 SAY     Kemuekat: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 08:07 SAY     Kemuekat: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 08:07 SAY     Kemuekat: There is nothing that needs doing, thank the gods.
+BOT d1 08:10 SAY     Empty
+BOT d1 08:12 SAY     Togik: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 08:12 SAY     Togik: In the old days... In the year 1064 the faithless men of Mevisveylik rose against us over land. At Field of the Seven Banners the armies of Mzitsleti won a glorious victory; their dead lay in thousands.
+BOT d1 08:13 SAY     Togik: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 08:23 SAY     Molun: Yes? What do you want?
+BOT d1 08:23 SAY     Molun: They say... Vabusha builds a garden of four parts, they say.
+BOT d1 08:23 SAY     Codex: Umbrella acacia observed
+BOT d1 08:38 SAY     Empty
+BOT d1 09:07 SAY     Empty
+BOT d1 09:26 SAY     Empty
+BOT d1 09:35 STUCK   could not walk to the qanat outlet (4 m short, against a wall)
+BOT d1 09:36 DO      walks to the goat pen
+BOT d1 09:44 STORY   The goats crowd round for their fodder
+BOT d1 09:44 DO      walks to the orchard
+BOT d1 09:44 PLACE   pen, Anarvan
+BOT d1 09:52 PLACE   home, Anarvan
+BOT d1 10:26 SAY     Codex: Meadow flowers observed
+BOT d1 12:00 STATUS  on foot, hp 100, food 50, water 50, rest 45, home, Anarvan, story: village
+BOT d1 12:26 STUCK   could not walk to the orchard (88 m short, against a wall, inside a building)
+BOT d1 12:26 DO      walks to the orchard
+BOT d1 12:57 SAY     Chumuekok: Good day, traveller.
+BOT d1 12:57 SAY     Chumuekok: They say... Nuenuel builds a great library, they say.
+BOT d1 12:58 SAY     Chumuekok: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 12:58 SAY     Chumuekok: In the old days... In the year 625 Boykhanate fell upon our people without cause, coveting our revenge. At Field of the Hundred Banners they slaughtered 2900 of ours by treachery, and our martyrs are remembered.
+BOT d1 12:58 SAY     Chumuekok: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 13:01 SAY     Chumuekok: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 13:01 SAY     Chumuekok: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 13:02 SAY     Chumuekok: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 13:02 SAY     Chumuekok: There is nothing that needs doing, thank the gods.
+BOT d1 15:00 STATUS  on foot, hp 100, food 38, water 37, rest 26, home, Anarvan, story: village
+BOT d1 15:11 STUCK   could not walk to the orchard (88 m short, against a wall, inside a building)
+BOT d1 15:11 SAY     You eat flatbread
+BOT d1 15:11 DO      eats
+BOT d1 15:11 SAY     You drink river water
+BOT d1 15:11 DO      drinks
+BOT d1 15:11 DO      walks to the orchard
+BOT d1 17:56 STUCK   could not walk to the orchard (88 m short, against a wall, inside a building)
+BOT d1 17:57 DO      walks to the orchard
+BOT d1 18:00 STATUS  on foot, hp 100, food 50, water 45, rest 7, home, Anarvan, story: village
+BOT d1 18:37 SAY     Sadzen: Welcome, welcome! Sit, there is tea.
+BOT d1 18:38 SAY     Sadzen: They say... Nuenuel builds a great library, they say.
+BOT d1 18:57 SAY     Chumuekok: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 18:57 SAY     Chumuekok: In the old days... In the year 625 Boykhanate fell upon our people without cause, coveting our revenge. At Field of the Hundred Banners they slaughtered 2900 of ours by treachery, and our martyrs are remembered.
+BOT d1 18:58 SAY     Chumuekok: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 18:58 SAY     Chumuekok: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 20:02 SAY     Sadzen: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 20:41 SAY     You eat flatbread
+BOT d1 20:41 DO      eats
+BOT d1 20:41 SAY     You drink river water
+BOT d1 20:41 DO      drinks
+BOT d1 20:42 DO      walks to the orchard
+BOT d1 21:00 STATUS  on foot, hp 100, food 63, water 52, rest 0, home, Anarvan, story: village
+BOT d1 23:27 DO      walks to the orchard
+BOT d2 00:00 STATUS  on foot, hp 100, food 50, water 40, rest 0, home, Anarvan, story: village
+BOT d2 02:12 SAY     nothing to drink
+BOT d2 02:12 DO      walks to the orchard
+BOT d2 03:00 STATUS  on foot, hp 100, food 38, water 27, rest 0, home, Anarvan, story: village
+BOT d2 04:57 SAY     nothing to eat
+BOT d2 04:57 SAY     nothing to drink
+BOT d2 04:57 DO      walks to the orchard
+BOT d2 06:00 STATUS  on foot, hp 100, food 25, water 15, rest 0, home, Anarvan, story: village
+BOT d2 06:17 SAY     nothing to eat
+BOT d2 06:17 SAY     nothing to drink
+BOT d2 06:17 STUCK   the prologue stalled at 'village'
+BOT d2 06:17 END     after 150008 ticks; prologue village; saga -; hp 100; codex 12 entries
+BOT d2 06:17 END     trouble x1: the prologue stalled at 'village'
+BOT d2 06:17 END     trouble x1: could not walk to the qanat outlet (4 m short, against a wall)
+BOT d2 06:17 END     trouble x7: could not walk to the orchard (88 m short, against a wall, inside a building)
