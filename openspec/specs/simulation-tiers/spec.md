@@ -35,3 +35,10 @@ The engine SHALL run the active tier every tick and report its cost; scripts SHA
 #### Scenario: The M3 exit demo
 - **WHEN** lightning strikes the dry forest by the carpet in a west wind, rain follows, the carpet leaves for a month, and a ring dam on a hillside is filled and breached
 - **THEN** the fire runs further downwind than upwind and never burns on water, the rain puts it out, the scar is still there a month later without ash, with ground cover back and no shrubs or trees on it, the pond runs down the slope through the breach, and the water balance holds throughout
+
+### Requirement: Lightning keeps its distance
+Natural lightning SHALL strike 100 .. 355 m from the player (the highest of a few places at that distance), so a storm's fires start where the player can see them coming.
+
+#### Scenario: Lightning keeps its distance
+- **WHEN** a storm the scripts set sends its first lightning
+- **THEN** nothing burns within 90 m of the player
