@@ -176,19 +176,20 @@ local function fly_to(target, above, land, why)
     local d = dist(c.pos, target)
     local ground = world.ground_height(c.pos)
     local want_alt = (target.alt and above == 0) and target.alt or (math.max(ground, world.height(target)) + above)
-    if land and d < 25 then want_alt = ground + 2 end
+    if land and d < 60 then want_alt = ground + 2 end
     local climb = math.max(-1, math.min(1, (want_alt - c.pos.alt) / 10))
     local diff = wrap(bearing(c.pos, target) - c.heading)
     local turn = math.max(-1, math.min(1, diff * 1.5))
-    local throttle = 1
-    if d < 120 then throttle = d < 25 and -1 or 0.3 end
-    if math.abs(diff) > 1.2 then throttle = 0.2 end
+    -- Speed to suit the distance (slow on the approach, stopping near), slow in sharp turns.
+    local want_speed = math.max(0, math.min(60, (d - 15) * 0.25))
+    local throttle = math.max(-1, math.min(1, (want_speed - c.speed) / 5))
+    if math.abs(diff) > 1.2 then throttle = math.min(throttle, 0) end
     input.inject("steer", turn, throttle, 1)
     input.inject("climb", climb, 0, 1)
     if d > 1500 and math.abs(diff) < 0.3 then input.inject("boost", 1, 0, 1) end
     tick_once()
     if not land and d < 30 then return true end
-    if land and d < 30 and c.speed < walkerm.CARPET_SLOW and c.pos.alt - ground < walkerm.CARPET_LOW then
+    if land and d < 40 and c.speed < walkerm.CARPET_SLOW and c.pos.alt - ground < walkerm.CARPET_LOW then
       press("mount")
       wait(0.5)
       if game.walker then log("DO", "steps off the carpet") return true end
@@ -326,14 +327,17 @@ end
 local function play_prologue()
   local S = game.story
   local where = S.places
-  local tries = 0
-  while S.beat ~= "done" and ticks < BUDGET and tries < 40 do
-    tries = tries + 1
+  local started = world.time().time
+  local last_beat, tries = nil, 0
+  while S.beat ~= "done" and ticks < BUDGET and world.time().time - started < 3 * 86400 do
     local b = S.beat
+    if b ~= last_beat then last_beat, tries = b, 0 end
+    tries = tries + 1
+    if tries == 30 then trouble("no way on at '" .. b .. "' after 30 tries") end
     watch()
     if b == "village" then
-      if not S.chores.water then go(where.qanat_pos, "the qanat outlet", 4.5); press("use")
-      elseif not S.chores.goats then go(where.pen_pos, "the goat pen", 5); press("use")
+      if not S.chores.water then go(where.qanat_pos, "the qanat outlet", 3.4); press("use")
+      elseif not S.chores.goats then go(where.pen_pos, "the goat pen", 4.5); press("use")
       elseif not S.chores.pomegranates then go(where.orchard, "the orchard", 20); press("use")
       elseif not S.talked then
         local f = farrokh_person(where)
@@ -494,7 +498,8 @@ while ticks < BUDGET do
     else
       idle = idle + 1
       if idle == 1 and target == nil then trouble("nothing more the story asks that the bot can find") end
-      if STYLE == "camper" or idle % 2 == 0 then
+      local flies = not game.story or prologue.can_fly(game.story)
+      if STYLE == "camper" or idle % 2 == 0 or not flies then
         press("gather")
         wait_watch(5)
       else
