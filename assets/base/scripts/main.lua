@@ -334,6 +334,32 @@ function game.vr_options(s)
     reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
 end
 
+-- Opens the menu in play (the heir's actions idle; alone, the world held).
+function game.open_menu()
+  if not game.menu.open then menu.toggle(game.menu) end
+  access.block(true)
+end
+
+-- The window lost or regained focus (or the page was hidden or shown): in
+-- play the menu opens and the sound is muted; on the web the game is saved
+-- (a hidden tab may be closed). Back in focus the sound returns; the menu stays.
+function game.on_focus(on)
+  print(on and "focus back" or "focus lost")
+  if not on then
+    if game.muted_volume == nil then
+      game.muted_volume = audio.group_volume("master")
+      audio.group_volume("master", 0)
+    end
+    if game.mode == "flight" and game.menu then
+      game.open_menu()
+      if engine.info().platform == "web" and game.coop.role ~= "client" then game.save() end
+    end
+  elseif game.muted_volume ~= nil then
+    audio.group_volume("master", game.muted_volume)
+    game.muted_volume = nil
+  end
+end
+
 -- Saves (in flight) and ends the game.
 function game.quit_to_desktop()
   if game.mode == "flight" then
@@ -512,15 +538,21 @@ local function flight_tick(dt)
   end
   game.setup_ui()
   local st = controls.read()
-  -- Escape opens the menu; while it is open the heir's own actions are idle (the world goes on).
+  -- Escape opens the menu; while it is open the heir's own actions are idle.
+  -- Alone the world stands still; in company it goes on.
   if game.menu.open then
     menu.tick(game.menu, input.state, dt)
     access.block(game.menu.open)
   elseif st.quit and st.quit.pressed then
-    menu.toggle(game.menu)
-    access.block(true)
+    game.open_menu()
     st = controls.read()
   end
+  local held = game.menu.open and game.coop.role == "none"
+  if held ~= (game.world_held or false) then
+    game.world_held = held
+    engine.hold_world(held)
+  end
+  if held then return end
   game.listen()
   modapi.tick(game.mods, dt)
   if game.tent and game.tent.inside and game.walker then
@@ -1222,6 +1254,8 @@ engine.on("event", function(name, args)
     end
   elseif name == "resize" then
     game.drawable = { args.width, args.height }
+  elseif name == "focus" then
+    game.on_focus(args.a ~= 0)
   end
 end)
 

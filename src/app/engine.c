@@ -55,6 +55,7 @@ static double host_time(void *ctx) {
 static uint64_t host_ticks(void *ctx) { return ((zb_engine *)ctx)->ticks; }
 
 static void host_pause(void *ctx, bool paused) { zb_loop_set_paused(&((zb_engine *)ctx)->loop, paused); }
+static void host_hold_world(void *ctx, bool held) { ((zb_engine *)ctx)->world_held = held; }
 
 static void host_time_scale(void *ctx, double scale) { zb_loop_set_time_scale(&((zb_engine *)ctx)->loop, scale); }
 
@@ -529,6 +530,7 @@ static bool start_scripts(zb_engine *e, char *err, size_t err_len) {
   sc.host.sim_time = host_time;
   sc.host.tick_count = host_ticks;
   sc.host.set_paused = host_pause;
+  sc.host.hold_world = host_hold_world;
   sc.host.set_time_scale = host_time_scale;
   sc.host.set_fullscreen = host_fullscreen;
   sc.host.save_bindings = host_save_bindings;
@@ -577,6 +579,7 @@ static bool start_scripts(zb_engine *e, char *err, size_t err_len) {
  * the simulation and the scripts are made anew. */
 static void reset_game(zb_engine *e) {
   e->reset_pending = false;
+  e->world_held = false;
   zb_info("resetting the game to its first start");
   zb_script_destroy(e->script);
   e->script = NULL;
@@ -883,8 +886,10 @@ static void tick(zb_engine *e) {
   }
   zb_audio_tick(e->audio, zb_loop_tick_seconds());
   e->ticks++;
-  zb_world_advance_time(e->world, zb_loop_tick_seconds());
-  zb_tier_update(e->tier, zb_loop_tick_seconds());
+  if (!e->world_held) { /* (held: input and scripts go on, the world stands still) */
+    zb_world_advance_time(e->world, zb_loop_tick_seconds());
+    zb_tier_update(e->tier, zb_loop_tick_seconds());
+  }
   zb_net_update(e->net);
   zb_script_tick(e->script, zb_loop_tick_seconds());
   check_state_hash(e);
@@ -1191,6 +1196,7 @@ zb_host_status zb_engine_event(zb_engine *e, const zb_event *ev) {
       e->drawable_h = ev->u.resize.height;
       zb_script_event(e->script, "resize", e->drawable_w, e->drawable_h, NULL);
       break;
+    case ZB_EV_FOCUS: zb_script_event(e->script, "focus", ev->u.focus.on ? 1 : 0, 0, NULL); break;
     case ZB_EV_AUDIO_UNLOCKED:
       if (zb_audio_is_locked(e->audio)) {
         int rate = 0;

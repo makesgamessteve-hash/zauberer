@@ -1,0 +1,431 @@
+BOT d1 07:59 START   style camper, seed 8
+BOT d1 08:00 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:00 DO      flies about before the story (camper)
+BOT d1 08:00 DO      flies to somewhere new (2.6 km)
+BOT d1 08:31 DO      flies to somewhere new (1.5 km)
+BOT d1 08:53 DO      flies to home (1.6 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 75, water 75, rest 83, Anarvan (village) 0.9 km
+BOT d1 09:13 SAY     Codex: Grass observed
+BOT d1 09:14 DO      steps off the carpet
+BOT d1 09:14 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:07 PLACE   qanat outlet, Anarvan
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:07 STORY   You fill the jar at the qanat outlet
+BOT d1 07:08 DO      walks to the goat pen
+BOT d1 07:15 STORY   The goats crowd round for their fodder
+BOT d1 07:16 DO      walks to the orchard
+BOT d1 07:16 PLACE   pen, Anarvan
+BOT d1 07:17 SAY     Codex: Umbrella acacia observed
+BOT d1 07:18 SAY     Taken dried meat 3, wool 2, coin 1
+BOT d1 07:18 SAY     Empty
+BOT d1 07:21 SAY     Rebir: You are not from here.
+BOT d1 07:21 SAY     Rebir: They say... Begin builds a garden of four parts, they say.
+BOT d1 07:22 SAY     Rebir: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 07:22 SAY     Rebir: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 07:22 SAY     Rebir: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 07:23 SAY     Rebir: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 07:23 SAY     Rebir: I know nothing of that.
+BOT d1 07:23 SAY     Shahom: You are not from here.
+BOT d1 07:24 SAY     Shahom: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 07:25 SAY     Shahom: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 07:25 SAY     Mibhebu: Good day, traveller.
+BOT d1 07:26 SAY     Mibhebu: They say... Guga builds a garden of four parts, they say.
+BOT d1 07:26 SAY     Mibhebu: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 07:26 SAY     Mibhebu: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 07:27 SAY     Mibhebu: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 07:42 SAY     Codex: Fern observed
+BOT d1 07:53 STORY   You pick three pomegranates
+BOT d1 07:53 DO      looks for Farrokh (eat)
+BOT d1 07:53 DO      walks to Farrokh's door
+BOT d1 07:57 SAY     Codex: Coconut palm observed
+BOT d1 08:13 SAY     The door opens
+BOT d1 08:13 PLACE   weaver, Anarvan
+BOT d1 08:16 SAY     The door closes
+BOT d1 08:45 STUCK   could not walk to Farrokh (7 m short, against a wall (roof tile at 0.0 m, y 6.0..11.4, feet 0.0), inside a building)
+BOT d1 08:53 STUCK   could not walk to Farrokh (46 m short, against a wall (roof tile at 0.0 m, y 6.0..11.4, feet 0.0), inside a building)
+BOT d1 09:01 STUCK   could not walk to Farrokh (46 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 09:10 STUCK   could not walk to Farrokh (42 m short, inside a building)
+BOT d1 09:19 STUCK   could not walk to Farrokh (28 m short)
+BOT d1 09:19 SAY     Taken dates 3
+BOT d1 09:20 SAY     Empty
+BOT d1 09:27 STUCK   could not walk to Farrokh (24 m short)
+BOT d1 09:32 SAY     Rebir: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 09:32 SAY     Rebir: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 09:32 SAY     Rebir: They say... Begin builds a garden of four parts, they say.
+BOT d1 09:33 SAY     Rebir: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 09:33 SAY     Rebir: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 09:33 SAY     Rebir: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 09:34 STUCK   could not walk to Farrokh (8 m short, against a wall)
+BOT d1 09:34 SAY     Rebir: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 09:34 DO      looks for Farrokh (work)
+BOT d1 09:34 DO      walks to Farrokh's door
+BOT d1 09:34 SAY     Rebir: I know nothing of that.
+BOT d1 09:35 SAY     Vukashem: Yes? What do you want?
+BOT d1 09:41 PLACE   weaver, Anarvan
+BOT d1 09:41 SAY     Empty
+BOT d1 09:47 SAY     The door closes
+BOT d1 09:47 SAY     The door opens
+BOT d1 09:54 PLACE   weaver, Anarvan
+BOT d1 10:26 STUCK   could not walk to Farrokh (12 m short)
+BOT d1 10:28 PLACE   home, Anarvan
+BOT d1 10:28 SAY     Rebir: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 10:28 SAY     Rebir: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 10:29 SAY     Rebir: They say... Begin builds a garden of four parts, they say.
+BOT d1 10:29 SAY     Rebir: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 10:29 SAY     Rebir: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 10:30 SAY     Rebir: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 10:30 SAY     Rebir: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 10:30 SAY     Rebir: I know nothing of that.
+BOT d1 10:31 SAY     Vukashem: They say... Begin builds a garden of four parts, they say.
+BOT d1 10:31 SAY     Vukashem: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 10:33 STUCK   could not walk to Farrokh (8 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)
+BOT d1 10:41 PLACE   home, Anarvan
+BOT d1 10:41 STUCK   could not walk to Farrokh (8 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)
+BOT d1 10:49 STUCK   could not walk to Farrokh (8 m short, against a wall)
+BOT d1 10:57 PLACE   home, Anarvan
+BOT d1 10:58 STUCK   could not walk to Farrokh (8 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)
+BOT d1 11:01 SAY     Vukashem: In the old days... In the year 279 the faithless men of Bezesh rose against us over land. At the Pass of Wolves the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 11:02 SAY     Vukashem: As for the gods... Magic is a sacred gift to us.
+BOT d1 11:05 SAY     Vukashem: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 11:05 SAY     Vukashem: I know nothing of that.
+BOT d1 11:14 STUCK   could not walk to Farrokh (8 m short, against a wall)
+BOT d1 11:15 DO      looks for Farrokh (work)
+BOT d1 11:15 DO      walks to Farrokh's door
+BOT d1 11:21 SAY     Empty
+BOT d1 11:21 PLACE   weaver, Anarvan
+BOT d1 11:38 SAY     The door closes
+BOT d1 11:38 SAY     The door opens
+BOT d1 11:52 SAY     Codex: Brown hare observed
+BOT d1 11:55 PLACE   weaver, Anarvan
+BOT d1 12:00 STATUS  on foot, hp 100, food 50, water 49, rest 44, weaver, Anarvan, story: village
+BOT d1 12:18 SAY     Codex: Red deer observed
+BOT d1 12:28 STUCK   could not walk to Farrokh (31 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 12:36 STUCK   could not walk to Farrokh (45 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d1 12:44 STUCK   could not walk to Farrokh (45 m short, against a wall (roof tile at 0.1 m, y 6.0..11.4, feet 0.1), inside a building)
+BOT d1 12:53 STUCK   could not walk to Farrokh (45 m short, against a wall (roof tile at 0.1 m, y 6.0..11.4, feet 0.1), inside a building)
+BOT d1 13:01 STUCK   could not walk to Farrokh (23 m short)
+BOT d1 13:07 STUCK   could not walk to Farrokh (2 m short, against a wall)
+BOT d1 13:12 DO      looks for Farrokh (work)
+BOT d1 13:12 DO      walks to Farrokh
+BOT d1 13:25 PLACE   home, Anarvan
+BOT d1 13:27 STUCK   could not walk to Farrokh (5 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)
+BOT d1 13:34 SAY     Rebir: I know nothing of that.
+BOT d1 13:35 SAY     Rebir: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 13:35 SAY     Rebir: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 13:35 SAY     Rebir: They say... Begin builds a garden of four parts, they say.
+BOT d1 13:35 SAY     Rebir: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 13:36 SAY     Rebir: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 13:36 SAY     Rebir: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 13:36 SAY     Rebir: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 13:43 STUCK   could not walk to Farrokh (8 m short)
+BOT d1 13:47 PLACE   home, Anarvan
+BOT d1 14:00 SAY     You drink river water
+BOT d1 14:00 DO      drinks
+BOT d1 14:00 DO      looks for Farrokh (work)
+BOT d1 14:00 DO      walks to Farrokh's door
+BOT d1 14:06 SAY     Empty
+BOT d1 14:19 SAY     The door closes
+BOT d1 14:20 SAY     The door opens
+BOT d1 14:27 PLACE   weaver, Anarvan
+BOT d1 15:00 STATUS  on foot, hp 100, food 36, water 55, rest 22, weaver, Anarvan, story: village
+BOT d1 15:00 STUCK   could not walk to Farrokh (31 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 15:08 STUCK   could not walk to Farrokh (30 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 15:17 STUCK   could not walk to Farrokh (28 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d1 15:25 STUCK   could not walk to Farrokh (37 m short, inside a building)
+BOT d1 15:34 STUCK   could not walk to Farrokh (41 m short)
+BOT d1 15:40 STUCK   could not walk to Farrokh (6 m short)
+BOT d1 15:41 PLACE   shrine, Anarvan
+BOT d1 15:42 SAY     Tejavat: Good day, traveller.
+BOT d1 15:42 SAY     You eat dried meat
+BOT d1 15:42 DO      eats
+BOT d1 15:43 DO      looks for Farrokh (pray)
+BOT d1 15:43 DO      walks to Farrokh's door
+BOT d1 15:44 SAY     Khimopat: Good day, traveller.
+BOT d1 15:44 SAY     Khimopat: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 15:45 SAY     Khimopat: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 15:45 SAY     Khimopat: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 15:45 SAY     Khimopat: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 15:46 SAY     Khimopat: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 15:46 SAY     Khimopat: I know nothing of that.
+BOT d1 15:46 SAY     Khimopat: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 15:47 SAY     Mibhebu: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 15:48 SAY     Khimopat: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 15:55 SAY     Khiikhu: Good day, traveller.
+BOT d1 15:55 SAY     Runiida: You are not from here.
+BOT d1 15:58 SAY     Mibhebu: I know nothing of that.
+BOT d1 16:00 SAY     Runiida: They say... Begin builds a garden of four parts, they say.
+BOT d1 16:00 SAY     Runiida: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 16:00 SAY     Hanape: You are not from here.
+BOT d1 16:01 SAY     Jajechiir: You are not from here.
+BOT d1 16:02 SAY     Dhaadha: Good day, traveller.
+BOT d1 16:02 SAY     Khaavadhir: Good day, traveller.
+BOT d1 16:02 SAY     Chodhajin: Good day, traveller.
+BOT d1 16:03 SAY     Chodhajin: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 16:03 SAY     Chodhajin: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 16:03 SAY     The door closes
+BOT d1 16:04 SAY     The door opens
+BOT d1 18:00 STATUS  on foot, hp 100, food 35, water 41, rest 2, shrine, Anarvan, story: village
+BOT d1 18:05 SAY     Hidhar: Yes? What do you want?
+BOT d1 18:10 STUCK   could not walk to Farrokh's door (41 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet 0.0), inside a building)
+BOT d1 18:10 SAY     Bhibhiir: Good day, traveller.
+BOT d1 18:11 SAY     Mibhebu: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 18:11 SAY     Mibhebu: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 18:11 SAY     Mibhebu: They say... Guga builds a garden of four parts, they say.
+BOT d1 18:12 SAY     Mibhebu: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:12 SAY     Mibhebu: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:12 SAY     Mibhebu: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 18:12 SAY     Mibhebu: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 18:13 SAY     Mibhebu: I know nothing of that.
+BOT d1 18:15 SAY     Pakhadho: You are not from here.
+BOT d1 18:15 SAY     Pakhadho: They say... Guga builds a garden of four parts, they say.
+BOT d1 18:16 SAY     Pakhadho: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:16 SAY     Tejavat: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 18:16 SAY     Tejavat: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:17 SAY     Gukhiikhu: Good day, traveller.
+BOT d1 18:18 SAY     Gukhiikhu: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 18:18 SAY     Khaavadhir: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 18:18 SAY     Khaavadhir: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:19 SAY     Dhaadha: They say... Guga builds a garden of four parts, they say.
+BOT d1 18:19 SAY     Tibhot: Yes? What do you want?
+BOT d1 18:19 SAY     Hanape: They say... Guga builds a garden of four parts, they say.
+BOT d1 18:20 SAY     Hanape: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:21 SAY     Hasaa: Yes? What do you want?
+BOT d1 18:22 SAY     Hasaa: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 18:22 SAY     Hasaa: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:22 SAY     Runiida: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:23 SAY     Runiida: As for the gods... We hold the lion and the rose sacred.
+BOT d1 18:23 SAY     Runiida: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 18:23 SAY     Runiida: I know nothing of that.
+BOT d1 18:24 SAY     Runiida: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 18:32 STUCK   could not walk to inside Farrokh's house (7 m short)
+BOT d1 18:40 PLACE   shrine, Anarvan
+BOT d1 18:41 SAY     Tejavat: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:41 SAY     Tejavat: As for the gods... Magic is a sacred gift to us.
+BOT d1 18:41 SAY     Tejavat: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 18:41 SAY     Tejavat: I know nothing of that.
+BOT d1 18:41 SAY     Tejavat: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 18:41 SAY     Tejavat: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 18:41 SAY     You eat dried meat
+BOT d1 18:41 DO      eats
+BOT d1 18:41 SAY     You drink river water
+BOT d1 18:42 DO      drinks
+BOT d1 18:42 DO      looks for Farrokh (pray)
+BOT d1 18:42 DO      walks to Farrokh's door
+BOT d1 18:43 SAY     Khimopat: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:43 SAY     Khimopat: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:44 SAY     Khimopat: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 18:44 SAY     Khimopat: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 18:44 SAY     Khimopat: I know nothing of that.
+BOT d1 18:45 SAY     Khimopat: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 18:45 SAY     Khimopat: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 18:45 SAY     Khimopat: They say... Shiwoshung builds a stone bridge, they say.
+BOT d1 18:50 SAY     Runiida: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 18:51 SAY     Runiida: They say... Begin builds a garden of four parts, they say.
+BOT d1 18:51 SAY     Runiida: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 18:51 SAY     Runiida: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:52 SAY     Runiida: As for the gods... We hold the lion and the rose sacred.
+BOT d1 18:52 SAY     Runiida: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 18:52 SAY     Runiida: I know nothing of that.
+BOT d1 18:53 SAY     Runiida: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 18:53 SAY     Hasaa: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 18:57 SAY     Khiikhu: They say... Guga builds a garden of four parts, they say.
+BOT d1 19:00 SAY     Paashachiin: Yes? What do you want?
+BOT d1 19:01 SAY     Hidhar: They say... Begin builds a garden of four parts, they say.
+BOT d1 19:01 SAY     Hidhar: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 19:01 SAY     Bhopekam: Good day, traveller.
+BOT d1 19:01 SAY     Khotum: Good day, traveller.
+BOT d1 19:02 SAY     Shahom: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 19:02 SAY     Shahom: As for the gods... Magic is a sacred gift to us.
+BOT d1 19:02 SAY     Shahom: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 19:03 SAY     Shahom: I know nothing of that.
+BOT d1 19:04 SAY     The door closes
+BOT d1 19:04 SAY     The door opens
+BOT d1 19:32 SAY     The door closes
+BOT d1 19:32 SAY     The door opens
+BOT d1 19:47 PLACE   weaver, Anarvan
+BOT d1 20:20 STUCK   could not walk to Farrokh (45 m short, against a wall (wall sandstone at 0.0 m, y 0.0..3.0, feet 0.0), inside a building)
+BOT d1 20:28 STUCK   could not walk to Farrokh (33 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 20:36 STUCK   could not walk to Farrokh (33 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 20:45 STUCK   could not walk to Farrokh (33 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 21:00 STATUS  on foot, hp 100, food 34, water 47, rest 0, weaver, Anarvan, story: village
+BOT d1 21:11 SAY     You eat dried meat
+BOT d1 21:11 DO      eats
+BOT d1 21:12 DO      looks for Farrokh (rest)
+BOT d1 21:12 DO      walks to Farrokh's door
+BOT d1 21:44 STUCK   could not walk to Farrokh (32 m short, against a wall (roof tile at 0.0 m, y 6.0..11.4, feet 0.1), inside a building)
+BOT d1 21:51 STUCK   could not walk to Farrokh (18 m short)
+BOT d1 21:56 PLACE   teahouse, Anarvan
+BOT d1 21:56 SAY     Paajan: Good day, traveller.
+BOT d1 21:56 SAY     Paajan: They say... Guga builds a garden of four parts, they say.
+BOT d1 21:57 SAY     Paajan: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 21:57 SAY     Paajan: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 21:57 SAY     Paajan: As for the gods... We hold the lion and the rose sacred.
+BOT d1 21:57 STUCK   could not walk to Farrokh (3 m short, against a wall (plinth stone at 0.0 m, y -0.6..0.0, feet -0.0), inside a building)
+BOT d1 21:57 SAY     Paajan: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 21:57 SAY     Paajan: I know nothing of that.
+BOT d1 21:58 SAY     Paajan: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 21:58 SAY     Paajan: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 22:01 SAY     Hidhar: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 22:01 SAY     Hidhar: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 22:02 SAY     Rebir: They say... Begin builds a garden of four parts, they say.
+BOT d1 22:02 SAY     Mibhebu: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 22:02 SAY     Mibhebu: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 22:03 SAY     Mibhebu: As for the gods... We keep the faith of Sijuttilta; we pray five times a day and bury our dead by cliff tombs.
+BOT d1 22:03 SAY     Mibhebu: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 22:03 SAY     Mibhebu: I know nothing of that.
+BOT d1 22:04 PLACE   teahouse, Anarvan
+BOT d1 22:04 SAY     Dhegoshan: Good day, traveller.
+BOT d1 22:05 SAY     Dhegoshan: They say... Guga builds a garden of four parts, they say.
+BOT d1 22:05 SAY     Dhegoshan: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 22:05 SAY     Dhegoshan: In the old days... In the year 468 the faithless men of Janrashta rose against us over trade. At the Pass of Sorrow the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 22:05 STUCK   could not walk to Farrokh (3 m short, against a wall (plinth stone at 0.0 m, y -0.6..0.0, feet -0.0), inside a building)
+BOT d1 22:06 SAY     The door opens
+BOT d1 22:21 SAY     Empty
+BOT d1 22:21 STUCK   could not walk to Farrokh (9 m short, against a wall)
+BOT d1 22:22 DO      looks for Farrokh (sleep)
+BOT d1 22:22 DO      walks to Farrokh's door
+BOT d1 22:24 SAY     The door closes
+BOT d1 22:24 SAY     The door opens
+BOT d1 22:45 PLACE   weaver, Anarvan
+BOT d1 23:03 SAY     Farrokh: You are not from here.
+BOT d1 18:30 SAY     Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 BEAT    prologue: arrival
+BOT d1 18:30 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 18:30 STORY   Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 STATUS  on foot, hp 100, food 37, water 37, rest 0, weaver, Anarvan, story: arrival
+BOT d1 18:30 SAY     Farrokh: They say... Begin builds a garden of four parts, they say.
+BOT d1 18:32 STORY   Azhdar: "Give me the Weave!" No one understands him.
+BOT d1 18:37 SAY     You eat dates
+BOT d1 18:37 DO      eats
+BOT d1 18:37 SAY     nothing to drink
+BOT d1 18:38 DO      eats
+BOT d1 18:38 DO      eats
+BOT d1 18:38 SAY     You eat pomegranate
+BOT d1 18:38 DO      eats
+BOT d1 18:42 SAY     Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 BEAT    prologue: handover
+BOT d1 18:42 STORY   Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 DO      runs to hide in the cellar
+BOT d1 18:42 DO      walks to Farrokh's door
+BOT d1 19:21 SAY     Farrokh: If you are going to Tuhapur, it is 6 hours' walk to the north-east.
+BOT d1 19:22 SAY     Farrokh: In the old days... In the year 701 the faithless men of Janrashta rose against us over faith. At the Pass of Ravens the armies of Dhadavazesh won a glorious victory; their dead lay in thousands.
+BOT d1 19:22 SAY     Farrokh: As for the gods... We hold the lion and the rose sacred.
+BOT d1 19:22 SAY     Farrokh: There is a song we sing: They sing of Kadhem, who led us to victory.
+BOT d1 19:22 SAY     Farrokh: I know nothing of that.
+BOT d1 19:23 SAY     Farrokh: At the market here, salt 10, spices 9, flatbread 5, rug 80 coins.
+BOT d1 19:23 SAY     Farrokh: If you are looking for work... My little one went into the woods at dawn and has not come back. Please find Shinun!
+BOT d1 19:23 SAY     Farrokh: They say... Begin builds a garden of four parts, they say.
+BOT d1 19:25 STUCK   could not walk to the hatch (3 m short, inside a building)
+BOT d1 19:41 STUCK   could not walk to the foot of the cellar stair (6 m short, inside a building)
+BOT d1 19:41 SAY     nothing to drink
+BOT d1 19:42 DO      runs to hide in the cellar
+BOT d1 19:42 DO      walks to Farrokh's door
+BOT d1 20:36 STUCK   could not walk to the hatch (7 m short, against a wall (wall plaster at 0.0 m, y 0.0..3.0, feet 0.0), inside a building)
+BOT d1 20:39 SAY     Taken silk 3
+BOT d1 20:39 SAY     The hatch closes over you. The cellar is warded.
+BOT d1 20:39 BEAT    prologue: hiding
+BOT d1 20:39 STORY   The hatch closes over you. The cellar is warded.
+BOT d1 20:39 STORY   Fire roars over the roofs.
+BOT d1 20:39 HARM    impact: 15 (health 86), Anarvan (village) 0.0 km
+BOT d1 20:39 DO      runs from the fire
+BOT d1 20:42 DO      runs from the fire
+BOT d1 20:45 DO      runs from the fire
+BOT d1 20:48 DO      runs from the fire
+BOT d1 20:50 STORY   Screams in the street.
+BOT d1 20:50 DO      runs from the fire
+BOT d1 20:53 DO      runs from the fire
+BOT d1 20:56 DO      runs from the fire
+BOT d1 20:58 DO      runs from the fire
+BOT d1 21:01 STORY   Farrokh's magic flares, blue and bright, and is gone.
+BOT d1 21:01 STATUS  on foot, hp 99, food 40, water 30, rest 0, Anarvan (village) 0.0 km, story: hiding
+BOT d1 21:01 DO      runs from the fire
+BOT d1 21:04 DO      runs from the fire
+BOT d1 21:06 DO      runs from the fire
+BOT d1 21:09 DO      runs from the fire
+BOT d1 21:12 STORY   Azhdar burns carpet after carpet: "Where is it?"
+BOT d1 21:12 DO      runs from the fire
+BOT d1 21:15 DO      runs from the fire
+BOT d1 21:22 STORY   "It is near. I feel it near." Then hoofbeats, and silence.
+BOT d1 21:26 STUCK   could not walk to the foot of the cellar stair (1 m short, against a wall)
+BOT d1 21:26 SAY     You feel sick (spoilt food)
+BOT d1 21:26 SAY     You eat pomegranate
+BOT d1 21:26 DO      eats
+BOT d1 21:26 SAY     nothing to drink
+BOT d2 06:00 SAY     Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 BEAT    prologue: ashes
+BOT d2 06:00 STORY   Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 STATUS  on foot, hp 100, food 49, water 31, rest 0, Anarvan (village) 0.0 km, story: ashes
+BOT d2 06:00 DO      climbs out of the cellar
+BOT d2 06:00 STORY   You bury Farrokh and light a lamp. (Journal)
+BOT d2 06:16 STUCK   could not walk to the top of the stair (5 m short, against a wall)
+BOT d2 06:41 STUCK   could not walk to out of the house (4 m short, against a wall)
+BOT d2 06:41 DO      walks to the ruins of the house
+BOT d2 06:41 SAY     nothing to drink
+BOT d2 06:41 DO      climbs out of the cellar
+BOT d2 06:57 STUCK   could not walk to the top of the stair (5 m short, against a wall)
+BOT d2 07:22 STUCK   could not walk to out of the house (4 m short, against a wall)
+BOT d2 07:22 DO      walks to the ruins of the house
+BOT d2 07:23 SAY     nothing to drink
+BOT d2 07:23 DO      climbs out of the cellar
+BOT d2 07:39 STUCK   could not walk to the top of the stair (5 m short, against a wall)
+BOT d2 08:04 STUCK   could not walk to out of the house (4 m short, against a wall)
+BOT d2 08:04 DO      walks to the ruins of the house
+BOT d2 08:04 SAY     nothing to drink
+BOT d2 08:05 DO      climbs out of the cellar
+BOT d2 08:46 DO      walks to the ruins of the house
+BOT d2 08:46 SAY     You eat pomegranate
+BOT d2 08:46 DO      eats
+BOT d2 08:46 SAY     nothing to drink
+BOT d2 08:46 DO      climbs out of the cellar
+BOT d2 09:00 STATUS  on foot, hp 99, food 43, water 20, rest 0, Anarvan (village) 0.0 km, story: ashes
+BOT d2 09:27 DO      walks to the ruins of the house
+BOT d2 09:28 SAY     nothing to drink
+BOT d2 09:28 DO      climbs out of the cellar
+BOT d2 10:09 DO      walks to the ruins of the house
+BOT d2 10:09 SAY     nothing to eat
+BOT d2 10:09 SAY     nothing to drink
+BOT d2 10:10 DO      climbs out of the cellar
+BOT d2 10:38 DO      walks to the ruins of the house
+BOT d2 10:38 SAY     nothing to eat
+BOT d2 10:38 SAY     nothing to drink
+BOT d2 10:38 STUCK   the prologue stalled at 'ashes'
+BOT d2 10:38 END     after 150008 ticks; prologue ashes; saga -; hp 98; codex 9 entries
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (28 m short)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (42 m short, inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to the foot of the cellar stair (6 m short, inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh's door (41 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (7 m short, against a wall (roof tile at 0.0 m, y 6.0..11.4, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (32 m short, against a wall (roof tile at 0.0 m, y 6.0..11.4, feet 0.1), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (9 m short, against a wall)
+BOT d2 10:38 END     trouble x1: could not walk to the foot of the cellar stair (1 m short, against a wall)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (5 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)
+BOT d2 10:38 END     trouble x6: could not walk to Farrokh (8 m short, against a wall)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (46 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to the hatch (7 m short, against a wall (wall plaster at 0.0 m, y 0.0..3.0, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (6 m short)
+BOT d2 10:38 END     trouble x2: could not walk to Farrokh (45 m short, against a wall (roof tile at 0.1 m, y 6.0..11.4, feet 0.1), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (12 m short)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (8 m short)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (28 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d2 10:38 END     trouble x6: could not walk to out of the house (4 m short, against a wall)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (46 m short, against a wall (roof tile at 0.0 m, y 6.0..11.4, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (37 m short, inside a building)
+BOT d2 10:38 END     trouble x7: could not walk to the top of the stair (5 m short, against a wall)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (23 m short)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (45 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d2 10:38 END     trouble x6: could not walk to Farrokh (33 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (24 m short)
+BOT d2 10:38 END     trouble x4: could not walk to Farrokh (8 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)
+BOT d2 10:38 END     trouble x1: the prologue stalled at 'ashes'
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (30 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (18 m short)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (41 m short)
+BOT d2 10:38 END     trouble x1: could not walk to inside Farrokh's house (7 m short)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (45 m short, against a wall (wall sandstone at 0.0 m, y 0.0..3.0, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x2: could not walk to Farrokh (3 m short, against a wall (plinth stone at 0.0 m, y -0.6..0.0, feet -0.0), inside a building)
+BOT d2 10:38 END     trouble x2: could not walk to Farrokh (31 m short, against a wall (wall sandstone at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d2 10:38 END     trouble x1: could not walk to Farrokh (2 m short, against a wall)
+BOT d2 10:38 END     trouble x1: could not walk to the hatch (3 m short, inside a building)

@@ -22,6 +22,7 @@ typedef enum zb_event_type {
   ZB_EV_TOUCH_UP,
   ZB_EV_TOUCH_MOTION,
   ZB_EV_AUDIO_UNLOCKED,
+  ZB_EV_FOCUS,     /* the window gained or lost focus, or was shown or hidden */
   ZB_EV_XR_STATUS, /* WebXR availability or session change */
   ZB_EV_XR_BUTTON  /* select or squeeze of an XR input source */
 } zb_event_type;
@@ -70,6 +71,9 @@ typedef struct zb_event {
     struct {
       uint8_t status; /* zb_xr_status (core/xr.h) */
     } xr_status;
+    struct {
+      bool on; /* focused (or shown) */
+    } focus;
     struct {
       uint8_t hand;   /* zb_xr_hand */
       uint8_t button; /* zb_xr_button */

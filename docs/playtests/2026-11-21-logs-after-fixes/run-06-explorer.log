@@ -1,0 +1,204 @@
+BOT d1 07:41 START   style explorer, seed 6
+BOT d1 07:41 PLACE   Anarvan (village) 0.0 km
+BOT d1 07:41 DO      flies about before the story (explorer)
+BOT d1 07:41 DO      flies to somewhere new (2.4 km)
+BOT d1 08:10 DO      flies to somewhere new (1.9 km)
+BOT d1 08:34 DO      flies to home (3.4 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 74, water 74, rest 81, Anarvan (village) 0.9 km
+BOT d1 09:11 PLACE   home, Anarvan
+BOT d1 09:13 SAY     Codex: Umbrella acacia observed
+BOT d1 09:14 DO      steps off the carpet
+BOT d1 09:14 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:03 SAY     Codex: Grass observed
+BOT d1 07:07 SAY     Yilung: Yes? What do you want?
+BOT d1 07:07 STORY   You fill the jar at the qanat outlet
+BOT d1 07:07 SAY     Yilung: They say... Hidapen builds an observatory, they say.
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:08 SAY     The door closes
+BOT d1 07:15 PLACE   qanat outlet, Anarvan
+BOT d1 07:16 DO      walks to the goat pen
+BOT d1 07:28 STORY   The goats crowd round for their fodder
+BOT d1 07:28 DO      walks to the orchard
+BOT d1 07:29 PLACE   pen, Anarvan
+BOT d1 07:30 SAY     Codex: Fern observed
+BOT d1 07:31 PLACE   weaver, Anarvan
+BOT d1 07:32 SAY     Taken dried meat 3, dates 3, coin 1
+BOT d1 07:32 SAY     Empty
+BOT d1 07:50 SAY     Codex: Coconut palm observed
+BOT d1 07:53 STORY   You pick three pomegranates
+BOT d1 07:53 DO      looks for Farrokh (eat)
+BOT d1 07:53 DO      walks to Farrokh's door
+BOT d1 08:13 PLACE   weaver, Anarvan
+BOT d1 08:13 SAY     The door opens
+BOT d1 08:17 SAY     The door closes
+BOT d1 08:23 STUCK   could not walk to Farrokh (15 m short)
+BOT d1 08:25 PLACE   home, Anarvan
+BOT d1 08:25 SAY     Chelochai: You are not from here.
+BOT d1 08:26 SAY     Chelochai: They say... Miigeshaam builds a stone bridge, they say.
+BOT d1 08:26 SAY     Chelochai: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 08:26 SAY     Chelochai: I know nothing of that.
+BOT d1 08:27 SAY     Chelochai: As for the gods... We keep the faith of Milvanch; we pray at dawn and dusk and bury our dead by earth graves.
+BOT d1 08:28 SAY     Chelochai: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 08:30 STUCK   could not walk to Farrokh (6 m short, inside a building)
+BOT d1 08:31 SAY     Chelochai: There is nothing that needs doing, thank the gods.
+BOT d1 08:35 SAY     Lanisao: Good day, traveller.
+BOT d1 08:35 SAY     Lanisao: They say... Hidapen builds an observatory, they say.
+BOT d1 08:35 SAY     Lanisao: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 08:36 SAY     Lanisao: I know nothing of that.
+BOT d1 08:36 SAY     Lanisao: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 08:39 STUCK   could not walk to Farrokh (6 m short, against a wall (plinth stone at 0.0 m, y -0.4..0.0, feet 0.0), inside a building)
+BOT d1 08:43 SAY     Lanisao: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 08:44 SAY     Lanisao: There is nothing that needs doing, thank the gods.
+BOT d1 08:47 STUCK   could not walk to Farrokh (6 m short, inside a building)
+BOT d1 08:51 SAY     Lanisao: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 08:51 SAY     Lanisao: I know nothing of that.
+BOT d1 08:52 SAY     Lanisao: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 08:55 STUCK   could not walk to Farrokh (6 m short, against a wall (plinth stone at 0.0 m, y -0.4..0.0, feet 0.0), inside a building)
+BOT d1 09:00 SAY     Lanisao: They say... Hidapen builds an observatory, they say.
+BOT d1 09:03 STUCK   could not walk to Farrokh (6 m short, inside a building)
+BOT d1 09:04 DO      looks for Farrokh (work)
+BOT d1 09:04 DO      walks to Farrokh's door
+BOT d1 09:06 SAY     The door closes
+BOT d1 09:07 SAY     The door opens
+BOT d1 09:35 PLACE   weaver, Anarvan
+BOT d1 10:01 STORY   You tie knots at the loom: the pattern grows under your fingers
+BOT d1 10:07 SEE     storm_bird
+BOT d1 10:08 STUCK   could not walk to Farrokh (22 m short, against a wall (wall bamboo at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d1 10:16 STUCK   could not walk to Farrokh (22 m short, against a wall (wall bamboo at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d1 10:24 STUCK   could not walk to Farrokh (21 m short, against a wall (wall bamboo at 0.0 m, y 2.1..3.0, feet 0.2), inside a building)
+BOT d1 10:33 SAY     Pomeng: Good day, traveller.
+BOT d1 10:33 STUCK   could not walk to Farrokh (21 m short, against a wall (wall bamboo at 0.0 m, y 2.1..3.0, feet 0.2), inside a building)
+BOT d1 10:33 SAY     Pomeng: They say... Miigeshaam builds a stone bridge, they say.
+BOT d1 10:41 STUCK   could not walk to Farrokh (20 m short, against a wall (roof tile at 0.0 m, y 6.0..11.1, feet 0.2), inside a building)
+BOT d1 10:49 STUCK   could not walk to Farrokh (11 m short)
+BOT d1 10:50 PLACE   home, Anarvan
+BOT d1 10:50 SAY     Chelochai: There is nothing that needs doing, thank the gods.
+BOT d1 10:50 SAY     Chelochai: They say... Miigeshaam builds a stone bridge, they say.
+BOT d1 10:51 SAY     Chelochai: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 10:51 SAY     Chelochai: I know nothing of that.
+BOT d1 10:51 SAY     Chelochai: As for the gods... We keep the faith of Milvanch; we pray at dawn and dusk and bury our dead by earth graves.
+BOT d1 10:52 SAY     Chelochai: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 10:57 STUCK   could not walk to Farrokh (10 m short, against a wall)
+BOT d1 10:58 DO      looks for Farrokh (work)
+BOT d1 10:58 DO      walks to Farrokh's door
+BOT d1 11:03 PLACE   weaver, Anarvan
+BOT d1 11:35 STUCK   could not walk to Farrokh (20 m short, against a wall (roof tile at 0.0 m, y 6.0..11.1, feet 0.2), inside a building)
+BOT d1 11:43 STUCK   could not walk to Farrokh (20 m short, against a wall (roof tile at 0.0 m, y 6.0..11.1, feet 0.2), inside a building)
+BOT d1 11:52 STUCK   could not walk to Farrokh (21 m short, against a wall (roof tile at 0.2 m, y 6.0..11.1, feet 0.1), inside a building)
+BOT d1 12:00 STATUS  on foot, hp 100, food 49, water 48, rest 42, Anarvan (village) 0.0 km, story: village
+BOT d1 12:00 STUCK   could not walk to Farrokh (17 m short)
+BOT d1 12:03 PLACE   home, Anarvan
+BOT d1 12:13 SAY     Codex: Red deer observed
+BOT d1 12:14 STUCK   could not walk to Farrokh (7 m short, against a wall (plinth stone at 0.0 m, y -0.4..0.0, feet 0.0), inside a building)
+BOT d1 12:22 STUCK   could not walk to Farrokh (15 m short, against a wall (plinth stone at 0.0 m, y -0.4..0.0, feet 0.0), inside a building)
+BOT d1 12:23 DO      looks for Farrokh (eat)
+BOT d1 12:23 DO      walks to Farrokh's door
+BOT d1 12:57 PLACE   weaver, Anarvan
+BOT d1 13:00 SAY     Farrokh: You are not from here.
+BOT d1 18:30 SAY     Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 BEAT    prologue: arrival
+BOT d1 18:30 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 18:30 STORY   Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 STATUS  on foot, hp 100, food 44, water 43, rest 34, weaver, Anarvan, story: arrival
+BOT d1 18:32 STORY   Azhdar: "Give me the Weave!" No one understands him.
+BOT d1 18:42 SAY     Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 BEAT    prologue: handover
+BOT d1 18:42 STORY   Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 DO      runs to hide in the cellar
+BOT d1 18:42 DO      walks to Farrokh's door
+BOT d1 18:43 SAY     Miteyun: Good day, traveller.
+BOT d1 18:43 SAY     Miteyun: They say... Miigeshaam builds a stone bridge, they say.
+BOT d1 18:43 SAY     Miteyun: If you are going to Paimainan, it is 2 days' ride to the south.
+BOT d1 18:44 SAY     Miteyun: I know nothing of that.
+BOT d1 18:44 SAY     The door closes
+BOT d1 18:44 SAY     The door opens
+BOT d1 18:45 SAY     Yitsihu: Good day, traveller.
+BOT d1 18:45 SAY     Yitsihu: They say... Susu builds a great library, they say.
+BOT d1 19:16 SAY     The hatch closes over you. The cellar is warded.
+BOT d1 19:16 BEAT    prologue: hiding
+BOT d1 19:16 STORY   The hatch closes over you. The cellar is warded.
+BOT d1 19:16 STORY   Fire roars over the roofs.
+BOT d1 19:17 SAY     You drink river water
+BOT d1 19:17 DO      drinks
+BOT d1 19:27 STORY   Screams in the street.
+BOT d1 19:27 SAY     You eat dried meat
+BOT d1 19:27 DO      eats
+BOT d1 19:38 STORY   Farrokh's magic flares, blue and bright, and is gone.
+BOT d1 19:49 STORY   Azhdar burns carpet after carpet: "Where is it?"
+BOT d1 20:00 STORY   "It is near. I feel it near." Then hoofbeats, and silence.
+BOT d2 06:00 SAY     Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 BEAT    prologue: ashes
+BOT d2 06:00 STORY   Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 STATUS  on foot, hp 100, food 49, water 55, rest 23, Anarvan (village) 0.0 km, story: ashes
+BOT d2 06:00 DO      climbs out of the cellar
+BOT d2 06:01 PLACE   weaver, Anarvan
+BOT d2 06:02 SAY     Codex: Chanterelle observed
+BOT d2 06:03 DO      walks to the ruins of the house
+BOT d2 06:03 STORY   You bury Farrokh and light a lamp. (Journal)
+BOT d2 06:04 DO      goes back down into the cellar
+BOT d2 06:04 DO      walks to Farrokh's door
+BOT d2 06:07 SAY     The cellar is larger than a cellar should be.
+BOT d2 06:07 BEAT    prologue: sanctum
+BOT d2 06:07 STORY   The cellar is larger than a cellar should be.
+BOT d2 06:17 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 06:42 STUCK   could not walk to a shelf in the sanctum (2 m short)
+BOT d2 06:53 SAY     Codex: Honey bee observed
+BOT d2 06:53 SAY     Naturalism: Apprentice
+BOT d2 07:05 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 08:02 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 08:34 SAY     You eat dried meat
+BOT d2 08:34 DO      eats
+BOT d2 09:00 STATUS  on foot, hp 100, food 47, water 41, rest 1, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 09:40 STUCK   could not walk to a shelf in the sanctum (2 m short)
+BOT d2 09:52 SAY     You drink river water
+BOT d2 09:52 DO      drinks
+BOT d2 10:45 SAY     You eat dried meat
+BOT d2 10:45 DO      eats
+BOT d2 10:47 SAY     Codex: Honey bee studied
+BOT d2 12:00 STATUS  on foot, hp 100, food 46, water 47, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 14:36 SAY     You eat dates
+BOT d2 14:36 DO      eats
+BOT d2 14:36 SAY     nothing to drink
+BOT d2 14:36 DO      eats
+BOT d2 15:00 STATUS  on foot, hp 100, food 34, water 32, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 15:52 SAY     You eat dates
+BOT d2 15:52 DO      eats
+BOT d2 15:52 SAY     nothing to drink
+BOT d2 15:52 SAY     You feel sick (spoilt food)
+BOT d2 15:52 SAY     You eat pomegranate
+BOT d2 15:52 DO      eats
+BOT d2 16:56 SAY     You eat pomegranate
+BOT d2 16:56 DO      eats
+BOT d2 16:56 SAY     nothing to drink
+BOT d2 17:41 SAY     Codex: Honey bee understood
+BOT d2 18:00 STATUS  on foot, hp 100, food 44, water 25, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 18:04 SAY     nothing to drink
+BOT d2 19:07 SAY     You eat pomegranate
+BOT d2 19:07 DO      eats
+BOT d2 19:07 SAY     nothing to drink
+BOT d2 20:20 SAY     nothing to eat
+BOT d2 20:20 SAY     nothing to drink
+BOT d2 21:00 STATUS  on foot, hp 97, food 36, water 11, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 21:14 SAY     nothing to eat
+BOT d2 21:14 SAY     nothing to drink
+BOT d2 21:45 SAY     nothing to eat
+BOT d2 21:45 SAY     nothing to drink
+BOT d2 21:45 STUCK   the prologue stalled at 'sanctum'
+BOT d2 21:45 END     after 150012 ticks; prologue sanctum; saga -; hp 97; codex 14 entries
+BOT d2 21:45 END     trouble x20: could not walk to a shelf in the sanctum (1 m short)
+BOT d2 21:45 END     trouble x2: could not walk to Farrokh (22 m short, against a wall (wall bamboo at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d2 21:45 END     trouble x3: could not walk to Farrokh (20 m short, against a wall (roof tile at 0.0 m, y 6.0..11.1, feet 0.2), inside a building)
+BOT d2 21:45 END     trouble x2: could not walk to Farrokh (6 m short, against a wall (plinth stone at 0.0 m, y -0.4..0.0, feet 0.0), inside a building)
+BOT d2 21:45 END     trouble x3: could not walk to Farrokh (6 m short, inside a building)
+BOT d2 21:45 END     trouble x1: could not walk to Farrokh (10 m short, against a wall)
+BOT d2 21:45 END     trouble x1: could not walk to Farrokh (11 m short)
+BOT d2 21:45 END     trouble x1: the prologue stalled at 'sanctum'
+BOT d2 21:45 END     trouble x2: could not walk to a shelf in the sanctum (2 m short)
+BOT d2 21:45 END     trouble x1: could not walk to Farrokh (15 m short, against a wall (plinth stone at 0.0 m, y -0.4..0.0, feet 0.0), inside a building)
+BOT d2 21:45 END     trouble x1: could not walk to Farrokh (21 m short, against a wall (roof tile at 0.2 m, y 6.0..11.1, feet 0.1), inside a building)
+BOT d2 21:45 END     trouble x1: could not walk to Farrokh (17 m short)
+BOT d2 21:45 END     trouble x1: could not walk to Farrokh (7 m short, against a wall (plinth stone at 0.0 m, y -0.4..0.0, feet 0.0), inside a building)
+BOT d2 21:45 END     trouble x1: could not walk to Farrokh (15 m short)
+BOT d2 21:45 END     trouble x2: could not walk to Farrokh (21 m short, against a wall (wall bamboo at 0.0 m, y 2.1..3.0, feet 0.2), inside a building)

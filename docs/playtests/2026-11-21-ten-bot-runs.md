@@ -104,3 +104,42 @@ the game.
    emptied with no one reacting.
 8. **The prologue is slow.** One morning of chores took the bot 3–11 game hours.
    At 36× time, that is several real minutes of walking per chore.
+
+## After the fixes: ten runs again
+
+The same ten worlds and styles after the fixes. These were:
+
+- lightning keeps 100 m off;
+- the heir gets up away from fire and hunters, and hunters spare a defeated heir;
+- the cellar keeps the fire's heat out, and the ashes are cold;
+- doors lost in a ruin stay lost;
+- the chosen carpet is unrolled beside the heir;
+- the HUD names the next place.
+
+The bot also got a path planner. Logs: [2026-11-21-logs-after-fixes/](2026-11-21-logs-after-fixes/).
+
+| Run | Style | Before | After | Defeats before → after |
+|---|---|---|---|---|
+| 1 | story | village | flying | 1 → 0 |
+| 2 | explorer | village | **survival** | 0 → 0 |
+| 3 | hunter | handover | **survival** | 0 → 0 |
+| 4 | camper | village | sanctum | 0 → 1 (fire) |
+| 5 | story | village | **survival** | 5 → 0 |
+| 6 | explorer | flying | sanctum | 10 → 0 |
+| 7 | hunter | village | handover | 0 → 0 |
+| 8 | camper | village | ashes | 93 → 0 |
+| 9 | story | village | sanctum | 0 → 1 (fire) |
+| 10 | explorer | village | sanctum | 0 → 0 |
+
+- **Chores:** every heir finished them; before, only two did.
+- **Further in the story:** nine came through the hiding, and four bonded with the carpet and
+  flew. Three flew all the rings and came to foraging and boiling water.
+- **Defeats:** 2 in all, against 109 before.
+
+What still stops the bot is mostly its own walking:
+
+- reaching a moving Farrokh inside his house;
+- getting within reach of a sanctum shelf (1–2 m short);
+- finishing "survival" (gather, lay a fire, boil water).
+
+No heir has left the valley yet.

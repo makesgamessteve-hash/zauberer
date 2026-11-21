@@ -22,6 +22,10 @@ Asset credits of every loaded package (credits.lua) and the third-party code not
 
 Canonical 64-bit state hash as 16 hex digits. Without an argument: tick, input, random-number counter and every package's "hash" hook; with a value: the same base extended by that value (sorted keys, exact numbers).
 
+### `engine.hold_world(held: boolean)`
+
+Holds the world still (game time, fire, water, air, creatures) or lets it go on; input, scripts and frames go on while it is held.
+
 ### `engine.info(): EngineInfo`
 
 Engine version, scripting API, platform, build, input mode, drawable size and seed.
@@ -250,9 +254,9 @@ Screen text in VR is drawn at the headset's resolution. false or 0 (the default)
 
 Decoder memory of a streaming voice.
 
-### `audio.group_volume(group: "master"|"music"|"effects", volume?: number): number?`
+### `audio.group_volume(group: "master"|"music"|"effects", volume?: number): number`
 
-Gets or sets a volume group (setting "master" returns nothing).
+Gets or sets a volume group (and returns it).
 
 ### `audio.locked(): boolean`
 

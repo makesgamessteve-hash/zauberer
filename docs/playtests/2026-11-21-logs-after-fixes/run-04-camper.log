@@ -1,0 +1,299 @@
+BOT d1 07:33 START   style camper, seed 4
+BOT d1 07:33 PLACE   Anarvan (village) 0.0 km
+BOT d1 07:33 DO      flies about before the story (camper)
+BOT d1 07:33 DO      flies to somewhere new (2.1 km)
+BOT d1 08:00 DO      flies to somewhere new (2.2 km)
+BOT d1 08:27 DO      flies to home (4.3 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 74, water 74, rest 81, Anarvan (village) 1.2 km
+BOT d1 09:14 PLACE   home, Anarvan
+BOT d1 09:14 SEE     hare
+BOT d1 09:14 SEE     storm_bird
+BOT d1 09:15 SAY     Codex: Grass observed
+BOT d1 09:15 PLACE   weaver, Anarvan
+BOT d1 09:16 DO      steps off the carpet
+BOT d1 09:16 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:06 SAY     Codex: Fern observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 PLACE   qanat outlet, Anarvan
+BOT d1 07:07 STORY   You fill the jar at the qanat outlet
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:08 DO      walks to the goat pen
+BOT d1 07:10 SAY     Codex: Umbrella acacia observed
+BOT d1 07:15 STORY   The goats crowd round for their fodder
+BOT d1 07:16 DO      walks to the orchard
+BOT d1 07:16 PLACE   pen, Anarvan
+BOT d1 07:26 SAY     Podakin: Yes? What do you want?
+BOT d1 07:27 SAY     Podakin: They say... Vabusha builds a garden of four parts, they say.
+BOT d1 07:27 SAY     Podakin: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 07:27 SAY     Podakin: In the old days... In the year 784 the faithless men of Boykhanate rose against us over land. At Field of the Seven Banners the armies of Mevisveylik won a glorious victory; their dead lay in thousands.
+BOT d1 07:28 SAY     Podakin: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 07:28 SAY     Sadzen: Welcome, welcome! Sit, there is tea.
+BOT d1 07:28 SAY     Sadzen: They say... Nuenuel builds a great library, they say.
+BOT d1 07:29 SAY     Sadzen: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 07:30 SAY     Sadzen: In the old days... In the year 625 Boykhanate fell upon our people without cause, coveting our revenge. At Field of the Hundred Banners they slaughtered 2900 of ours by treachery, and our martyrs are remembered.
+BOT d1 07:38 SAY     Codex: Coconut palm observed
+BOT d1 07:47 STORY   You pick three pomegranates
+BOT d1 07:48 DO      looks for Farrokh (eat)
+BOT d1 07:48 DO      walks to Farrokh's door
+BOT d1 08:00 PLACE   well, Anarvan
+BOT d1 08:07 PLACE   weaver, Anarvan
+BOT d1 08:07 SAY     The door opens
+BOT d1 08:09 SAY     Zuedzives: You are not from here.
+BOT d1 08:10 SAY     Zuedzives: They say... Nadan builds a stone bridge, they say.
+BOT d1 08:10 SAY     Zuedzives: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 08:10 SAY     Durupot: You are not from here.
+BOT d1 08:11 SAY     Tsetsekor: Yes? What do you want?
+BOT d1 08:11 SAY     Tsetsekor: They say... Nadan builds a stone bridge, they say.
+BOT d1 08:11 SAY     Tsetsekor: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 08:12 SAY     Tsetsekor: In the old days... In the year 625 Boykhanate fell upon our people without cause, coveting our revenge. At Field of the Hundred Banners they slaughtered 2900 of ours by treachery, and our martyrs are remembered.
+BOT d1 08:13 SAY     The door closes
+BOT d1 08:13 SAY     Duzil: Welcome, welcome! Sit, there is tea.
+BOT d1 08:13 SAY     Duzil: They say... Nuenuel builds a great library, they say.
+BOT d1 08:24 STUCK   could not walk to Farrokh (17 m short)
+BOT d1 08:24 SAY     Pokoluk: Yes? What do you want?
+BOT d1 08:28 SAY     Dechatan: Ah, a guest. Our house is yours.
+BOT d1 08:28 SAY     Dechatan: They say... Nuenuel builds a great library, they say.
+BOT d1 08:29 SAY     Dechatan: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 08:29 SAY     Dechatan: In the old days... In the year 784 the faithless men of Boykhanate rose against us over land. At Field of the Seven Banners the armies of Mevisveylik won a glorious victory; their dead lay in thousands.
+BOT d1 08:29 SAY     Dechatan: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 08:30 SAY     Dechatan: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 08:30 STUCK   could not walk to Farrokh (7 m short, against a wall)
+BOT d1 08:30 SAY     Dechatan: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 08:30 SAY     Dechatan: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 08:31 SAY     Dechatan: There is nothing that needs doing, thank the gods.
+BOT d1 08:38 STUCK   could not walk to Farrokh (7 m short, against a wall)
+BOT d1 08:45 SAY     Codex: Honey bee observed
+BOT d1 08:46 SAY     Ruelak: Yes? What do you want?
+BOT d1 08:46 STUCK   could not walk to Farrokh (7 m short, against a wall)
+BOT d1 08:47 SAY     Ruelak: They say... Nadan builds a stone bridge, they say.
+BOT d1 08:47 SAY     Ruelak: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 08:51 PLACE   home, Anarvan
+BOT d1 08:55 SAY     The door opens
+BOT d1 08:55 STUCK   could not walk to Farrokh (7 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)
+BOT d1 08:57 SAY     Tsopuzit: Yes? What do you want?
+BOT d1 08:58 SAY     Tsopuzit: They say... Nadan builds a stone bridge, they say.
+BOT d1 08:58 SAY     Tsopuzit: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 08:58 SAY     Tsopuzit: In the old days... In the year 625 Boykhanate fell upon our people without cause, coveting our revenge. At Field of the Hundred Banners they slaughtered 2900 of ours by treachery, and our martyrs are remembered.
+BOT d1 08:58 SAY     Tsopuzit: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 08:59 SAY     Tsopuzit: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 08:59 SAY     Tsopuzit: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 08:59 SAY     Tsopuzit: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 09:01 SAY     Tsabe: You are not from here.
+BOT d1 09:01 SAY     Tsabe: They say... Nuenuel builds a great library, they say.
+BOT d1 09:01 SAY     Tsabe: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 09:02 SAY     Tsabe: In the old days... In the year 784 the faithless men of Boykhanate rose against us over land. At Field of the Seven Banners the armies of Mevisveylik won a glorious victory; their dead lay in thousands.
+BOT d1 09:02 SAY     Tsabe: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 09:02 SAY     Tsabe: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 09:03 STUCK   could not walk to Farrokh (3 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet 0.0), inside a building)
+BOT d1 09:03 SAY     Tsabe: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 09:03 DO      looks for Farrokh (work)
+BOT d1 09:03 DO      walks to Farrokh's door
+BOT d1 09:03 SAY     Tsabe: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 09:12 PLACE   weaver, Anarvan
+BOT d1 09:14 SAY     The door closes
+BOT d1 09:14 SAY     The door opens
+BOT d1 09:31 SAY     Dechatan: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 09:31 SAY     Dechatan: In the old days... In the year 784 the faithless men of Boykhanate rose against us over land. At Field of the Seven Banners the armies of Mevisveylik won a glorious victory; their dead lay in thousands.
+BOT d1 09:32 SAY     Dechatan: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 09:32 SAY     Dechatan: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 09:32 SAY     Dechatan: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 09:33 SAY     Dechatan: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 09:33 SAY     Dechatan: There is nothing that needs doing, thank the gods.
+BOT d1 09:33 SAY     Dechatan: They say... Nuenuel builds a great library, they say.
+BOT d1 09:50 SAY     Ruelak: In the old days... In the year 784 the faithless men of Boykhanate rose against us over land. At Field of the Seven Banners the armies of Mevisveylik won a glorious victory; their dead lay in thousands.
+BOT d1 09:51 SAY     Ruelak: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 09:51 SAY     Ruelak: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 09:55 PLACE   home, Anarvan
+BOT d1 09:57 SAY     Tsabe: There is nothing that needs doing, thank the gods.
+BOT d1 09:57 SAY     Tsabe: They say... Nuenuel builds a great library, they say.
+BOT d1 09:58 SAY     Tsabe: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 09:58 STUCK   could not walk to Farrokh (3 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet 0.0), inside a building)
+BOT d1 09:58 SAY     Tsopuzit: There is nothing that needs doing, thank the gods.
+BOT d1 09:58 SAY     Tsopuzit: They say... Nadan builds a stone bridge, they say.
+BOT d1 09:59 SAY     Tsopuzit: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 09:59 SAY     Tsopuzit: In the old days... In the year 625 Boykhanate fell upon our people without cause, coveting our revenge. At Field of the Hundred Banners they slaughtered 2900 of ours by treachery, and our martyrs are remembered.
+BOT d1 09:59 SAY     Tsopuzit: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 10:00 SAY     Tsopuzit: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 10:00 SAY     Tsopuzit: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 10:00 SAY     Tsopuzit: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 10:02 SAY     Tsabe: In the old days... In the year 784 the faithless men of Boykhanate rose against us over land. At Field of the Seven Banners the armies of Mevisveylik won a glorious victory; their dead lay in thousands.
+BOT d1 10:03 SAY     Tsabe: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 10:03 SAY     Tsabe: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 10:03 SAY     Tsabe: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 10:04 SAY     Tsabe: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 10:06 STUCK   could not walk to Farrokh (3 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet 0.0), inside a building)
+BOT d1 10:10 SAY     Tsabe: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 10:19 SAY     Codex: Brown hare observed
+BOT d1 10:19 SAY     Tsabe: They say... Nuenuel builds a great library, they say.
+BOT d1 10:21 SAY     Tsoden: Yes? What do you want?
+BOT d1 10:26 SAY     Tsoden: They say... Nadan builds a stone bridge, they say.
+BOT d1 10:30 SAY     Tsoden: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 10:32 DO      looks for Farrokh (work)
+BOT d1 10:32 DO      walks to Farrokh's door
+BOT d1 10:34 SAY     Codex: Red deer observed
+BOT d1 10:41 PLACE   weaver, Anarvan
+BOT d1 10:42 SAY     The door closes
+BOT d1 10:42 SAY     The door opens
+BOT d1 10:46 SAY     Codex: Meadow flowers observed
+BOT d1 11:12 STUCK   could not walk to Farrokh (9 m short)
+BOT d1 11:13 SAY     Dechatan: They say... Nuenuel builds a great library, they say.
+BOT d1 11:13 SAY     Dechatan: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 11:13 SAY     Dechatan: In the old days... In the year 784 the faithless men of Boykhanate rose against us over land. At Field of the Seven Banners the armies of Mevisveylik won a glorious victory; their dead lay in thousands.
+BOT d1 11:14 SAY     Dechatan: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 11:14 SAY     Dechatan: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 11:14 SAY     Dechatan: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 11:15 SAY     Dechatan: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 11:15 SAY     Dechatan: There is nothing that needs doing, thank the gods.
+BOT d1 12:00 STATUS  on foot, hp 100, food 47, water 46, rest 40, Anarvan (village) 0.0 km, story: village
+BOT d1 12:00 DO      looks for Farrokh (eat)
+BOT d1 12:00 DO      walks to Farrokh's door
+BOT d1 12:00 SAY     The door closes
+BOT d1 12:09 PLACE   weaver, Anarvan
+BOT d1 12:10 SAY     The door opens
+BOT d1 12:13 SAY     Tsetsekor: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 12:14 SAY     Tsetsekor: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 12:14 SAY     Tsetsekor: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 12:14 SAY     Tsetsekor: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 12:15 SAY     Tsetsekor: There is nothing that needs doing, thank the gods.
+BOT d1 12:15 SAY     Tsetsekor: They say... Nadan builds a stone bridge, they say.
+BOT d1 12:16 SAY     Zuedzives: In the old days... In the year 625 Boykhanate fell upon our people without cause, coveting our revenge. At Field of the Hundred Banners they slaughtered 2900 of ours by treachery, and our martyrs are remembered.
+BOT d1 12:16 SAY     Zuedzives: As for the gods... We hold the goat and the wheat sacred.
+BOT d1 12:16 SAY     Zuedzives: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 12:17 SAY     Zuedzives: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 12:17 SAY     Farrokh: Yes? What do you want?
+BOT d1 18:30 SAY     Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 BEAT    prologue: arrival
+BOT d1 18:30 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 18:30 STORY   Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 STATUS  on foot, hp 100, food 45, water 44, rest 37, weaver, Anarvan, story: arrival
+BOT d1 18:30 SAY     The door closes
+BOT d1 18:30 SAY     The door opens
+BOT d1 18:32 STORY   Azhdar: "Give me the Weave!" No one understands him.
+BOT d1 18:42 SAY     Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 BEAT    prologue: handover
+BOT d1 18:42 STORY   Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:54 STUCK   could not walk to Farrokh (36 m short, against a wall (wall timber at 0.0 m, y 0.0..3.0, feet 0.1), inside a building)
+BOT d1 18:55 DO      runs to hide in the cellar
+BOT d1 18:55 DO      walks to Farrokh's door
+BOT d1 18:57 SAY     Farrokh: They say... Nuenuel builds a great library, they say.
+BOT d1 18:57 SAY     Farrokh: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 18:58 SAY     Farrokh: In the old days... In the year 1064 the faithless men of Mevisveylik rose against us over land. At Field of the Seven Banners the armies of Mzitsleti won a glorious victory; their dead lay in thousands.
+BOT d1 18:59 SAY     Farrokh: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 18:59 SAY     Farrokh: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 18:59 SAY     Farrokh: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 19:00 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:00 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d1 19:11 SAY     The door opens
+BOT d1 19:17 SAY     Naturalism: Apprentice
+BOT d1 19:17 SAY     The door closes
+BOT d1 19:38 STUCK   could not walk to the foot of the cellar stair (7 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.2, feet 0.0), inside a building)
+BOT d1 19:38 SAY     You drink river water
+BOT d1 19:38 DO      drinks
+BOT d1 19:39 DO      runs to hide in the cellar
+BOT d1 19:39 DO      walks to Farrokh's door
+BOT d1 19:55 SAY     Farrokh: Do not speak to me of them. We have not forgotten Field of the Hundred Banners.
+BOT d1 19:56 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:56 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d1 19:56 SAY     Farrokh: They say... Nuenuel builds a great library, they say.
+BOT d1 19:57 SAY     Farrokh: If you are going to Chili, it is 2 days' ride to the south.
+BOT d1 19:57 SAY     Farrokh: In the old days... In the year 1064 the faithless men of Mevisveylik rose against us over land. At Field of the Seven Banners the armies of Mzitsleti won a glorious victory; their dead lay in thousands.
+BOT d1 19:57 SAY     Farrokh: As for the gods... We keep the faith of Chorkilih; we pray at every new moon and bury our dead by cliff tombs.
+BOT d1 19:57 SAY     Farrokh: There is a song we sing: They sing of Cheron, who led us to victory.
+BOT d1 20:03 SAY     The door closes
+BOT d1 20:03 SAY     The door opens
+BOT d1 21:00 STATUS  on foot, hp 100, food 34, water 53, rest 20, weaver, Anarvan, story: handover
+BOT d1 21:14 STUCK   could not walk to the hatch (7 m short, inside a building)
+BOT d1 21:27 SAY     You eat pomegranate
+BOT d1 21:27 DO      eats
+BOT d1 21:27 SAY     The hatch closes over you. The cellar is warded.
+BOT d1 21:27 BEAT    prologue: hiding
+BOT d1 21:27 STORY   The hatch closes over you. The cellar is warded.
+BOT d1 21:28 STORY   Fire roars over the roofs.
+BOT d1 21:28 HARM    impact: 15 (health 86), Anarvan (village) 0.0 km
+BOT d1 21:28 DO      runs from the fire
+BOT d1 21:31 PLACE   weaver, Anarvan
+BOT d1 21:31 HURT    The ground is scorching: get away from the fire!
+BOT d1 21:31 HARM    heat: 17 (health 69), weaver, Anarvan
+BOT d1 21:31 HARM    heat: 7 (health 62), weaver, Anarvan
+BOT d1 21:31 DO      runs from the fire
+BOT d1 21:33 HURT    You are burning: get out of the fire!
+BOT d1 21:33 HURT    You are defeated (heat)
+BOT d1 21:33 HARM    heat: 62 (health 0), weaver, Anarvan
+BOT d1 21:33 DOWN    the heir is defeated
+BOT d1 21:35 HURT    You are burning: get out of the fire!
+BOT d1 21:35 HURT    You are defeated (heat)
+BOT d1 21:35 HURT    You get up again
+BOT d1 21:35 HURT    You get up again, away from the danger
+BOT d1 21:38 STORY   Screams in the street.
+BOT d1 21:49 STORY   Farrokh's magic flares, blue and bright, and is gone.
+BOT d1 22:00 STORY   Azhdar burns carpet after carpet: "Where is it?"
+BOT d1 22:11 STORY   "It is near. I feel it near." Then hoofbeats, and silence.
+BOT d2 06:00 SAY     Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 BEAT    prologue: ashes
+BOT d2 06:00 STORY   Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 STATUS  on the carpet, hp 84, food 40, water 51, rest 11, Anarvan (village) 0.1 km, story: ashes
+BOT d2 06:00 DO      climbs out of the cellar
+BOT d2 06:00 DO      flies to the ground (0.0 km)
+BOT d2 06:00 DO      steps off the carpet
+BOT d2 06:00 DO      walks to the ruins of the house
+BOT d2 06:19 PLACE   weaver, Anarvan
+BOT d2 06:19 STORY   You bury Farrokh and light a lamp. (Journal)
+BOT d2 06:19 SAY     You eat pomegranate
+BOT d2 06:19 DO      eats
+BOT d2 06:20 DO      goes back down into the cellar
+BOT d2 06:20 DO      walks to Farrokh's door
+BOT d2 06:25 PLACE   weaver, Anarvan
+BOT d2 06:27 PLACE   weaver, Anarvan
+BOT d2 06:38 SAY     Codex: Honey bee studied
+BOT d2 06:44 SAY     Codex: Dead tree observed
+BOT d2 06:51 SAY     Empty
+BOT d2 06:55 PLACE   weaver, Anarvan
+BOT d2 06:59 SAY     The cellar is larger than a cellar should be.
+BOT d2 06:59 BEAT    prologue: sanctum
+BOT d2 06:59 STORY   The cellar is larger than a cellar should be.
+BOT d2 06:59 HARM    impact: 15 (health 86), Anarvan (village) 0.0 km
+BOT d2 07:09 STUCK   could not walk to a shelf in the sanctum (2 m short)
+BOT d2 07:21 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 07:54 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 08:20 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 08:29 SAY     You eat pomegranate
+BOT d2 08:29 DO      eats
+BOT d2 09:00 STATUS  on foot, hp 100, food 48, water 44, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 09:10 STUCK   could not walk to a shelf in the sanctum (2 m short)
+BOT d2 11:17 SAY     nothing to eat
+BOT d2 11:17 SAY     You drink river water
+BOT d2 11:17 DO      drinks
+BOT d2 12:00 STATUS  on foot, hp 100, food 34, water 50, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 12:15 STUCK   could not walk to a shelf in the sanctum (2 m short)
+BOT d2 12:18 SAY     nothing to eat
+BOT d2 13:22 SAY     nothing to eat
+BOT d2 14:34 SAY     nothing to eat
+BOT d2 14:34 SAY     nothing to drink
+BOT d2 15:00 STATUS  on foot, hp 100, food 21, water 36, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 15:43 SAY     Codex: Honey bee understood
+BOT d2 15:53 SAY     nothing to eat
+BOT d2 15:53 SAY     nothing to drink
+BOT d2 17:02 SAY     nothing to eat
+BOT d2 17:02 SAY     nothing to drink
+BOT d2 18:00 STATUS  on foot, hp 100, food 7, water 21, rest 0, Anarvan (village) 0.0 km, story: sanctum
+BOT d2 18:10 SAY     nothing to eat
+BOT d2 18:10 SAY     nothing to drink
+BOT d2 19:22 SAY     nothing to eat
+BOT d2 19:22 SAY     nothing to drink
+BOT d2 20:07 SAY     nothing to eat
+BOT d2 20:07 SAY     nothing to drink
+BOT d2 20:07 STUCK   the prologue stalled at 'sanctum'
+BOT d2 20:07 END     after 150011 ticks; prologue sanctum; saga -; hp 100; codex 15 entries
+BOT d2 20:07 END     trouble x1: could not walk to the foot of the cellar stair (7 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.2, feet 0.0), inside a building)
+BOT d2 20:07 END     trouble x1: could not walk to Farrokh (17 m short)
+BOT d2 20:07 END     trouble x6: could not walk to Farrokh (3 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet 0.0), inside a building)
+BOT d2 20:07 END     trouble x5: could not walk to a shelf in the sanctum (2 m short)
+BOT d2 20:07 END     trouble x1: the prologue stalled at 'sanctum'
+BOT d2 20:07 END     trouble x1: could not walk to the hatch (7 m short, inside a building)
+BOT d2 20:07 END     trouble x21: could not walk to a shelf in the sanctum (1 m short)
+BOT d2 20:07 END     trouble x1: could not walk to Farrokh (9 m short)
+BOT d2 20:07 END     trouble x11: could not walk to Farrokh (7 m short, against a wall)
+BOT d2 20:07 END     trouble x1: could not walk to Farrokh (36 m short, against a wall (wall timber at 0.0 m, y 0.0..3.0, feet 0.1), inside a building)
+BOT d2 20:07 END     trouble x1: could not walk to Farrokh (7 m short, against a wall (plinth stone at 0.0 m, y -0.3..0.0, feet -0.3), inside a building)

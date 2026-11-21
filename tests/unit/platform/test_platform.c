@@ -238,6 +238,22 @@ static void test_event_translation(void) {
   zb_event z = translate(&e, true);
   TEST_ASSERT_EQUAL_INT(ZB_EV_RESIZE, z.type);
   TEST_ASSERT_EQUAL_INT(1080, z.u.resize.height);
+  /* Focus: lost, hidden, minimised or backgrounded; gained, shown, restored or foregrounded. */
+  const Uint32 lost[] = {SDL_EVENT_WINDOW_FOCUS_LOST, SDL_EVENT_WINDOW_HIDDEN, SDL_EVENT_WINDOW_MINIMIZED,
+                         SDL_EVENT_WILL_ENTER_BACKGROUND};
+  const Uint32 gained[] = {SDL_EVENT_WINDOW_FOCUS_GAINED, SDL_EVENT_WINDOW_SHOWN, SDL_EVENT_WINDOW_RESTORED,
+                           SDL_EVENT_DID_ENTER_FOREGROUND};
+  for (int i = 0; i < 4; ++i) {
+    SDL_zero(e);
+    e.type = lost[i];
+    z = translate(&e, true);
+    TEST_ASSERT_EQUAL_INT(ZB_EV_FOCUS, z.type);
+    TEST_ASSERT_FALSE(z.u.focus.on);
+    e.type = gained[i];
+    z = translate(&e, true);
+    TEST_ASSERT_EQUAL_INT(ZB_EV_FOCUS, z.type);
+    TEST_ASSERT_TRUE(z.u.focus.on);
+  }
   SDL_zero(e);
   e.type = SDL_EVENT_KEY_DOWN;
   e.key.scancode = SDL_SCANCODE_SPACE;
@@ -388,6 +404,20 @@ static void test_web_bridge_on_desktop(void) {
     }
   }
   TEST_ASSERT_TRUE(unlocked);
+  /* A focus change pushed by the page (web) arrives as a focus event. */
+  zb_platform_push_focus(false);
+  zb_platform_push_focus(true);
+  int focus_events = 0;
+  bool last_on = false;
+  while (SDL_PollEvent(&e)) {
+    zb_event out;
+    if (zb_platform_translate_event(g_p, &e, &out) && out.type == ZB_EV_FOCUS) {
+      focus_events++;
+      last_on = out.u.focus.on;
+    }
+  }
+  TEST_ASSERT_EQUAL_INT(2, focus_events);
+  TEST_ASSERT_TRUE(last_on);
   SDL_zero(e);
   e.type = SDL_EVENT_USER;
   e.user.code = 1;

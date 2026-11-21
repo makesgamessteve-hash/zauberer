@@ -39,6 +39,7 @@ struct zb_platform {
 
 /* SDL user event that carries the browser's audio unlock (first gesture). */
 static Uint32 g_audio_unlock_event;
+#define FOCUS_EVENT 0x7a63 /* "zc": SDL_EVENT_USER code of a focus change pushed by the page */
 
 /* ---- Names ------------------------------------------------------------------ */
 
@@ -609,7 +610,26 @@ bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *o
       out->u.gamepad_axis.axis = e->gaxis.axis;
       out->u.gamepad_axis.value = axis_value(e->gaxis.value);
       return true;
+    case SDL_EVENT_WINDOW_FOCUS_LOST:
+    case SDL_EVENT_WINDOW_HIDDEN:
+    case SDL_EVENT_WINDOW_MINIMIZED:
+    case SDL_EVENT_WILL_ENTER_BACKGROUND:
+      out->type = ZB_EV_FOCUS;
+      out->u.focus.on = false;
+      return true;
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
+    case SDL_EVENT_WINDOW_SHOWN:
+    case SDL_EVENT_WINDOW_RESTORED:
+    case SDL_EVENT_DID_ENTER_FOREGROUND:
+      out->type = ZB_EV_FOCUS;
+      out->u.focus.on = true;
+      return true;
     case SDL_EVENT_USER:
+      if (e->user.code == FOCUS_EVENT) { /* the page shown or hidden (web) */
+        out->type = ZB_EV_FOCUS;
+        out->u.focus.on = e->user.windowID != 0;
+        return true;
+      }
       if (g_audio_unlock_event == 0 || e->user.code != (Sint32)g_audio_unlock_event) {
         return false;
       }
@@ -731,6 +751,15 @@ void zb_platform_push_audio_unlock(void) {
   SDL_PushEvent(&e);
 }
 
+void zb_platform_push_focus(bool on) {
+  SDL_Event e;
+  SDL_zero(e);
+  e.type = SDL_EVENT_USER;
+  e.user.code = FOCUS_EVENT;
+  e.user.windowID = on ? 1 : 0;
+  SDL_PushEvent(&e);
+}
+
 void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user) {
   p->state_fn = fn;
   p->state_user = user;
@@ -828,6 +857,9 @@ EMSCRIPTEN_KEEPALIVE void zb_web_fetch_done(void *box, int status) {
 
 EMSCRIPTEN_KEEPALIVE void zb_web_audio_unlocked(void);
 EMSCRIPTEN_KEEPALIVE void zb_web_audio_unlocked(void) { zb_platform_push_audio_unlock(); }
+
+EMSCRIPTEN_KEEPALIVE void zb_web_visibility(int visible);
+EMSCRIPTEN_KEEPALIVE void zb_web_visibility(int visible) { zb_platform_push_focus(visible != 0); }
 
 EMSCRIPTEN_KEEPALIVE const char *zb_web_state(void);
 EMSCRIPTEN_KEEPALIVE const char *zb_web_state(void) {

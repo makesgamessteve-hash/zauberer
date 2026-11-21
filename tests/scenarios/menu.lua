@@ -1,7 +1,11 @@
 -- SPDX-License-Identifier: MIT
 -- Escape in play opens the menu; while it is open the heir's actions are
--- idle but the world goes on; Escape closes it again.
+-- idle, and alone the world stands still (in company it goes on); Escape
+-- closes it again. Losing focus opens the menu and mutes; focus back, the
+-- sound returns and the menu stays.
 -- spec: accessibility: Escape opens the menu in play
+-- spec: accessibility: Losing focus
+-- spec: game-loop: Holding the world
 scenario { name = "menu" }
 local game = demo.game
 step(30)
@@ -12,7 +16,7 @@ expect(game.menu.open, "Escape opened the menu")
 local t = world.time().time
 input.inject("cast_left", 1, 1, 10)
 step(20)
-expect(world.time().time > t, "the world goes on")
+expect_eq(world.time().time, t, "alone, the world stands still")
 expect(not game.magic.charging_left and not (game.magic.charging and game.magic.charging.hand == "left"),
   "the heir does not cast while the menu is open")
 -- Down to Settings, in, and change the text size; then back out twice.
@@ -36,3 +40,22 @@ step(2)
 expect(not game.menu.open, "Escape closed the menu")
 require("ui.settings").set(game.settings, "text_size", 1)
 expect_eq(game.mode, "flight", "and play goes on")
+t = world.time().time
+step(10)
+expect(world.time().time > t, "the world goes on again")
+-- Losing focus: the menu opens, the sound is muted; focus back: the sound returns, the menu stays.
+audio.group_volume("master", 0.8)
+game.on_focus(false)
+expect(game.menu.open, "the menu opened")
+expect_eq(audio.group_volume("master"), 0, "muted")
+game.on_focus(false)
+game.on_focus(true)
+expect(math.abs(audio.group_volume("master") - 0.8) < 1e-6, "the sound is back")
+expect(game.menu.open, "the menu stays open")
+step(1)
+t = world.time().time
+step(10)
+expect_eq(world.time().time, t, "and the world stands still")
+input.inject("quit", 1, 1)
+step(2)
+expect(not game.menu.open)

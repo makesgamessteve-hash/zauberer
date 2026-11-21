@@ -415,6 +415,8 @@ size_t zb_audio_voice_decoder_bytes(const zb_audio *au, uint32_t handle) {
 
 void zb_audio_set_master_volume(zb_audio *au, float volume) { au->master = volume < 0 ? 0 : volume; }
 
+float zb_audio_master_volume(const zb_audio *au) { return au->master; }
+
 void zb_audio_set_group_volume(zb_audio *au, zb_audio_group group, float volume) {
   if ((unsigned)group < ZB_AUDIO_GROUP_COUNT) {
     au->group_volume[group] = volume < 0 ? 0 : volume;

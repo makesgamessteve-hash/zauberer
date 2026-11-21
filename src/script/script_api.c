@@ -369,6 +369,18 @@ static int e_pause(lua_State *L) {
   return 0;
 }
 
+/* @lua engine.hold_world(held: boolean)
+ * Holds the world still (game time, fire, water, air, creatures) or lets it
+ * go on; input, scripts and frames go on while it is held.
+ */
+static int e_hold_world(lua_State *L) {
+  zb_script *s = S(L);
+  if (s->cfg.host.hold_world) {
+    s->cfg.host.hold_world(s->cfg.host.ctx, lua_toboolean(L, 1));
+  }
+  return 0;
+}
+
 /* @lua engine.set_time_scale(scale: number)
  * Development and test builds only: simulation speed factor (0.1 to 10).
  */
@@ -1281,16 +1293,19 @@ static int a_set_volume(lua_State *L) {
   return 0;
 }
 
-/* @lua audio.group_volume(group: "master"|"music"|"effects", volume?: number): number?
- * Gets or sets a volume group (setting "master" returns nothing).
+/* @lua audio.group_volume(group: "master"|"music"|"effects", volume?: number): number
+ * Gets or sets a volume group (and returns it).
  */
 static int a_group_volume(lua_State *L) {
   zb_script *s = S(L);
   const char *g = luaL_checkstring(L, 1);
   zb_audio_group group = strcmp(g, "music") == 0 ? ZB_AUDIO_MUSIC : ZB_AUDIO_EFFECTS;
   if (strcmp(g, "master") == 0) {
-    zb_audio_set_master_volume(s->cfg.audio, (float)luaL_checknumber(L, 2));
-    return 0;
+    if (!lua_isnoneornil(L, 2)) {
+      zb_audio_set_master_volume(s->cfg.audio, (float)luaL_checknumber(L, 2));
+    }
+    lua_pushnumber(L, zb_audio_master_volume(s->cfg.audio));
+    return 1;
   }
   if (!lua_isnoneornil(L, 2)) {
     zb_audio_set_group_volume(s->cfg.audio, group, (float)luaL_checknumber(L, 2));
@@ -1503,6 +1518,7 @@ void zb_script_open_api(zb_script *s) {
                                         {"time", e_time},
                                         {"tick", e_tick},
                                         {"pause", e_pause},
+                                        {"hold_world", e_hold_world},
                                         {"set_time_scale", e_time_scale},
                                         {"set_fullscreen", e_fullscreen},
                                         {"log", e_log},

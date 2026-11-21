@@ -6,6 +6,7 @@
 -- and vote to sleep; the host saves and quits. On the next day (round 2)
 -- the host plays the saved world again and everyone rejoins.
 -- spec: coop-sessions: The M9 exit demo
+-- spec: accessibility: Escape opens the menu in play
 scenario { name = "together, host" }
 local game = demo.game
 local co = game.coop
@@ -37,6 +38,16 @@ expect(wait_for(function()
   return true
 end, 60), "each player's heir as they made it")
 expect_eq(#heirs.present(T.heirs), 4)
+-- In company the menu does not hold the world still.
+input.inject("quit", 1, 1)
+step(2)
+expect(game.menu.open, "the menu is open")
+local menu_at = world.time().time
+step(10)
+expect(world.time().time > menu_at, "in company the world goes on with the menu open")
+input.inject("quit", 1, 1)
+step(2)
+expect(not game.menu.open)
 local function phase(name) net.send("demo", { phase = name }) end
 
 if together.round == 2 then

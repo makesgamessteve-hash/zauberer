@@ -33,6 +33,8 @@ typedef struct zb_script_host {
   double (*sim_time)(void *ctx);
   uint64_t (*tick_count)(void *ctx);
   void (*set_paused)(void *ctx, bool paused);
+  /* Holds the world still (no game time, no simulation) while input and scripts go on. */
+  void (*hold_world)(void *ctx, bool held);
   void (*set_time_scale)(void *ctx, double scale);
   void (*set_fullscreen)(void *ctx, bool on);
   /* Persists the user's input bindings. */

@@ -106,7 +106,7 @@ if(EMSCRIPTEN)
   else()
     list(APPEND ZB_WEB_LINK -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sGL_ENABLE_GET_PROC_ADDRESS=1
       -lidbfs.js "-sEXPORTED_RUNTIME_METHODS=['FS','IDBFS','UTF8ToString','ccall']"
-      "-sEXPORTED_FUNCTIONS=['_main','_zb_web_fetch_done','_zb_web_audio_unlocked','_zb_web_state','_zb_web_xr_buffer','_zb_web_xr_status','_zb_web_xr_frame','_zb_web_xr_button']"
+      "-sEXPORTED_FUNCTIONS=['_main','_zb_web_fetch_done','_zb_web_audio_unlocked','_zb_web_visibility','_zb_web_state','_zb_web_xr_buffer','_zb_web_xr_status','_zb_web_xr_frame','_zb_web_xr_button']"
       --js-library "${PROJECT_SOURCE_DIR}/web/lib_zauberer.js" -sMODULARIZE=0)
     if(ZB_WEB_THREADS)
       # Memory growth with threads costs some JS-side speed; accepted (design §web).

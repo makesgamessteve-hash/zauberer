@@ -171,6 +171,12 @@
   }
   ['pointerdown', 'keydown', 'touchend'].forEach(function (t) { window.addEventListener(t, unlockAudio, true); });
 
+  // The page hidden or shown (another tab, the phone locked): the game opens
+  // its menu, mutes and saves when hidden, and gets its sound back when shown.
+  document.addEventListener('visibilitychange', function () {
+    if (Module.calledRun && Module._zb_web_visibility) Module._zb_web_visibility(document.hidden ? 0 : 1);
+  });
+
   // Mouse capture (pointer lock): a click on the game captures the mouse, so
   // the view turns with it and the cursor stays on the page; Escape (the
   // browser) lets it go again. The click that captures is not the game's (it

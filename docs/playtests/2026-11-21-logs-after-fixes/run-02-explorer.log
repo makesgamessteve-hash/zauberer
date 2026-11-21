@@ -1,0 +1,322 @@
+BOT d1 07:57 START   style explorer, seed 2
+BOT d1 07:57 PLACE   Anarvan (village) 0.0 km
+BOT d1 07:57 DO      flies about before the story (explorer)
+BOT d1 07:57 DO      flies to somewhere new (1.9 km)
+BOT d1 08:21 DO      flies to somewhere new (2.5 km)
+BOT d1 08:52 DO      flies to home (3.6 km)
+BOT d1 09:00 STATUS  on the carpet, hp 100, food 75, water 75, rest 83, Anarvan (village) 2.9 km
+BOT d1 09:33 SAY     Codex: Grass observed
+BOT d1 09:34 DO      steps off the carpet
+BOT d1 09:34 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:03 SAY     Codex: Umbrella acacia observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:07 STORY   You fill the jar at the qanat outlet
+BOT d1 07:07 SAY     The door closes
+BOT d1 07:11 PLACE   qanat outlet, Anarvan
+BOT d1 07:12 DO      walks to the goat pen
+BOT d1 07:20 SAY     Waonetsing: You are not from here.
+BOT d1 07:20 PLACE   pen, Anarvan
+BOT d1 07:20 STORY   The goats crowd round for their fodder
+BOT d1 07:20 DO      walks to the orchard
+BOT d1 07:21 SAY     Waonetsing: They say... the war of Churaha and Naarteh, they say.
+BOT d1 07:21 SAY     Waonetsing: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 07:55 STORY   You pick three pomegranates
+BOT d1 07:55 DO      looks for Farrokh (eat)
+BOT d1 07:55 DO      walks to Farrokh's door
+BOT d1 08:24 PLACE   weaver, Anarvan
+BOT d1 08:24 SAY     The door opens
+BOT d1 08:26 SAY     The door closes
+BOT d1 08:26 SAY     Taomung: Good day, traveller.
+BOT d1 08:26 SAY     Taomung: They say... Niqwaar falls to abandonment, they say.
+BOT d1 08:27 SAY     Taomung: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 08:27 SAY     Taomung: I know nothing of that.
+BOT d1 08:27 SAY     Taomung: As for the gods... We hold the crane and the rose sacred.
+BOT d1 08:29 SAY     Joseshu: Yes? What do you want?
+BOT d1 08:29 SAY     Joseshu: They say... Niqwaar falls to abandonment, they say.
+BOT d1 08:29 SAY     Dopaing: You are not from here.
+BOT d1 08:29 SAY     Dopaing: They say... Niqwaar falls to abandonment, they say.
+BOT d1 08:30 SAY     Dopaing: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 08:30 SAY     Dopaing: I know nothing of that.
+BOT d1 08:30 SAY     Dopaing: As for the gods... Magic is an abomination to us.
+BOT d1 09:00 STUCK   could not walk to Farrokh (19 m short, inside a building)
+BOT d1 09:08 STUCK   could not walk to Farrokh (19 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 09:13 SAY     Taken flatbread 1, salt 1, wool 3
+BOT d1 09:13 SAY     Empty
+BOT d1 09:17 STUCK   could not walk to Farrokh (22 m short, against a wall)
+BOT d1 09:25 STUCK   could not walk to Farrokh (17 m short)
+BOT d1 09:34 STUCK   could not walk to Farrokh (14 m short, against a wall)
+BOT d1 09:42 STUCK   could not walk to Farrokh (14 m short, against a wall)
+BOT d1 09:43 DO      looks for Farrokh (work)
+BOT d1 09:43 DO      walks to Farrokh's door
+BOT d1 10:00 PLACE   weaver, Anarvan
+BOT d1 10:01 SAY     The door closes
+BOT d1 10:02 SAY     The door opens
+BOT d1 10:15 PLACE   home, Anarvan
+BOT d1 10:15 SAY     Farrokh: Good day, traveller.
+BOT d1 18:30 SAY     Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 BEAT    prologue: arrival
+BOT d1 18:30 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 18:30 STORY   Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 STATUS  on foot, hp 100, food 55, water 54, rest 52, home, Anarvan, story: arrival
+BOT d1 18:30 SAY     Chuteshung: Yes? What do you want?
+BOT d1 18:30 SAY     Chuteshung: They say... the battle of Field of the Three Banners, they say.
+BOT d1 18:30 SAY     Chuteshung: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 18:31 SAY     Joseshu: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 18:31 SAY     Joseshu: I know nothing of that.
+BOT d1 18:31 SAY     Joseshu: As for the gods... Magic is an abomination to us.
+BOT d1 18:32 STORY   Azhdar: "Give me the Weave!" No one understands him.
+BOT d1 18:33 SAY     Taomung: I know nothing of that.
+BOT d1 18:42 SAY     Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 BEAT    prologue: handover
+BOT d1 18:42 STORY   Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 DO      runs to hide in the cellar
+BOT d1 18:42 DO      walks to Farrokh's door
+BOT d1 18:42 SAY     The door opens
+BOT d1 18:58 SAY     The door closes
+BOT d1 18:58 SAY     The door opens
+BOT d1 19:21 STUCK   could not walk to inside Farrokh's house (3 m short)
+BOT d1 19:21 SAY     Codex: Red deer observed
+BOT d1 19:21 PLACE   weaver, Anarvan
+BOT d1 19:23 SAY     Farrokh: They say... Niqwaar falls to abandonment, they say.
+BOT d1 19:23 SAY     Farrokh: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 19:24 SAY     Farrokh: I know nothing of that.
+BOT d1 19:24 SAY     Farrokh: As for the gods... Magic is an abomination to us.
+BOT d1 19:25 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:25 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d1 19:33 SAY     The door opens
+BOT d1 19:52 STUCK   could not walk to the hatch (3 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d1 19:52 SAY     Farrokh: If you are going to Jaoan, it is 2 days' ride to the north.
+BOT d1 19:53 SAY     Farrokh: I know nothing of that.
+BOT d1 19:53 SAY     Farrokh: As for the gods... Magic is an abomination to us.
+BOT d1 19:54 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:54 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d1 19:59 SAY     Farrokh: They say... Niqwaar falls to abandonment, they say.
+BOT d1 19:59 SAY     Codex: Brown hare observed
+BOT d1 20:06 SAY     The hatch closes over you. The cellar is warded.
+BOT d1 20:06 BEAT    prologue: hiding
+BOT d1 20:06 STORY   The hatch closes over you. The cellar is warded.
+BOT d1 20:06 STORY   Fire roars over the roofs.
+BOT d1 20:06 DO      runs from the fire
+BOT d1 20:09 DO      runs from the fire
+BOT d1 20:11 DO      runs from the fire
+BOT d1 20:14 DO      runs from the fire
+BOT d1 20:17 STORY   Screams in the street.
+BOT d1 20:17 DO      runs from the fire
+BOT d1 20:20 DO      runs from the fire
+BOT d1 20:22 DO      runs from the fire
+BOT d1 20:25 DO      runs from the fire
+BOT d1 20:27 STORY   Farrokh's magic flares, blue and bright, and is gone.
+BOT d1 20:28 DO      runs from the fire
+BOT d1 20:38 STORY   Azhdar burns carpet after carpet: "Where is it?"
+BOT d1 20:49 STORY   "It is near. I feel it near." Then hoofbeats, and silence.
+BOT d2 06:00 SAY     Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 BEAT    prologue: ashes
+BOT d2 06:00 STORY   Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 STATUS  on foot, hp 100, food 44, water 43, rest 35, Anarvan (village) 0.0 km, story: ashes
+BOT d2 06:00 DO      climbs out of the cellar
+BOT d2 06:05 PLACE   weaver, Anarvan
+BOT d2 06:14 STUCK   could not walk to the top of the stair (1 m short, inside a building)
+BOT d2 06:16 SAY     The cellar is larger than a cellar should be.
+BOT d2 06:16 PLACE   weaver, Anarvan
+BOT d2 06:16 BEAT    prologue: sanctum
+BOT d2 06:16 STORY   The cellar is larger than a cellar should be.
+BOT d2 06:19 DO      walks to the ruins of the house
+BOT d2 06:20 SAY     Taken dyed cloth 2, coin 9
+BOT d2 06:20 PLACE   weaver, Anarvan
+BOT d2 06:28 SAY     Found Farrokh's letter
+BOT d2 06:28 STORY   A letter in Farrokh's hand. It breaks off. (Journal)
+BOT d2 06:39 STUCK   could not walk to a shelf in the sanctum (2 m short)
+BOT d2 06:49 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 06:50 SAY     Found the Primer
+BOT d2 06:51 STORY   Farrokh's Primer: Kindle, Light and Lift
+BOT d2 06:53 SAY     Found the endless bag
+BOT d2 06:53 SAY     The rug is warm. Sleep on it.
+BOT d2 06:53 BEAT    prologue: carpet
+BOT d2 06:53 STORY   The endless bag: it opens into a fold larger than a house
+BOT d2 06:53 STORY   The rug is warm. Sleep on it.
+BOT d2 06:53 SAY     You drink river water
+BOT d2 06:53 DO      drinks
+BOT d2 06:53 DO      lies down on the rug to sleep
+BOT d2 12:53 SAY     In a dream the carpet chooses you. It stirs under your hands.
+BOT d2 12:53 SAY     You unroll the rug: it hovers beside you, waiting
+BOT d2 12:53 BEAT    prologue: flying
+BOT d2 12:53 STORY   In a dream the carpet chooses you. It stirs under your hands.
+BOT d2 12:53 STATUS  on foot, hp 100, food 22, water 41, rest 99, Anarvan (village) 0.0 km, story: flying
+BOT d2 12:53 DO      steps onto the carpet
+BOT d2 12:53 DO      flies to ring 1 (0.3 km)
+BOT d2 13:01 STORY   Ring 1 of 4
+BOT d2 13:01 DO      flies to ring 2 (0.4 km)
+BOT d2 13:11 STORY   Ring 2 of 4
+BOT d2 13:11 DO      flies to ring 3 (0.5 km)
+BOT d2 13:21 STORY   Ring 3 of 4
+BOT d2 13:21 DO      flies to ring 4 (0.6 km)
+BOT d2 13:32 SAY     The stores are burnt. Forage, and boil water.
+BOT d2 13:32 BEAT    prologue: survival
+BOT d2 13:32 STORY   You can fly.
+BOT d2 13:32 STORY   The stores are burnt. Forage, and boil water.
+BOT d2 13:32 DO      flies to a camp (0.0 km)
+BOT d2 13:34 DO      steps off the carpet
+BOT d2 13:34 DO      gathers, lights a fire and boils water
+BOT d2 13:34 SAY     nothing to gather here
+BOT d2 13:35 SAY     You eat flatbread
+BOT d2 13:35 DO      eats
+BOT d2 13:35 SAY     You drink river water
+BOT d2 13:35 DO      drinks
+BOT d2 13:36 SAY     no firewood
+BOT d2 13:38 SAY     no fire near
+BOT d2 13:42 DO      gathers, lights a fire and boils water
+BOT d2 13:49 DO      gathers, lights a fire and boils water
+BOT d2 13:56 DO      gathers, lights a fire and boils water
+BOT d2 14:04 DO      gathers, lights a fire and boils water
+BOT d2 14:11 DO      gathers, lights a fire and boils water
+BOT d2 14:18 DO      gathers, lights a fire and boils water
+BOT d2 14:26 DO      gathers, lights a fire and boils water
+BOT d2 14:33 DO      gathers, lights a fire and boils water
+BOT d2 14:40 DO      gathers, lights a fire and boils water
+BOT d2 14:42 SAY     You eat pomegranate
+BOT d2 14:42 DO      eats
+BOT d2 14:48 DO      gathers, lights a fire and boils water
+BOT d2 14:55 DO      gathers, lights a fire and boils water
+BOT d2 15:00 STATUS  on foot, hp 100, food 50, water 56, rest 86, Anarvan (village) 0.4 km, story: survival
+BOT d2 15:02 DO      gathers, lights a fire and boils water
+BOT d2 15:10 DO      gathers, lights a fire and boils water
+BOT d2 15:17 DO      gathers, lights a fire and boils water
+BOT d2 15:24 DO      gathers, lights a fire and boils water
+BOT d2 15:32 DO      gathers, lights a fire and boils water
+BOT d2 15:39 DO      gathers, lights a fire and boils water
+BOT d2 15:46 DO      gathers, lights a fire and boils water
+BOT d2 15:54 DO      gathers, lights a fire and boils water
+BOT d2 16:01 DO      gathers, lights a fire and boils water
+BOT d2 16:08 DO      gathers, lights a fire and boils water
+BOT d2 16:16 DO      gathers, lights a fire and boils water
+BOT d2 16:23 DO      gathers, lights a fire and boils water
+BOT d2 16:30 DO      gathers, lights a fire and boils water
+BOT d2 16:38 DO      gathers, lights a fire and boils water
+BOT d2 16:45 DO      gathers, lights a fire and boils water
+BOT d2 16:52 DO      gathers, lights a fire and boils water
+BOT d2 17:00 DO      gathers, lights a fire and boils water
+BOT d2 17:07 STUCK   no way on at 'survival' after 30 tries
+BOT d2 17:07 DO      gathers, lights a fire and boils water
+BOT d2 17:14 DO      gathers, lights a fire and boils water
+BOT d2 17:22 DO      gathers, lights a fire and boils water
+BOT d2 17:28 SAY     You eat pomegranate
+BOT d2 17:28 DO      eats
+BOT d2 17:29 DO      gathers, lights a fire and boils water
+BOT d2 17:37 DO      gathers, lights a fire and boils water
+BOT d2 17:44 DO      gathers, lights a fire and boils water
+BOT d2 17:51 DO      gathers, lights a fire and boils water
+BOT d2 17:59 DO      gathers, lights a fire and boils water
+BOT d2 18:00 STATUS  on foot, hp 100, food 49, water 48, rest 68, Anarvan (village) 0.4 km, story: survival
+BOT d2 18:06 DO      gathers, lights a fire and boils water
+BOT d2 18:13 DO      gathers, lights a fire and boils water
+BOT d2 18:21 DO      gathers, lights a fire and boils water
+BOT d2 18:28 DO      gathers, lights a fire and boils water
+BOT d2 18:35 DO      gathers, lights a fire and boils water
+BOT d2 18:43 DO      gathers, lights a fire and boils water
+BOT d2 18:50 DO      gathers, lights a fire and boils water
+BOT d2 18:57 DO      gathers, lights a fire and boils water
+BOT d2 19:05 DO      gathers, lights a fire and boils water
+BOT d2 19:12 DO      gathers, lights a fire and boils water
+BOT d2 19:19 DO      gathers, lights a fire and boils water
+BOT d2 19:27 DO      gathers, lights a fire and boils water
+BOT d2 19:34 DO      gathers, lights a fire and boils water
+BOT d2 19:41 DO      gathers, lights a fire and boils water
+BOT d2 19:49 DO      gathers, lights a fire and boils water
+BOT d2 19:56 SAY     nothing to drink
+BOT d2 19:56 DO      gathers, lights a fire and boils water
+BOT d2 20:04 DO      gathers, lights a fire and boils water
+BOT d2 20:12 DO      gathers, lights a fire and boils water
+BOT d2 20:13 SAY     You eat pomegranate
+BOT d2 20:13 DO      eats
+BOT d2 20:19 DO      gathers, lights a fire and boils water
+BOT d2 20:26 DO      gathers, lights a fire and boils water
+BOT d2 20:34 DO      gathers, lights a fire and boils water
+BOT d2 20:41 DO      gathers, lights a fire and boils water
+BOT d2 20:48 DO      gathers, lights a fire and boils water
+BOT d2 20:54 SAY     nothing to drink
+BOT d2 20:56 DO      gathers, lights a fire and boils water
+BOT d2 21:00 STATUS  on foot, hp 100, food 48, water 39, rest 49, Anarvan (village) 0.4 km, story: survival
+BOT d2 21:04 DO      gathers, lights a fire and boils water
+BOT d2 21:12 DO      gathers, lights a fire and boils water
+BOT d2 21:19 DO      gathers, lights a fire and boils water
+BOT d2 21:27 DO      gathers, lights a fire and boils water
+BOT d2 21:35 DO      gathers, lights a fire and boils water
+BOT d2 21:43 DO      gathers, lights a fire and boils water
+BOT d2 21:51 DO      gathers, lights a fire and boils water
+BOT d2 21:58 DO      gathers, lights a fire and boils water
+BOT d2 22:06 DO      gathers, lights a fire and boils water
+BOT d2 22:14 DO      gathers, lights a fire and boils water
+BOT d2 22:22 DO      gathers, lights a fire and boils water
+BOT d2 22:30 DO      gathers, lights a fire and boils water
+BOT d2 22:38 DO      gathers, lights a fire and boils water
+BOT d2 22:45 DO      gathers, lights a fire and boils water
+BOT d2 22:53 DO      gathers, lights a fire and boils water
+BOT d2 22:59 SAY     nothing to eat
+BOT d2 23:01 DO      gathers, lights a fire and boils water
+BOT d2 23:09 DO      gathers, lights a fire and boils water
+BOT d2 23:18 DO      gathers, lights a fire and boils water
+BOT d2 23:26 DO      gathers, lights a fire and boils water
+BOT d2 23:34 DO      gathers, lights a fire and boils water
+BOT d2 23:43 DO      gathers, lights a fire and boils water
+BOT d2 23:51 DO      gathers, lights a fire and boils water
+BOT d2 23:59 DO      gathers, lights a fire and boils water
+BOT d3 00:00 STATUS  on foot, hp 100, food 35, water 27, rest 30, Anarvan (village) 0.4 km, story: survival
+BOT d3 00:08 DO      gathers, lights a fire and boils water
+BOT d3 00:16 DO      gathers, lights a fire and boils water
+BOT d3 00:24 DO      gathers, lights a fire and boils water
+BOT d3 00:32 DO      gathers, lights a fire and boils water
+BOT d3 00:41 DO      gathers, lights a fire and boils water
+BOT d3 00:49 DO      gathers, lights a fire and boils water
+BOT d3 00:57 DO      gathers, lights a fire and boils water
+BOT d3 01:06 DO      gathers, lights a fire and boils water
+BOT d3 01:14 DO      gathers, lights a fire and boils water
+BOT d3 01:22 SEE     fox
+BOT d3 01:22 DO      gathers, lights a fire and boils water
+BOT d3 01:31 DO      gathers, lights a fire and boils water
+BOT d3 01:39 DO      gathers, lights a fire and boils water
+BOT d3 01:44 SAY     Codex: Red fox observed
+BOT d3 01:47 DO      gathers, lights a fire and boils water
+BOT d3 01:55 DO      gathers, lights a fire and boils water
+BOT d3 02:04 DO      gathers, lights a fire and boils water
+BOT d3 02:12 DO      gathers, lights a fire and boils water
+BOT d3 02:20 DO      gathers, lights a fire and boils water
+BOT d3 02:29 DO      gathers, lights a fire and boils water
+BOT d3 02:37 DO      gathers, lights a fire and boils water
+BOT d3 02:45 DO      gathers, lights a fire and boils water
+BOT d3 02:54 DO      gathers, lights a fire and boils water
+BOT d3 03:00 STATUS  on foot, hp 100, food 23, water 14, rest 11, Anarvan (village) 0.4 km, story: survival
+BOT d3 03:02 DO      gathers, lights a fire and boils water
+BOT d3 03:10 DO      gathers, lights a fire and boils water
+BOT d3 03:18 DO      gathers, lights a fire and boils water
+BOT d3 03:27 DO      gathers, lights a fire and boils water
+BOT d3 03:35 DO      gathers, lights a fire and boils water
+BOT d3 03:43 DO      gathers, lights a fire and boils water
+BOT d3 03:52 DO      gathers, lights a fire and boils water
+BOT d3 04:00 DO      gathers, lights a fire and boils water
+BOT d3 04:08 DO      gathers, lights a fire and boils water
+BOT d3 04:17 DO      gathers, lights a fire and boils water
+BOT d3 04:25 DO      gathers, lights a fire and boils water
+BOT d3 04:33 DO      gathers, lights a fire and boils water
+BOT d3 04:41 DO      gathers, lights a fire and boils water
+BOT d3 04:50 DO      gathers, lights a fire and boils water
+BOT d3 04:58 DO      gathers, lights a fire and boils water
+BOT d3 05:06 DO      gathers, lights a fire and boils water
+BOT d3 05:15 DO      gathers, lights a fire and boils water
+BOT d3 05:23 DO      gathers, lights a fire and boils water
+BOT d3 05:31 DO      gathers, lights a fire and boils water
+BOT d3 05:38 STUCK   the prologue stalled at 'survival'
+BOT d3 05:38 END     after 150011 ticks; prologue survival; saga -; hp 100; codex 9 entries
+BOT d3 05:38 END     trouble x1: could not walk to the top of the stair (1 m short, inside a building)
+BOT d3 05:38 END     trouble x1: could not walk to a shelf in the sanctum (1 m short)
+BOT d3 05:38 END     trouble x2: could not walk to Farrokh (14 m short, against a wall)
+BOT d3 05:38 END     trouble x1: could not walk to the hatch (3 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d3 05:38 END     trouble x1: could not walk to Farrokh (19 m short, inside a building)
+BOT d3 05:38 END     trouble x1: could not walk to Farrokh (19 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.0), inside a building)
+BOT d3 05:38 END     trouble x1: no way on at 'survival' after 30 tries
+BOT d3 05:38 END     trouble x1: the prologue stalled at 'survival'
+BOT d3 05:38 END     trouble x1: could not walk to inside Farrokh's house (3 m short)
+BOT d3 05:38 END     trouble x1: could not walk to Farrokh (17 m short)
+BOT d3 05:38 END     trouble x1: could not walk to a shelf in the sanctum (2 m short)
+BOT d3 05:38 END     trouble x1: could not walk to Farrokh (22 m short, against a wall)

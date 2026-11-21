@@ -52,6 +52,7 @@ zb_voice_state zb_audio_voice_state(const zb_audio *au, uint32_t voice);
 size_t zb_audio_voice_decoder_bytes(const zb_audio *au, uint32_t voice);
 
 void zb_audio_set_master_volume(zb_audio *au, float volume);
+float zb_audio_master_volume(const zb_audio *au);
 void zb_audio_set_group_volume(zb_audio *au, zb_audio_group group, float volume);
 float zb_audio_group_volume(const zb_audio *au, zb_audio_group group);
 size_t zb_audio_active_voices(const zb_audio *au);

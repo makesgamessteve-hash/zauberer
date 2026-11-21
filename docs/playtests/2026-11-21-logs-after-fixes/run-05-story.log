@@ -1,0 +1,409 @@
+BOT d1 08:07 START   style story, seed 5
+BOT d1 08:07 PLACE   Anarvan (village) 0.0 km
+BOT d1 08:07 DO      presses F5: the story begins
+BOT d1 07:00 BEAT    prologue: village
+BOT d1 07:01 DO      walks to the qanat outlet
+BOT d1 07:01 SAY     Codex: Grass observed
+BOT d1 07:07 SAY     The door opens
+BOT d1 07:08 STORY   You fill the jar at the qanat outlet
+BOT d1 07:08 SAY     The door closes
+BOT d1 07:15 SAY     Tawu: State your business.
+BOT d1 07:15 PLACE   qanat outlet, Anarvan
+BOT d1 07:15 DO      walks to the goat pen
+BOT d1 07:21 SAY     Codex: Umbrella acacia observed
+BOT d1 07:23 PLACE   pen, Anarvan
+BOT d1 07:23 STORY   The goats crowd round for their fodder
+BOT d1 07:23 DO      walks to the orchard
+BOT d1 07:30 SAY     Taken salt 1
+BOT d1 07:30 SAY     Empty
+BOT d1 07:50 STORY   You pick three pomegranates
+BOT d1 07:51 DO      looks for Farrokh (eat)
+BOT d1 07:51 DO      walks to Farrokh's door
+BOT d1 07:59 SAY     Taken lamp oil 4, coin 10
+BOT d1 07:59 SAY     Empty
+BOT d1 08:06 PLACE   weaver, Anarvan
+BOT d1 08:09 SAY     Qashiib: Yes? What do you want?
+BOT d1 08:11 SAY     Fiihawaal: We do not want trouble.
+BOT d1 08:11 SAY     Fiihawaal: They say... Tanisha builds a canal, they say.
+BOT d1 08:11 SAY     Fiihawaal: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 08:12 SAY     Fiihawaal: I know nothing of that.
+BOT d1 08:25 SAY     The door opens
+BOT d1 08:25 PLACE   weaver, Anarvan
+BOT d1 08:27 SAY     The door closes
+BOT d1 08:44 STORY   You tie knots at the loom: the pattern grows under your fingers
+BOT d1 09:00 STATUS  on foot, hp 100, food 69, water 68, rest 72, weaver, Anarvan, story: village
+BOT d1 09:02 STUCK   could not walk to Farrokh (43 m short, inside a building)
+BOT d1 09:10 STUCK   could not walk to Farrokh (41 m short, inside a building)
+BOT d1 09:17 STUCK   could not walk to Farrokh (10 m short, against a wall)
+BOT d1 09:23 SAY     Zaafid: You are not from here.
+BOT d1 09:23 SAY     Zaafid: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 09:24 SAY     Zaafid: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 09:24 SAY     Zaafid: I know nothing of that.
+BOT d1 09:24 SEE     storm_bird
+BOT d1 09:24 SAY     Zaafid: As for the gods... Magic is a sacred gift to us.
+BOT d1 09:24 STUCK   could not walk to Farrokh (8 m short, against a wall)
+BOT d1 09:25 SAY     Zaafid: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 09:26 SAY     Zaafid: There is nothing that needs doing, thank the gods.
+BOT d1 09:33 STUCK   could not walk to Farrokh (8 m short, against a wall)
+BOT d1 09:41 STUCK   could not walk to Farrokh (8 m short)
+BOT d1 09:42 DO      looks for Farrokh (work)
+BOT d1 09:42 DO      walks to Farrokh's door
+BOT d1 09:45 SAY     Codex: Red deer observed
+BOT d1 09:51 SAY     The door closes
+BOT d1 09:52 SAY     The door opens
+BOT d1 09:58 SAY     Taken flatbread 4
+BOT d1 10:10 PLACE   weaver, Anarvan
+BOT d1 10:11 SAY     Empty
+BOT d1 10:24 SAY     Zaafid: I know nothing of that.
+BOT d1 10:24 SAY     Zaafid: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 10:24 SAY     Zaafid: There is nothing that needs doing, thank the gods.
+BOT d1 10:25 SAY     Zaafid: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 10:25 SAY     Zaafid: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 10:26 SAY     Zaafid: As for the gods... Magic is a sacred gift to us.
+BOT d1 10:28 PLACE   home, Anarvan
+BOT d1 10:31 SAY     The door opens
+BOT d1 10:32 PLACE   home, Anarvan
+BOT d1 10:33 SAY     Misuwib: Yes? What do you want?
+BOT d1 10:34 SAY     Misuwib: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 10:34 SAY     Misuwib: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 10:34 SAY     Misuwib: I know nothing of that.
+BOT d1 10:35 SAY     Misuwib: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d1 10:36 SAY     Taakiiqaa: Yes? What do you want?
+BOT d1 10:36 SAY     Hasaab: Yes? What do you want?
+BOT d1 10:37 SAY     Hasaab: They say... Tanisha builds a canal, they say.
+BOT d1 10:37 SAY     Hasaab: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 10:37 SAY     Hasaab: I know nothing of that.
+BOT d1 10:38 SAY     Hasaab: As for the gods... Magic is a sacred gift to us.
+BOT d1 10:39 SAY     Hasaab: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 10:40 STUCK   could not walk to Farrokh (5 m short, inside a building)
+BOT d1 10:40 SAY     Hasaab: There is nothing that needs doing, thank the gods.
+BOT d1 10:48 STUCK   could not walk to Farrokh (6 m short, against a wall (plinth stone at 0.0 m, y -0.7..0.0, feet 0.1), inside a building)
+BOT d1 10:48 SAY     Taaniim: We do not want trouble.
+BOT d1 10:49 SAY     Codex: Brown hare observed
+BOT d1 10:56 STUCK   could not walk to Farrokh (5 m short, against a wall (plinth stone at 0.0 m, y -0.7..0.0, feet 0.1), inside a building)
+BOT d1 10:57 SAY     Qayawa: State your business.
+BOT d1 10:57 SAY     Qayawa: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 10:57 SAY     Misuwib: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 11:00 SAY     Misuwib: There is nothing that needs doing, thank the gods.
+BOT d1 11:01 SAY     Misuwib: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 11:04 SAY     Misuwib: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:04 SAY     Misuwib: I know nothing of that.
+BOT d1 11:05 STUCK   could not walk to Farrokh (5 m short, against a wall (plinth stone at 0.0 m, y -0.7..0.0, feet 0.1), inside a building)
+BOT d1 11:06 SAY     Qayawa: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:06 SAY     Qayawa: I know nothing of that.
+BOT d1 11:06 SAY     Misuwib: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d1 11:14 STUCK   could not walk to Farrokh (6 m short, against a wall (plinth stone at 0.0 m, y -0.7..0.0, feet 0.1), inside a building)
+BOT d1 11:14 SAY     Taaniim: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 11:14 SAY     Taaniim: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:15 SAY     Misuwib: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 11:15 SAY     Misuwib: There is nothing that needs doing, thank the gods.
+BOT d1 11:15 SAY     Misuwib: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 11:16 SAY     Misuwib: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:16 SAY     Misuwib: As for the gods... We hold the goat and the pomegranate sacred.
+BOT d1 11:18 SAY     Taaniim: I know nothing of that.
+BOT d1 11:18 SAY     Taaniim: As for the gods... Magic is a sacred gift to us.
+BOT d1 11:22 STUCK   could not walk to Farrokh (6 m short, against a wall (plinth stone at 0.0 m, y -0.7..0.0, feet 0.1), inside a building)
+BOT d1 11:23 SAY     Taaniim: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 11:23 SAY     Taaniim: There is nothing that needs doing, thank the gods.
+BOT d1 11:26 SAY     Taakiiqaa: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 11:27 SAY     Hasaab: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:27 SAY     Hasaab: I know nothing of that.
+BOT d1 11:30 SAY     Taakiiqaa: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:30 SAY     Hasaab: As for the gods... Magic is a sacred gift to us.
+BOT d1 11:31 SAY     Taaniim: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 11:32 DO      looks for Farrokh (work)
+BOT d1 11:32 DO      walks to Farrokh's door
+BOT d1 11:32 SAY     Taaniim: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:33 SAY     Zaafid: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 11:41 PLACE   weaver, Anarvan
+BOT d1 11:42 SAY     Empty
+BOT d1 11:43 SAY     The door closes
+BOT d1 11:43 SAY     The door opens
+BOT d1 11:50 PLACE   home, Anarvan
+BOT d1 11:56 SAY     Zaafid: There is nothing that needs doing, thank the gods.
+BOT d1 11:56 SAY     Zaafid: They say... Wubaqad builds a garden of four parts, they say.
+BOT d1 11:56 SAY     Zaafid: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 11:57 SAY     Zaafid: I know nothing of that.
+BOT d1 11:57 SAY     Zaafid: As for the gods... Magic is a sacred gift to us.
+BOT d1 11:58 SAY     Zaafid: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 12:00 STATUS  on foot, hp 100, food 54, water 53, rest 50, Anarvan (village) 0.0 km, story: village
+BOT d1 12:00 SAY     Taaniim: I know nothing of that.
+BOT d1 12:00 SAY     Taaniim: As for the gods... Magic is a sacred gift to us.
+BOT d1 12:01 SAY     Shumiiha: State your business.
+BOT d1 12:01 SAY     Shumiiha: They say... Tanisha builds a canal, they say.
+BOT d1 12:02 SAY     Shumiiha: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 12:02 SAY     Shumiiha: I know nothing of that.
+BOT d1 12:03 SAY     The door closes
+BOT d1 12:04 SAY     The door opens
+BOT d1 12:11 STUCK   could not walk to Farrokh (8 m short, against a wall)
+BOT d1 12:18 STUCK   could not walk to Farrokh (11 m short)
+BOT d1 12:19 SEE     hare
+BOT d1 12:23 SAY     The door closes
+BOT d1 12:24 SAY     The door opens
+BOT d1 12:24 STUCK   could not walk to Farrokh (9 m short, against a wall)
+BOT d1 12:25 SAY     Empty
+BOT d1 12:33 STUCK   could not walk to Farrokh (9 m short, against a wall)
+BOT d1 12:38 PLACE   weaver, Anarvan
+BOT d1 12:41 STUCK   could not walk to Farrokh (6 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.3, feet 0.0), inside a building)
+BOT d1 12:46 SAY     Farrokh: State your business.
+BOT d1 18:30 SAY     Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 BEAT    prologue: arrival
+BOT d1 18:30 STORY   Farrokh lights the oil lamp with a word - "a weaver's sleight of hand", he smiles
+BOT d1 18:30 STORY   Dusk. A dark carpet comes down over the square.
+BOT d1 18:30 STATUS  on foot, hp 100, food 50, water 49, rest 44, weaver, Anarvan, story: arrival
+BOT d1 18:30 SAY     Farrokh: They say... Madar builds a stone bridge, they say.
+BOT d1 18:30 SAY     Farrokh: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 18:30 SAY     Farrokh: I know nothing of that.
+BOT d1 18:31 SAY     Farrokh: As for the gods... We keep the faith of Pabnar; we pray at every new moon and bury our dead by water burial.
+BOT d1 18:31 STUCK   could not walk to Farrokh (3 m short, against a wall (wall plaster at 0.0 m, y 0.0..3.0, feet 0.1), inside a building)
+BOT d1 18:32 STORY   Azhdar: "Give me the Weave!" No one understands him.
+BOT d1 18:42 SAY     Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 BEAT    prologue: handover
+BOT d1 18:42 STORY   Farrokh presses a plain rug and a small bag into your arms: "Hide. Don't come out, whatever you hear."
+BOT d1 18:42 DO      runs to hide in the cellar
+BOT d1 18:42 DO      walks to Farrokh's door
+BOT d1 18:42 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 18:42 SAY     The door opens
+BOT d1 18:43 SAY     The door closes
+BOT d1 19:30 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d1 19:30 SAY     Farrokh: They say... Madar builds a stone bridge, they say.
+BOT d1 19:30 SAY     Farrokh: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 19:31 SAY     Farrokh: I know nothing of that.
+BOT d1 19:31 SAY     Farrokh: As for the gods... We keep the faith of Pabnar; we pray at every new moon and bury our dead by water burial.
+BOT d1 19:32 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 19:52 STUCK   could not walk to the hatch (3 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.2), inside a building)
+BOT d1 19:53 SAY     The door closes
+BOT d1 19:53 SAY     The door opens
+BOT d1 20:08 STUCK   could not walk to the foot of the cellar stair (6 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d1 20:09 DO      runs to hide in the cellar
+BOT d1 20:09 DO      walks to Farrokh's door
+BOT d1 20:59 STUCK   could not walk to the hatch (3 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d1 21:00 STATUS  on foot, hp 100, food 39, water 38, rest 27, weaver, Anarvan, story: handover
+BOT d1 21:15 STUCK   could not walk to the foot of the cellar stair (6 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.3, feet 0.1), inside a building)
+BOT d1 21:15 SAY     You eat flatbread
+BOT d1 21:15 DO      eats
+BOT d1 21:15 SAY     You drink river water
+BOT d1 21:15 DO      drinks
+BOT d1 21:16 DO      runs to hide in the cellar
+BOT d1 21:16 DO      walks to Farrokh's door
+BOT d1 22:08 STUCK   could not walk to the hatch (6 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.3, feet 0.0), inside a building)
+BOT d1 22:19 SAY     Farrokh: As for the gods... We keep the faith of Pabnar; we pray at every new moon and bury our dead by water burial.
+BOT d1 22:22 SAY     Farrokh: I know nothing of that.
+BOT d1 22:24 STUCK   could not walk to the foot of the cellar stair (6 m short, against a wall (wall plaster at 0.0 m, y 0.0..3.0, feet 0.1), inside a building)
+BOT d1 22:25 DO      runs to hide in the cellar
+BOT d1 22:25 DO      walks to Farrokh's door
+BOT d1 22:47 SAY     Farrokh: I know nothing of that.
+BOT d1 22:48 SAY     Farrokh: At the market here, salt 10, spices 40, flatbread 5, rug 80 coins.
+BOT d1 22:48 SAY     Farrokh: There is nothing that needs doing, thank the gods.
+BOT d1 22:48 SAY     Farrokh: They say... Madar builds a stone bridge, they say.
+BOT d1 22:49 SAY     Farrokh: If you are going to Jadiiqa, it is 3 days' ride to the south-west.
+BOT d1 22:49 SAY     Farrokh: As for the gods... We keep the faith of Pabnar; we pray at every new moon and bury our dead by water burial.
+BOT d1 22:54 SAY     The hatch closes over you. The cellar is warded.
+BOT d1 22:54 BEAT    prologue: hiding
+BOT d1 22:54 STORY   The hatch closes over you. The cellar is warded.
+BOT d1 22:54 STORY   Fire roars over the roofs.
+BOT d1 22:54 DO      runs from the fire
+BOT d1 23:02 DO      runs from the fire
+BOT d1 23:05 STORY   Screams in the street.
+BOT d1 23:05 DO      runs from the fire
+BOT d1 23:08 DO      runs from the fire
+BOT d1 23:10 DO      runs from the fire
+BOT d1 23:13 DO      runs from the fire
+BOT d1 23:16 STORY   Farrokh's magic flares, blue and bright, and is gone.
+BOT d1 23:16 DO      runs from the fire
+BOT d1 23:19 DO      runs from the fire
+BOT d1 23:21 DO      runs from the fire
+BOT d1 23:24 DO      runs from the fire
+BOT d1 23:27 STORY   Azhdar burns carpet after carpet: "Where is it?"
+BOT d1 23:27 DO      runs from the fire
+BOT d1 23:29 DO      runs from the fire
+BOT d1 23:32 DO      runs from the fire
+BOT d1 23:35 DO      runs from the fire
+BOT d1 23:37 STORY   "It is near. I feel it near." Then hoofbeats, and silence.
+BOT d1 23:37 DO      runs from the fire
+BOT d1 23:40 DO      runs from the fire
+BOT d1 23:43 DO      runs from the fire
+BOT d1 23:46 DO      runs from the fire
+BOT d2 06:00 SAY     Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 BEAT    prologue: ashes
+BOT d2 06:00 STORY   Morning. You climb out. Anarvan is ash, and no one is left.
+BOT d2 06:00 STATUS  on foot, hp 100, food 51, water 45, rest 8, Anarvan (village) 0.0 km, story: ashes
+BOT d2 06:00 DO      climbs out of the cellar
+BOT d2 06:16 STUCK   could not walk to the top of the stair (6 m short, against a wall)
+BOT d2 06:22 DO      walks to the ruins of the house
+BOT d2 06:24 PLACE   weaver, Anarvan
+BOT d2 06:24 STORY   You bury Farrokh and light a lamp. (Journal)
+BOT d2 06:24 DO      goes back down into the cellar
+BOT d2 06:24 DO      walks to Farrokh's door
+BOT d2 06:54 SAY     The cellar is larger than a cellar should be.
+BOT d2 06:54 BEAT    prologue: sanctum
+BOT d2 06:54 STORY   The cellar is larger than a cellar should be.
+BOT d2 07:05 STUCK   could not walk to a shelf in the sanctum (8 m short, against a wall)
+BOT d2 07:06 SAY     Codex: Red fox observed
+BOT d2 07:13 SAY     Found Farrokh's letter
+BOT d2 07:13 STORY   A letter in Farrokh's hand. It breaks off. (Journal)
+BOT d2 07:22 STUCK   could not walk to a shelf in the sanctum (1 m short)
+BOT d2 07:25 SAY     Found the endless bag
+BOT d2 07:25 STORY   The endless bag: it opens into a fold larger than a house
+BOT d2 07:33 SAY     Found the Primer
+BOT d2 07:33 SAY     The rug is warm. Sleep on it.
+BOT d2 07:33 BEAT    prologue: carpet
+BOT d2 07:33 STORY   Farrokh's Primer: Kindle, Light and Lift
+BOT d2 07:33 STORY   The rug is warm. Sleep on it.
+BOT d2 07:33 SAY     You drink river water
+BOT d2 07:33 DO      drinks
+BOT d2 07:33 DO      lies down on the rug to sleep
+BOT d2 15:33 SAY     In a dream the carpet chooses you. It stirs under your hands.
+BOT d2 15:33 SAY     You unroll the rug: it hovers beside you, waiting
+BOT d2 15:33 BEAT    prologue: flying
+BOT d2 15:33 STORY   In a dream the carpet chooses you. It stirs under your hands.
+BOT d2 15:33 STATUS  on foot, hp 100, food 21, water 34, rest 99, Anarvan (village) 0.0 km, story: flying
+BOT d2 15:34 DO      steps onto the carpet
+BOT d2 15:34 DO      flies to ring 1 (0.3 km)
+BOT d2 15:42 STORY   Ring 1 of 4
+BOT d2 15:42 DO      flies to ring 2 (0.4 km)
+BOT d2 15:52 STORY   Ring 2 of 4
+BOT d2 15:52 DO      flies to ring 3 (0.5 km)
+BOT d2 16:02 STORY   Ring 3 of 4
+BOT d2 16:02 DO      flies to ring 4 (0.6 km)
+BOT d2 16:06 SEE     deer
+BOT d2 16:13 SAY     The stores are burnt. Forage, and boil water.
+BOT d2 16:13 BEAT    prologue: survival
+BOT d2 16:13 STORY   You can fly.
+BOT d2 16:13 STORY   The stores are burnt. Forage, and boil water.
+BOT d2 16:13 DO      flies to a camp (0.0 km)
+BOT d2 16:15 DO      steps off the carpet
+BOT d2 16:15 DO      gathers, lights a fire and boils water
+BOT d2 16:15 SAY     nothing to gather here
+BOT d2 16:15 SAY     You eat flatbread
+BOT d2 16:15 DO      eats
+BOT d2 16:15 SAY     nothing to drink
+BOT d2 16:17 SAY     A campfire of 1.6 kg laid: light it
+BOT d2 16:19 SAY     no fire near
+BOT d2 16:23 DO      gathers, lights a fire and boils water
+BOT d2 16:25 SAY     no firewood
+BOT d2 16:30 DO      gathers, lights a fire and boils water
+BOT d2 16:38 DO      gathers, lights a fire and boils water
+BOT d2 16:46 DO      gathers, lights a fire and boils water
+BOT d2 16:54 DO      gathers, lights a fire and boils water
+BOT d2 17:02 DO      gathers, lights a fire and boils water
+BOT d2 17:03 SAY     You eat flatbread
+BOT d2 17:03 DO      eats
+BOT d2 17:10 DO      gathers, lights a fire and boils water
+BOT d2 17:17 DO      gathers, lights a fire and boils water
+BOT d2 17:25 DO      gathers, lights a fire and boils water
+BOT d2 17:33 DO      gathers, lights a fire and boils water
+BOT d2 17:41 DO      gathers, lights a fire and boils water
+BOT d2 17:49 DO      gathers, lights a fire and boils water
+BOT d2 17:57 DO      gathers, lights a fire and boils water
+BOT d2 18:00 STATUS  on foot, hp 100, food 61, water 24, rest 84, Anarvan (village) 0.4 km, story: survival
+BOT d2 18:04 DO      gathers, lights a fire and boils water
+BOT d2 18:12 DO      gathers, lights a fire and boils water
+BOT d2 18:20 DO      gathers, lights a fire and boils water
+BOT d2 18:28 DO      gathers, lights a fire and boils water
+BOT d2 18:36 DO      gathers, lights a fire and boils water
+BOT d2 18:43 DO      gathers, lights a fire and boils water
+BOT d2 18:51 DO      gathers, lights a fire and boils water
+BOT d2 18:59 DO      gathers, lights a fire and boils water
+BOT d2 19:07 DO      gathers, lights a fire and boils water
+BOT d2 19:15 DO      gathers, lights a fire and boils water
+BOT d2 19:23 DO      gathers, lights a fire and boils water
+BOT d2 19:30 DO      gathers, lights a fire and boils water
+BOT d2 19:38 DO      gathers, lights a fire and boils water
+BOT d2 19:46 DO      gathers, lights a fire and boils water
+BOT d2 19:54 DO      gathers, lights a fire and boils water
+BOT d2 20:02 STUCK   no way on at 'survival' after 30 tries
+BOT d2 20:02 DO      gathers, lights a fire and boils water
+BOT d2 20:09 DO      gathers, lights a fire and boils water
+BOT d2 20:17 DO      gathers, lights a fire and boils water
+BOT d2 20:25 DO      gathers, lights a fire and boils water
+BOT d2 20:33 DO      gathers, lights a fire and boils water
+BOT d2 20:41 DO      gathers, lights a fire and boils water
+BOT d2 20:49 DO      gathers, lights a fire and boils water
+BOT d2 20:56 DO      gathers, lights a fire and boils water
+BOT d2 21:00 STATUS  on foot, hp 100, food 48, water 11, rest 66, Anarvan (village) 0.4 km, story: survival
+BOT d2 21:04 DO      gathers, lights a fire and boils water
+BOT d2 21:12 DO      gathers, lights a fire and boils water
+BOT d2 21:20 DO      gathers, lights a fire and boils water
+BOT d2 21:28 DO      gathers, lights a fire and boils water
+BOT d2 21:35 DO      gathers, lights a fire and boils water
+BOT d2 21:43 DO      gathers, lights a fire and boils water
+BOT d2 21:51 DO      gathers, lights a fire and boils water
+BOT d2 21:59 DO      gathers, lights a fire and boils water
+BOT d2 22:07 DO      gathers, lights a fire and boils water
+BOT d2 22:15 DO      gathers, lights a fire and boils water
+BOT d2 22:22 DO      gathers, lights a fire and boils water
+BOT d2 22:30 DO      gathers, lights a fire and boils water
+BOT d2 22:38 DO      gathers, lights a fire and boils water
+BOT d2 22:46 DO      gathers, lights a fire and boils water
+BOT d2 22:54 DO      gathers, lights a fire and boils water
+BOT d2 23:02 DO      gathers, lights a fire and boils water
+BOT d2 23:03 SAY     You eat flatbread
+BOT d2 23:03 DO      eats
+BOT d2 23:09 DO      gathers, lights a fire and boils water
+BOT d2 23:17 DO      gathers, lights a fire and boils water
+BOT d2 23:25 DO      gathers, lights a fire and boils water
+BOT d2 23:33 DO      gathers, lights a fire and boils water
+BOT d2 23:41 DO      gathers, lights a fire and boils water
+BOT d2 23:48 DO      gathers, lights a fire and boils water
+BOT d2 23:56 DO      gathers, lights a fire and boils water
+BOT d3 00:00 STATUS  on foot, hp 100, food 61, water 0, rest 47, Anarvan (village) 0.4 km, story: survival
+BOT d3 00:04 DO      gathers, lights a fire and boils water
+BOT d3 00:12 DO      gathers, lights a fire and boils water
+BOT d3 00:20 DO      gathers, lights a fire and boils water
+BOT d3 00:28 DO      gathers, lights a fire and boils water
+BOT d3 00:35 DO      gathers, lights a fire and boils water
+BOT d3 00:43 DO      gathers, lights a fire and boils water
+BOT d3 00:51 DO      gathers, lights a fire and boils water
+BOT d3 00:59 DO      gathers, lights a fire and boils water
+BOT d3 01:04 HARM    poison: 5 (health 95), Anarvan (village) 0.4 km
+BOT d3 01:07 DO      gathers, lights a fire and boils water
+BOT d3 01:14 DO      gathers, lights a fire and boils water
+BOT d3 01:22 DO      gathers, lights a fire and boils water
+BOT d3 01:30 DO      gathers, lights a fire and boils water
+BOT d3 01:38 DO      gathers, lights a fire and boils water
+BOT d3 01:46 DO      gathers, lights a fire and boils water
+BOT d3 01:54 DO      gathers, lights a fire and boils water
+BOT d3 02:01 DO      gathers, lights a fire and boils water
+BOT d3 02:09 DO      gathers, lights a fire and boils water
+BOT d3 02:17 DO      gathers, lights a fire and boils water
+BOT d3 02:19 HARM    poison: 5 (health 90), Anarvan (village) 0.4 km
+BOT d3 02:25 DO      gathers, lights a fire and boils water
+BOT d3 02:33 DO      gathers, lights a fire and boils water
+BOT d3 02:40 DO      gathers, lights a fire and boils water
+BOT d3 02:48 DO      gathers, lights a fire and boils water
+BOT d3 02:56 DO      gathers, lights a fire and boils water
+BOT d3 03:00 STATUS  on foot, hp 88, food 48, water 0, rest 28, Anarvan (village) 0.4 km, story: survival
+BOT d3 03:04 DO      gathers, lights a fire and boils water
+BOT d3 03:12 DO      gathers, lights a fire and boils water
+BOT d3 03:20 DO      gathers, lights a fire and boils water
+BOT d3 03:27 DO      gathers, lights a fire and boils water
+BOT d3 03:34 HARM    poison: 5 (health 85), Anarvan (village) 0.4 km
+BOT d3 03:35 DO      gathers, lights a fire and boils water
+BOT d3 03:43 DO      gathers, lights a fire and boils water
+BOT d3 03:51 DO      gathers, lights a fire and boils water
+BOT d3 03:55 STUCK   the prologue stalled at 'survival'
+BOT d3 03:55 END     after 150018 ticks; prologue survival; saga -; hp 84; codex 8 entries
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (8 m short)
+BOT d3 03:55 END     trouble x2: could not walk to Farrokh (5 m short, against a wall (plinth stone at 0.0 m, y -0.7..0.0, feet 0.1), inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to the foot of the cellar stair (6 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to the hatch (6 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.3, feet 0.0), inside a building)
+BOT d3 03:55 END     trouble x3: could not walk to Farrokh (8 m short, against a wall)
+BOT d3 03:55 END     trouble x1: could not walk to the foot of the cellar stair (6 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.3, feet 0.1), inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to a shelf in the sanctum (1 m short)
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (10 m short, against a wall)
+BOT d3 03:55 END     trouble x1: could not walk to a shelf in the sanctum (8 m short, against a wall)
+BOT d3 03:55 END     trouble x1: no way on at 'survival' after 30 tries
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (11 m short)
+BOT d3 03:55 END     trouble x1: the prologue stalled at 'survival'
+BOT d3 03:55 END     trouble x1: could not walk to the hatch (3 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.1), inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to the top of the stair (6 m short, against a wall)
+BOT d3 03:55 END     trouble x2: could not walk to Farrokh (9 m short, against a wall)
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (5 m short, inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (3 m short, against a wall (wall plaster at 0.0 m, y 0.0..3.0, feet 0.1), inside a building)
+BOT d3 03:55 END     trouble x4: could not walk to Farrokh (6 m short, against a wall (plinth stone at 0.0 m, y -0.7..0.0, feet 0.1), inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (41 m short, inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (43 m short, inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to Farrokh (6 m short, against a wall (roof plaster at 0.0 m, y 6.0..6.3, feet 0.0), inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to the foot of the cellar stair (6 m short, against a wall (wall plaster at 0.0 m, y 0.0..3.0, feet 0.1), inside a building)
+BOT d3 03:55 END     trouble x1: could not walk to the hatch (3 m short, against a wall (wall plaster at 0.0 m, y 2.1..3.0, feet 0.2), inside a building)

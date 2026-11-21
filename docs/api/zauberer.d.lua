@@ -269,6 +269,10 @@ function engine.credits() end
 ---@return string
 function engine.hash_state(value) end
 
+---Holds the world still (game time, fire, water, air, creatures) or lets it go on; input, scripts and frames go on while it is held.
+---@param held boolean
+function engine.hold_world(held) end
+
 ---Engine version, scripting API, platform, build, input mode, drawable size and seed.
 ---@return EngineInfo
 function engine.info() end
@@ -564,10 +568,10 @@ audio = {}
 ---@return integer
 function audio.decoder_bytes(voice) end
 
----Gets or sets a volume group (setting "master" returns nothing).
+---Gets or sets a volume group (and returns it).
 ---@param group "master"|"music"|"effects"
 ---@param volume? number
----@return number?
+---@return number
 function audio.group_volume(group, volume) end
 
 ---Web: true until the first user gesture allows audio.

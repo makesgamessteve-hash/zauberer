@@ -242,6 +242,7 @@ static void test_music_volume_group(void) {
   zb_audio_mix(au, buf, 2048);
   TEST_ASSERT_EQUAL_FLOAT(0.0f, peak_of(buf, 2048));
   zb_audio_set_master_volume(au, -2.0f);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, zb_audio_master_volume(au)); /* (read back, clamped) */
   zb_audio_destroy(au);
 }
 

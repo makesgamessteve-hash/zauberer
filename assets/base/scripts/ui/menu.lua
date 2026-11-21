@@ -1,8 +1,8 @@
 -- SPDX-License-Identifier: MIT
 -- The game's menu (Escape in play): resume, settings, controls (remapping),
 -- packages (mods), credits and quit. Up and down choose a line, left and right
--- change a setting, confirm opens or does it, Escape goes back. The world
--- goes on while it is open (in company it cannot stop); the heir just waits.
+-- change a setting, confirm opens or does it, Escape goes back. While it is
+-- open the heir waits; alone the world stands still (in company it cannot stop).
 local settings = require("ui.settings")
 local i18n = require("ui.i18n")
 

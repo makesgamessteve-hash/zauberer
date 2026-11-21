@@ -89,6 +89,8 @@ zb_result zb_platform_fetch(zb_platform *p, const char *path, zb_fetch_done_fn d
 typedef void (*zb_state_fn)(void *user, char *out, size_t len);
 /* Queues the audio-unlock event (web: the first user gesture; also tests). */
 void zb_platform_push_audio_unlock(void);
+/* Queues a focus change (the web page shown or hidden), delivered as ZB_EV_FOCUS. */
+void zb_platform_push_focus(bool on);
 void zb_platform_set_state_provider(zb_platform *p, zb_state_fn fn, void *user);
 
 /* WebXR: the page's bridge (web/lib_zauberer.js) reports availability and

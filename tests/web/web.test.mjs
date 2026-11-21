@@ -467,6 +467,26 @@ test('a click captures the mouse; the capturing click is not the game\'s', async
   }
 });
 
+// spec: accessibility: Losing focus
+test('a hidden page opens the menu and the shown page plays its sound again', async () => {
+  const g = await open();
+  try {
+    await waitForFrames(g);
+    const page = g.page;
+    const visibility = (hidden) => page.evaluate((h) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+    await visibility(true);
+    await waitForLog(g, /focus lost/);
+    await visibility(false);
+    await waitForLog(g, /focus back/);
+    assert.deepEqual(g.errors, []);
+  } finally {
+    await g.close();
+  }
+});
+
 // spec: platform-targets: Data persists across runs
 test('save data persists in IndexedDB across page loads', async () => {
   const dist = makeDist();
