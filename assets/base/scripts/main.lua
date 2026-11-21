@@ -336,7 +336,10 @@ end
 
 -- Opens the menu in play (the heir's actions idle; alone, the world held).
 function game.open_menu()
-  if not game.menu.open then menu.toggle(game.menu) end
+  if not game.menu.open then
+    menu.toggle(game.menu)
+    print("menu opened")
+  end
   access.block(true)
 end
 
@@ -1201,6 +1204,7 @@ local function flight_frame()
     end
   end
   draw_hud(flight_lines())
+  if input.mode() == "touch" and controls.touch_ready() then controls.draw_touch(assets.font, { 1, 1, 1, 0.8 }) end
   for _, t in ipairs(sights.trail) do -- the gesture being drawn
     render.draw_text(assets.font, "o", 80 + t[1], 160 + t[2], 1, { 1, 0.9, 0.5, 1 })
   end

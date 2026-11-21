@@ -23,6 +23,10 @@ return {
   ["only in play"] = "nur im Spiel",
   ["Escape: back"] = "Escape: zurück",
   ["Up and down: choose, Enter: open, Escape: back"] = "Hoch und runter: wählen, Enter: öffnen, Escape: zurück",
+  ["Stick up and down: choose, OK: open, Menu: back"] = "Stick hoch und runter: wählen, OK: öffnen, Menü: zurück",
+  ["Stick up and down: choose, left and right: change, OK: set, Menu: back"] =
+    "Stick hoch und runter: wählen, links und rechts: ändern, OK: setzen, Menü: zurück",
+  ["Steer"] = "Lenken", ["Climb"] = "Steigen", ["Boost"] = "Schub", ["Chime"] = "Glocke", ["OK"] = "OK",
   ["Up and down: choose, left and right: change, Enter: set, Escape: back"] =
     "Hoch und runter: wählen, links und rechts: ändern, Enter: festlegen, Escape: zurück",
   ["press a key or button"] = "Taste oder Knopf drücken",

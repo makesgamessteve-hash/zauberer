@@ -3,11 +3,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Zauberer</title>
   <style>
     html, body { margin: 0; height: 100%; background: #140f24; color: #e8e0ff; font: 15px sans-serif; overflow: hidden; }
-    #canvas { display: block; width: 100vw; height: 100vh; touch-action: none; outline: none; }
+    /* The game stays inside the safe area (notches, rounded corners, the home bar). */
+    #canvas { display: block; position: fixed; touch-action: none; outline: none;
+      left: env(safe-area-inset-left, 0px); top: env(safe-area-inset-top, 0px);
+      width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+      height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
     #status, #error { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 80vw; text-align: center; }
     #error { background: #3a1020; border: 1px solid #c04060; padding: 1em 1.5em; white-space: pre-wrap; }
     #capture { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 0.4em 1em;

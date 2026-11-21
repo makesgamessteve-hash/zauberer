@@ -73,5 +73,5 @@ return {
   new_world = { type = "button", bind = { "key:n", "gamepad:y" } },
   reset = { type = "button", bind = { "key:f9" } }, -- start the game over (pressed twice)
   confirm = { type = "button", bind = { "key:return", "key:space", "gamepad:a", "touch:button:confirm" } },
-  quit = { type = "button", bind = { "key:escape", "gamepad:start" } },
+  quit = { type = "button", bind = { "key:escape", "gamepad:start", "touch:button:menu" } },
 }

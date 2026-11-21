@@ -362,6 +362,24 @@ test('phone emulation starts in touch mode', async () => {
   }
 });
 
+// spec: touch-and-gamepad-controls: Opening the menu by touch
+test('on a phone the menu button opens the menu', async () => {
+  const g = await open({ device: 'Pixel 7' });
+  try {
+    await waitForFrames(g);
+    const box = await g.page.locator('#canvas').boundingBox();
+    const vp = g.page.viewportSize();
+    assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= vp.width + 1 && box.y + box.height <= vp.height + 1,
+      'the game lies inside the page (and its safe area)');
+    // The menu button: x 0.68 .. 0.82, y 0.04 .. 0.16 of the screen.
+    await g.page.touchscreen.tap(box.x + box.width * 0.75, box.y + box.height * 0.1);
+    await waitForLog(g, /menu opened/);
+    assert.deepEqual(g.errors, []);
+  } finally {
+    await g.close();
+  }
+});
+
 // spec: asset-packages: Second visit uses the cache
 test('second visit loads assets from Cache Storage', async () => {
   const dist = makeDist();
@@ -467,7 +485,7 @@ test('a click captures the mouse; the capturing click is not the game\'s', async
   }
 });
 
-// spec: accessibility: Losing focus
+// spec: accessibility: Focus lost and back
 test('a hidden page opens the menu and the shown page plays its sound again', async () => {
   const g = await open();
   try {

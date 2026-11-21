@@ -183,8 +183,13 @@ function menu.lines(m, credits)
     end
   end
   if m.note then out[#out + 1] = m.note end
-  out[#out + 1] = m.page == "main" and "Up and down: choose, Enter: open, Escape: back"
-    or "Up and down: choose, left and right: change, Enter: set, Escape: back"
+  if input.mode() == "touch" then
+    out[#out + 1] = m.page == "main" and "Stick up and down: choose, OK: open, Menu: back"
+      or "Stick up and down: choose, left and right: change, OK: set, Menu: back"
+  else
+    out[#out + 1] = m.page == "main" and "Up and down: choose, Enter: open, Escape: back"
+      or "Up and down: choose, left and right: change, Enter: set, Escape: back"
+  end
   return out
 end
 

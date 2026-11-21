@@ -4,8 +4,8 @@
 -- closes it again. Losing focus opens the menu and mutes; focus back, the
 -- sound returns and the menu stays.
 -- spec: accessibility: Escape opens the menu in play
--- spec: accessibility: Losing focus
--- spec: game-loop: Holding the world
+-- spec: accessibility: Focus lost and back
+-- spec: game-loop: The world held and let go
 scenario { name = "menu" }
 local game = demo.game
 step(30)
