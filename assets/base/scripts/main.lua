@@ -682,8 +682,14 @@ local function flight_tick(dt)
   local fate = health.tick(game.health, dt, { pos = me, on_foot = w ~= nil, landing = w and w.landing,
     events = creature_events,
     heard = effects.take_events(fx), cast = cast_now, wards = function(kind) return effects.warded(fx, kind) end })
+  if fate == "defeated" then sim.spare_player(60, 300) end -- (what brought the player down turns away)
   if fate == "revived" then
-    game.carpet = carpet.new(world.move(game.home.pos, 0, 0, 0), game.home.heading)
+    local spot, moved = health.safe_spot(game.home.pos, fauna.hunter_near)
+    if moved then
+      spot.alt = spot.alt + math.max(carpet.CLEARANCE, game.home.pos.alt - world.ground_height(game.home.pos))
+      health.told(game.health, "You get up again, away from the danger")
+    end
+    game.carpet = carpet.new(world.move(spot, 0, 0, 0), game.home.heading)
     c = game.carpet
     game.walker, w = nil, nil
     me = c.pos
@@ -914,6 +920,16 @@ local function flight_tick(dt)
       game.story_boiled = pack.count(game.pack, "boiled_water")
       if happened then pack.say(game.pack, game.story.lines[#game.story.lines]) end
       game.slept = nil
+      -- The carpet that chose the heir is the rug in their arms: unrolled
+      -- beside them once they are up in the open air.
+      if prologue.can_fly(game.story) and not game.story.unrolled and w
+        and w.pos.alt > world.ground_height(w.pos) - health.SHELTER then
+        local spot = world.move(w.pos, w.heading, 1.5, 0)
+        spot.alt = world.ground_height(spot) + carpet.CLEARANCE
+        game.carpet.pos, game.carpet.speed, game.carpet.heading = spot, 0, w.heading
+        game.story.unrolled = true
+        pack.say(game.pack, "You unroll the rug: it hovers beside you, waiting")
+      end
     end
     -- Acts II and III: after the prologue (or from the save).
     if P.ready and not game.saga and (game.saga_saved or (game.story and game.story.beat == "done")) then
@@ -1046,7 +1062,8 @@ local function flight_lines()
       end
     end
   elseif game.story then
-    for _, line in ipairs(prologue.hud_lines(game.story)) do lines[#lines + 1] = line end
+    local at = game.walker and game.walker.pos or game.carpet.pos
+    for _, line in ipairs(prologue.hud_lines(game.story, at)) do lines[#lines + 1] = line end
   end
   local w = game.walker
   local place = game.world_places and placeplay.line(game.world_places, w and w.pos or c.pos)

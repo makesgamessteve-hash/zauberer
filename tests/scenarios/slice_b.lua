@@ -6,6 +6,7 @@
 -- a dream, the first flight through the rings, foraging and boiled water,
 -- leaving the valley).
 -- spec: vertical-slice: Vertical Slice B
+-- spec: vertical-slice: The prologue's way
 scenario { name = "slice b" }
 local game = demo.game
 local places = demo.places
@@ -42,15 +43,26 @@ local S = game.story
 local where = S.places
 expect(where.house.role == "farrokh" and where.sanctum and where.sanctum.closed, "Farrokh's house, its cellar hidden")
 expect(game.carpet.limits.fly == false, "the carpet does not fly yet")
+local function next_line() return prologue.hud_lines(S, game.walker and game.walker.pos or game.carpet.pos)[2] end
+expect(next_line():find("^Next: the qanat outlet, %d+ m to the "), next_line())
 
 -- Chores.
 stand(where.qanat_pos)
 press("use")
+expect(next_line():find("Next: the goat pen", 1, true), next_line())
 stand(where.pen_pos)
 press("use")
 stand(where.orchard)
 press("use")
 expect(S.chores.water and S.chores.goats and S.chores.pomegranates, "water, goats, pomegranates")
+-- A door of Farrokh's house opened and shut (its state is kept with the world).
+for _, p in ipairs(where.house.pieces) do
+  if p.kind == "door" then
+    places.toggle_door(P, where.house, p)
+    places.toggle_door(P, where.house, p)
+    break
+  end
+end
 expect(pack.count(game.pack, "pomegranate") >= 3)
 -- A word with Farrokh.
 local farrokh
@@ -78,10 +90,18 @@ for _ = 1, 60 * 8 do
 end
 expect_eq(beat(), "hiding")
 expect(game.walker.pos.alt < world.ground_height(game.walker.pos) - 3, "in the cellar")
+local scorched = game.health.taken.heat or 0
 for _ = 1, 60 * 12 do step(1) end
+expect_eq(game.health.taken.heat or 0, scorched, "the burning village above does not reach the warded cellar")
 expect_eq(beat(), "ashes")
 expect(where.settlement.destroyed and #where.plan.people == 0, "Anarvan is ash")
 for _, b in ipairs(where.plan.buildings) do expect(b.ruin and b.ruin.cause == "fire") end
+local health = require("player.health")
+expect(not health.fire_near(where.farrokh_pos, 10), "cold ash by morning")
+places.realise(P, where.house, 3)
+for _, p in ipairs(where.house.pieces) do
+  expect(p.kind ~= "door" or p.gone, "the doors burnt with the house")
+end
 -- The burial.
 stand(where.farrokh_pos)
 press("use")
@@ -112,6 +132,14 @@ expect(next(names), "the Primer's weaves in the spellbook")
 press("sleep")
 expect_eq(beat(), "flying")
 expect(prologue.can_fly(S) and game.carpet.limits.fly ~= false)
+-- The rug in the heir's arms is unrolled once they are up in the open.
+expect(not S.unrolled, "still in the cellar")
+stand(world.move(where.square, 0, 0, 0, 0))
+expect(S.unrolled and world.distance(game.carpet.pos, game.walker.pos) < 3, "the carpet beside the heir")
+press("mount")
+expect(game.walker == nil, "on the carpet")
+expect(prologue.snapshot(S).unrolled)
+expect(next_line():find("Next: ring 1", 1, true), next_line())
 -- The first flight through the rings.
 game.walker = nil
 for _, r in ipairs(prologue.rings(S)) do
@@ -125,6 +153,7 @@ game.gathered_now = true
 pack.add(game.pack, "boiled_water", 1, 0)
 step(2)
 expect_eq(beat(), "leaving")
+expect(next_line():find("m behind you: go", 1, true), next_line())
 -- Out of the valley.
 game.carpet.pos = world.move(where.square, 0, 3200, 0, 0)
 game.carpet.pos.alt = world.height(game.carpet.pos) + 60

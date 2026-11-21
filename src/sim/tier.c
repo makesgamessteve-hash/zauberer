@@ -110,8 +110,12 @@ static double now_ms(const zb_tier *t) {
   return t->cfg.clock_ns ? (double)t->cfg.clock_ns(t->cfg.clock_ctx) / 1e6 : 0.0;
 }
 
+/* Metres from the player within which natural lightning does not strike
+ * (a storm's fires start where the player can see them coming). */
+#define LIGHTNING_NEAREST 100.0
+
 /* The world's weather at the first focus point, unless the scripts set one;
- * storms send lightning to the highest of a few places nearby. */
+ * storms send lightning to the highest of a few places 100 .. 355 m off. */
 static void weather_second(zb_tier *t, const zb_planet_pos *focus) {
   zb_world *world = t->cfg.world;
   zb_weather *w = &t->weather.now;
@@ -131,7 +135,8 @@ static void weather_second(zb_tier *t, const zb_planet_pos *focus) {
   for (uint64_t k = 0; k < 6; ++k) {
     double new_heading;
     uint64_t h = zb_hash_combine(zb_hash_combine(t->cfg.seed, second), k + 1);
-    double heading = (double)(h & 0xffff) / 65536.0 * 6.283185307179586, dist = 40.0 + (double)((h >> 16) & 0xff);
+    double heading = (double)(h & 0xffff) / 65536.0 * 6.283185307179586,
+           dist = LIGHTNING_NEAREST + (double)((h >> 16) & 0xff);
     zb_planet_pos p = zb_planet_move(zb_world_planet(world), focus, heading, dist, 0.0, 0.0, &new_heading);
     double height = zb_world_ground_height(world, &p);
     if (height > top) {

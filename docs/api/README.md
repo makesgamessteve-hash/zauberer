@@ -844,6 +844,10 @@ Where the player is for the creatures (nil: nowhere), whether on foot, and how t
 
 Sets the weather the simulations see, instead of the world's own, until sim.natural_weather(): for tests, spells and story moments. Fields left out keep their current values.
 
+### `sim.spare_player(radius: number, seconds: number): integer`
+
+The player is defeated: the hunters within radius metres (up to 500) turn away and leave the player alone for seconds (up to 3600); returns how many.
+
 ### `sim.spawn(body: BodyDesc): integer`
 
 Puts a rigid body into the world: a boulder, a log, a crate. It falls, rolls, collides, floats or sinks in the active tier, and waits where it is outside it. Returns its id; errors for a description that does not work (sizes 1 cm .. 50 m, a solid or powder material).

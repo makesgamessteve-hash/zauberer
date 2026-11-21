@@ -56,7 +56,7 @@ typedef struct creature {
   double decide_in, attack_cool, hit_cool, phase, sees_player;
   double falling;       /* m/s down: a dead flier dropping */
   double thirst, eaten; /* eaten: of a carcass, 0 .. 1 */
-  double scent_wait, gave_up_until;
+  double scent_wait, gave_up_until, spare_until;
   double flock;    /* the heading its herd mates pull it to */
   uint32_t target; /* the creature it hunts or eats */
   zb_planet_pos goal, threat, water;
@@ -282,6 +282,22 @@ void zb_creatures_set_player(zb_creatures *c, const zb_planet_pos *pos, bool on_
     c->player = *pos;
   }
   c->on_foot = on_foot;
+}
+
+int zb_creatures_spare_player(zb_creatures *c, double radius, double seconds) {
+  if (!c->has_player) {
+    return 0;
+  }
+  int spared = 0;
+  for (size_t i = 0; i < c->list.len; ++i) {
+    creature *cr = C(c, (int)i);
+    if (cr->alive && cr->action == ZB_ACT_HUNT && !cr->target && dist(c, &cr->pos, &c->player) <= radius) {
+      cr->spare_until = c->time + seconds;
+      cr->action = ZB_ACT_WANDER;
+      spared++;
+    }
+  }
+  return spared;
 }
 
 bool zb_creatures_bond(zb_creatures *c, uint32_t id, double metres) {
@@ -645,7 +661,7 @@ static void decide(zb_creatures *c, creature *cr) {
   }
   double score[ZB_ACTIONS];
   score[ZB_ACT_FLEE] = cr->fear * 1.2;
-  double hunt_player = eats_meat && se.player >= 0.0 && cr->bond <= 0.0
+  double hunt_player = eats_meat && se.player >= 0.0 && cr->bond <= 0.0 && c->time >= cr->spare_until
                            ? s->aggression * (0.4 + cr->hunger) * (c->on_foot ? 1.0 : 0.1) * calm
                            : 0.0;
   bool chasing = cr->action == ZB_ACT_HUNT && cr->target; /* a chase goes on until the hunter is spent */

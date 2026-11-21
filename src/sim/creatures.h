@@ -157,6 +157,10 @@ void zb_creatures_set_player_presence(zb_creatures *c, double visibility, double
  * metres of the player, fears and hunts the player no more; 0 lets it go.
  * False when there is no such creature. */
 bool zb_creatures_bond(zb_creatures *c, uint32_t id, double metres);
+/* The player is defeated: the hunters within radius metres of the player
+ * leave the player alone for the given seconds (they turn away now). Returns
+ * how many did. */
+int zb_creatures_spare_player(zb_creatures *c, double radius, double seconds);
 /* A stimulus: a noise (heard within strength x hearing), a light (seen), or a
  * threat (feared) at pos for seconds. */
 typedef enum zb_stimulus_kind { ZB_STIMULUS_NOISE, ZB_STIMULUS_LIGHT, ZB_STIMULUS_THREAT } zb_stimulus_kind;

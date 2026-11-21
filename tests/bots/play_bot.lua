@@ -97,43 +97,224 @@ local function trouble(what)
   if troubles[what] <= 3 then log("STUCK", what) end
 end
 
--- Walks to a position (on foot); true when within reach. Bumping into a
--- closed door, it presses use; stuck, it tries a step aside.
+-- ---- finding the way ------------------------------------------------------
+-- A binary heap of { f, key }.
+local function heap_push(h, f, key)
+  h[#h + 1] = { f, key }
+  local i = #h
+  while i > 1 do
+    local up = i // 2
+    if h[up][1] <= h[i][1] then break end
+    h[up], h[i] = h[i], h[up]
+    i = up
+  end
+end
+local function heap_pop(h)
+  local top = h[1]
+  h[1] = h[#h]
+  h[#h] = nil
+  local i = 1
+  while true do
+    local l, r, m = i * 2, i * 2 + 1, i
+    if h[l] and h[l][1] < h[m][1] then m = l end
+    if h[r] and h[r][1] < h[m][1] then m = r end
+    if m == i then break end
+    h[m], h[i] = h[i], h[m]
+    i = m
+  end
+  return top
+end
+
+-- Where walls stand near a point, as a map of quarter-metre cells (east and
+-- north of la, the local position of the search's start): the ground-floor
+-- walls, windows, posts and wells of every building near, with the game's
+-- 0.2 m to spare (doors count as open: the bot opens them on the way), and
+-- which building's footprint each cell is in.
+local CELL = 0.25
+local BLOCKING = { wall = true, window = true, post = true, well = true, windcatcher = true }
+local function cell_key(x, n) return math.floor(x / CELL) * 1000003 + math.floor(n / CELL) end
+local function wall_map(la, reach)
+  local occ, house = {}, {}
+  for _, plan in pairs(P.plans) do
+    for _, bd in ipairs(plan.buildings) do
+      if (bd.stage or 1) >= 2 and bd.pieces then
+        local lo = world.to_local((places.origin(P, bd)))
+        local ox, on = lo[1] - la[1], -(lo[3] - la[3])
+        if math.abs(ox) < reach and math.abs(on) < reach then
+          local c, s = math.cos(bd.yaw), math.sin(bd.yaw)
+          -- The cells whose centres lie in a box of the building's frame.
+          local function mark(map, x0, x1, z0, z1, val)
+            local r = math.sqrt(math.max(x0 * x0, x1 * x1) + math.max(z0 * z0, z1 * z1))
+            for u = math.floor((ox - r) / CELL), math.floor((ox + r) / CELL) do
+              local dx = (u + 0.5) * CELL - ox
+              for v = math.floor((on - r) / CELL), math.floor((on + r) / CELL) do
+                local dz = -((v + 0.5) * CELL - on) -- (local z points south)
+                local bx, bz = dx * c + dz * s, dx * s - dz * c
+                if bx >= x0 and bx <= x1 and bz >= z0 and bz <= z1 then map[u * 1000003 + v] = val end
+              end
+            end
+          end
+          mark(house, -bd.w / 2, bd.w / 2, -bd.d / 2, bd.d / 2, bd)
+          for _, p in ipairs(bd.pieces) do
+            if BLOCKING[p.kind] and not p.gone and p.y < 1.6 and p.y + p.h > 0.3 then
+              local hw, hd = p.w / 2 + 0.2, p.d / 2 + 0.2
+              mark(occ, p.x - hw, p.x + hw, p.z - hd, p.z + hd, true)
+            end
+          end
+        end
+      end
+    end
+  end
+  return occ, house
+end
+
+-- A way on foot from a to b round walls, rivers and other people's houses:
+-- an A* search over a grid of half-metre steps (below ground, in a cellar,
+-- the game's own wall test). Returns waypoints (the last within reach of b), or nil.
+local STEP = 0.5
+local NEIGHBOURS = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }
+local function find_way(a, b, alt, reach)
+  local la, lb = world.to_local(a), world.to_local(b)
+  local gx, gy = lb[1] - la[1], -(lb[3] - la[3])
+  local span = math.floor((math.max(60, 1.5 * math.sqrt(gx * gx + gy * gy) + 20)) / STEP)
+  local below = alt < world.ground_height(a) - 1.5
+  local occ, house = wall_map(la, span * STEP + 40)
+  local goal_house = house[cell_key(gx, gy)]
+  local function clear_at(x, n) return not occ[cell_key(x, n)] end
+  local W = 2 * span + 1
+  local function key(i, j) return (j + span) * W + (i + span) end
+  local pos, wet = {}, {}
+  local function at(i, j)
+    local k = key(i, j)
+    local p = pos[k]
+    if not p then
+      p = world.move(a, 0, j * STEP, i * STEP, 0)
+      p.alt = below and alt or world.ground_height(p)
+      local _, _, depth = world.water(p)
+      pos[k], wet[k] = p, (depth or 0) > walkerm.WADE
+    end
+    return p
+  end
+  local cost, from, open = {}, {}, {}
+  local k0 = key(0, 0)
+  cost[k0] = 0
+  at(0, 0)
+  heap_push(open, 0, k0)
+  local found
+  local budget = 30000
+  local near = math.max(reach, 1.2)
+  while #open > 0 and budget > 0 do
+    budget = budget - 1
+    local k = heap_pop(open)[2]
+    local i, j = k % W - span, k // W - span
+    local x, n = i * STEP, j * STEP
+    if (gx - x) ^ 2 + (gy - n) ^ 2 <= near * near then found = k break end
+    local p = pos[k]
+    for _, d in ipairs(NEIGHBOURS) do
+      local ni, nj = i + d[1], j + d[2]
+      if math.abs(ni) <= span and math.abs(nj) <= span then
+        local nk = key(ni, nj)
+        local q = at(ni, nj)
+        local ok = not wet[nk]
+        if ok and below then
+          ok = not places.blocked(P, p, q, alt)
+        elseif ok then
+          ok = clear_at(ni * STEP, nj * STEP) and clear_at((i + ni) * STEP / 2, (j + nj) * STEP / 2)
+        end
+        if ok then
+          local step = ((d[1] ~= 0 and d[2] ~= 0) and 1.414 or 1) * STEP
+          local h = house[cell_key(ni * STEP, nj * STEP)]
+          if h and h ~= goal_house then step = step * 4 end -- (round other houses, not through them)
+          local c = cost[k] + step
+          if not cost[nk] or c < cost[nk] then
+            cost[nk], from[nk] = c, k
+            heap_push(open, c + math.sqrt((gx - ni * STEP) ^ 2 + (gy - nj * STEP) ^ 2), nk)
+          end
+        end
+      end
+    end
+  end
+  if not found then return nil end
+  local cells = {}
+  local k = found
+  while k do
+    table.insert(cells, 1, { (k % W - span) * STEP, (k // W - span) * STEP, k })
+    k = from[k]
+  end
+  -- Straightened: from each point on to the furthest one in plain sight.
+  local function sight(c1, c2)
+    if below then return false end
+    local dx, dy = c2[1] - c1[1], c2[2] - c1[2]
+    local steps = math.ceil(math.sqrt(dx * dx + dy * dy) / 0.2)
+    for s = 1, steps do
+      if not clear_at(c1[1] + dx * s / steps, c1[2] + dy * s / steps) then return false end
+    end
+    return true
+  end
+  local out, m0 = { pos[cells[1][3]] }, 1
+  while m0 < #cells do
+    local m = m0 + 1
+    for look = math.min(#cells, m0 + 40), m0 + 2, -1 do
+      if sight(cells[m0], cells[look]) then m = look break end
+    end
+    out[#out + 1] = pos[cells[m][3]]
+    m0 = m
+  end
+  return out
+end
+
+-- Walks to a position (on foot); true when within reach. Finds a way round
+-- walls; bumping into a closed door, it presses use; stuck, it looks for a
+-- way again, or tries a step aside.
 local OFFSETS = { 0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5, 2.1, -2.1, 2.8 }
 local side_bias = 1
 local function walk_to(target, reach, why, seconds)
   if not game.walker then return false end
   reach = reach or 2
   local best, since = math.huge, 0
+  local way, wi
+  local function plan()
+    local w = game.walker
+    way, wi = find_way(w.pos, target, w.pos.alt, reach), 1
+  end
+  plan()
   for _ = 1, math.floor((seconds or 90) * 60) do
     local w = game.walker
     if not w then return false end
     local d = dist(w.pos, target)
     if d < reach then return true end
-    -- The way: towards the target, or the nearest heading round a wall (the game's own wall test).
-    local want = bearing(w.pos, target)
+    local aim = target
+    if way then
+      while wi < #way and dist(w.pos, way[wi]) < 0.8 do wi = wi + 1 end
+      aim = way[wi]
+    end
+    local want = bearing(w.pos, aim)
     local going_in = places.at(P, target) ~= nil
     local inside = places.at(P, w.pos) ~= nil
-    for _, off in ipairs(OFFSETS) do
-      local h = want + off * side_bias
-      local probe = world.move(w.pos, h, math.min(3, d), 0, 0)
-      if not places.blocked(P, w.pos, probe, w.pos.alt)
-        and (going_in or inside or not places.at(P, probe)) then -- (round houses, not through them)
-        want = h
-        break
+    if not way then -- the nearest heading round a wall
+      for _, off in ipairs(OFFSETS) do
+        local h = want + off * side_bias
+        local probe = world.move(w.pos, h, math.min(3, d), 0, 0)
+        if not places.blocked(P, w.pos, probe, w.pos.alt)
+          and (going_in or inside or not places.at(P, probe)) then -- (round houses, not through them)
+          want = h
+          break
+        end
       end
     end
     local diff = wrap(want - w.heading)
     local turn = math.max(-1, math.min(1, diff * 2))
     local fwd = math.abs(diff) < 0.6 and 1 or 0.2
     if d < best - 0.3 then best, since = d, 0 else since = since + 1 end
-    if w.bumped and since % 30 == 1 and (going_in or inside) then press("use") end -- (a door on the way)
-    if since > 240 then -- four seconds without getting nearer: a step aside, and round the other way
+    if w.bumped and since % 30 == 1 then press("use") end -- (a door on the way)
+    if since > 240 then -- four seconds without getting nearer: a step aside, and a new way
       side_bias = -side_bias
       local side = rand() < 0.5 and 1 or -1
       for _ = 1, 50 do input.inject("steer", side, 0.2, 1) tick_once() end
-      for _ = 1, 60 do input.inject("steer", 0, 1, 1) tick_once() end
-      since, best = 0, dist(game.walker and game.walker.pos or target, target)
+      for _ = 1, 30 do input.inject("steer", 0, 1, 1) tick_once() end
+      if not game.walker then return false end
+      plan()
+      since, best = 0, dist(game.walker.pos, target)
     end
     input.inject("steer", turn, fwd, 1)
     if d > 15 then input.inject("boost", 1, 0, 1) end
@@ -141,9 +322,25 @@ local function walk_to(target, reach, why, seconds)
     if ticks > BUDGET then return false end
   end
   local w = game.walker
+  -- What it ran into: the nearest piece ahead in the building it is in.
+  local bumped = ""
+  local bd = w and places.at(P, w.pos)
+  if bd and w.bumped then
+    local x, y, z = places.to_building(P, bd, world.move(w.pos, w.heading, 0.6, 0, 0))
+    local best, bdist
+    for _, p in ipairs(bd.pieces or {}) do
+      local dd = math.max(math.abs(x - p.x) - p.w / 2, math.abs(z - p.z) - p.d / 2, 0)
+      if not p.gone and p.kind ~= "floor" and (not bdist or dd < bdist) then best, bdist = p, dd end
+    end
+    if best then
+      bumped = string.format(" (%s %s at %.1f m, y %.1f..%.1f, feet %.1f)", best.kind, tostring(best.mat), bdist,
+        best.y, best.y + best.h, y)
+    end
+  end
   trouble("could not walk to " .. (why or "a place") .. (w and string.format(
-    " (%.0f m short%s%s%s)", dist(w.pos, target), w.blocked and ", water too deep" or "",
-    w.bumped and ", against a wall" or "", places.at(P, w.pos) and ", inside a building" or "") or ""))
+    " (%.0f m short%s%s%s%s)", dist(w.pos, target), w.blocked and ", water too deep" or "",
+    w.bumped and (", against a wall" .. bumped) or "", places.at(P, w.pos) and ", inside a building" or "",
+    way and "" or ", no way found") or ""))
   return false
 end
 
@@ -164,7 +361,14 @@ local function board()
   if not walk_to(game.carpet.pos, walkerm.REACH - 0.5, "the carpet", 120) then return false end
   press("mount")
   wait(0.5)
-  if game.walker then trouble("the carpet would not take the heir") return false end
+  if game.walker then
+    local w, c = game.walker, game.carpet
+    log("DO", string.format("(carpet %.1f m away, %.1f m above; cloak %s, tent %s, down %s)",
+      world.distance(w.pos, c.pos), c.pos.alt - w.pos.alt, tostring(game.cloak.worn), tostring(game.tent ~= nil),
+      tostring(game.health.down ~= nil)))
+    trouble("the carpet would not take the heir")
+    return false
+  end
   log("DO", "steps onto the carpet")
   return true
 end
@@ -299,7 +503,41 @@ local function watch()
       game.story and (", story: " .. game.story.beat) or ""))
   end
 end
-pulse = watch
+-- Out of the fire: on foot, near flames, it runs for a few seconds towards
+-- the nearest side clear of them (as a player would).
+local healthm = require("player.health")
+local fleeing = false
+local function flee_fire()
+  local w = game.walker
+  if fleeing or not w or game.health.down or not healthm.fire_near(w.pos, 4) then return end
+  fleeing = true
+  local away
+  for r = 15, 45, 15 do
+    for k = 0, 7 do
+      local p = world.move(w.pos, w.heading + k * math.pi / 4, r, 0, 0)
+      if not healthm.fire_near(p, 6) then away = p break end
+    end
+    if away then break end
+  end
+  if away then
+    log("DO", "runs from the fire")
+    for _ = 1, 240 do
+      local v = game.walker
+      if not v then break end
+      local diff = wrap(bearing(v.pos, away) - v.heading)
+      input.inject("steer", math.max(-1, math.min(1, diff * 2)), 1, 1)
+      input.inject("boost", 1, 0, 1)
+      step(1)
+      ticks = ticks + 1
+      if dist(v.pos, away) < 3 then break end
+    end
+  end
+  fleeing = false
+end
+pulse = function()
+  watch()
+  flee_fire()
+end
 local function wait_watch(seconds, cond)
   local n = math.floor(seconds * 60 / 30)
   for _ = 1, math.max(1, n) do
@@ -403,6 +641,13 @@ local function play_prologue()
       press("sleep")
       wait_watch(2, function() return S.beat ~= b end)
     elseif b == "flying" then
+      local g = where.sanctum
+      if game.walker and game.walker.pos.alt < g.origin.alt + 3 then -- still down in the cellar: up and out
+        local top = stair(where)
+        log("DO", "climbs out of the cellar with the rug")
+        walk_to(top, 1, "the top of the stair", 30)
+        walk_to(house_route(where), 2, "out of the house", 30)
+      end
       local rings = prologue.rings(S)
       local r = rings[S.ring]
       if r then fly_to(r, 0, false, "ring " .. S.ring) end
@@ -489,7 +734,37 @@ end
 log("DO", "presses F5: the story begins")
 press("story")
 wait_watch(2)
-if game.story then play_prologue() else trouble("F5 did not begin the story") end
+if STYLE == "check" and game.story then
+  -- A self-check of the bot's wall map against the game's own wall test, round Farrokh's house.
+  local where = game.story.places
+  local o = where.farrokh_pos
+  local la = world.to_local(o)
+  local occ = wall_map(la, 80)
+  local agree, walls, total = 0, 0, 0
+  for x = -12, 12, 0.5 do
+    for n = -12, 12, 0.5 do
+      local p = world.move(o, 0, n, x, 0)
+      p.alt = world.ground_height(p)
+      local game_says = places.blocked(P, p, p, p.alt)
+      local mine = occ[cell_key(x, n)] == true
+      total = total + 1
+      if game_says then walls = walls + 1 end
+      if not game_says or mine then agree = agree + 1 end -- (every wall the game knows is on the map)
+    end
+  end
+  log("CHECK", string.format("wall map: %d of %d points agree, %d in walls", agree, total, walls))
+  local way = find_way(where.pen_pos, where.orchard, world.ground_height(where.pen_pos), 2)
+  log("CHECK", string.format("pen to orchard: %s", way and (#way .. " waypoints") or "no way"))
+  local _, inside = house_route(where)
+  way = find_way(where.qanat_pos, inside, world.ground_height(where.qanat_pos), 1.2)
+  log("CHECK", string.format("qanat to inside Farrokh's house: %s", way and (#way .. " waypoints") or "no way"))
+  local f = farrokh_person(where)
+  if f then
+    way = find_way(inside, f.pos, world.ground_height(inside), 1.6)
+    log("CHECK", string.format("to Farrokh (%s): %s", tostring(f.doing), way and (#way .. " waypoints") or "no way"))
+  end
+  BUDGET = 0
+elseif game.story then play_prologue() else trouble("F5 did not begin the story") end
 local idle = 0
 while ticks < BUDGET do
   watch()

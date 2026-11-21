@@ -177,6 +177,7 @@ static void test_coupling(void) {
 }
 
 /* spec: simulation-tiers: The world's weather drives the tier */
+/* spec: simulation-tiers: Lightning keeps its distance */
 static void test_weather(void) {
   scene s;
   scene_open(&s, FLAT, 0.0, 0.0);
@@ -189,11 +190,25 @@ static void test_weather(void) {
   zb_weather_at(zb_world_terrain(s.world), zb_world_calendar(s.world), &here, zb_world_time(s.world), &nat);
   TEST_ASSERT_DOUBLE_WITHIN(1e-9, nat.cloud, wc->now.cloud);
   TEST_ASSERT_DOUBLE_WITHIN(1e-9, nat.wind_east, zb_fire_weather_get(s.fire)->wind_east);
-  /* A storm the scripts set sends lightning within a few minutes. */
+  /* A storm the scripts set sends lightning within a few minutes, and not
+   * within 100 m of the player: just after the first strike nothing burns
+   * within 90 m. */
   wc->overridden = true;
   wc->now.storm = 1.0;
-  run(&s, 240.0);
+  for (int k = 0; k < 240 && wc->strikes == 0; ++k) {
+    run(&s, 1.0);
+  }
   TEST_ASSERT_TRUE(wc->strikes > 0);
+  const zb_planet *planet = zb_world_planet(s.world);
+  for (int r = 0; r <= 90; r += 5) {
+    for (int k = 0; k < 16; ++k) {
+      double heading;
+      zb_planet_pos p = zb_planet_move(planet, &s.centre, k * ZB_DPI / 8.0, (double)r, 0.0, 0.0, &heading);
+      zb_fire_cell cell;
+      zb_fire_cell_at(s.fire, &p, &cell);
+      TEST_ASSERT_FALSE_MESSAGE(cell.burning, "lightning kept its distance");
+    }
+  }
   /* Another world: everything starts over. */
   zb_tier_set_world(s.tier, s.world);
   zb_air_stats as;

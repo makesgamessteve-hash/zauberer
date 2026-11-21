@@ -1367,6 +1367,12 @@ function sim.set_player(pos, on_foot, seen) end
 ---@param weather Weather
 function sim.set_weather(weather) end
 
+---The player is defeated: the hunters within radius metres (up to 500) turn away and leave the player alone for seconds (up to 3600); returns how many.
+---@param radius number
+---@param seconds number
+---@return integer
+function sim.spare_player(radius, seconds) end
+
 ---Puts a rigid body into the world: a boulder, a log, a crate. It falls, rolls, collides, floats or sinks in the active tier, and waits where it is outside it. Returns its id; errors for a description that does not work (sizes 1 cm .. 50 m, a solid or powder material).
 ---@param body BodyDesc
 ---@return integer

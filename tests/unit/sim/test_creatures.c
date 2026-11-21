@@ -270,6 +270,7 @@ static void test_moving(void) {
 }
 
 /* spec: creatures: Fear of fire, hunters and the player */
+/* spec: creatures: A defeated player is spared */
 static void test_fear_and_hunting(void) {
   scene s;
   scene_open(&s, MEADOW);
@@ -306,6 +307,15 @@ static void test_fear_and_hunting(void) {
     }
   }
   TEST_ASSERT_TRUE_MESSAGE(attacks > 0, "the wolf reached the mage");
+  /* The mage is defeated: the wolf turns away and leaves the mage alone. */
+  TEST_ASSERT_EQUAL_INT(1, zb_creatures_spare_player(s.cr, 50.0, 60.0));
+  run(&s, 2.0);
+  TEST_ASSERT_TRUE(strcmp(zb_action_name(state(&s, wolf).action), "hunt") != 0);
+  zb_creatures_events(s.cr, ev, 16);
+  TEST_ASSERT_EQUAL_INT(0, zb_creatures_spare_player(s.cr, 50.0, 60.0)); /* (none hunting now) */
+  zb_creatures_set_player(s.cr, NULL, false);
+  TEST_ASSERT_EQUAL_INT(0, zb_creatures_spare_player(s.cr, 50.0, 60.0)); /* (no player) */
+  zb_creatures_set_player(s.cr, &mage, true);
   zb_planet_pos high = mage;
   high.alt = 50.0f + 60.0f;
   zb_creatures_set_player(s.cr, &high, false);

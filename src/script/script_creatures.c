@@ -318,6 +318,18 @@ static int s_stimulus(lua_State *L) {
   return 0;
 }
 
+/* @lua sim.spare_player(radius: number, seconds: number): integer
+ * The player is defeated: the hunters within radius metres (up to 500) turn
+ * away and leave the player alone for seconds (up to 3600); returns how many.
+ */
+static int s_spare_player(lua_State *L) {
+  double radius = luaL_checknumber(L, 1), seconds = luaL_checknumber(L, 2);
+  luaL_argcheck(L, radius >= 0.0 && radius <= 500.0, 1, "radius must be 0..500 metres");
+  luaL_argcheck(L, seconds >= 0.0 && seconds <= 3600.0, 2, "seconds must be 0..3600");
+  lua_pushinteger(L, zb_creatures_spare_player(CR(L), radius, seconds));
+  return 1;
+}
+
 /* @lua sim.bond(id: integer, metres: number|nil): boolean
  * Binds a creature to the player (summoned, a familiar): it follows, keeping
  * within metres (0.5 .. 50) of the player, and neither fears nor hunts the
@@ -452,6 +464,7 @@ void zb_script_open_creatures(zb_script *s) {
                                  {"stimulus", s_stimulus},
                                  {"set_player", s_set_player},
                                  {"bond", s_bond},
+                                 {"spare_player", s_spare_player},
                                  {"creature_events", s_creature_events},
                                  {"creature_stats", s_creature_stats},
                                  {"remove_creature", s_remove_creature},
