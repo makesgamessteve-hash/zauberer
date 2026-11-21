@@ -332,8 +332,8 @@ local function play_prologue()
     local b = S.beat
     watch()
     if b == "village" then
-      if not S.chores.water then go(where.qanat_pos, "the qanat outlet", 3.5); press("use")
-      elseif not S.chores.goats then go(where.pen_pos, "the goat pen", 4); press("use")
+      if not S.chores.water then go(where.qanat_pos, "the qanat outlet", 4.5); press("use")
+      elseif not S.chores.goats then go(where.pen_pos, "the goat pen", 5); press("use")
       elseif not S.chores.pomegranates then go(where.orchard, "the orchard", 20); press("use")
       elseif not S.talked then
         local f = farrokh_person(where)
