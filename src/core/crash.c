@@ -14,7 +14,7 @@
 static char g_lines[ZB_CRASH_LINES][LINE_LEN];
 static int g_next, g_count;
 static char g_path[600];
-static bool g_installed, g_signals, g_writing;
+static bool g_installed, g_writing;
 
 static void keep(zb_log_level level, const char *message, void *user) {
   (void)user;
@@ -52,6 +52,7 @@ static void on_assert(const char *expr, const char *file, int line) {
 }
 
 #ifndef __EMSCRIPTEN__
+static bool g_signals;
 static const int k_signals[] = {SIGSEGV, SIGABRT, SIGFPE, SIGILL};
 
 static void on_signal(int sig) {
