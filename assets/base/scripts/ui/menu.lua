@@ -92,8 +92,8 @@ local function items(m)
   elseif m.page == "confirm" then
     out = { { label = "No, keep it", go = "back" }, { label = "Yes, delete it", go = "delete" } }
   elseif m.page == "main" then
-    out = { { label = "Resume", go = "resume" }, { label = "Journal", page = "journal" },
-      { label = "Help", page = "help" },
+    out = { { label = "Resume", go = "resume" }, { label = "Map", page = "map" },
+      { label = "Journal", page = "journal" }, { label = "Help", page = "help" },
       { label = "Settings", page = "settings" },
       { label = "Controls", page = "controls" }, { label = "Packages", page = "packages" },
       { label = "Credits", page = "credits" }, { label = "Save and quit", go = "quit" } }
@@ -196,6 +196,7 @@ local function activate(m, item, step)
     if h.reset_hints then h.reset_hints() end
     m.note = "The hints will show again"
   elseif item.page then
+    if item.page == "map" and h.map_open then h.map_open() end
     if item.save then m.chosen = item.save end
     if item.topic then m.topic = item.topic end
     m.page, m.at = item.page, 1
@@ -224,6 +225,22 @@ function menu.tick(m, st, dt)
     return
   end
   if st("quit").pressed then return back(m) end
+  if m.page == "map" then -- the stick moves the map, confirm zooms out
+    local d = st("steer")
+    local mx = (d.x or 0) > 0.5 and 1 or (d.x or 0) < -0.5 and -1 or 0
+    local my = (d.y or 0) > 0.5 and 1 or (d.y or 0) < -0.5 and -1 or 0
+    if mx == 0 and my == 0 then
+      m.hold = 0
+    else
+      m.hold = m.hold - dt
+      if m.hold <= 0 then
+        m.hold = menu.REPEAT
+        if m.hooks.map_pan then m.hooks.map_pan(mx, my) end
+      end
+    end
+    if st("confirm").pressed and m.hooks.map_zoom then m.hooks.map_zoom() end
+    return
+  end
   local list = items(m)
   local dir = st("steer")
   local dy = (dir.y or 0) > 0.5 and -1 or (dir.y or 0) < -0.5 and 1 or 0

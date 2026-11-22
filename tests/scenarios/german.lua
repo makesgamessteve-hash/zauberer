@@ -41,6 +41,8 @@ require("ui.journal").finish(game.journal, "Do your chores and talk to Farrokh")
 step(2)
 game.menu.page = "journal"
 step(3)
+game.menu.page = "map"
+step(3)
 for _, hint in ipairs(require("ui.help").HINTS) do -- and every hint, with its controls
   local filled = require("ui.help").fill(hint.text)
   expect(filled ~= hint.text, "the hint in German: " .. hint.text)

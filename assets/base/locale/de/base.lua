@@ -361,6 +361,10 @@ return {
   ["Reset every setting to its default?"] = "Alle Einstellungen auf Standard zurücksetzen?",
   ["Back to the defaults"] = "Auf Standard zurückgesetzt", ["none"] = "keine", ["%d%%"] = "%d%%",
   ["%d fps"] = "%d BpS", ["%d lines"] = "%d Zeilen", ["%dx"] = "%dx",
+  ["Map"] = "Karte", ["%d km a letter; @ you, C the carpet, X the goal, o a place"] =
+    "%d km je Zeichen; @ du, C der Teppich, X das Ziel, o ein Ort",
+  ["Stick: move, OK: zoom, Menu: back"] = "Stick: bewegen, OK: zoomen, Menü: zurück",
+  ["Arrows: move, Enter: zoom, Escape: back"] = "Pfeile: bewegen, Enter: zoomen, Escape: zurück",
   ["Journal"] = "Tagebuch", ["Requests:"] = "Bitten:", ["Finished:"] = "Erledigt:",
   ["What was said:"] = "Was gesagt wurde:", ["day %d, %02d:%02d"] = "Tag %d, %02d:%02d", ["%s in %s: %s"] = "%s in %s: %s",
   ["Zauberer"] = "Zauberer", ["Game saved"] = "Spiel gespeichert", ["Continue"] = "Weiterspielen", ["New game"] = "Neues Spiel", ["Create a world"] = "Eine Welt erschaffen",

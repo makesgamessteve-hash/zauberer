@@ -53,6 +53,7 @@ local access = require("ui.access")
 local menu = require("ui.menu")
 local help = require("ui.help")
 local journal = require("ui.journal")
+local worldmap = require("ui.worldmap")
 local news = require("player.news")
 local modapi = require("mods.api")
 local xrplay = require("xr.play")
@@ -110,6 +111,7 @@ local function setup_flight()
   for _, id in ipairs(back and type(back.known) == "table" and back.known or {}) do game.known[id] = true end
   game.codex = codex.new(back and back.codex)
   game.journal = journal.new(back and back.journal)
+  game.worldmap = worldmap.new(back and back.worldmap)
   -- The peopled world (made in slices as play begins), Anarvan where the carpet set out.
   game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
     game.home.pos, FOOT, game.world_options and game.world_options.history)
@@ -207,6 +209,7 @@ function game.save()
     end)(),
     codex = game.codex and codex.snapshot(game.codex),
     journal = game.journal and journal.snapshot(game.journal),
+    worldmap = game.worldmap and worldmap.snapshot(game.worldmap),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
       plants = plants.snapshot(game.plants, world.time().time),
@@ -315,6 +318,12 @@ function game.setup_ui()
     current = function() return save.get("world") end,
     topic_lines = function(id) return help.topic_lines(id, game.story_lines()) end,
     journal_lines = function() return journal.lines(game.journal, game.story_lines()) end,
+    map_open = function()
+      local me = (game.walker and game.walker.pos) or game.carpet.pos
+      worldmap.centre(game.worldmap, worldmap.offset(game.home.pos, me))
+    end,
+    map_pan = function(dx, dy) worldmap.pan(game.worldmap, dx, dy) end,
+    map_zoom = function() worldmap.zoom_out(game.worldmap) end,
     reset_hints = function() help.reset(game.help) end,
     version = engine.info().version,
     can_quit = engine.info().platform ~= "web", -- (a page is closed, not quit)
@@ -365,6 +374,19 @@ end
 function game.vr_options(s)
   return { steer = s.xr_steer, snap_turn = s.xr_snap_turn, vignette = s.xr_vignette,
     reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
+end
+
+-- Where the story asks the heir to go now (the prologue's next place, or the next of the Circle).
+function game.goal_pos()
+  if game.saga then
+    for _, mb in ipairs(require("story.narrative").data().circle) do
+      local site = game.saga.N.sites[mb.id]
+      if site and not game.saga.N.remnants[mb.id] then return site.pos end
+    end
+    return nil
+  end
+  if game.story then return select(2, prologue.goal(game.story)) end
+  return nil
 end
 
 -- The story so far, for the help page: the goal and what was said lately.
@@ -828,6 +850,15 @@ local function flight_tick(dt)
     me = c.pos
     camera.reset(game.chase)
   end
+  -- The map: the land near is seen (each second), and the places come near (every few seconds).
+  if game.flight_ticks % 60 == 0 then
+    worldmap.mark(game.worldmap, game.home.pos, me)
+    local Pl = game.world_places.places
+    if game.flight_ticks % 300 == 0 and Pl.ready then
+      local near = require("people.peopling").near(Pl.db, Pl.grid, me, 2500)[1]
+      if near then worldmap.know(game.worldmap, game.home.pos, near.settlement.name, near.settlement.pos) end
+    end
+  end
   -- Requests heard in talk go into the journal.
   local folk = game.world_places and game.world_places.folk
   if folk and folk.heard then
@@ -1170,6 +1201,12 @@ end)
 
 local function draw_hud(lines)
   if not game.hud then return end
+  if game.menu and game.menu.open and game.menu.page == "map" and game.worldmap then
+    local me = (game.walker and game.walker.pos) or game.carpet.pos
+    worldmap.draw(game.worldmap, assets.font, game.home.pos, me, game.walker and game.carpet.pos or nil,
+      game.goal_pos(), 4, 4)
+    return
+  end
   if game.menu and game.menu.open then
     local credits = {}
     for _, c in ipairs(game.credits or {}) do credits[#credits + 1] = { raw = hud.credit_line(c) } end
