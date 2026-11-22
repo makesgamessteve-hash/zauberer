@@ -145,7 +145,7 @@ local function hunt(radius)
     c.pos = from
     local bp, cp = world.to_local(ahead), world.to_local(from)
     c.heading, c.speed = math.atan(bp[1] - cp[1], -(bp[3] - cp[3])), 0
-    c.pos.alt = ahead.alt + 0.6 + d * math.tan(0.12) + 0.5 * 9.81 * t * t - 1
+    c.pos.alt = ahead.alt + 0.6 + d * math.tan(-game.rider.pitch) + 0.5 * 9.81 * t * t - 1
   end
   fly_to(sim.creature(best).pos, 10)
   for _ = 1, 8 do

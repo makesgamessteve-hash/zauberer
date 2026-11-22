@@ -132,7 +132,7 @@ local function take_aim()
   local bp, cp = world.to_local(ahead), world.to_local(from)
   c.heading, c.speed = math.atan(bp[1] - cp[1], -(bp[3] - cp[3])), 0
   -- The bolt leaves 1 m above the carpet, 0.12 rad down, and falls.
-  c.pos.alt = ahead.alt + d * math.tan(0.12) + 0.5 * 9.81 * t * t - 1
+  c.pos.alt = ahead.alt + d * math.tan(-game.rider.pitch) + 0.5 * 9.81 * t * t - 1
 end
 local shots = 0
 for _ = 1, 3 do -- a miss is tried again
