@@ -174,11 +174,12 @@ test.case("the menu: open, choose, change a setting, back and resume", function(
   test.expect(menu.toggle(m) and m.open)
   test.expect_eq(menu.lines(m)[1], "Menu")
   test.expect(menu.lines(m)[2].raw:find("> Resume", 1, true))
-  -- Down to Settings and in.
+  -- Down one, then to Settings (after the Map, the Journal and Help) and in.
   menu.tick(m, states({ steer = { x = 0, y = -1 } }), 1)
   test.expect_eq(m.at, 2)
   menu.tick(m, states({ steer = { x = 0, y = -1 } }), 0.1) -- (held: not yet again)
   test.expect_eq(m.at, 2)
+  m.at = 5
   menu.tick(m, states({ confirm = true }), 0.1)
   test.expect_eq(m.page, "settings")
   -- Right changes the language.
@@ -189,7 +190,7 @@ test.case("the menu: open, choose, change a setting, back and resume", function(
   -- Back to the main page, then to Packages.
   menu.tick(m, states({ quit = true }), 0.1)
   test.expect_eq(m.page, "main")
-  m.at = 4
+  m.at = 7
   menu.tick(m, states({ confirm = true }), 0.1)
   test.expect_eq(m.page, "packages")
   test.expect(menu.lines(m)[2].raw:find("base 1: on", 1, true), menu.lines(m)[2].raw)
@@ -203,7 +204,7 @@ test.case("the menu: open, choose, change a setting, back and resume", function(
   menu.tick(m, states({ confirm = true }), 0.1)
   test.expect(not m.open and resumed)
   menu.toggle(m)
-  m.at = 6
+  m.at = 9
   menu.tick(m, states({ confirm = true }), 0.1)
   test.expect(quit)
   fresh()
