@@ -407,6 +407,10 @@ function input.bindings(action) end
 ---@return string?
 function input.capture() end
 
+---The rectangles ({ x, y, w, h } normalized) the UI holds: a touch beginning inside one is not given to the on-screen sticks and buttons. Replaces the claims before.
+---@param rects number[][]
+function input.claim(rects) end
+
 ---Removes all bindings of an action.
 ---@param action string
 function input.clear(action) end
@@ -428,9 +432,20 @@ function input.device() end
 ---@param ticks? integer
 function input.inject(action, x, y, ticks) end
 
+---Feeds the pointer as if the mouse moved to (x, y) (normalized) and its left button went down or up, or, with touch, as if a finger touched, moved or let go there (for tests).
+---@param x number
+---@param y number
+---@param down? boolean
+---@param touch? boolean
+function input.inject_pointer(x, y, down, touch) end
+
 ---The current input mode.
 ---@return "desktop"|"touch"
 function input.mode() end
+
+---The pointer (the mouse, or the touch that points): x and y normalized 0..1 of the window (origin top-left), held, pressed and released (since the last tick), the wheel's steps, and whether it was a touch.
+---@return Pointer
+function input.pointer() end
 
 ---Rumbles the connected gamepads at strength (0 .. 1) for seconds (up to 2); returns how many rumbled.
 ---@param strength number
@@ -492,19 +507,24 @@ function render.draw_model(model, transform) end
 ---@param time? number
 function render.draw_sprite(sprite, position, scale, time) end
 
----Draws UTF-8 text in internal pixels (origin top-left); missing characters use the replacement glyph.
+---Draws UTF-8 text in internal pixels (origin top-left) with an optional one-pixel shadow colour; missing characters use the replacement glyph.
 ---@param font integer
 ---@param text string
 ---@param x number
 ---@param y number
 ---@param scale? number
 ---@param color? number[]
-function render.draw_text(font, text, x, y, scale, color) end
+---@param shadow? number[]
+function render.draw_text(font, text, x, y, scale, color, shadow) end
 
 ---Starts loading a bitmap-font descriptor.
 ---@param path string
 ---@return integer
 function render.font(path) end
+
+---Frees a texture made from pixels.
+---@param texture integer
+function render.free_texture(texture) end
 
 ---Gets or sets the internal rendering height (default 360).
 ---@param height? integer
@@ -574,6 +594,67 @@ function render.text_glyphs(font, text) end
 ---@param path string
 ---@return integer
 function render.texture(path) end
+
+---A texture made from w * h RGBA8 pixels (rows top to bottom), at most 1024 x 1024.
+---@param w integer
+---@param h integer
+---@param rgba string
+---@return integer
+function render.texture_from_pixels(w, h, rgba) end
+
+---The size of a loaded texture in texels (0, 0 while it loads or when it failed).
+---@param texture integer
+---@return integer
+---@return integer
+function render.texture_size(texture) end
+
+---Clips later UI drawing to the rectangle, within the clip before it; false when nested too deep.
+---@param x number
+---@param y number
+---@param w number
+---@param h number
+---@return boolean
+function render.ui_clip(x, y, w, h) end
+
+---The UI grid (the internal framebuffer) of the last frame: its width and height in pixels and where it lies in the window (x, y, w, h normalised, origin top-left).
+---@return UiGrid
+function render.ui_grid() end
+
+---A texture, or its region opts.src = { x, y, w, h } in texels, on the UI grid at opts.w by opts.h (default: the region's size times opts.scale), tinted by opts.color.
+---@param texture integer
+---@param x number
+---@param y number
+---@param opts? UiImageOptions
+function render.ui_image(texture, x, y, opts) end
+
+---A nine-slice frame on the UI grid from the texture's region opts.src (default: all of it) with border widths opts.border = { left, top, right, bottom }: corners whole, edges and middle tiled.
+---@param texture integer
+---@param x number
+---@param y number
+---@param w number
+---@param h number
+---@param opts UiNineOptions
+function render.ui_nine(texture, x, y, w, h, opts) end
+
+---A filled rectangle on the UI grid.
+---@param x number
+---@param y number
+---@param w number
+---@param h number
+---@param color? number[]
+function render.ui_rect(x, y, w, h, color) end
+
+---Releases the last clip.
+function render.ui_unclip() end
+
+---Replaces a region of a texture made from pixels.
+---@param texture integer
+---@param x integer
+---@param y integer
+---@param w integer
+---@param h integer
+---@param rgba string
+function render.update_texture(texture, x, y, w, h, rgba) end
 
 ---Comfort vignette: darkens the edges of every view (around each eye's optical centre in VR) by up to strength (0 .. 1; 0 or false switches it off), e.g. while the carpet turns or speeds up. Returns the strength in effect.
 ---@param strength number|false

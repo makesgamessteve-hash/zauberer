@@ -58,6 +58,9 @@ class RenderTests(EngineTestCase):
     def test_home_view(self):
         self.assert_ok(self.windowed("home_view"))
 
+    def test_ui_panel(self):
+        self.assert_ok(self.windowed("ui_panel"))
+
     def test_night_sky(self):
         self.assert_ok(self.windowed("night_sky"))
 

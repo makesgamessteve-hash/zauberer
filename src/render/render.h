@@ -27,6 +27,8 @@ typedef struct zb_render_stats {
   size_t foliage_items;
   size_t foliage_instances;
   size_t text_glyphs;
+  size_t ui_quads;   /* UI quads (rectangles, images, frames and glyphs) after clipping */
+  size_t ui_batches; /* draw calls the UI and text took */
   size_t culled;
   uint64_t frames;
 } zb_render_stats;
@@ -148,6 +150,35 @@ void zb_render_draw_text(zb_render *r, uint32_t font, const char *utf8, float x,
 void zb_render_end(zb_render *r);
 
 const zb_render_stats *zb_render_get_stats(const zb_render *r);
+/* ---- The UI layer: quads in internal pixels (origin top-left), drawn after the
+ * world and the palette pass, before the upscale. Quads of one texture in a row
+ * share a draw call; the clip stack cuts them on the CPU. ---- */
+
+/* A quad of a texture asset's region (u, v normalised; texture 0 = white). */
+void zb_render_draw_quad(zb_render *r, uint32_t texture, float x, float y, float w, float h, float u0, float v0, float u1,
+                         float v1, const float rgba[4]);
+/* A region of a texture asset (texels; sw or sh <= 0: the whole texture) drawn at x, y, w, h. */
+void zb_render_draw_image(zb_render *r, uint32_t texture, float sx, float sy, float sw, float sh, float x, float y,
+                          float w, float h, const float rgba[4]);
+/* A nine-slice frame from a region of a texture asset with border widths l, t, rt, b (texels):
+ * corners whole, edges and middle tiled in whole repeats (the last one cut), never stretched. */
+void zb_render_draw_nine(zb_render *r, uint32_t texture, float sx, float sy, float sw, float sh, int l, int t, int rt,
+                         int b, float x, float y, float w, float h, const float rgba[4]);
+/* Clips later UI drawing to the rectangle (intersected with the one before); false when too deep. */
+bool zb_render_push_clip(zb_render *r, float x, float y, float w, float h);
+void zb_render_pop_clip(zb_render *r);
+#define ZB_RENDER_MAX_SCRIPT_TEXTURE 1024
+/* A texture asset made from RGBA8 pixels (w * h * 4 bytes, rows top to bottom); 0 when refused. */
+uint32_t zb_render_texture_from_pixels(zb_render *r, int w, int h, const unsigned char *rgba);
+/* Replaces a region of a texture made from pixels. */
+zb_result zb_render_update_texture(zb_render *r, uint32_t texture, int x, int y, int w, int h,
+                                   const unsigned char *rgba);
+void zb_render_free_texture(zb_render *r, uint32_t texture);
+/* The size of a ready texture asset (0, 0 otherwise). */
+void zb_render_texture_size(const zb_render *r, uint32_t texture, int *w, int *h);
+/* The layout of the last frame begun (or of the given drawable before any frame). */
+zb_layout zb_render_last_layout(const zb_render *r);
+
 zb_result zb_render_capture(zb_render *r, bool internal, const zb_allocator *a, zb_image *out);
 /* Number of frames the sprite animation has advanced at time_s (unwrapped). */
 uint64_t zb_render_sprite_frame_number(const zb_render *r, uint32_t sprite, double time_s);

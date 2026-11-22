@@ -101,7 +101,11 @@ static void settle(world *w) {
 
 /* spec: rendering-core: Full HD window */
 /* spec: rendering-core: Non-integer window size */
+/* spec: ui-drawing: Window sizes */
 static void test_layout(void) {
+  zb_layout wide = zb_render_compute_layout(2560, 1080, 360); /* the UI grid of an ultrawide window */
+  TEST_ASSERT_EQUAL_INT(853, wide.internal_w);
+  TEST_ASSERT_EQUAL_INT(360, wide.internal_h);
   zb_layout l = zb_render_compute_layout(1920, 1080, 360);
   TEST_ASSERT_EQUAL_INT(640, l.internal_w);
   TEST_ASSERT_EQUAL_INT(360, l.internal_h);
@@ -497,6 +501,162 @@ static void test_text_and_glyphs(void) {
   free_world(&w);
 }
 
+/* The UI layer: quads, batches, images, nine-slice frames, clipping, script textures. */
+static size_t ui_vertex_count(world *w) {
+  const zb_frame *f = zb_render_null_last_frame(w->backend);
+  return f->text_count;
+}
+
+/* spec: ui-drawing: A framed panel */
+static void test_ui_quads_and_frames(void) {
+  world w = make_world();
+  uint32_t tex = zb_render_load_texture(w.r, "sprites/sheet.png"); /* 64 x 16 */
+  settle(&w);
+  int tw, th;
+  zb_render_texture_size(w.r, tex, &tw, &th);
+  TEST_ASSERT_EQUAL_INT(64, tw);
+  TEST_ASSERT_EQUAL_INT(16, th);
+  zb_render_texture_size(w.r, 999, &tw, &th);
+  TEST_ASSERT_EQUAL_INT(0, tw);
+  static const float tint[4] = {1, 0.5f, 0.25f, 1};
+  /* Twenty rectangles in a row share one batch. */
+  zb_render_draw_quad(w.r, 0, 0, 0, 5, 5, 0, 0, 1, 1, tint); /* (not in a frame: ignored) */
+  zb_render_begin(w.r, 640, 360);
+  for (int i = 0; i < 20; ++i) {
+    zb_render_draw_quad(w.r, 0, (float)i * 6, 0, 5, 5, 0, 0, 1, 1, tint);
+  }
+  zb_render_draw_quad(w.r, 0, 0, 0, 0, 5, 0, 0, 1, 1, tint); /* empty: nothing */
+  zb_render_draw_quad(w.r, 999, 0, 0, 5, 5, 0, 0, 1, 1, tint); /* no such texture */
+  zb_render_end(w.r);
+  TEST_ASSERT_EQUAL_size_t(20, zb_render_get_stats(w.r)->ui_quads);
+  TEST_ASSERT_EQUAL_size_t(1, zb_render_get_stats(w.r)->ui_batches);
+  /* A part of an image twice its size in the tint; the whole image; a new texture, a new batch. */
+  zb_render_begin(w.r, 640, 360);
+  zb_render_draw_quad(w.r, 0, 0, 0, 5, 5, 0, 0, 1, 1, tint);
+  zb_render_draw_image(w.r, tex, 16, 0, 16, 16, 10, 10, 32, 32, tint);
+  zb_render_draw_image(w.r, tex, 0, 0, 0, 0, 50, 10, 64, 16, tint);
+  zb_render_draw_image(w.r, 999, 0, 0, 0, 0, 50, 10, 64, 16, tint);
+  zb_render_end(w.r);
+  const zb_frame *f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_EQUAL_size_t(2, f->text_batch_count);
+  const zb_text_vertex *v = &f->text[6]; /* the image part: x 10..42, u 0.25..0.5 */
+  TEST_ASSERT_EQUAL_FLOAT(10, v[0].x);
+  TEST_ASSERT_EQUAL_FLOAT(42, v[1].x);
+  TEST_ASSERT_EQUAL_FLOAT(0.25f, v[0].u);
+  TEST_ASSERT_EQUAL_FLOAT(0.5f, v[1].u);
+  TEST_ASSERT_EQUAL_FLOAT(0.5f, v[0].rgba[1]);
+  /* Nine-slice from a 16 x 16 cell with 6-pixel borders: corners whole, the 4-texel middle tiled. */
+  zb_render_begin(w.r, 640, 360);
+  zb_render_draw_nine(w.r, tex, 0, 0, 16, 16, 6, 6, 6, 6, 0, 0, 100, 40, tint);
+  zb_render_end(w.r);
+  f = zb_render_null_last_frame(w.backend);
+  /* columns: 6 + 22 pieces (88 / 4) + 6 = 24; rows: 6 + 7 pieces (28 / 4) + 6 = 9 */
+  TEST_ASSERT_EQUAL_size_t(24 * 9 * 6, f->text_count);
+  for (size_t q = 0; q < f->text_count; q += 6) {
+    float qw = f->text[q + 1].x - f->text[q].x;
+    float du = (f->text[q + 1].u - f->text[q].u) * 64.0f;
+    TEST_ASSERT_FLOAT_WITHIN(1e-3f, qw, du); /* never stretched: as many texels as pixels */
+  }
+  /* A frame smaller than its corners: the corners only, cut to fit. */
+  zb_render_begin(w.r, 640, 360);
+  zb_render_draw_nine(w.r, tex, 0, 0, 16, 16, 6, 6, 6, 6, 0, 0, 9, 9, tint);
+  zb_render_draw_nine(w.r, tex, 0, 0, 0, 0, 2, 2, 2, 2, 20, 0, 9, 9, tint); /* the whole texture */
+  zb_render_draw_nine(w.r, tex, 0, 0, 16, 16, 6, 6, 6, 6, 0, 0, 0, 9, tint);  /* empty */
+  zb_render_draw_nine(w.r, 999, 0, 0, 16, 16, 6, 6, 6, 6, 0, 0, 9, 9, tint); /* no such texture */
+  zb_render_end(w.r);
+  TEST_ASSERT_EQUAL_size_t(4 * 6 + 9 * 6, ui_vertex_count(&w));
+  free_world(&w);
+}
+
+/* spec: ui-drawing: A scrolled list */
+static void test_ui_clipping(void) {
+  world w = make_world();
+  static const float white[4] = {1, 1, 1, 1};
+  zb_render_begin(w.r, 640, 360);
+  TEST_ASSERT_TRUE(zb_render_push_clip(w.r, 0, 0, 100, 50));  /* five rows of ten */
+  TEST_ASSERT_TRUE(zb_render_push_clip(w.r, 0, 0, 50, 1000)); /* the left half */
+  for (int i = 0; i < 20; ++i) {
+    zb_render_draw_quad(w.r, 0, 0, (float)i * 10, 100, 10, 0, 0, 1, 1, white);
+  }
+  zb_render_pop_clip(w.r);
+  zb_render_pop_clip(w.r);
+  zb_render_pop_clip(w.r); /* (one too many: nothing) */
+  zb_render_draw_quad(w.r, 0, 300, 300, 4, 4, 0, 0, 1, 1, white); /* unclipped again */
+  for (int i = 0; i < 20; ++i) {
+    zb_render_push_clip(w.r, 0, 0, 10, 10);
+  }
+  zb_render_end(w.r);
+  const zb_frame *f = zb_render_null_last_frame(w.backend);
+  TEST_ASSERT_EQUAL_size_t(6 * 6, f->text_count);
+  for (size_t q = 0; q < 30; q += 6) {
+    TEST_ASSERT_EQUAL_FLOAT(50, f->text[q + 1].x); /* cut at the half */
+    TEST_ASSERT_EQUAL_FLOAT(0.5f, f->text[q + 1].u);
+  }
+  /* Too deep: refused. */
+  zb_render_begin(w.r, 640, 360);
+  bool all = true;
+  for (int i = 0; i < 20; ++i) {
+    all = zb_render_push_clip(w.r, 0, 0, 10, 10) && all;
+  }
+  TEST_ASSERT_FALSE(all);
+  zb_render_end(w.r);
+  free_world(&w);
+}
+
+/* spec: ui-drawing: A painted texture */
+static void test_script_textures(void) {
+  world w = make_world();
+  unsigned char px[64 * 64 * 4];
+  memset(px, 200, sizeof px);
+  uint32_t t = zb_render_texture_from_pixels(w.r, 64, 64, px);
+  TEST_ASSERT_NOT_EQUAL(0, t);
+  int tw, th;
+  zb_render_texture_size(w.r, t, &tw, &th);
+  TEST_ASSERT_EQUAL_INT(64, tw);
+  unsigned char patch[4 * 4 * 4];
+  memset(patch, 9, sizeof patch);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_render_update_texture(w.r, t, 10, 10, 4, 4, patch));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_render_update_texture(w.r, t, 62, 10, 4, 4, patch)); /* outside */
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_render_update_texture(w.r, 999, 0, 0, 4, 4, patch));
+  uint32_t loaded = zb_render_load_texture(w.r, "sprites/sheet.png");
+  settle(&w);
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_render_update_texture(w.r, loaded, 0, 0, 4, 4, patch)); /* not a script's */
+  static const float white[4] = {1, 1, 1, 1};
+  zb_render_begin(w.r, 640, 360);
+  zb_render_draw_image(w.r, t, 0, 0, 0, 0, 0, 0, 64, 64, white);
+  zb_render_end(w.r);
+  TEST_ASSERT_EQUAL_size_t(1, zb_render_get_stats(w.r)->ui_quads);
+  zb_render_free_texture(w.r, t);
+  zb_render_free_texture(w.r, t);      /* (twice: nothing) */
+  zb_render_free_texture(w.r, loaded); /* (not a script's: nothing) */
+  zb_render_texture_size(w.r, t, &tw, &th);
+  TEST_ASSERT_EQUAL_INT(0, tw);
+  TEST_ASSERT_EQUAL_UINT32(0, zb_render_texture_from_pixels(w.r, 2048, 2048, px));
+  TEST_ASSERT_EQUAL_UINT32(0, zb_render_texture_from_pixels(w.r, 0, 4, px));
+  TEST_ASSERT_EQUAL_UINT32(0, zb_render_texture_from_pixels(w.r, 4, 4, NULL));
+  /* Kept until the renderer goes. */
+  TEST_ASSERT_NOT_EQUAL(0, zb_render_texture_from_pixels(w.r, 8, 8, px));
+  zb_layout l = zb_render_last_layout(w.r);
+  TEST_ASSERT_EQUAL_INT(640, l.internal_w);
+  free_world(&w);
+}
+
+static void test_script_texture_failures(void) {
+  /* Out of memory while copying the pixels. */
+  zb_failing_allocator fa;
+  zb_vfs *vfs = zb_vfs_create(zb_test_alloc(), zb_memfs_api(g_fs), NULL);
+  zb_render_backend *b = zb_render_null_backend(zb_test_alloc());
+  zb_render *r = zb_render_create(zb_failing_init(&fa, zb_test_alloc(), -1), vfs, b);
+  TEST_ASSERT_NOT_NULL(r);
+  unsigned char px[16 * 4];
+  memset(px, 1, sizeof px);
+  fa.budget = fa.calls; /* no more allocations: the copy fails */
+  TEST_ASSERT_EQUAL_UINT32(0, zb_render_texture_from_pixels(r, 4, 4, px));
+  fa.budget = -1;
+  zb_render_destroy(r);
+  zb_vfs_destroy(vfs);
+}
+
 static void test_utf8(void) {
   uint32_t cp;
   TEST_ASSERT_EQUAL_size_t(0, zb_utf8_decode("", &cp));
@@ -714,6 +874,10 @@ int main(void) {
   RUN_TEST(test_missing_texture_placeholder);
   RUN_TEST(test_sprites);
   RUN_TEST(test_text_and_glyphs);
+  RUN_TEST(test_ui_quads_and_frames);
+  RUN_TEST(test_ui_clipping);
+  RUN_TEST(test_script_textures);
+  RUN_TEST(test_script_texture_failures);
   RUN_TEST(test_utf8);
   RUN_TEST(test_images);
   RUN_TEST(test_gltf_variants);

@@ -10,6 +10,7 @@ local hud = require("demo.hud")
 local touch = require("demo.touch")
 local carpet = require("flight.carpet")
 local camera = require("flight.camera")
+local layout = require("ui.layout")
 local controls = require("flight.controls")
 local flight_hud = require("flight.hud")
 local spawn = require("flight.spawn")
@@ -1518,6 +1519,8 @@ engine.on("frame", function()
   else
     showcase_frame()
   end
+  if game.ui_overlay then game.ui_overlay() end -- (drawn over everything; scenarios and tools set it)
+  layout.commit() -- the boxes the UI held this frame, against the touch controls
 end)
 
 -- The simulation state that replays and the determinism checks hash.

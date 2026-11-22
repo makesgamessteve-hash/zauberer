@@ -97,6 +97,11 @@ struct zb_input {
   bool any_touch_seen;
   uint8_t player;
   char captured[48];  /* the binding of the last key or button pressed (for remapping) */
+  zb_pointer pointer;
+  uint64_t pointer_finger; /* the touch the pointer follows */
+  bool pointer_finger_down;
+  float claims[ZB_INPUT_MAX_CLAIMS][4];
+  size_t nclaims;
   const char *device; /* the device used last: "desktop", "gamepad" or "touch" */
 };
 
@@ -506,6 +511,19 @@ static void touch_down(zb_input *in, const zb_event *ev) {
   slot->x = ev->u.touch.x;
   slot->y = ev->u.touch.y;
   slot->control = -1;
+  if (!in->pointer_finger_down) { /* the pointer follows this touch */
+    in->pointer_finger = slot->finger;
+    in->pointer_finger_down = true;
+    in->pointer.x = slot->x;
+    in->pointer.y = slot->y;
+    in->pointer.held = in->pointer.pressed = in->pointer.touch = in->pointer.seen = true;
+  }
+  for (size_t i = 0; i < in->nclaims; ++i) { /* held by the UI */
+    const float *c = in->claims[i];
+    if (slot->x >= c[0] && slot->x < c[0] + c[2] && slot->y >= c[1] && slot->y < c[1] + c[3]) {
+      return;
+    }
+  }
   for (size_t i = 0; i < in->ncontrols; ++i) {
     control *c = &in->controls[i];
     if (!c->held && in_control(c, slot->x, slot->y)) {
@@ -545,14 +563,28 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
           snprintf(in->captured, sizeof in->captured, "mouse:%s", zb_mouse_button_name(ev->u.mouse_button.button));
         }
         press(&in->mouse[ev->u.mouse_button.button], ev->u.mouse_button.down);
+        if (ev->u.mouse_button.button == ZB_MOUSE_LEFT) {
+          in->pointer.x = ev->u.mouse_button.nx;
+          in->pointer.y = ev->u.mouse_button.ny;
+          in->pointer.held = ev->u.mouse_button.down;
+          in->pointer.pressed = in->pointer.pressed || ev->u.mouse_button.down;
+          in->pointer.released = in->pointer.released || !ev->u.mouse_button.down;
+          in->pointer.touch = false;
+          in->pointer.seen = true;
+        }
         desktop_input(in, ev->time_ns);
         in->device = "desktop";
       }
       break;
+    case ZB_EV_MOUSE_WHEEL: in->pointer.wheel += ev->u.wheel.dy; break;
     case ZB_EV_MOUSE_MOTION:
       if (!ev->u.mouse_motion.synthetic) {
         in->mouse_dx += ev->u.mouse_motion.dx;
         in->mouse_dy += ev->u.mouse_motion.dy;
+        in->pointer.x = ev->u.mouse_motion.nx;
+        in->pointer.y = ev->u.mouse_motion.ny;
+        in->pointer.touch = false;
+        in->pointer.seen = true;
         if (ev->u.mouse_motion.dx != 0.0f || ev->u.mouse_motion.dy != 0.0f) {
           desktop_input(in, ev->time_ns);
         }
@@ -609,6 +641,15 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
       }
       t->x = ev->u.touch.x;
       t->y = ev->u.touch.y;
+      if (in->pointer_finger_down && t->finger == in->pointer_finger) {
+        in->pointer.x = t->x;
+        in->pointer.y = t->y;
+        if (ev->type == ZB_EV_TOUCH_UP) {
+          in->pointer.held = false;
+          in->pointer.released = true;
+          in->pointer_finger_down = false;
+        }
+      }
       update_control(in, t);
       if (ev->type == ZB_EV_TOUCH_UP) {
         if (t->control >= 0) {
@@ -785,6 +826,20 @@ void zb_input_sample(zb_input *in, uint64_t now_ns) {
   }
   in->mouse_dx = 0.0f;
   in->mouse_dy = 0.0f;
+  in->pointer.pressed = in->pointer.released = false;
+  in->pointer.wheel = 0.0f;
+}
+
+void zb_input_pointer(const zb_input *in, zb_pointer *out) { *out = in->pointer; }
+
+void zb_input_set_claims(zb_input *in, const float *rects, size_t count) {
+  if (count > ZB_INPUT_MAX_CLAIMS) {
+    count = ZB_INPUT_MAX_CLAIMS;
+  }
+  if (count) {
+    memcpy(in->claims, rects, count * 4 * sizeof(float));
+  }
+  in->nclaims = count;
 }
 
 const zb_action_state *zb_input_state(const zb_input *in, int action_id) {

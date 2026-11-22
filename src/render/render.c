@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ZB_RENDER_MAX_CLIPS 16
+
 typedef enum asset_kind { ASSET_TEXTURE, ASSET_MODEL, ASSET_SPRITE, ASSET_FONT } asset_kind;
 
 typedef struct model_part {
@@ -45,6 +47,8 @@ typedef struct asset {
   size_t glyph_count;
   uint32_t replacement;
   float advance;
+  /* texture made from pixels by a script: its pixels, kept for updates */
+  unsigned char *pixels;
 } asset;
 
 struct zb_render {
@@ -86,6 +90,8 @@ struct zb_render {
   zb_array items; /* zb_draw_item */
   zb_array text;  /* zb_text_vertex */
   zb_array text_batches;
+  float clips[ZB_RENDER_MAX_CLIPS][4]; /* x0, y0, x1, y1 */
+  int clip_depth;
   zb_render_stats stats;
   bool in_frame;
 };
@@ -152,6 +158,8 @@ static void asset_release(zb_render *r, asset *as) {
   }
   zb_free(r->a, as->load_box);
   as->load_box = NULL;
+  zb_free(r->a, as->pixels);
+  as->pixels = NULL;
   if (as->tex && as->tex != r->checker_tex) {
     r->backend->destroy_texture(r->backend->ctx, as->tex);
   }
@@ -882,6 +890,7 @@ void zb_render_begin(zb_render *r, int drawable_w, int drawable_h) {
   zb_array_clear(&r->items);
   zb_array_clear(&r->text);
   zb_array_clear(&r->text_batches);
+  r->clip_depth = 0;
   memset(&r->frame, 0, sizeof r->frame);
   if (r->target_w > 0) {
     drawable_w = r->target_w;
@@ -1043,6 +1052,266 @@ void zb_render_draw_sprite(zb_render *r, uint32_t sprite, zb_vec3 position, floa
   }
 }
 
+/* ---- The UI layer --------------------------------------------------------------- */
+
+/* Appends a quad (clipped) to the UI vertices, joining the batch before it when
+ * it has the same texture and ends where this begins. */
+static void push_quad(zb_render *r, uint32_t tex, float x0, float y0, float x1, float y1, float u0, float v0, float u1,
+                      float v1, const float rgba[4]) {
+  if (!r->in_frame || x1 <= x0 || y1 <= y0) {
+    return;
+  }
+  if (r->clip_depth > 0) {
+    const float *c = r->clips[r->clip_depth - 1];
+    float w = x1 - x0, h = y1 - y0;
+    float cx0 = x0 < c[0] ? c[0] : x0, cy0 = y0 < c[1] ? c[1] : y0;
+    float cx1 = x1 > c[2] ? c[2] : x1, cy1 = y1 > c[3] ? c[3] : y1;
+    if (cx1 <= cx0 || cy1 <= cy0) {
+      return;
+    }
+    float du = u1 - u0, dv = v1 - v0;
+    float nu0 = u0 + du * (cx0 - x0) / w, nu1 = u0 + du * (cx1 - x0) / w;
+    float nv0 = v0 + dv * (cy0 - y0) / h, nv1 = v0 + dv * (cy1 - y0) / h;
+    x0 = cx0, y0 = cy0, x1 = cx1, y1 = cy1, u0 = nu0, u1 = nu1, v0 = nv0, v1 = nv1;
+  }
+  zb_text_vertex q[4] = {
+      {x0, y0, u0, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+      {x1, y0, u1, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+      {x1, y1, u1, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+      {x0, y1, u0, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
+  };
+  static const int order[6] = {0, 1, 2, 0, 2, 3};
+  uint32_t first = (uint32_t)r->text.len;
+  for (int k = 0; k < 6; ++k) {
+    if (!zb_array_push(&r->text, &q[order[k]])) {
+      r->text.len = first;
+      return;
+    }
+  }
+  zb_text_batch *last = r->text_batches.len ? zb_array_at(&r->text_batches, r->text_batches.len - 1) : NULL;
+  if (last && last->texture == tex && last->first + last->count == first) {
+    last->count += 6;
+  } else {
+    zb_text_batch batch = {tex, first, 6};
+    if (!zb_array_push(&r->text_batches, &batch)) {
+      r->text.len = first;
+      return;
+    }
+  }
+  r->stats.ui_quads++;
+}
+
+/* Backend texture and size of a texture asset for the UI (0: white). */
+static uint32_t ui_texture(const zb_render *r, uint32_t texture, int *w, int *h) {
+  if (texture == 0) {
+    *w = *h = 1;
+    return r->white_tex;
+  }
+  const asset *as = asset_at(r, texture);
+  if (!as || as->kind != ASSET_TEXTURE || as->state != ZB_ASSET_READY || as->width <= 0) {
+    return 0;
+  }
+  *w = as->width;
+  *h = as->height;
+  return as->tex;
+}
+
+void zb_render_draw_quad(zb_render *r, uint32_t texture, float x, float y, float w, float h, float u0, float v0, float u1,
+                         float v1, const float rgba[4]) {
+  int tw, th;
+  uint32_t tex = ui_texture(r, texture, &tw, &th);
+  if (tex) {
+    push_quad(r, tex, x, y, x + w, y + h, u0, v0, u1, v1, rgba);
+  }
+}
+
+void zb_render_draw_image(zb_render *r, uint32_t texture, float sx, float sy, float sw, float sh, float x, float y,
+                          float w, float h, const float rgba[4]) {
+  int tw, th;
+  uint32_t tex = ui_texture(r, texture, &tw, &th);
+  if (!tex) {
+    return;
+  }
+  if (sw <= 0 || sh <= 0) {
+    sx = sy = 0;
+    sw = (float)tw;
+    sh = (float)th;
+  }
+  float fw = (float)tw, fh = (float)th;
+  push_quad(r, tex, x, y, x + w, y + h, sx / fw, sy / fh, (sx + sw) / fw, (sy + sh) / fh, rgba);
+}
+
+/* Tiles the texel span [s, s + len) along [at, at + size): whole repeats, the last one cut. */
+static void tile_span(float s, float len, float at, float size, float *pieces, int max, int *n) {
+  *n = 0;
+  if (len <= 0 || size <= 0) {
+    return;
+  }
+  for (float done = 0; done < size && *n < max; done += len) {
+    float piece = size - done < len ? size - done : len;
+    pieces[*n * 4 + 0] = at + done;   /* where */
+    pieces[*n * 4 + 1] = piece;       /* how long */
+    pieces[*n * 4 + 2] = s;           /* texel start */
+    pieces[*n * 4 + 3] = s + piece;   /* texel end */
+    (*n)++;
+  }
+}
+
+void zb_render_draw_nine(zb_render *r, uint32_t texture, float sx, float sy, float sw, float sh, int l, int t, int rt,
+                         int b, float x, float y, float w, float h, const float rgba[4]) {
+  int tw, th;
+  uint32_t tex = ui_texture(r, texture, &tw, &th);
+  if (!tex || w <= 0 || h <= 0) {
+    return;
+  }
+  if (sw <= 0 || sh <= 0) {
+    sx = sy = 0;
+    sw = (float)tw;
+    sh = (float)th;
+  }
+  /* Too small for the corners: the corners only, cut to fit. */
+  float cl = (float)l, ct = (float)t, cr = (float)rt, cb = (float)b;
+  if (cl + cr > w) {
+    cl = w * cl / (cl + cr);
+    cr = w - cl;
+  }
+  if (ct + cb > h) {
+    ct = h * ct / (ct + cb);
+    cb = h - ct;
+  }
+  /* Columns and rows: the left/top border, the tiled middle, the right/bottom border. */
+  enum { MAX_TILES = 256 };
+  float cols[MAX_TILES * 4], rows[MAX_TILES * 4];
+  int nc = 0, nr = 0;
+  cols[0] = x, cols[1] = cl, cols[2] = sx, cols[3] = sx + cl;
+  nc = cl > 0 ? 1 : 0;
+  int mid = 0;
+  tile_span(sx + (float)l, sw - (float)l - (float)rt, x + cl, w - cl - cr, cols + nc * 4, MAX_TILES - 2, &mid);
+  nc += mid;
+  if (cr > 0) {
+    float *c = cols + nc * 4;
+    c[0] = x + w - cr, c[1] = cr, c[2] = sx + sw - cr, c[3] = sx + sw;
+    nc++;
+  }
+  rows[0] = y, rows[1] = ct, rows[2] = sy, rows[3] = sy + ct;
+  nr = ct > 0 ? 1 : 0;
+  tile_span(sy + (float)t, sh - (float)t - (float)b, y + ct, h - ct - cb, rows + nr * 4, MAX_TILES - 2, &mid);
+  nr += mid;
+  if (cb > 0) {
+    float *c = rows + nr * 4;
+    c[0] = y + h - cb, c[1] = cb, c[2] = sy + sh - cb, c[3] = sy + sh;
+    nr++;
+  }
+  for (int j = 0; j < nr; ++j) {
+    const float *rw = rows + j * 4;
+    for (int i = 0; i < nc; ++i) {
+      const float *cl4 = cols + i * 4;
+      push_quad(r, tex, cl4[0], rw[0], cl4[0] + cl4[1], rw[0] + rw[1], cl4[2] / (float)tw, rw[2] / (float)th,
+                cl4[3] / (float)tw, rw[3] / (float)th, rgba);
+    }
+  }
+}
+
+bool zb_render_push_clip(zb_render *r, float x, float y, float w, float h) {
+  if (r->clip_depth >= ZB_RENDER_MAX_CLIPS) {
+    return false;
+  }
+  float c[4] = {x, y, x + w, y + h};
+  if (r->clip_depth > 0) {
+    const float *p = r->clips[r->clip_depth - 1];
+    c[0] = c[0] < p[0] ? p[0] : c[0];
+    c[1] = c[1] < p[1] ? p[1] : c[1];
+    c[2] = c[2] > p[2] ? p[2] : c[2];
+    c[3] = c[3] > p[3] ? p[3] : c[3];
+  }
+  memcpy(r->clips[r->clip_depth++], c, sizeof c);
+  return true;
+}
+
+void zb_render_pop_clip(zb_render *r) {
+  if (r->clip_depth > 0) {
+    r->clip_depth--;
+  }
+}
+
+uint32_t zb_render_texture_from_pixels(zb_render *r, int w, int h, const unsigned char *rgba) {
+  if (w <= 0 || h <= 0 || w > ZB_RENDER_MAX_SCRIPT_TEXTURE || h > ZB_RENDER_MAX_SCRIPT_TEXTURE || !rgba) {
+    return 0;
+  }
+  size_t bytes = (size_t)w * (size_t)h * 4;
+  unsigned char *copy = zb_alloc(r->a, bytes);
+  if (!copy) {
+    return 0;
+  }
+  memcpy(copy, rgba, bytes);
+  zb_image img = {w, h, copy};
+  uint32_t tex = r->backend->create_texture(r->backend->ctx, &img);
+  if (!tex) {
+    zb_free(r->a, copy);
+    return 0;
+  }
+  asset as;
+  memset(&as, 0, sizeof as);
+  as.kind = ASSET_TEXTURE;
+  as.state = ZB_ASSET_READY;
+  as.tex = tex;
+  as.width = w;
+  as.height = h;
+  as.pixels = copy;
+  if (!zb_array_push(&r->assets, &as)) {
+    r->backend->destroy_texture(r->backend->ctx, tex);
+    zb_free(r->a, copy);
+    return 0;
+  }
+  return (uint32_t)r->assets.len;
+}
+
+zb_result zb_render_update_texture(zb_render *r, uint32_t texture, int x, int y, int w, int h,
+                                   const unsigned char *rgba) {
+  asset *as = asset_at(r, texture);
+  if (!as || !as->pixels || !rgba) {
+    return ZB_ERR_INVALID;
+  }
+  if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > as->width || y + h > as->height) {
+    return ZB_ERR_INVALID;
+  }
+  for (int row = 0; row < h; ++row) {
+    memcpy(as->pixels + ((size_t)(y + row) * (size_t)as->width + (size_t)x) * 4, rgba + (size_t)row * (size_t)w * 4,
+           (size_t)w * 4);
+  }
+  zb_image img = {as->width, as->height, as->pixels};
+  uint32_t tex = r->backend->create_texture(r->backend->ctx, &img);
+  if (!tex) {
+    return ZB_ERR_NOMEM;
+  }
+  r->backend->destroy_texture(r->backend->ctx, as->tex);
+  as->tex = tex;
+  return ZB_OK;
+}
+
+void zb_render_free_texture(zb_render *r, uint32_t texture) {
+  asset *as = asset_at(r, texture);
+  if (!as || !as->pixels) {
+    return;
+  }
+  r->backend->destroy_texture(r->backend->ctx, as->tex);
+  zb_free(r->a, as->pixels);
+  as->pixels = NULL;
+  as->tex = 0;
+  as->state = ZB_ASSET_FAILED;
+}
+
+zb_layout zb_render_last_layout(const zb_render *r) { return r->frame.layout; }
+
+void zb_render_texture_size(const zb_render *r, uint32_t texture, int *w, int *h) {
+  *w = *h = 0;
+  const asset *as = asset_at(r, texture);
+  if (as && as->kind == ASSET_TEXTURE && as->state == ZB_ASSET_READY) {
+    *w = as->width;
+    *h = as->height;
+  }
+}
+
 void zb_render_draw_text(zb_render *r, uint32_t font, const char *utf8, float x, float y, float scale,
                          const float rgba[4]) {
   const asset *f = asset_at(r, font);
@@ -1055,7 +1324,6 @@ void zb_render_draw_text(zb_render *r, uint32_t font, const char *utf8, float x,
   }
   uint32_t glyphs[512];
   size_t n = zb_render_text_glyphs(r, font, utf8, glyphs, ZB_ARRAY_LEN(glyphs));
-  zb_text_batch batch = {tex->tex, (uint32_t)r->text.len, 0};
   float pen = x;
   float gw = (float)f->glyph_w * scale, gh = (float)f->glyph_h * scale;
   for (size_t i = 0; i < n; ++i) {
@@ -1064,24 +1332,9 @@ void zb_render_draw_text(zb_render *r, uint32_t font, const char *utf8, float x,
     float v0 = (float)(row * f->glyph_h) / (float)tex->height;
     float u1 = u0 + (float)f->glyph_w / (float)tex->width;
     float v1 = v0 + (float)f->glyph_h / (float)tex->height;
-    zb_text_vertex q[4] = {
-        {pen, y, u0, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
-        {pen + gw, y, u1, v0, {rgba[0], rgba[1], rgba[2], rgba[3]}},
-        {pen + gw, y + gh, u1, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
-        {pen, y + gh, u0, v1, {rgba[0], rgba[1], rgba[2], rgba[3]}},
-    };
-    static const int order[6] = {0, 1, 2, 0, 2, 3};
-    for (int k = 0; k < 6; ++k) {
-      if (!zb_array_push(&r->text, &q[order[k]])) {
-        return;
-      }
-    }
-    batch.count += 6;
+    push_quad(r, tex->tex, pen, y, pen + gw, y + gh, u0, v0, u1, v1, rgba);
     pen += f->advance * scale;
     r->stats.text_glyphs++;
-  }
-  if (batch.count) {
-    zb_array_push(&r->text_batches, &batch);
   }
 }
 
@@ -1103,6 +1356,7 @@ void zb_render_end(zb_render *r) {
   r->frame.text_count = r->text.len;
   r->frame.text_batches = (const zb_text_batch *)r->text_batches.data;
   r->frame.text_batch_count = r->text_batches.len;
+  r->stats.ui_batches = r->text_batches.len;
   /* The look as set by the end of the frame (scripts change it in frame hooks). */
   r->frame.atmosphere = r->atmosphere;
   r->frame.lut_texture = ready_texture(r, r->lut_asset);

@@ -134,6 +134,10 @@ Current bindings of an action.
 
 The binding ("key:x", "mouse:left", "gamepad:a") of the last key or button pressed since the previous call, for remapping controls (pass it to input.set_user_binding); nil when nothing was pressed.
 
+### `input.claim(rects: number[][])`
+
+The rectangles ({ x, y, w, h } normalized) the UI holds: a touch beginning inside one is not given to the on-screen sticks and buttons. Replaces the claims before.
+
 ### `input.clear(action: string)`
 
 Removes all bindings of an action.
@@ -150,9 +154,17 @@ The device used last (keyboard and mouse, a gamepad or touch), for prompts that 
 
 Test API: overrides an action's value for the next ticks (default 1, 0, 1).
 
+### `input.inject_pointer(x: number, y: number, down?: boolean, touch?: boolean)`
+
+Feeds the pointer as if the mouse moved to (x, y) (normalized) and its left button went down or up, or, with touch, as if a finger touched, moved or let go there (for tests).
+
 ### `input.mode(): "desktop"|"touch"`
 
 The current input mode.
+
+### `input.pointer(): Pointer`
+
+The pointer (the mouse, or the touch that points): x and y normalized 0..1 of the window (origin top-left), held, pressed and released (since the last tick), the wheel's steps, and whether it was a touch.
 
 ### `input.rumble(strength: number, seconds: number): integer`
 
@@ -200,13 +212,17 @@ Draws a model this frame (call from a frame hook).
 
 Draws a camera-facing sprite; the animation frame follows time (default: the pinned render time if pinned, else simulation time).
 
-### `render.draw_text(font: integer, text: string, x: number, y: number, scale?: number, color?: number[])`
+### `render.draw_text(font: integer, text: string, x: number, y: number, scale?: number, color?: number[], shadow?: number[])`
 
-Draws UTF-8 text in internal pixels (origin top-left); missing characters use the replacement glyph.
+Draws UTF-8 text in internal pixels (origin top-left) with an optional one-pixel shadow colour; missing characters use the replacement glyph.
 
 ### `render.font(path: string): integer`
 
 Starts loading a bitmap-font descriptor.
+
+### `render.free_texture(texture: integer)`
+
+Frees a texture made from pixels.
 
 ### `render.internal_height(height?: integer): integer`
 
@@ -259,6 +275,42 @@ Glyph indices the font uses for text.
 ### `render.texture(path: string): integer`
 
 Starts loading a PNG texture; returns its handle.
+
+### `render.texture_from_pixels(w: integer, h: integer, rgba: string): integer`
+
+A texture made from w * h RGBA8 pixels (rows top to bottom), at most 1024 x 1024.
+
+### `render.texture_size(texture: integer): integer, integer`
+
+The size of a loaded texture in texels (0, 0 while it loads or when it failed).
+
+### `render.ui_clip(x: number, y: number, w: number, h: number): boolean`
+
+Clips later UI drawing to the rectangle, within the clip before it; false when nested too deep.
+
+### `render.ui_grid(): UiGrid`
+
+The UI grid (the internal framebuffer) of the last frame: its width and height in pixels and where it lies in the window (x, y, w, h normalised, origin top-left).
+
+### `render.ui_image(texture: integer, x: number, y: number, opts?: UiImageOptions)`
+
+A texture, or its region opts.src = { x, y, w, h } in texels, on the UI grid at opts.w by opts.h (default: the region's size times opts.scale), tinted by opts.color.
+
+### `render.ui_nine(texture: integer, x: number, y: number, w: number, h: number, opts: UiNineOptions)`
+
+A nine-slice frame on the UI grid from the texture's region opts.src (default: all of it) with border widths opts.border = { left, top, right, bottom }: corners whole, edges and middle tiled.
+
+### `render.ui_rect(x: number, y: number, w: number, h: number, color?: number[])`
+
+A filled rectangle on the UI grid.
+
+### `render.ui_unclip()`
+
+Releases the last clip.
+
+### `render.update_texture(texture: integer, x: integer, y: integer, w: integer, h: integer, rgba: string)`
+
+Replaces a region of a texture made from pixels.
 
 ### `render.vignette(strength: number|false): number`
 

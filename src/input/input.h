@@ -85,6 +85,21 @@ int zb_input_add_button(zb_input *in, const char *name, float x, float y, float 
 /* Test and replay injection: overrides an action's value for n ticks. */
 void zb_input_inject(zb_input *in, int action, float x, float y, unsigned ticks);
 
+/* The pointer: the mouse, or the touch that began while no other touch pointed (normalized
+ * 0..1 of the window, origin top-left). pressed and released hold until the next sample. */
+typedef struct zb_pointer {
+  float x, y;
+  bool held, pressed, released;
+  float wheel; /* wheel steps since the last sample (up positive) */
+  bool touch;  /* the last pointing was a touch */
+  bool seen;   /* the pointer has been somewhere */
+} zb_pointer;
+void zb_input_pointer(const zb_input *in, zb_pointer *out);
+#define ZB_INPUT_MAX_CLAIMS 32
+/* Rectangles (x, y, w, h normalized) the UI holds: a touch beginning inside one is not given to
+ * the on-screen sticks and buttons. Replaces the claims before. */
+void zb_input_set_claims(zb_input *in, const float *rects, size_t count);
+
 /* ---- Recording ------------------------------------------------------------- */
 
 typedef struct zb_input_recorder zb_input_recorder;

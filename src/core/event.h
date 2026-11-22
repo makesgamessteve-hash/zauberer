@@ -42,10 +42,12 @@ typedef struct zb_event {
       uint8_t button;
       bool down;
       float x, y;
+      float nx, ny; /* normalized 0..1 of the window */
       bool synthetic;
     } mouse_button;
     struct {
       float x, y, dx, dy;
+      float nx, ny; /* normalized 0..1 of the window */
       bool synthetic;
     } mouse_motion;
     struct {

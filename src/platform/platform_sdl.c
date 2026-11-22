@@ -558,6 +558,16 @@ static float axis_value(Sint16 v) {
   return f < -1.0f ? -1.0f : f;
 }
 
+/* A mouse position in window units as 0..1 of the window (as touches come). */
+static void normalize_mouse(const zb_platform *p, float x, float y, float *nx, float *ny) {
+  int w = 0, h = 0;
+  if (p && p->window) {
+    SDL_GetWindowSize(p->window, &w, &h);
+  }
+  *nx = w > 0 ? x / (float)w : 0.0f;
+  *ny = h > 0 ? y / (float)h : 0.0f;
+}
+
 bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *out) {
   const SDL_Event *e = native;
   memset(out, 0, sizeof(*out));
@@ -584,6 +594,7 @@ bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *o
       out->u.mouse_button.down = e->type == SDL_EVENT_MOUSE_BUTTON_DOWN;
       out->u.mouse_button.x = e->button.x;
       out->u.mouse_button.y = e->button.y;
+      normalize_mouse(p, e->button.x, e->button.y, &out->u.mouse_button.nx, &out->u.mouse_button.ny);
       out->u.mouse_button.synthetic = e->button.which == SDL_TOUCH_MOUSEID || e->button.which == SDL_PEN_MOUSEID;
       return true;
     case SDL_EVENT_MOUSE_MOTION:
@@ -592,6 +603,7 @@ bool zb_platform_translate_event(zb_platform *p, const void *native, zb_event *o
       out->u.mouse_motion.y = e->motion.y;
       out->u.mouse_motion.dx = e->motion.xrel;
       out->u.mouse_motion.dy = e->motion.yrel;
+      normalize_mouse(p, e->motion.x, e->motion.y, &out->u.mouse_motion.nx, &out->u.mouse_motion.ny);
       out->u.mouse_motion.synthetic = e->motion.which == SDL_TOUCH_MOUSEID || e->motion.which == SDL_PEN_MOUSEID;
       return true;
     case SDL_EVENT_MOUSE_WHEEL:

@@ -2,6 +2,8 @@
 /* Lua bindings: engine, vfs, input, render, audio, save (world: script_world.c). */
 #include "script/script_internal.h"
 
+#include "core/event.h"
+#include "core/keys.h"
 #include "core/log.h"
 #include "core/luon.h"
 #include "core/version.h"
@@ -942,6 +944,100 @@ static int i_inject(lua_State *L) {
   return 0;
 }
 
+/* @lua input.pointer(): Pointer
+ * The pointer (the mouse, or the touch that points): x and y normalized 0..1 of the window
+ * (origin top-left), held, pressed and released (since the last tick), the wheel's steps, and
+ * whether it was a touch.
+ */
+static int i_pointer(lua_State *L) {
+  zb_pointer p;
+  zb_input_pointer(S(L)->cfg.input, &p);
+  lua_createtable(L, 0, 8);
+  lua_pushnumber(L, p.x);
+  lua_setfield(L, -2, "x");
+  lua_pushnumber(L, p.y);
+  lua_setfield(L, -2, "y");
+  lua_pushboolean(L, p.held);
+  lua_setfield(L, -2, "held");
+  lua_pushboolean(L, p.pressed);
+  lua_setfield(L, -2, "pressed");
+  lua_pushboolean(L, p.released);
+  lua_setfield(L, -2, "released");
+  lua_pushnumber(L, p.wheel);
+  lua_setfield(L, -2, "wheel");
+  lua_pushboolean(L, p.touch);
+  lua_setfield(L, -2, "touch");
+  lua_pushboolean(L, p.seen);
+  lua_setfield(L, -2, "seen");
+  return 1;
+}
+
+/* @lua input.claim(rects: number[][])
+ * The rectangles ({ x, y, w, h } normalized) the UI holds: a touch beginning inside one is not
+ * given to the on-screen sticks and buttons. Replaces the claims before.
+ */
+static int i_claim(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  float rects[ZB_INPUT_MAX_CLAIMS * 4];
+  size_t n = 0;
+  lua_Integer len = luaL_len(L, 1);
+  for (lua_Integer i = 1; i <= len && n < ZB_INPUT_MAX_CLAIMS; ++i) {
+    lua_rawgeti(L, 1, i);
+    if (lua_istable(L, -1)) {
+      for (int k = 0; k < 4; ++k) {
+        lua_rawgeti(L, -1, k + 1);
+        rects[n * 4 + (size_t)k] = (float)luaL_optnumber(L, -1, 0.0);
+        lua_pop(L, 1);
+      }
+      n++;
+    }
+    lua_pop(L, 1);
+  }
+  zb_input_set_claims(S(L)->cfg.input, rects, n);
+  return 0;
+}
+
+/* @lua input.inject_pointer(x: number, y: number, down?: boolean, touch?: boolean)
+ * Feeds the pointer as if the mouse moved to (x, y) (normalized) and its left button went down or
+ * up, or, with touch, as if a finger touched, moved or let go there (for tests).
+ */
+static int i_inject_pointer(lua_State *L) {
+  zb_input *in = S(L)->cfg.input;
+  float x = (float)luaL_checknumber(L, 1), y = (float)luaL_checknumber(L, 2);
+  bool has_down = !lua_isnoneornil(L, 3);
+  bool down = lua_toboolean(L, 3);
+  bool touch = lua_toboolean(L, 4);
+  zb_event ev;
+  memset(&ev, 0, sizeof ev);
+  if (touch) {
+    zb_pointer p;
+    zb_input_pointer(in, &p);
+    ev.type = has_down ? (down ? ZB_EV_TOUCH_DOWN : ZB_EV_TOUCH_UP) : ZB_EV_TOUCH_MOTION;
+    if (has_down && down && p.held && p.touch) {
+      ev.type = ZB_EV_TOUCH_MOTION;
+    }
+    ev.u.touch.finger = 77;
+    ev.u.touch.x = x;
+    ev.u.touch.y = y;
+    zb_input_handle_event(in, &ev);
+    return 0;
+  }
+  ev.type = ZB_EV_MOUSE_MOTION;
+  ev.u.mouse_motion.nx = x;
+  ev.u.mouse_motion.ny = y;
+  zb_input_handle_event(in, &ev);
+  if (has_down) {
+    memset(&ev, 0, sizeof ev);
+    ev.type = ZB_EV_MOUSE_BUTTON;
+    ev.u.mouse_button.button = ZB_MOUSE_LEFT;
+    ev.u.mouse_button.down = down;
+    ev.u.mouse_button.nx = x;
+    ev.u.mouse_button.ny = y;
+    zb_input_handle_event(in, &ev);
+  }
+  return 0;
+}
+
 /* ---- render ----------------------------------------------------------------------- */
 
 static int r_load(lua_State *L, uint32_t (*fn)(zb_render *, const char *)) {
@@ -1212,8 +1308,49 @@ static int r_draw_sprite(lua_State *L) {
   return 0;
 }
 
-/* @lua render.draw_text(font: integer, text: string, x: number, y: number, scale?: number, color?: number[])
- * Draws UTF-8 text in internal pixels (origin top-left); missing characters use the replacement glyph.
+/* Reads rgba from the table at idx (missing: def). */
+static void rgba_at(lua_State *L, int idx, float out[4], float def) {
+  for (int i = 0; i < 4; ++i) {
+    out[i] = def;
+  }
+  if (lua_istable(L, idx)) {
+    for (int i = 0; i < 4; ++i) {
+      lua_rawgeti(L, idx, i + 1);
+      out[i] = (float)luaL_optnumber(L, -1, def);
+      lua_pop(L, 1);
+    }
+  }
+}
+
+/* Reads up to n numbers of field name of the table at idx into out; true when present. */
+static bool numbers_field(lua_State *L, int idx, const char *name, float *out, int n) {
+  if (!lua_istable(L, idx)) {
+    return false;
+  }
+  lua_getfield(L, idx, name);
+  bool ok = lua_istable(L, -1);
+  for (int i = 0; ok && i < n; ++i) {
+    lua_rawgeti(L, -1, i + 1);
+    out[i] = (float)luaL_optnumber(L, -1, out[i]);
+    lua_pop(L, 1);
+  }
+  lua_pop(L, 1);
+  return ok;
+}
+
+static float number_field(lua_State *L, int idx, const char *name, float def) {
+  if (!lua_istable(L, idx)) {
+    return def;
+  }
+  lua_getfield(L, idx, name);
+  float v = (float)luaL_optnumber(L, -1, def);
+  lua_pop(L, 1);
+  return v;
+}
+
+/* @lua render.draw_text(font: integer, text: string, x: number, y: number, scale?: number, color?: number[], shadow?: number[])
+ * Draws UTF-8 text in internal pixels (origin top-left) with an optional one-pixel shadow
+ * colour; missing characters use the replacement glyph.
  */
 static int r_draw_text(lua_State *L) {
   zb_script *s = S(L);
@@ -1221,15 +1358,179 @@ static int r_draw_text(lua_State *L) {
   const char *text = luaL_checkstring(L, 2);
   float x = (float)luaL_checknumber(L, 3), y = (float)luaL_checknumber(L, 4);
   float scale = (float)luaL_optnumber(L, 5, 1.0);
-  float rgba[4] = {1, 1, 1, 1};
-  if (lua_istable(L, 6)) {
-    for (int i = 0; i < 4; ++i) {
-      lua_rawgeti(L, 6, i + 1);
-      rgba[i] = (float)luaL_optnumber(L, -1, 1.0);
-      lua_pop(L, 1);
-    }
+  float rgba[4];
+  rgba_at(L, 6, rgba, 1.0f);
+  if (lua_istable(L, 7)) {
+    float shadow[4];
+    rgba_at(L, 7, shadow, 0.0f);
+    zb_render_draw_text(s->cfg.render, font, text, x + scale, y + scale, scale, shadow);
   }
   zb_render_draw_text(s->cfg.render, font, text, x, y, scale, rgba);
+  return 0;
+}
+
+/* @lua render.ui_grid(): UiGrid
+ * The UI grid (the internal framebuffer) of the last frame: its width and height in pixels and
+ * where it lies in the window (x, y, w, h normalised, origin top-left).
+ */
+static int r_ui_grid(lua_State *L) {
+  zb_layout l = zb_render_last_layout(S(L)->cfg.render);
+  int iw = l.internal_w > 0 ? l.internal_w : 640, ih = l.internal_h > 0 ? l.internal_h : 360;
+  lua_createtable(L, 0, 6);
+  lua_pushinteger(L, iw);
+  lua_setfield(L, -2, "width");
+  lua_pushinteger(L, ih);
+  lua_setfield(L, -2, "height");
+  double dw = l.drawable_w > 0 ? l.drawable_w : 1, dh = l.drawable_h > 0 ? l.drawable_h : 1;
+  bool window = l.drawable_w > 0 && l.out_w > 0;
+  lua_pushnumber(L, window ? l.out_x / dw : 0.0);
+  lua_setfield(L, -2, "x");
+  lua_pushnumber(L, window ? 1.0 - (l.out_y + l.out_h) / dh : 0.0);
+  lua_setfield(L, -2, "y");
+  lua_pushnumber(L, window ? l.out_w / dw : 1.0);
+  lua_setfield(L, -2, "w");
+  lua_pushnumber(L, window ? l.out_h / dh : 1.0);
+  lua_setfield(L, -2, "h");
+  return 1;
+}
+
+/* @lua render.ui_rect(x: number, y: number, w: number, h: number, color?: number[])
+ * A filled rectangle on the UI grid.
+ */
+static int r_ui_rect(lua_State *L) {
+  float rgba[4];
+  rgba_at(L, 5, rgba, 1.0f);
+  zb_render_draw_quad(S(L)->cfg.render, 0, (float)luaL_checknumber(L, 1), (float)luaL_checknumber(L, 2),
+                      (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4), 0, 0, 1, 1, rgba);
+  return 0;
+}
+
+/* @lua render.ui_image(texture: integer, x: number, y: number, opts?: UiImageOptions)
+ * A texture, or its region opts.src = { x, y, w, h } in texels, on the UI grid at opts.w by
+ * opts.h (default: the region's size times opts.scale), tinted by opts.color.
+ */
+static int r_ui_image(lua_State *L) {
+  uint32_t tex = (uint32_t)luaL_checkinteger(L, 1);
+  float x = (float)luaL_checknumber(L, 2), y = (float)luaL_checknumber(L, 3);
+  float src[4] = {0, 0, 0, 0};
+  numbers_field(L, 4, "src", src, 4);
+  float rgba[4] = {1, 1, 1, 1};
+  if (lua_istable(L, 4)) {
+    lua_getfield(L, 4, "color");
+    rgba_at(L, -1, rgba, 1.0f);
+    lua_pop(L, 1);
+  }
+  float scale = number_field(L, 4, "scale", 1.0f);
+  float w = number_field(L, 4, "w", 0), h = number_field(L, 4, "h", 0);
+  if (w <= 0 || h <= 0) {
+    float sw = src[2], sh = src[3];
+    if (sw <= 0 || sh <= 0) {
+      int tw = 0, th = 0;
+      zb_render_texture_size(S(L)->cfg.render, tex, &tw, &th);
+      sw = (float)tw;
+      sh = (float)th;
+    }
+    w = sw * scale;
+    h = sh * scale;
+  }
+  if (w > 0 && h > 0) {
+    zb_render_draw_image(S(L)->cfg.render, tex, src[0], src[1], src[2], src[3], x, y, w, h, rgba);
+  }
+  return 0;
+}
+
+/* @lua render.ui_nine(texture: integer, x: number, y: number, w: number, h: number, opts: UiNineOptions)
+ * A nine-slice frame on the UI grid from the texture's region opts.src (default: all of it) with
+ * border widths opts.border = { left, top, right, bottom }: corners whole, edges and middle tiled.
+ */
+static int r_ui_nine(lua_State *L) {
+  uint32_t tex = (uint32_t)luaL_checkinteger(L, 1);
+  float x = (float)luaL_checknumber(L, 2), y = (float)luaL_checknumber(L, 3);
+  float w = (float)luaL_checknumber(L, 4), h = (float)luaL_checknumber(L, 5);
+  luaL_checktype(L, 6, LUA_TTABLE);
+  float src[4] = {0, 0, 0, 0}, border[4] = {0, 0, 0, 0};
+  numbers_field(L, 6, "src", src, 4);
+  if (!numbers_field(L, 6, "border", border, 4)) {
+    return luaL_argerror(L, 6, "border = { left, top, right, bottom } expected");
+  }
+  float rgba[4] = {1, 1, 1, 1};
+  lua_getfield(L, 6, "color");
+  rgba_at(L, -1, rgba, 1.0f);
+  lua_pop(L, 1);
+  zb_render_draw_nine(S(L)->cfg.render, tex, src[0], src[1], src[2], src[3], (int)border[0], (int)border[1],
+                      (int)border[2], (int)border[3], x, y, w, h, rgba);
+  return 0;
+}
+
+/* @lua render.ui_clip(x: number, y: number, w: number, h: number): boolean
+ * Clips later UI drawing to the rectangle, within the clip before it; false when nested too deep.
+ */
+static int r_ui_clip(lua_State *L) {
+  lua_pushboolean(L, zb_render_push_clip(S(L)->cfg.render, (float)luaL_checknumber(L, 1),
+                                         (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3),
+                                         (float)luaL_checknumber(L, 4)));
+  return 1;
+}
+
+/* @lua render.ui_unclip()
+ * Releases the last clip.
+ */
+static int r_ui_unclip(lua_State *L) {
+  zb_render_pop_clip(S(L)->cfg.render);
+  return 0;
+}
+
+/* @lua render.texture_from_pixels(w: integer, h: integer, rgba: string): integer
+ * A texture made from w * h RGBA8 pixels (rows top to bottom), at most 1024 x 1024.
+ */
+static int r_texture_from_pixels(lua_State *L) {
+  lua_Integer w = luaL_checkinteger(L, 1), h = luaL_checkinteger(L, 2);
+  size_t len = 0;
+  const char *bytes = luaL_checklstring(L, 3, &len);
+  luaL_argcheck(L, w > 0 && h > 0 && w <= ZB_RENDER_MAX_SCRIPT_TEXTURE && h <= ZB_RENDER_MAX_SCRIPT_TEXTURE, 1,
+                "size must be 1 to 1024 pixels each way");
+  luaL_argcheck(L, len == (size_t)(w * h * 4), 3, "w * h * 4 bytes expected");
+  uint32_t t = zb_render_texture_from_pixels(S(L)->cfg.render, (int)w, (int)h, (const unsigned char *)bytes);
+  if (!t) {
+    return luaL_error(L, "texture could not be made");
+  }
+  lua_pushinteger(L, t);
+  return 1;
+}
+
+/* @lua render.update_texture(texture: integer, x: integer, y: integer, w: integer, h: integer, rgba: string)
+ * Replaces a region of a texture made from pixels.
+ */
+static int r_update_texture(lua_State *L) {
+  uint32_t t = (uint32_t)luaL_checkinteger(L, 1);
+  lua_Integer x = luaL_checkinteger(L, 2), y = luaL_checkinteger(L, 3);
+  lua_Integer w = luaL_checkinteger(L, 4), h = luaL_checkinteger(L, 5);
+  size_t len = 0;
+  const char *bytes = luaL_checklstring(L, 6, &len);
+  luaL_argcheck(L, w > 0 && h > 0 && len == (size_t)(w * h * 4), 6, "w * h * 4 bytes expected");
+  if (zb_render_update_texture(S(L)->cfg.render, t, (int)x, (int)y, (int)w, (int)h, (const unsigned char *)bytes) !=
+      ZB_OK) {
+    return luaL_error(L, "not a texture made from pixels, or the region is outside it");
+  }
+  return 0;
+}
+
+/* @lua render.texture_size(texture: integer): integer, integer
+ * The size of a loaded texture in texels (0, 0 while it loads or when it failed).
+ */
+static int r_texture_size(lua_State *L) {
+  int w = 0, h = 0;
+  zb_render_texture_size(S(L)->cfg.render, (uint32_t)luaL_checkinteger(L, 1), &w, &h);
+  lua_pushinteger(L, w);
+  lua_pushinteger(L, h);
+  return 2;
+}
+
+/* @lua render.free_texture(texture: integer)
+ * Frees a texture made from pixels.
+ */
+static int r_free_texture(lua_State *L) {
+  zb_render_free_texture(S(L)->cfg.render, (uint32_t)luaL_checkinteger(L, 1));
   return 0;
 }
 
@@ -1275,6 +1576,10 @@ static int r_stats(lua_State *L) {
   lua_setfield(L, -2, "foliage_instances");
   lua_pushinteger(L, (lua_Integer)st->text_glyphs);
   lua_setfield(L, -2, "glyphs");
+  lua_pushinteger(L, (lua_Integer)st->ui_quads);
+  lua_setfield(L, -2, "ui_quads");
+  lua_pushinteger(L, (lua_Integer)st->ui_batches);
+  lua_setfield(L, -2, "ui_batches");
   lua_pushinteger(L, (lua_Integer)st->culled);
   lua_setfield(L, -2, "culled");
   lua_pushinteger(L, (lua_Integer)st->frames);
@@ -1612,6 +1917,9 @@ void zb_script_open_api(zb_script *s) {
                                        {"device", i_device},
                                        {"rumble", i_rumble},
                                        {"capture", i_capture},
+                                      {"pointer", i_pointer},
+                                      {"claim", i_claim},
+                                      {"inject_pointer", i_inject_pointer},
                                        {"add_stick", i_add_stick},
                                        {"add_button", i_add_button},
                                        {"set_user_binding", i_set_user_binding},
@@ -1646,6 +1954,16 @@ void zb_script_open_api(zb_script *s) {
                                         {"draw_model", r_draw_model},
                                         {"draw_sprite", r_draw_sprite},
                                         {"draw_text", r_draw_text},
+                                        {"ui_grid", r_ui_grid},
+                                        {"ui_rect", r_ui_rect},
+                                        {"ui_image", r_ui_image},
+                                        {"ui_nine", r_ui_nine},
+                                        {"ui_clip", r_ui_clip},
+                                        {"ui_unclip", r_ui_unclip},
+                                        {"texture_from_pixels", r_texture_from_pixels},
+                                        {"update_texture", r_update_texture},
+                                        {"free_texture", r_free_texture},
+                                        {"texture_size", r_texture_size},
                                         {"stats", r_stats},
                                         {"sprite_frame", r_sprite_frame},
                                         {"text_glyphs", r_text_glyphs},

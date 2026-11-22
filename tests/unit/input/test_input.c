@@ -422,6 +422,82 @@ static void test_touch_mode_switching(void) {
   zb_input_handle_event(in, &other);
 }
 
+/* The pointer: the mouse or the touch that points, its edges and the wheel; claims keep a touch
+ * from the controls under it. */
+/* spec: ui-drawing: Anchors and a tap */
+static void test_pointer_and_claims(void) {
+  zb_pointer p;
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_FALSE(p.seen);
+  zb_event e;
+  memset(&e, 0, sizeof e);
+  e.type = ZB_EV_MOUSE_MOTION;
+  e.u.mouse_motion.nx = 0.25f;
+  e.u.mouse_motion.ny = 0.5f;
+  zb_input_handle_event(in, &e);
+  e.type = ZB_EV_MOUSE_MOTION; /* (one from a touch: not the mouse) */
+  e.u.mouse_motion.synthetic = true;
+  e.u.mouse_motion.nx = 0.9f;
+  zb_input_handle_event(in, &e);
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_TRUE(p.seen);
+  TEST_ASSERT_EQUAL_FLOAT(0.25f, p.x);
+  TEST_ASSERT_FALSE(p.held);
+  zb_event b = mouse_button(ZB_MOUSE_LEFT, true, false, 0);
+  b.u.mouse_button.nx = 0.3f;
+  b.u.mouse_button.ny = 0.4f;
+  zb_input_handle_event(in, &b);
+  zb_event right = mouse_button(ZB_MOUSE_RIGHT, true, false, 0); /* (other buttons do not point) */
+  zb_input_handle_event(in, &right);
+  memset(&e, 0, sizeof e);
+  e.type = ZB_EV_MOUSE_WHEEL;
+  e.u.wheel.dy = 2;
+  zb_input_handle_event(in, &e);
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_TRUE(p.held && p.pressed && !p.touch);
+  TEST_ASSERT_EQUAL_FLOAT(0.3f, p.x);
+  TEST_ASSERT_EQUAL_FLOAT(2.0f, p.wheel);
+  zb_event up = mouse_button(ZB_MOUSE_LEFT, false, false, 0);
+  zb_input_handle_event(in, &up);
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_TRUE(p.pressed && p.released && !p.held); /* a click between two ticks is seen */
+  zb_input_sample(in, 0);
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_FALSE(p.pressed || p.released);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, p.wheel);
+  /* A tap on a claimed box over a touch button: the pointer has it, the button does not. */
+  int climb = zb_input_define(in, "climb", ZB_ACTION_BUTTON);
+  zb_input_bind(in, climb, "touch:button:climb");
+  zb_input_add_button(in, "climb", 0.8f, 0.6f, 0.2f, 0.4f);
+  const float box[4] = {0.85f, 0.85f, 0.1f, 0.1f};
+  zb_input_set_claims(in, box, 1);
+  zb_event d = touch(ZB_EV_TOUCH_DOWN, 5, 0.9f, 0.9f, 0);
+  zb_input_handle_event(in, &d);
+  zb_event other = touch(ZB_EV_TOUCH_DOWN, 6, 0.1f, 0.1f, 0); /* a second finger does not point */
+  zb_input_handle_event(in, &other);
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_TRUE(p.touch && p.held && p.pressed);
+  TEST_ASSERT_EQUAL_FLOAT(0.9f, p.x);
+  zb_input_sample(in, 0);
+  TEST_ASSERT_FALSE(zb_input_state(in, climb)->held);
+  zb_event m = touch(ZB_EV_TOUCH_MOTION, 5, 0.91f, 0.92f, 0);
+  zb_input_handle_event(in, &m);
+  zb_event u = touch(ZB_EV_TOUCH_UP, 5, 0.91f, 0.92f, 0);
+  zb_input_handle_event(in, &u);
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_TRUE(p.released && !p.held);
+  TEST_ASSERT_EQUAL_FLOAT(0.92f, p.y);
+  /* Without the claim the same tap goes to the button. */
+  zb_input_set_claims(in, NULL, 0);
+  zb_event d2 = touch(ZB_EV_TOUCH_DOWN, 7, 0.9f, 0.9f, 0);
+  zb_input_handle_event(in, &d2);
+  zb_input_sample(in, 0);
+  TEST_ASSERT_TRUE(zb_input_state(in, climb)->held);
+  float many[(ZB_INPUT_MAX_CLAIMS + 4) * 4];
+  memset(many, 0, sizeof many);
+  zb_input_set_claims(in, many, ZB_INPUT_MAX_CLAIMS + 4); /* (more than it keeps) */
+}
+
 /* spec: input-actions: Virtual stick drives an axis */
 static void test_virtual_controls(void) {
   int move = zb_input_define(in, "move", ZB_ACTION_AXIS2);
@@ -654,6 +730,7 @@ int main(void) {
   RUN_TEST(test_user_overrides);
   RUN_TEST(test_touch_mode_switching);
   RUN_TEST(test_virtual_controls);
+  RUN_TEST(test_pointer_and_claims);
   RUN_TEST(test_inject);
   RUN_TEST(test_record_and_replay);
   RUN_TEST(test_inverted_axis);
