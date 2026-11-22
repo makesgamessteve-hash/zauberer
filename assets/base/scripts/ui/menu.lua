@@ -92,7 +92,8 @@ local function items(m)
   elseif m.page == "confirm" then
     out = { { label = "No, keep it", go = "back" }, { label = "Yes, delete it", go = "delete" } }
   elseif m.page == "main" then
-    out = { { label = "Resume", go = "resume" }, { label = "Help", page = "help" },
+    out = { { label = "Resume", go = "resume" }, { label = "Journal", page = "journal" },
+      { label = "Help", page = "help" },
       { label = "Settings", page = "settings" },
       { label = "Controls", page = "controls" }, { label = "Packages", page = "packages" },
       { label = "Credits", page = "credits" }, { label = "Save and quit", go = "quit" } }
@@ -253,6 +254,12 @@ function menu.lines(m, credits)
     end
   end
   out[1] = title[m.page]
+  if m.page == "journal" then
+    out[1] = "Journal"
+    for _, line in ipairs((m.hooks.journal_lines and m.hooks.journal_lines()) or {}) do out[#out + 1] = line end
+    out[#out + 1] = input.mode() == "touch" and "Menu: back" or "Escape: back"
+    return out
+  end
   if m.page == "topic" then
     for _, line in ipairs((m.hooks.topic_lines and m.hooks.topic_lines(m.topic)) or {}) do out[#out + 1] = line end
     out[#out + 1] = input.mode() == "touch" and "Menu: back" or "Escape: back"

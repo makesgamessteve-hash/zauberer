@@ -361,6 +361,8 @@ return {
   ["Reset every setting to its default?"] = "Alle Einstellungen auf Standard zurücksetzen?",
   ["Back to the defaults"] = "Auf Standard zurückgesetzt", ["none"] = "keine", ["%d%%"] = "%d%%",
   ["%d fps"] = "%d BpS", ["%d lines"] = "%d Zeilen", ["%dx"] = "%dx",
+  ["Journal"] = "Tagebuch", ["Requests:"] = "Bitten:", ["Finished:"] = "Erledigt:",
+  ["What was said:"] = "Was gesagt wurde:", ["day %d, %02d:%02d"] = "Tag %d, %02d:%02d", ["%s in %s: %s"] = "%s in %s: %s",
   ["Zauberer"] = "Zauberer", ["Game saved"] = "Spiel gespeichert", ["Continue"] = "Weiterspielen", ["New game"] = "Neues Spiel", ["Create a world"] = "Eine Welt erschaffen",
   ["Load game"] = "Spiel laden", ["Play"] = "Spielen", ["Delete"] = "Löschen", ["Back"] = "Zurück",
   ["Quit"] = "Beenden", ["No, keep it"] = "Nein, behalten", ["Yes, delete it"] = "Ja, löschen",

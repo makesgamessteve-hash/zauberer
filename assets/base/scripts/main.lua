@@ -52,6 +52,8 @@ local settings = require("ui.settings")
 local access = require("ui.access")
 local menu = require("ui.menu")
 local help = require("ui.help")
+local journal = require("ui.journal")
+local news = require("player.news")
 local modapi = require("mods.api")
 local xrplay = require("xr.play")
 local reset = require("ui.reset")
@@ -107,6 +109,7 @@ local function setup_flight()
   game.known = {} -- the substances analysed
   for _, id in ipairs(back and type(back.known) == "table" and back.known or {}) do game.known[id] = true end
   game.codex = codex.new(back and back.codex)
+  game.journal = journal.new(back and back.journal)
   -- The peopled world (made in slices as play begins), Anarvan where the carpet set out.
   game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
     game.home.pos, FOOT, game.world_options and game.world_options.history)
@@ -203,6 +206,7 @@ function game.save()
       return list
     end)(),
     codex = game.codex and codex.snapshot(game.codex),
+    journal = game.journal and journal.snapshot(game.journal),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
       plants = plants.snapshot(game.plants, world.time().time),
@@ -310,12 +314,16 @@ function game.setup_ui()
     delete = function(name) return game.delete_save(name) end,
     current = function() return save.get("world") end,
     topic_lines = function(id) return help.topic_lines(id, game.story_lines()) end,
+    journal_lines = function() return journal.lines(game.journal, game.story_lines()) end,
     reset_hints = function() help.reset(game.help) end,
     version = engine.info().version,
     can_quit = engine.info().platform ~= "web", -- (a page is closed, not quit)
   })
   game.captions = access.captions_new()
   game.help = help.new()
+  news.listeners[#news.listeners + 1] = function(said) -- (everything said goes into the journal)
+    if game.journal and game.mode == "flight" then journal.note(game.journal, said, world.time().time) end
+  end
   game.xr_options = game.vr_options(game.settings)
   settings.listeners[#settings.listeners + 1] = function(s, name)
     if name:match("^xr_") then -- (the VR comfort options, also for a session already running)
@@ -820,6 +828,12 @@ local function flight_tick(dt)
     me = c.pos
     camera.reset(game.chase)
   end
+  -- Requests heard in talk go into the journal.
+  local folk = game.world_places and game.world_places.folk
+  if folk and folk.heard then
+    for _, r in ipairs(folk.heard) do journal.request(game.journal, r.who, r.where, r.text) end
+    folk.heard = nil
+  end
   -- First-time hints: what the heir can do now, with the controls of the device in hand.
   local sv = game.survival
   local book = game.magic.caster.book
@@ -1048,6 +1062,11 @@ local function flight_tick(dt)
     if game.story then
       local ground = world.ground_height(me)
       local before = game.story_boiled or pack.count(game.pack, "boiled_water")
+      -- Holding use for a second hurries a timed moment (Azhdar's arrival, the hiding).
+      local use = input.state("use")
+      game.hurry_held = (use.held and (game.hurry_held or 0) + dt) or 0
+      if game.hurry_held >= 1 and prologue.hurry(game.story) then game.hurry_held = 0 end
+      local beat_was = game.story.beat
       local happened = director.tick(game.story, P, { pos = me, used = input.state("use").pressed, slept = game.slept,
         dt = dt, now = now, set_time = world.set_time, talked_to = used_text and used_text:match("^(%a+): "),
         found = used_text and used_text:match("^Found (.+)$"), flying = w == nil and me.alt - ground > 3,
@@ -1056,6 +1075,7 @@ local function flight_tick(dt)
       game.story_boiled = pack.count(game.pack, "boiled_water")
       if happened then
         pack.say(game.pack, game.story.lines[#game.story.lines])
+        journal.finish(game.journal, prologue.goal_text(beat_was))
         game.autosave("story")
       end
       game.slept = nil
@@ -1091,6 +1111,7 @@ local function flight_tick(dt)
         learn = function(d) disciplines.practice(game.disciplines, d, 40, "taught by the Circle") end,
         choose = defeated and input.state("story").pressed, take = defeated and input.state("use").pressed })
       for _, id in ipairs(done) do pack.say(game.pack, "Story: " .. id) end
+      for _, id in ipairs(done) do journal.finish(game.journal, "Story: " .. id) end
       if #done > 0 then game.autosave("story") end
     end
   end

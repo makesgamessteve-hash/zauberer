@@ -389,6 +389,9 @@ class ScenarioTests(EngineTestCase):
     def test_player_settings(self):
         self.assert_ok(self.scenario("player_settings"))
 
+    def test_journal(self):
+        self.assert_ok(self.scenario("journal"))
+
     def test_german(self):
         self.assert_ok(self.scenario("german"))
 

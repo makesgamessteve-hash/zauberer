@@ -225,6 +225,25 @@ function prologue.tick(S, ctx)
   return nil
 end
 
+-- Hurries a timed moment (Azhdar's arrival, the hiding) to its end, every
+-- line it says still said; true when there was one to hurry.
+function prologue.hurry(S)
+  if S.beat == "arrival" then
+    if not S.demanded then
+      S.demanded = true
+      said(S, "Azhdar: \"Give me the Weave!\" No one understands him.")
+    end
+    S.t = math.max(S.t, prologue.ARRIVAL)
+    return true
+  elseif S.beat == "hiding" then
+    for k = S.fragment + 1, #prologue.FRAGMENTS do said(S, prologue.FRAGMENTS[k]) end
+    S.fragment = #prologue.FRAGMENTS
+    S.t = math.max(S.t, prologue.HIDING)
+    return true
+  end
+  return false
+end
+
 -- Whether the carpet will fly yet (only once it has chosen the heir).
 function prologue.can_fly(S)
   return S.bonded or S.beat == "done"
@@ -235,6 +254,11 @@ local GOALS = { village = "Do your chores and talk to Farrokh", arrival = "...",
   hiding = "Stay hidden", ashes = "Go back down into the cellar", sanctum = "Search the cellar",
   carpet = "Sleep on the rug", flying = "Fly through the rings", survival = "Forage and boil water",
   leaving = "Leave the valley", done = "The valley lies behind you" }
+
+-- What the heir was to do at a beat (for the journal's finished list).
+function prologue.goal_text(beat)
+  return GOALS[beat]
+end
 
 -- Where the heir is to go next: a name and a position, or nil.
 function prologue.goal(S)

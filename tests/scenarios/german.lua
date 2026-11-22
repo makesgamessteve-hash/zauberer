@@ -35,6 +35,12 @@ for _, topic in ipairs(require("ui.help").TOPICS) do -- the help pages
 end
 game.menu.page = "help"
 step(3)
+game.world_places.folk.heard = { { who = "Kesam", where = "Anarvan",
+  text = "There is nothing that needs doing, thank the gods." } }
+require("ui.journal").finish(game.journal, "Do your chores and talk to Farrokh")
+step(2)
+game.menu.page = "journal"
+step(3)
 for _, hint in ipairs(require("ui.help").HINTS) do -- and every hint, with its controls
   local filled = require("ui.help").fill(hint.text)
   expect(filled ~= hint.text, "the hint in German: " .. hint.text)
