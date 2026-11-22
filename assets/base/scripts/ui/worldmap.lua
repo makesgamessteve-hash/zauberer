@@ -148,6 +148,79 @@ function worldmap.view(m, home, me, carpet, goal)
   return rows, marks
 end
 
+local INKS = { sea = { 78, 124, 160 }, sea2 = { 70, 112, 150 }, shore = { 214, 196, 140 }, low = { 128, 150, 84 },
+  low2 = { 112, 136, 76 }, high = { 168, 134, 88 }, peak = { 236, 230, 220 } }
+
+-- The colour of seen land at x, y metres from home (nil when unseen), in the parchment's inks.
+local function ink(m, home, x, y, px, py)
+  local ci, cj = math.floor(x / worldmap.CELL + 0.5), math.floor(y / worldmap.CELL + 0.5)
+  if not m.seen[key(ci, cj)] then return nil end
+  local k = math.floor(x / 500) .. "," .. math.floor(y / 500)
+  local h = m.heights[k]
+  if not h then
+    h = world.height(worldmap.at(home, x, y))
+    m.heights[k] = h
+  end
+  if h < -2 then return (px + py) % 2 == 0 and INKS.sea or INKS.sea2 end
+  if h < 4 then return INKS.shore end
+  if h < 300 then return (px * 7 + py * 3) % 11 == 0 and INKS.low2 or INKS.low end
+  if h < 1500 then return INKS.high end
+  return INKS.peak
+end
+
+-- Paints the seen land into a texture of w by h pixels (metres per pixel from the zoom), around the
+-- map's centre; repainted only when the view or the seen land changed. Returns the texture.
+function worldmap.paint(m, home, w, h)
+  local per = worldmap.ZOOMS[m.zoom] * 1000 / 6
+  local seen = 0
+  for _ in pairs(m.seen) do seen = seen + 1 end
+  local sig = string.format("%d,%d,%d,%d,%d,%d", math.floor(m.cx), math.floor(m.cy), m.zoom, seen, w, h)
+  if m.painted and m.painted.sig == sig then return m.painted.texture end
+  local px = {}
+  local clear = string.char(0, 0, 0, 0)
+  for j = 0, h - 1 do
+    for i = 0, w - 1 do
+      local c = ink(m, home, m.cx + (i - w / 2) * per, m.cy + (h / 2 - j) * per, i, j)
+      px[#px + 1] = c and string.char(c[1], c[2], c[3], 235) or clear
+    end
+  end
+  if m.painted then render.free_texture(m.painted.texture) end
+  m.painted = { sig = sig, texture = render.texture_from_pixels(w, h, table.concat(px)), w = w, h = h }
+  return m.painted.texture
+end
+
+-- Draws the painted map in the box (x, y, w, h) with the places, the heir, the carpet and the goal,
+-- a north mark and the scale.
+function worldmap.draw_painted(m, home, me, carpet, goal, x, y, w, h)
+  local kit = require("ui.kit")
+  w, h = math.min(1024, math.floor(w)), math.min(1024, math.floor(h))
+  render.ui_image(worldmap.paint(m, home, w, h), x, y, { w = w, h = h })
+  local per = worldmap.ZOOMS[m.zoom] * 1000 / 6
+  local function at(px, py) return x + w / 2 + (px - m.cx) / per, y + h / 2 - (py - m.cy) / per end
+  local function inside(sx, sy) return sx >= x and sx < x + w - 8 and sy >= y and sy < y + h - 8 end
+  local ink_dark = kit.colour("ink")
+  for _, p in ipairs(m.places) do
+    local sx, sy = at(p.x, p.y)
+    if inside(sx, sy) then
+      kit.icon("place", math.floor(sx) - 8, math.floor(sy) - 8)
+      render.draw_text(kit.font_handle(), p.name, sx + 7, sy - 4, 1, ink_dark)
+    end
+  end
+  local marks = { { goal, "goal" }, { carpet, "carpet" }, { me, "heir" } }
+  for _, mk in ipairs(marks) do
+    if mk[1] then
+      local ox, oy = worldmap.offset(home, mk[1])
+      local sx, sy = at(ox, oy)
+      if inside(sx, sy) then kit.icon(mk[2], math.floor(sx) - 8, math.floor(sy) - 8) end
+    end
+  end
+  render.draw_text(kit.font_handle(), "N", x + w - 18, y + 6, 1, ink_dark)
+  render.ui_rect(x + w - 16, y + 16, 1, 10, ink_dark)
+  local km = worldmap.ZOOMS[m.zoom]
+  render.ui_rect(x + 10, y + h - 12, math.floor(km * 1000 / per), 2, ink_dark)
+  render.draw_text(kit.font_handle(), km .. " km", x + 14 + math.floor(km * 1000 / per), y + h - 16, 1, ink_dark)
+end
+
 -- Draws the map at (x, y) in screen pixels with a key line under it.
 function worldmap.draw(m, font, home, me, carpet, goal, x, y)
   local rows, marks = worldmap.view(m, home, me, carpet, goal)

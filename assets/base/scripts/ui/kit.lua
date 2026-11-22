@@ -8,7 +8,7 @@ local data = require("ui.kit_data")
 
 local kit = { data = data }
 
-local state = { frames = nil, icons = nil, font = nil, contrast = false, vision = "normal" }
+local state = { frames = nil, icons = nil, font = nil, contrast = false, vision = "normal", tint = { 1, 1, 1 } }
 kit.ADVANCE, kit.LINE = 6, 10 -- the pixel font's advance and a line's height (grid pixels at scale 1)
 
 -- The font to draw with (the pixel font); textures load on first use.
@@ -30,6 +30,12 @@ end
 
 function kit.contrast() return state.contrast end
 
+-- The light of the moment over every frame (ui/mood.lua); white is none. High contrast ignores it.
+function kit.set_tint(t) state.tint = t or { 1, 1, 1 } end
+
+-- The font kit draws with (for drawing text the kit does not frame, such as labels on the map's page).
+function kit.font_handle() return state.font end
+
 -- A palette colour by name, with alpha a (default 1).
 function kit.colour(name, a)
   local c = data.palette[name] or data.palette.white
@@ -49,7 +55,8 @@ function kit.frame(kind, x, y, w, h, tint, alpha)
   local frames = textures()
   local src = { f.src[1], f.src[2] + (state.contrast and data.contrast_offset or 0), f.src[3], f.src[4] }
   local c = tint or { 1, 1, 1, 1 }
-  local colour = { c[1], c[2], c[3], (c[4] or 1) * (alpha or 1) }
+  local m = state.contrast and { 1, 1, 1 } or state.tint
+  local colour = { c[1] * m[1], c[2] * m[2], c[3] * m[3], (c[4] or 1) * (alpha or 1) }
   render.ui_nine(frames, x, y, w, h, { src = src, border = f.border, color = colour })
 end
 

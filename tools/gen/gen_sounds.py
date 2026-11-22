@@ -96,6 +96,12 @@ EFFECTS = {
     "pickup": lambda: mix(tone_sweep(660, 660, 0.12, 20), [0.0] * int(RATE * 0.07) + tone_sweep(990, 990, 0.15, 18)),
     "defeat": lambda: tone_sweep(392, 98, 1.2, 2.5, (1.0, 0.5, 0.25)),
     "beat": lambda: tone_sweep(196, 196, 2.0, 1.4, (1.0, 0.6, 0.3, 0.2)),
+    # The UI's own sounds (soft, so they sit under the world).
+    "ui_page": lambda: mix(noise_burst(31, 0.22, 16, 0.25), noise_burst(32, 0.12, 30, 0.15)),
+    "ui_cloth": lambda: noise_burst(33, 0.16, 22, 0.12),
+    "ui_goal": lambda: mix(tone_sweep(587, 587, 0.5, 6, (1.0, 0.3)),
+                           [0.0] * int(RATE * 0.12) + tone_sweep(880, 880, 0.6, 5, (1.0, 0.3))),
+    "ui_quill": lambda: mix(noise_burst(34, 0.09, 40, 0.18), [0.0] * int(RATE * 0.11) + noise_burst(35, 0.08, 40, 0.15)),
 }
 
 

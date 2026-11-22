@@ -468,6 +468,7 @@ def main(base):
     os.makedirs(os.path.join(base, "ui"), exist_ok=True)
     write_png(os.path.join(base, "ui", "frames.png"), fw, fh, fpx)
     write_png(os.path.join(base, "ui", "icons.png"), iw, ih, ipx)
+    os.makedirs(os.path.join(base, "scripts", "ui"), exist_ok=True)
     with open(os.path.join(base, "scripts", "ui", "kit_data.lua"), "w", encoding="utf-8") as f:
         f.write(data)
 
