@@ -1,9 +1,8 @@
 # Tasks
 
-- [ ] 1.1 The UI pass in the renderer: the grid from the internal resolution and window, an orthographic pass after post-processing, the safe area
-- [ ] 1.2 The batcher: rectangles, images and atlas cells, nine-slice tiling, text with shadow and outline, clip rectangles; the null backend records the calls
-- [ ] 1.3 Textures made by scripts: make, update a region, free; limits and errors
-- [ ] 1.4 The script functions (`render.ui_*`, `render.texture_from_pixels`, `render.update_texture`, `render.free_texture`) with API docs
-- [ ] 1.5 `ui/layout.lua`: grid, safe box, anchors, stacks, hit testing for mouse and touch; a tapped box takes the touch from the flight controls
-- [ ] 1.6 WebXR: the UI grid on the floating HUD panel
-- [ ] 1.7 Tests: unit tests of the grid, nine-slice tiling, batching and clipping (C); a scenario per spec scenario; a rendered golden of a framed panel
+- [ ] 1.1 The renderer: a white texture, `zb_render_draw_quad` into the text path's vertices and batches (merging batches of one texture), the clip stack with CPU clipping, nine-slice tiling, text shadows
+- [ ] 1.2 Textures made by scripts: make, update a region, free; limits and errors
+- [ ] 1.3 The platform normalises mouse positions; the input keeps the pointer (mouse or last touch), presses, releases and the wheel, and the UI's claimed rectangles against the touch controls
+- [ ] 1.4 The script functions (`render.ui_grid`, `render.ui_rect`, `render.ui_image`, `render.ui_nine`, `render.ui_clip`, `render.ui_unclip`, `render.texture_from_pixels`, `render.update_texture`, `render.free_texture`, `input.pointer`, `input.claim`) with API docs
+- [ ] 1.5 `ui/layout.lua`: grid, safe box, anchors, the pointer in grid pixels, hover, click and claim
+- [ ] 1.6 Tests: C unit tests of quads, batching, nine-slice tiling, clipping, script textures and the pointer; a scenario per spec scenario; a rendered golden of a framed panel
