@@ -139,10 +139,9 @@ local function setup_flight()
   game.life_world = world_id
   game.motes = motes.new(engine.info().seed)
   game.channeling = false
-  game.chase = camera.new()
+  game.rider = camera.new()
   game.coop = coop.new()
   game.together = coopplay.new(back and back.together, (game.world_options or {}).heirs or 4)
-  game.last_frame_time = nil
   render.light({ direction = { -SUN[1], -SUN[2], -SUN[3] }, color = { 1, 0.95, 0.85 }, ambient = { 0.38, 0.4, 0.48 } })
   render.atmosphere({ zenith = { 0.2, 0.4, 0.78 }, horizon = { 0.72, 0.8, 0.88 }, sun = SUN,
     sun_color = { 1, 0.95, 0.8 }, fog_distance = 12000 })
@@ -820,6 +819,7 @@ local function flight_tick(dt)
   if not down and not k.worn and not t and input.state("mount").pressed then
     if w and walker.near_carpet(w, game.carpet) then
       game.walker, w = nil, nil
+      camera.reset(game.rider) -- (seated again, looking ahead)
     elseif not w and walker.can_step_off(game.carpet, FOOT) then
       game.carpet.speed = 0
       game.walker = walker.step_off(game.carpet, FOOT)
@@ -872,12 +872,14 @@ local function flight_tick(dt)
       mouse = input.mode() ~= "touch" }
     walker.update(w, down and {} or walking, dt, FOOT)
   else
-    camera.update(game.chase, look, dt, input.mode() ~= "touch")
+    camera.update(game.rider, look, dt, input.mode() ~= "touch")
   end
   local me = w and w.pos or c.pos -- where the player is
   local here = mana.at(me)
   local hands = w and walker.hands(w) or c
-  local cast_now = magic.tick(game.magic, spell, dt, hands, { heading = hands.heading, pitch = w and w.pitch or -0.12 },
+  local aim = w and { heading = hands.heading, pitch = w.pitch }
+    or { heading = c.heading + game.rider.yaw, pitch = game.rider.pitch } -- (where the rider looks)
+  local cast_now = magic.tick(game.magic, spell, dt, hands, aim,
     here.loaded and here.stored or nil)
   game.last_cast = cast_now or game.last_cast
   if cast_now and cast_now.ok then
@@ -911,7 +913,8 @@ local function flight_tick(dt)
     view = { eye = world.move(w.pos, 0, 0, 0, walker.EYE), feet = w.pos,
       dir = { math.sin(w.heading) * cp, math.sin(w.pitch), -math.cos(w.heading) * cp } }
   else
-    view = { eye = c.pos, dir = camera.direction(game.chase, c.heading) }
+    view = { eye = world.move(c.pos, c.heading, -camera.SEAT_BACK, 0, camera.EYE),
+      dir = camera.direction(game.rider, c.heading) }
   end
   codex.look(game.codex, dt, view, { smalllife = game.smalllife }, now)
   -- Harm and healing; a defeated player gets up again where the carpet set out.
@@ -943,7 +946,7 @@ local function flight_tick(dt)
     c = game.carpet
     game.walker, w = nil, nil
     me = c.pos
-    camera.reset(game.chase)
+    camera.reset(game.rider)
   end
   -- The map: the land near is seen (each second), and the places come near (every few seconds).
   if game.flight_ticks % 60 == 0 then
@@ -1429,9 +1432,6 @@ local function flight_frame()
     return
   end
   local c = game.carpet
-  local now = engine.time()
-  local dt = game.last_frame_time and (now - game.last_frame_time) or nil
-  game.last_frame_time = now
   local p = world.to_local(c.pos)
   local up = world.up_at(c.pos)
   if game.camera_override then
@@ -1441,8 +1441,8 @@ local function flight_frame()
     render.camera({ eye = eye, target = target, up = world.up_at(game.walker.pos), fov = access.fov(70), near = 0.1,
       far = 30000 })
   else
-    local eye, target = camera.view(game.chase, p, c.heading, up, dt)
-    render.camera({ eye = eye, target = target, up = up, fov = access.fov(70) - 5, near = 0.5, far = 30000 })
+    local eye, target, u = camera.view(game.rider, p, c.heading, up, c.bank) -- out of the rider's eyes
+    render.camera({ eye = eye, target = target, up = u, fov = access.fov(70), near = 0.05, far = 30000 })
   end
   xrplay.frame(game.xrp, c, p, up, not game.walker and not game.camera_override, assets.mote) -- (VR: the seat)
   if game.tent then

@@ -147,21 +147,47 @@ test.case("spawn on land", function()
   test.expect_eq(none.x, 10, "no land: the face centre")
 end)
 
-test.case("chase camera", function()
+-- spec: carpet-flight: The rider's view
+test.case("the rider's view", function()
   local cam = camera.new()
-  local eye, target = camera.view(cam, { 0, 100, 0 }, 0, { 0, 1, 0 })
-  test.expect_near(eye[3], camera.DISTANCE, 1e-9, "behind a carpet heading north")
-  test.expect_near(eye[2], 100 + camera.HEIGHT, 1e-9)
-  test.expect_near(target[3], -camera.LOOK_AHEAD, 1e-9)
-  local turned = camera.view(cam, { 0, 100, 0 }, math.pi / 2, { 0, 1, 0 }, 1 / 60)
-  test.expect(turned[1] > -camera.DISTANCE and turned[1] < 0, "the eye follows smoothly")
+  local up = { 0, 1, 0 }
+  local eye, target, u = camera.view(cam, { 0, 100, 0 }, 0, up, 0)
+  test.expect_near(eye[3], camera.SEAT_BACK, 1e-9, "seated at the back of a carpet heading north")
+  test.expect_near(eye[2], 100 + camera.EYE, 1e-9)
+  test.expect(target[3] < eye[3] and target[2] < eye[2], "looking ahead and a little down")
+  test.expect_near(u[2], 1, 1e-9, "level when the carpet is")
+  local _, _, leaning = camera.view(cam, { 0, 100, 0 }, 0, up, 30)
+  test.expect(math.abs(leaning[1]) > 0.1 and math.abs(leaning[1]) < math.sin(math.rad(30)), "leans with the bank, less")
+  -- The front edge of the carpet (1.7 m ahead, 1 m down) is in view, the back edge (behind the eye) is not.
+  local d = camera.direction(cam, 0)
+  local front = { 0, -camera.EYE, -(1 + camera.SEAT_BACK) }
+  local function angle(a, b)
+    local la = math.sqrt(a[1] ^ 2 + a[2] ^ 2 + a[3] ^ 2)
+    local lb = math.sqrt(b[1] ^ 2 + b[2] ^ 2 + b[3] ^ 2)
+    return math.deg(math.acos((a[1] * b[1] + a[2] * b[2] + a[3] * b[3]) / (la * lb)))
+  end
+  test.expect(angle(d, front) < 35, "the front edge is within the 70 degree view")
+  test.expect(angle(d, { 0, -camera.EYE, 1 - camera.SEAT_BACK }) > 35, "the back edge is out of view")
+end)
+
+-- spec: carpet-flight: Looking around
+test.case("looking around from the seat", function()
+  local cam = camera.new()
+  -- Looking around: a stick turns at its rate, the mouse by pixels, both within a seated person's reach.
   camera.update(cam, { x = 1 }, 0.5, false)
-  test.expect_near(cam.orbit, camera.LOOK_RATE * 0.5, 1e-9)
-  camera.update(cam, { x = 100 }, 0, true)
-  test.expect_near(cam.orbit, camera.LOOK_RATE * 0.5 + 100 * camera.MOUSE_RATE, 1e-9)
-  camera.update(cam, nil, 1, false)
+  test.expect_near(cam.yaw, camera.LOOK_RATE * 0.5, 1e-9)
+  camera.update(cam, { x = 100000, y = -100000 }, 0, true)
+  test.expect_eq(cam.yaw, camera.MAX_YAW, "no further than over the shoulder")
+  test.expect_eq(cam.pitch, camera.MAX_PITCH)
+  -- A mouse's view stays put; a stick's drifts back ahead after a while.
+  camera.update(cam, nil, 5, true)
+  test.expect_eq(cam.yaw, camera.MAX_YAW)
+  for _ = 1, 600 do camera.update(cam, nil, 1 / 60, false) end
+  test.expect(math.abs(cam.yaw) < 0.01 and math.abs(cam.pitch - camera.REST_PITCH) < 0.01, "back ahead")
+  camera.update(cam, { x = 0, y = 1 }, 10, false)
+  test.expect_eq(cam.pitch, camera.MIN_PITCH, "no lower than the carpet")
   camera.reset(cam)
-  test.expect_eq(cam.eye, nil)
+  test.expect_eq(cam.yaw, 0)
 end)
 
 -- spec: carpet-flight: Deterministic math

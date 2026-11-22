@@ -64,7 +64,7 @@ jobs:
       - name: Lua API reference is current
         run: python3 tools/gen_api_docs.py --check
       - name: luacheck
-        run: luacheck --no-color assets tests/lua tests/scenarios tests/fixtures tools/reels
+        run: luacheck --no-color assets tests/lua tests/scenarios tests/fixtures tools/reels tools/design
       - name: Generated assets are reproducible
         run: |
           python3 tools/gen/gen_all.py
