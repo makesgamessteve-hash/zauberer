@@ -31,6 +31,15 @@ class StartupTests(EngineTestCase):
         self.assert_ok(result)
         self.assertIn("title shown", result.stdout)
 
+    # spec: platform-targets: A fatal error
+    def test_a_fatal_error_writes_the_crash_log(self):
+        result = self.run_engine("--headless", "--ticks", "30", env={"ZB_CRASH_TEST": "1"})
+        self.assertNotEqual(result.returncode, 0, result.stdout[-2000:])
+        log = (self.user_dir / "crash.log").read_text(encoding="utf-8")
+        self.assertIn("Zauberer stopped: assertion failed: a crash test", log)
+        self.assertIn("package base", log)  # (the lines logged before)
+        self.assertIn("The crash log is at", result.stdout)
+
     # spec: platform-targets: Missing content folder
     def test_missing_content_folder(self):
         missing = self.tmp / "nowhere" / "assets"

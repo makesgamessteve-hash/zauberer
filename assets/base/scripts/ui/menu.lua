@@ -27,7 +27,7 @@ local function value_text(name, v)
     return v
   end
   if type(v) == "boolean" then return yes_no(v) end
-  if name:match("_volume$") then return v .. "%" end
+  if name:match("_volume$") then return math.floor(v + 0.5) .. "%" end
   if name == "frame_cap" then return v == 0 and "none" or (v .. " fps") end
   if name == "pixel_height" then return v .. " lines" end
   if name == "text_size" then return v .. "x" end
@@ -303,7 +303,9 @@ function menu.lines(m, credits)
     out[#out + 1] = input.mode() == "touch" and "Menu: back" or "Escape: back"
     return out
   end
-  if m.page == "title" and m.hooks.version then out[#out + 1] = { raw = "v" .. m.hooks.version } end
+  if (m.page == "title" or m.page == "main") and m.hooks.version then
+    out[#out + 1] = { raw = "v" .. m.hooks.version }
+  end
   if m.page == "credits" then
     for _, line in ipairs(credits or {}) do out[#out + 1] = line end
     out[#out + 1] = "Escape: back"

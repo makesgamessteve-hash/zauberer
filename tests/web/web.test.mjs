@@ -362,6 +362,20 @@ test('phone emulation starts in touch mode', async () => {
   }
 });
 
+// spec: platform-targets: A fatal error in the browser
+test('a stopped engine says so on the page with a reload button', async () => {
+  const g = await open();
+  try {
+    await waitForFrames(g);
+    await g.page.evaluate(() => Module.onAbort('test'));
+    const text = await g.page.evaluate(() => document.getElementById('error').textContent);
+    assert.ok(/The game stopped \(test\)/.test(text), text);
+    assert.equal(await g.page.evaluate(() => !!document.getElementById('reload')), true, 'a reload button');
+  } finally {
+    await g.close();
+  }
+});
+
 // spec: touch-and-gamepad-controls: Opening the menu by touch
 test('on a phone the menu button opens the menu', async () => {
   const g = await open({ device: 'Pixel 7' });

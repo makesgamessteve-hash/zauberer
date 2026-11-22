@@ -59,6 +59,7 @@ local function valid(name, value)
   local spec = settings.SPEC[name]
   if not spec then return false end
   if name == "language" then return type(value) == "string" end
+  if name:match("_volume$") then return type(value) == "number" and value >= 0 and value <= 100 end
   for _, v in ipairs(spec.values) do
     if v == value then return true end
   end
@@ -94,6 +95,10 @@ function settings.load(system_language)
   local saved = save.get(settings.KEY)
   local s = {}
   for name, spec in pairs(settings.SPEC) do s[name] = spec.default end
+  -- Volumes not set yet start as the user configuration has them (nearest ten per cent).
+  for name, group in pairs({ master_volume = "master", music_volume = "music", effects_volume = "effects" }) do
+    s[name] = math.max(0, math.min(100, audio.group_volume(group) * 100))
+  end
   if type(saved) == "table" then
     for name, value in pairs(saved) do
       if valid(name, value) then s[name] = value end
@@ -137,7 +142,7 @@ function settings.step(s, name, step)
   end
   local at = 1
   for i, v in ipairs(values) do
-    if v == s[name] then at = i end
+    if v == s[name] or (type(v) == "number" and type(s[name]) == "number" and v <= s[name]) then at = i end
   end
   return settings.set(s, name, values[(at - 1 + step) % #values + 1])
 end

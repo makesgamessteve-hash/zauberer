@@ -7,6 +7,7 @@
 #include "app/body_view.h"
 #include "app/creature_view.h"
 #include "app/water_view.h"
+#include "core/crash.h"
 #include "core/fs.h"
 #include "core/hash.h"
 #include "core/log.h"
@@ -575,6 +576,9 @@ static bool start_scripts(zb_engine *e, char *err, size_t err_len) {
   }
   zb_script_run_packages(e->script);
   e->scripts_ready = true;
+  if (e->mode == ZB_MODE_GAME && getenv("ZB_CRASH_TEST")) { /* (tests: a fatal error on purpose) */
+    zb_assert_fail("a crash test", __FILE__, __LINE__);
+  }
   zb_script_init_hooks(e->script);
   if (zb_input_take_mode_change(e->input)) {
     zb_script_event(e->script, "input_mode", 0, 0, zb_input_get_mode(e->input) == ZB_INPUT_TOUCH ? "touch" : "desktop");
@@ -678,6 +682,10 @@ zb_host_status zb_engine_create(int argc, char **argv, zb_engine **out) {
     snprintf(e->user_dir, sizeof e->user_dir, "./user/");
   }
   ensure_slash(e->user_dir, sizeof e->user_dir);
+  /* A player's game keeps the last lines logged for a crash log in the user folder. */
+  if (e->mode == ZB_MODE_GAME) {
+    zb_crash_install(e->user_dir, !e->headless || getenv("ZB_CRASH_TEST") != NULL);
+  }
 
   /* Jobs, packages. */
   unsigned cpus = zb_platform_cpu_count(e->platform);
@@ -1240,6 +1248,7 @@ void zb_engine_destroy(zb_engine *e) {
   if (!e) {
     return;
   }
+  zb_crash_uninstall();
   if (e->script && e->scripts_ready) {
     zb_script_shutdown(e->script);
   }

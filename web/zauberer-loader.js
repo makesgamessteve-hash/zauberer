@@ -17,9 +17,17 @@
 
   function $(id) { return document.getElementById(id); }
 
-  function showError(title, message) {
+  function showError(title, message, reload) {
     var box = $('error');
     box.textContent = title + ': ' + message;
+    if (reload) { // a button to start again
+      var b = document.createElement('button');
+      b.id = 'reload';
+      b.textContent = navigator.language && navigator.language.slice(0, 2) === 'de' ? 'Neu laden' : 'Reload';
+      b.style.cssText = 'display:block;margin:1em auto 0;font:inherit';
+      b.onclick = function () { location.reload(); };
+      box.appendChild(b);
+    }
     box.hidden = false;
     $('status').hidden = true;
   }
@@ -145,7 +153,9 @@
     return entry.promise;
   }
 
+  var lastLog = '';
   function logLine(text) {
+    if (/^\[(error|warn)\]/.test(text)) lastLog = text;
     if (/^\[error\]/.test(text)) console.error(text);
     else if (/^\[warn\]/.test(text)) console.warn(text);
     else console.log(text);
@@ -235,6 +245,11 @@
     zbFetch: zbFetch,
     zbStats: stats,
     zbShowError: showError,
+    // The engine stopped (a fatal error): say so with the last line logged, and offer a reload.
+    onAbort: function (what) {
+      showError('Zauberer', 'The game stopped (' + String(what || 'an error') + '). ' + (lastLog || '') +
+        ' Your game was saved when you last reached a turn of the story or a few minutes ago.', true);
+    },
     zbXrStatus: xrStatus,
     zbState: function () { return JSON.parse(UTF8ToStringSafe(Module._zb_web_state())); },
     preRun: [function () {
