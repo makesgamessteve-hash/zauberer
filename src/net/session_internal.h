@@ -87,6 +87,7 @@ struct zb_net {
   slot slots[ZB_NET_MAX_PLAYERS];
   uint64_t token; /* client: resume token from the welcome */
   bool resumable; /* client: the connection was lost and may be resumed */
+  bool closed;    /* host: no new heirs may join (those away may come back) */
   uint64_t tokens_made;
   zb_array events; /* stored_event */
   size_t head;

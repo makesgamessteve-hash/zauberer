@@ -536,6 +536,10 @@ static void host_hello(zb_net *n, peer *p, const uint8_t *msg, size_t len) {
       zb_net_blob_drop_player(n, player, "the connection was replaced");
     }
   } else {
+    if (n->closed) {
+      reject(n, p, "the host has closed the session to new heirs", NULL, 0);
+      return;
+    }
     for (int i = 1; i < ZB_NET_MAX_PLAYERS && player < 0; ++i) {
       if (!(n->players & (1u << i))) {
         player = i;
@@ -893,6 +897,7 @@ static void reset(zb_net *n) {
   n->error[0] = '\0';
   n->token = 0;
   n->resumable = false;
+  n->closed = false;
   n->mismatch_count = 0;
   n->last_ping = n->last_refill = n->window_start = now(n);
   memset(n->window_out, 0, sizeof n->window_out);
@@ -1055,6 +1060,23 @@ zb_result zb_net_send(zb_net *n, int to, const char *channel, const void *data, 
 const char *zb_net_invite_code(const zb_net *n) {
   return n->t && n->t->invite_code ? n->t->invite_code(n->t->ctx) : "";
 }
+
+zb_result zb_net_kick(zb_net *n, int player) {
+  if (n->role != ZB_NET_HOST || player <= 0 || player >= ZB_NET_MAX_PLAYERS || !(n->players & (1u << player))) {
+    return ZB_ERR_INVALID;
+  }
+  peer *p = zb_net_peer_of(n, player);
+  if (p) {
+    reject(n, p, "the host removed you from the session", NULL, 0); /* (closes it; the player is gone) */
+  } else {
+    forget_player(n, player); /* (away: gone now, the token forgotten) */
+  }
+  return ZB_OK;
+}
+
+void zb_net_set_open(zb_net *n, bool open) { n->closed = !open; }
+
+bool zb_net_is_open(const zb_net *n) { return !n->closed; }
 
 zb_net_role zb_net_role_of(const zb_net *n) { return n->role; }
 int zb_net_player(const zb_net *n) { return n->player; }

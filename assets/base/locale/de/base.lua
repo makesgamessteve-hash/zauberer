@@ -367,6 +367,13 @@ return {
   ["Arrows: move, Enter: zoom, Escape: back"] = "Pfeile: bewegen, Enter: zoomen, Escape: zurück",
   ["The end of the story"] = "Das Ende der Geschichte", ["Go on in the world"] = "In der Welt weitergehen",
   ["Your story is told; the world goes on."] = "Deine Geschichte ist erzählt; die Welt geht weiter.",
+  ["Company"] = "Gefährten", ["Follow me"] = "Folgt mir", ["Wait"] = "Wartet", ["Here"] = "Hier", ["Help!"] = "Hilfe!",
+  ["Yes"] = "Ja", ["No"] = "Nein", ["You"] = "Du", ["Remove %s"] = "%s entfernen",
+  ["Remove %s from the session?"] = "%s aus der Sitzung entfernen?", ["%s was removed"] = "%s wurde entfernt",
+  ["Yes, remove them"] = "Ja, entfernen",
+  ["Close to new heirs"] = "Für neue Erben schließen", ["Open to new heirs"] = "Für neue Erben öffnen",
+  ["Heir %d"] = "Erbe %d", ["only the host removes a player who is in the session"] =
+    "nur der Gastgeber entfernt jemanden, der in der Sitzung ist",
   ["Journal"] = "Tagebuch", ["Requests:"] = "Bitten:", ["Finished:"] = "Erledigt:",
   ["What was said:"] = "Was gesagt wurde:", ["day %d, %02d:%02d"] = "Tag %d, %02d:%02d", ["%s in %s: %s"] = "%s in %s: %s",
   ["Zauberer"] = "Zauberer", ["Game saved"] = "Spiel gespeichert", ["Continue"] = "Weiterspielen", ["New game"] = "Neues Spiel", ["Create a world"] = "Eine Welt erschaffen",

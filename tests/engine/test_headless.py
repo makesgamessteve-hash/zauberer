@@ -407,6 +407,9 @@ class ScenarioTests(EngineTestCase):
     def test_soundscape(self):
         self.assert_ok(self.scenario("soundscape"))
 
+    def test_company(self):
+        self.assert_ok(self.scenario("company"))
+
     def test_german(self):
         self.assert_ok(self.scenario("german"))
 

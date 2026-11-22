@@ -556,6 +556,10 @@ Starts joining the session at a ws:// address; net.receive reports "welcome" or 
 
 Starts joining the session with an invite code through the relay at a ws:// address (case, spaces and dashes in the code do not matter); net.receive reports "welcome" or "ended" (with the relay's reason for unknown or expired codes and full sessions).
 
+### `net.kick(player: integer): boolean, string?`
+
+Host: removes a joined player from the session (they are told why; their heir rests in the pocket home).
+
 ### `net.lan_announce(on: boolean, name?: string, port?: integer): boolean, string?`
 
 Answers LAN discovery queries while hosting (desktop only; in the browser it fails with "unavailable"), with the session's name and the port to join on (default: the port of the last net.host). net.lan_announce(false) stops.
@@ -591,6 +595,10 @@ Sets the bandwidth budget per connection (default 64 kbit/s on average with burs
 ### `net.set_channel(channel: string, class: string): boolean, string?`
 
 Sets how a channel travels (the same on every player): "reliable" (the default: every message arrives) or "latest" (while a connection is over its bandwidth budget only the newest unsent message per channel and sender is kept; for snapshots and positions).
+
+### `net.set_open(open: boolean)`
+
+Host: lets new heirs join, or not (those away may still come back).
 
 ### `net.status(): NetStatus`
 
@@ -1066,6 +1074,7 @@ The local wind at a place: the weather's wind shaped by the ground (the weather'
 | `can_rejoin` | `boolean` | The connection was lost and net.rejoin may bring this player back |
 | `invite_code` | `string?` | The relay's invite code while hosting through a relay |
 | `lan` | `boolean` | LAN discovery queries are being answered |
+| `open` | `boolean` | New heirs may join (host) |
 | `rtt_ms` | `integer[]` | Last round trip per player in milliseconds |
 | `sent` | `integer` | Bytes sent |
 | `received` | `integer` | Bytes received |

@@ -145,6 +145,12 @@ zb_result zb_net_lan_announce(zb_net *n, const char *name, uint16_t ws_port, uin
 void zb_net_lan_stop(zb_net *n);
 bool zb_net_lan_announcing(const zb_net *n);
 
+/* Host: removes a joined player (their connection closed with a reason, their
+ * resume token forgotten, others told they left). */
+zb_result zb_net_kick(zb_net *n, int player);
+/* Host: lets new heirs join or not (players away may still come back). */
+void zb_net_set_open(zb_net *n, bool open);
+bool zb_net_is_open(const zb_net *n);
 zb_net_role zb_net_role_of(const zb_net *n);
 int zb_net_player(const zb_net *n);
 /* Bit i set when player i is in the session (players who are away included). */

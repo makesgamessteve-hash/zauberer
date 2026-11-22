@@ -101,12 +101,28 @@ local function items(m)
     out = { { label = "Play", go = "load" }, { label = "Delete", page = "confirm" }, { label = "Back", go = "back" } }
   elseif m.page == "confirm" then
     out = { { label = "No, keep it", go = "back" }, { label = "Yes, delete it", go = "delete" } }
+  elseif m.page == "company" then
+    local h = m.hooks
+    for _, id in ipairs(require("coop.quick").ORDER) do
+      out[#out + 1] = { label = require("coop.quick").TEXT[id], go = "quick", quick = id }
+    end
+    if h.is_host and h.is_host() then
+      for _, heir in ipairs(h.heirs and h.heirs() or {}) do
+        out[#out + 1] = { raw = string.format(i18n.t("Remove %s"), heir.name), page = "remove", heir = heir }
+      end
+      out[#out + 1] = { label = h.is_open() and "Close to new heirs" or "Open to new heirs", go = "toggle_open" }
+    end
+  elseif m.page == "remove" then
+    out = { { label = "No, keep them", go = "back" }, { label = "Yes, remove them", go = "kick" } }
   elseif m.page == "main" then
     out = { { label = "Resume", go = "resume" }, { label = "Map", page = "map" },
       { label = "Journal", page = "journal" }, { label = "Help", page = "help" },
       { label = "Settings", page = "settings" },
       { label = "Controls", page = "controls" }, { label = "Packages", page = "packages" },
       { label = "Credits", page = "credits" }, { label = "Save and quit", go = "quit" } }
+    if m.hooks.in_company and m.hooks.in_company() then
+      table.insert(out, 2, { label = "Company", page = "company" })
+    end
   elseif m.page == "settings" then
     for _, name in ipairs(settings.ORDER) do
       out[#out + 1] = { setting = name, label = menu.LABELS[name] }
@@ -138,7 +154,8 @@ function menu.close(m)
   if m.hooks.resume then m.hooks.resume() end
 end
 
-local UP = { save = "load", confirm = "save", topic = "help", reset = "settings" } -- (the pages under another)
+-- (the pages under another)
+local UP = { save = "load", confirm = "save", topic = "help", reset = "settings", remove = "company" }
 
 local function back(m)
   if m.capture then
@@ -203,6 +220,14 @@ local function activate(m, item, step)
     if #((h.saves and h.saves()) or {}) == 0 then m.page = "title" end
   elseif item.go == "close" then
     menu.close(m)
+  elseif item.go == "quick" then
+    if h.quick then h.quick(item.quick) end
+    menu.close(m)
+  elseif item.go == "kick" then
+    local ok, why = h.kick(m.chosen_heir.player)
+    m.page, m.at, m.note = "company", 1, ok and string.format(i18n.t("%s was removed"), m.chosen_heir.name) or why
+  elseif item.go == "toggle_open" then
+    h.set_open(not h.is_open())
   elseif item.go == "reset_settings" then
     settings.reset(m.s)
     m.page, m.at, m.note = "settings", 1, "Back to the defaults"
@@ -212,6 +237,7 @@ local function activate(m, item, step)
   elseif item.page then
     if item.page == "map" and h.map_open then h.map_open() end
     if item.save then m.chosen = item.save end
+    if item.heir then m.chosen_heir = item.heir end
     if item.topic then m.topic = item.topic end
     m.page, m.at = item.page, 1
   elseif item.setting then
@@ -278,7 +304,8 @@ function menu.lines(m, credits)
   local title = { main = "Menu", settings = "Settings", controls = "Controls", packages = "Packages",
     credits = "Credits", title = "Zauberer", load = "Load game", save = m.chosen and { raw = m.chosen.name },
     confirm = m.chosen and { raw = string.format(i18n.t("Delete %s?"), m.chosen.name) }, help = "Help",
-    reset = "Reset every setting to its default?" }
+    reset = "Reset every setting to its default?", company = "Company",
+    remove = m.chosen_heir and { raw = string.format(i18n.t("Remove %s from the session?"), m.chosen_heir.name) } }
   if m.page == "topic" then
     for _, t in ipairs(require("ui.help").TOPICS) do
       if t.id == m.topic then title.topic = t.title end
@@ -321,7 +348,7 @@ function menu.lines(m, credits)
       local b = m.capture == item.action and i18n.t("press a key or button") or
         table.concat(input.bindings(item.action) or {}, ", ")
       out[#out + 1] = { raw = mark .. item.action .. ": " .. b }
-    elseif item.save then
+    elseif item.save or item.heir then
       out[#out + 1] = { raw = mark .. item.raw }
     elseif item.package then
       local p = item.package

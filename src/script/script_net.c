@@ -12,6 +12,7 @@
  * @field can_rejoin boolean The connection was lost and net.rejoin may bring this player back
  * @field invite_code string? The relay's invite code while hosting through a relay
  * @field lan boolean LAN discovery queries are being answered
+ * @field open boolean New heirs may join (host)
  * @field rtt_ms integer[] Last round trip per player in milliseconds
  * @field sent integer Bytes sent
  * @field received integer Bytes received
@@ -412,6 +413,31 @@ static int n_leave(lua_State *L) {
   return 0;
 }
 
+/* @lua net.kick(player: integer): boolean, string?
+ * Host: removes a joined player from the session (they are told why; their heir rests in the pocket home).
+ */
+static int n_kick(lua_State *L) {
+  zb_net *n = N(L);
+  lua_Integer player = luaL_checkinteger(L, 1);
+  if (!n || player < 0 || player > 255 || zb_net_kick(n, (int)player) != ZB_OK) {
+    lua_pushboolean(L, 0);
+    lua_pushstring(L, "only the host removes a player who is in the session");
+    return 2;
+  }
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
+/* @lua net.set_open(open: boolean)
+ * Host: lets new heirs join, or not (those away may still come back).
+ */
+static int n_set_open(lua_State *L) {
+  if (N(L)) {
+    zb_net_set_open(N(L), lua_toboolean(L, 1));
+  }
+  return 0;
+}
+
 static void push_players(lua_State *L, unsigned mask) {
   lua_newtable(L);
   int k = 0;
@@ -482,6 +508,8 @@ static int n_status(lua_State *L) {
   }
   lua_pushboolean(L, n && zb_net_lan_announcing(n));
   lua_setfield(L, -2, "lan");
+  lua_pushboolean(L, n && zb_net_is_open(n));
+  lua_setfield(L, -2, "open");
   zb_net_stats st;
   memset(&st, 0, sizeof st);
   if (n) {
@@ -806,6 +834,8 @@ void zb_script_open_net(zb_script *s) {
                                      {"join_code", n_join_code},
                                      {"rejoin", n_rejoin},
                                      {"leave", n_leave},
+                                     {"kick", n_kick},
+                                     {"set_open", n_set_open},
                                      {"status", n_status},
                                      {"send", n_send},
                                      {"receive", n_receive},

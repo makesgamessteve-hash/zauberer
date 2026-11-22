@@ -327,6 +327,22 @@ function game.setup_ui()
     map_pan = function(dx, dy) worldmap.pan(game.worldmap, dx, dy) end,
     map_zoom = function() worldmap.zoom_out(game.worldmap) end,
     ending_lines = function() return game.ending_lines or {} end,
+    in_company = function() return game.coop.role ~= "none" end,
+    is_host = function() return game.coop.role == "host" end,
+    is_open = function() return net.status().open end,
+    set_open = function(open) net.set_open(open) end,
+    heirs = function()
+      local out = {}
+      for _, p in ipairs(net.status().players or {}) do
+        if p ~= 0 then out[#out + 1] = { player = p, name = game.heir_name(p) } end
+      end
+      return out
+    end,
+    kick = function(player) return net.kick(player) end,
+    quick = function(id)
+      local line = require("coop.quick").send(id, game.heir_name(math.max(0, game.coop.me or 0)))
+      if line then pack.say(game.pack, line) end
+    end,
     reset_hints = function() help.reset(game.help) end,
     version = engine.info().version,
     can_quit = engine.info().platform ~= "web", -- (a page is closed, not quit)
@@ -441,6 +457,12 @@ function game.goal_pos()
   end
   if game.story then return select(2, prologue.goal(game.story)) end
   return nil
+end
+
+-- An heir's name by player index (0: the host).
+function game.heir_name(player)
+  local h = game.together and game.together.heirs and game.together.heirs.list[player + 1]
+  return (h and h.name) or string.format(i18n.t("Heir %d"), player + 1)
 end
 
 -- The story so far, for the help page: the goal and what was said lately.
@@ -931,6 +953,10 @@ local function flight_tick(dt)
       local near = require("people.peopling").near(Pl.db, Pl.grid, me, 2500)[1]
       if near then worldmap.know(game.worldmap, game.home.pos, near.settlement.name, near.settlement.pos) end
     end
+  end
+  -- Quick messages from the others in company.
+  for _, line in ipairs(require("coop.quick").take(game.coop.inbox or {}, game.heir_name)) do
+    pack.say(game.pack, line)
   end
   -- Requests heard in talk go into the journal.
   local folk = game.world_places and game.world_places.folk

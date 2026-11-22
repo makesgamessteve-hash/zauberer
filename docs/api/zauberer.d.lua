@@ -111,6 +111,7 @@
 ---@field can_rejoin boolean The connection was lost and net.rejoin may bring this player back
 ---@field invite_code string? The relay's invite code while hosting through a relay
 ---@field lan boolean LAN discovery queries are being answered
+---@field open boolean New heirs may join (host)
 ---@field rtt_ms integer[] Last round trip per player in milliseconds
 ---@field sent integer Bytes sent
 ---@field received integer Bytes received
@@ -982,6 +983,12 @@ function net.join(url) end
 ---@return string?
 function net.join_code(url, code) end
 
+---Host: removes a joined player from the session (they are told why; their heir rests in the pocket home).
+---@param player integer
+---@return boolean
+---@return string?
+function net.kick(player) end
+
 ---Answers LAN discovery queries while hosting (desktop only; in the browser it fails with "unavailable"), with the session's name and the port to join on (default: the port of the last net.host). net.lan_announce(false) stops.
 ---@param on boolean
 ---@param name? string
@@ -1034,6 +1041,10 @@ function net.set_budget(kbps, burst_kbps) end
 ---@return boolean
 ---@return string?
 function net.set_channel(channel, class) end
+
+---Host: lets new heirs join, or not (those away may still come back).
+---@param open boolean
+function net.set_open(open) end
 
 ---The session's state.
 ---@return NetStatus

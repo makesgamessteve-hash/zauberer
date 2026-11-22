@@ -113,6 +113,10 @@ static void test_mismatch_list_malformed(void) {
   zb_loopback_destroy(lb);
 }
 
+typedef struct session3 session3;
+static void start3(session3 *s, const zb_net_config *client_cfg);
+static void stop3(session3 *s);
+
 static uint8_t *make_blob(size_t len, uint64_t seed) {
   uint8_t *b = zb_alloc(zb_test_alloc(), len ? len : 1);
   uint64_t x = seed;
@@ -123,10 +127,10 @@ static uint8_t *make_blob(size_t len, uint64_t seed) {
   return b;
 }
 
-typedef struct session3 {
+struct session3 {
   zb_loopback *lb;
   zb_net *host, *c1, *c2;
-} session3;
+};
 
 static void start3(session3 *s, const zb_net_config *client_cfg) {
   g_now = 0;
@@ -476,6 +480,38 @@ static bool features_with_budget(long budget) {
   return ok && fa.calls <= budget;
 }
 
+/* spec: coop-sessions: Removed and talking */
+static void test_kick_and_close(void) {
+  session3 s;
+  start3(&s, NULL);
+  zb_net *all[] = {s.host, s.c1, s.c2};
+  /* Only the host removes, and only a joined player. */
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_net_kick(s.c1, 2));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_net_kick(s.host, 0));
+  TEST_ASSERT_EQUAL_INT(ZB_ERR_INVALID, zb_net_kick(s.host, 9));
+  /* Closed to new heirs: a fourth is refused with the reason. */
+  TEST_ASSERT_TRUE(zb_net_is_open(s.host));
+  zb_net_set_open(s.host, false);
+  TEST_ASSERT_FALSE(zb_net_is_open(s.host));
+  zb_net *c3 = make_net(5);
+  zb_net_join(c3, zb_loopback_connect(s.lb));
+  zb_net *four[] = {s.host, s.c1, s.c2, c3};
+  pump(four, 4, 3);
+  TEST_ASSERT_EQUAL_STRING("the host has closed the session to new heirs", zb_net_error(c3));
+  TEST_ASSERT_EQUAL_UINT(0x7, zb_net_players(s.host));
+  zb_net_destroy(c3);
+  /* The host removes player 2: told why, gone for everyone. */
+  int removed = zb_net_player(s.c2);
+  TEST_ASSERT_EQUAL_INT(ZB_OK, zb_net_kick(s.host, removed));
+  pump(all, 3, 3);
+  TEST_ASSERT_EQUAL_STRING("the host removed you from the session", zb_net_error(s.c2));
+  TEST_ASSERT_FALSE(zb_net_players(s.host) & (1u << removed));
+  TEST_ASSERT_FALSE(zb_net_players(s.c1) & (1u << removed));
+  TEST_ASSERT_FALSE(zb_net_can_resume(s.c2)); /* (no coming back as the same heir) */
+  zb_net_set_open(s.host, true);
+  stop3(&s);
+}
+
 static void test_out_of_memory(void) {
   g_now = 0;
   long budget = 0;
@@ -498,5 +534,6 @@ int main(void) {
   RUN_TEST(test_blob_protocol_errors);
   RUN_TEST(test_blob_cache);
   RUN_TEST(test_out_of_memory);
+  RUN_TEST(test_kick_and_close);
   return UNITY_END();
 }

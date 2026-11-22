@@ -42,6 +42,15 @@ expect_eq(#heirs.present(T.heirs), 4)
 input.inject("quit", 1, 1)
 step(2)
 expect(game.menu.open, "the menu is open")
+local listed = {}
+for _, l in ipairs(require("ui.menu").lines(game.menu)) do listed[#listed + 1] = type(l) == "table" and l.raw or l end
+expect(table.concat(listed, " | "):find("Company", 1, true), "in company the menu has a Company page")
+game.menu.page = "company"
+local company = {}
+for _, l in ipairs(require("ui.menu").lines(game.menu)) do company[#company + 1] = type(l) == "table" and l.raw or l end
+expect(table.concat(company, " | "):find("Remove ", 1, true) and table.concat(company, " | "):find("Close to new heirs",
+  1, true), "the host can remove heirs and close the session")
+game.menu.page = "main"
 local menu_at = world.time().time
 step(10)
 expect(world.time().time > menu_at, "in company the world goes on with the menu open")
