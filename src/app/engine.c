@@ -62,6 +62,9 @@ static void host_time_scale(void *ctx, double scale) { zb_loop_set_time_scale(&(
 
 static void host_fullscreen(void *ctx, bool on) { zb_platform_set_fullscreen(((zb_engine *)ctx)->platform, on); }
 static void host_vsync(void *ctx, bool on) { zb_platform_set_vsync(((zb_engine *)ctx)->platform, on); }
+static int host_rumble(void *ctx, float strength, unsigned ms) {
+  return zb_platform_rumble(((zb_engine *)ctx)->platform, strength, ms);
+}
 static void host_frame_cap(void *ctx, int fps) { ((zb_engine *)ctx)->frame_cap = fps > 0 ? (unsigned)fps : 0u; }
 
 static zb_result write_config(zb_engine *e) {
@@ -537,6 +540,7 @@ static bool start_scripts(zb_engine *e, char *err, size_t err_len) {
   sc.host.set_time_scale = host_time_scale;
   sc.host.set_fullscreen = host_fullscreen;
   sc.host.set_vsync = host_vsync;
+  sc.host.rumble = host_rumble;
   sc.host.set_frame_cap = host_frame_cap;
   sc.host.save_bindings = host_save_bindings;
   sc.host.set_package = host_set_package;

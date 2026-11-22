@@ -404,6 +404,11 @@ static void test_web_bridge_on_desktop(void) {
     }
   }
   TEST_ASSERT_TRUE(unlocked);
+  /* No gamepad: nothing rumbles; V-sync can be turned off and on. */
+  TEST_ASSERT_EQUAL_INT(0, zb_platform_rumble(g_p, 0.5f, 100));
+  TEST_ASSERT_EQUAL_INT(0, zb_platform_rumble(g_p, 2.0f, 100));
+  zb_platform_set_vsync(g_p, false);
+  zb_platform_set_vsync(g_p, true);
   /* A focus change pushed by the page (web) arrives as a focus event. */
   zb_platform_push_focus(false);
   zb_platform_push_focus(true);

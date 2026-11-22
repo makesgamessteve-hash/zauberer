@@ -40,6 +40,8 @@ typedef struct zb_script_host {
   void (*set_fullscreen)(void *ctx, bool on);
   /* V-sync on or off, and the most frames a second (0: no cap). */
   void (*set_vsync)(void *ctx, bool on);
+  /* Rumbles the gamepads (strength 0 .. 1 for ms); returns how many. */
+  int (*rumble)(void *ctx, float strength, unsigned ms);
   void (*set_frame_cap)(void *ctx, int fps);
   /* Persists the user's input bindings. */
   zb_result (*save_bindings)(void *ctx);

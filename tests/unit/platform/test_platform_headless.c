@@ -60,6 +60,9 @@ static void test_basics(void) {
   TEST_ASSERT_FALSE(zb_platform_is_gles(g_p));
   zb_event ev;
   TEST_ASSERT_FALSE(zb_platform_translate_event(g_p, NULL, &ev));
+  TEST_ASSERT_EQUAL_INT(0, zb_platform_rumble(g_p, 0.5f, 100));
+  zb_platform_set_vsync(g_p, false);
+  zb_platform_push_focus(true);
   zb_platform_request_quit(g_p);
   zb_platform_show_error(g_p, "Test", "headless error output");
   zb_test_setenv("ZB_TOUCH_PRIMARY", NULL);

@@ -431,6 +431,12 @@ function input.inject(action, x, y, ticks) end
 ---@return "desktop"|"touch"
 function input.mode() end
 
+---Rumbles the connected gamepads at strength (0 .. 1) for seconds (up to 2); returns how many rumbled.
+---@param strength number
+---@param seconds number
+---@return integer
+function input.rumble(strength, seconds) end
+
 ---Replaces the player's bindings of an action and saves the configuration; returns whether saving succeeded.
 ---@param action string
 ---@param bindings string[]

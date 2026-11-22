@@ -23,6 +23,7 @@ settings.SPEC = {
   pixel_height = { default = 360, values = { 240, 360, 480, 720 } },
   brightness = { default = 1, values = { 0.75, 0.9, 1, 1.1, 1.25, 1.5 } },
   invert_look = { default = false, values = { false, true } },
+  vibration = { default = true, values = { true, false } },
   language = { default = "en" }, -- any language a package offers
   text_size = { default = 1, values = { 1, 2, 3 } },
   high_contrast = { default = false, values = { false, true } },
@@ -47,7 +48,8 @@ settings.SPEC = {
 
 -- The menu order of the settings.
 settings.ORDER = { "language", "master_volume", "music_volume", "effects_volume", "mute", "vsync", "frame_cap",
-  "pixel_height", "brightness", "invert_look", "text_size", "high_contrast", "colour_vision", "colour_glyphs",
+  "pixel_height", "brightness", "invert_look", "vibration", "text_size", "high_contrast", "colour_vision",
+  "colour_glyphs",
   "reduced_flashing",
   "captions", "toggle_hold", "gesture_assist", "look_curve", "look_speed", "fov",
   "story_markers", "hints", "survival", "xr_steer", "xr_snap_turn", "xr_vignette", "xr_reduced_speed",

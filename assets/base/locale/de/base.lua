@@ -356,7 +356,7 @@ return {
   ["The story has not begun: press {story} in Anarvan."] = "Die Geschichte hat noch nicht begonnen: drück {story} in Anarvan.",
   ["Volume"] = "Lautstärke", ["Music"] = "Musik", ["Sounds"] = "Geräusche", ["Mute"] = "Stumm", ["V-sync"] = "V-Sync",
   ["Frame cap"] = "Bildrate begrenzen", ["Pixel resolution"] = "Pixelauflösung", ["Brightness"] = "Helligkeit",
-  ["Invert look"] = "Blick umkehren", ["Reset to defaults"] = "Auf Standard zurücksetzen",
+  ["Invert look"] = "Blick umkehren", ["Vibration"] = "Vibration", ["Reset to defaults"] = "Auf Standard zurücksetzen",
   ["No, keep them"] = "Nein, behalten", ["Yes, reset them"] = "Ja, zurücksetzen",
   ["Reset every setting to its default?"] = "Alle Einstellungen auf Standard zurücksetzen?",
   ["Back to the defaults"] = "Auf Standard zurückgesetzt", ["none"] = "keine", ["%d%%"] = "%d%%",

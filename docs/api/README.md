@@ -154,6 +154,10 @@ Test API: overrides an action's value for the next ticks (default 1, 0, 1).
 
 The current input mode.
 
+### `input.rumble(strength: number, seconds: number): integer`
+
+Rumbles the connected gamepads at strength (0 .. 1) for seconds (up to 2); returns how many rumbled.
+
 ### `input.set_user_binding(action: string, bindings: string[]): boolean`
 
 Replaces the player's bindings of an action and saves the configuration; returns whether saving succeeded.

@@ -11,6 +11,7 @@ local game = demo.game
 local help = require("ui.help")
 local menu = require("ui.menu")
 local settings = require("ui.settings")
+game.hints_in_tests = true -- (hints show in a player's game; here too)
 step(5)
 -- The controls of each device.
 expect_eq(input.device(), "desktop")

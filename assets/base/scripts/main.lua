@@ -55,6 +55,7 @@ local help = require("ui.help")
 local journal = require("ui.journal")
 local i18n = require("ui.i18n")
 local worldmap = require("ui.worldmap")
+local soundscape = require("player.soundscape")
 local news = require("player.news")
 local modapi = require("mods.api")
 local xrplay = require("xr.play")
@@ -265,7 +266,7 @@ engine.on("init", function()
   end
   assets.font = render.font("fonts/pixel.lua")
   game.setup_ui()
-  game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
+  game.sound = soundscape.new() -- (the music and ambience start with the first tick)
   game.credits = engine.credits()
   local saved = save.get("world")
   if saved then -- continue the game saved last time
@@ -334,6 +335,10 @@ function game.setup_ui()
   game.help = help.new()
   news.listeners[#news.listeners + 1] = function(said) -- (everything said goes into the journal)
     if game.journal and game.mode == "flight" then journal.note(game.journal, said, world.time().time) end
+    if game.sound and type(said) == "string" and (said:find("^Taken ") or said:find("^You pick")
+      or said:find("^Gathered") or said:find("^Found ")) then
+      soundscape.play(game.sound, "pickup")
+    end
   end
   game.xr_options = game.vr_options(game.settings)
   settings.listeners[#settings.listeners + 1] = function(s, name)
@@ -396,6 +401,33 @@ function game.show_ending()
   access.block(true)
   print("the ending shown: " .. tostring(S.ending))
   game.autosave("ending")
+end
+
+-- The music and ambience: what the situation and the place sound like
+-- (looked at twice a second; the crossfades run every tick).
+function game.sound_tick(dt)
+  if not game.sound then return end
+  game.sound_at = (game.sound_at or 0) + 1
+  if not game.sound_ctx or game.sound_at % 30 == 1 then
+    local c, w = game.carpet, game.walker
+    local me = (w and w.pos) or c.pos
+    local ground = world.ground_height(me)
+    local sky = world.sky(me)
+    local m = game.menu
+    local P = game.world_places and game.world_places.places
+    local beat = game.story and game.story.beat
+    game.sound_ctx = {
+      title = m and m.open and (m.page == "title" or m.home == "title"),
+      story = (m and m.open and m.home == "ending") or beat == "arrival" or beat == "handover" or beat == "hiding",
+      danger = fauna.hunter_near(me, 80) or game.health.hp < 30,
+      night = sky ~= nil and sky.daylight < 0.2,
+      underground = me.alt < ground - 1.5, rain = (sim.weather().rain or 0) > 0.3,
+      aloft = w == nil and me.alt - ground > 30,
+      settlement = P ~= nil and P.ready and require("places.places").at(P, me) ~= nil,
+    }
+  end
+  soundscape.tick(game.sound, dt, game.sound_ctx)
+  game.music = game.sound.music.voice -- (the music playing now)
 end
 
 -- Where the story asks the heir to go now (the prologue's next place, or the next of the Circle).
@@ -691,6 +723,7 @@ local function flight_tick(dt)
     game.open_menu()
     st = controls.read()
   end
+  game.sound_tick(dt)
   local held = game.menu.open and game.coop.role == "none"
   if held ~= (game.world_held or false) then
     game.world_held = held
@@ -828,6 +861,12 @@ local function flight_tick(dt)
   if cast_now and cast_now.ok then
     disciplines.practice(game.disciplines, "spellcasting", 2, "cast", cast_now.name or "free weave")
   end
+  if cast_now and cast_now.ok and not (cast_now.plan and cast_now.plan.misfire) then
+    soundscape.play(game.sound, "cast")
+  elseif cast_now and cast_now.plan and cast_now.plan.misfire then
+    soundscape.play(game.sound, "misfire")
+    soundscape.rumble(game.sound, 0.4, 0.2, game.settings.vibration)
+  end
   -- Creatures, and the motes of the magical ones that die.
   local now = world.time().time
   local hp_before = game.health.hp
@@ -858,7 +897,19 @@ local function flight_tick(dt)
   local fate = health.tick(game.health, dt, { pos = me, on_foot = w ~= nil, landing = w and w.landing,
     events = creature_events,
     heard = effects.take_events(fx), cast = cast_now, wards = function(kind) return effects.warded(fx, kind) end })
-  if fate == "defeated" then sim.spare_player(60, 300) end -- (what brought the player down turns away)
+  -- Harm since the last tick (whatever dealt it): a hit is heard and felt, a defeat too.
+  local downed = game.health.down ~= nil and not game.was_down
+  game.was_down = game.health.down ~= nil
+  if downed then sim.spare_player(60, 300) end -- (what brought the player down turns away)
+  local harmed = (game.last_hp or hp_before) - game.health.hp
+  game.last_hp = game.health.hp
+  if downed then
+    soundscape.play(game.sound, "defeat")
+    soundscape.rumble(game.sound, 1, 0.6, game.settings.vibration)
+  elseif harmed >= 3 then -- (a hit, not the slow ache of hunger)
+    soundscape.play(game.sound, "hit", math.min(1, 0.4 + harmed / 30))
+    soundscape.rumble(game.sound, harmed / 30, 0.25, game.settings.vibration)
+  end
   if fate == "revived" and game.autosave_due then game.autosave(game.autosave_due) end
   if fate == "revived" then
     local spot, moved = health.safe_spot(game.home.pos, fauna.hunter_near)
@@ -1129,6 +1180,7 @@ local function flight_tick(dt)
       if happened then
         pack.say(game.pack, game.story.lines[#game.story.lines])
         journal.finish(game.journal, prologue.goal_text(beat_was))
+        soundscape.play(game.sound, "beat")
         game.autosave("story")
       end
       game.slept = nil
@@ -1165,6 +1217,7 @@ local function flight_tick(dt)
         choose = defeated and input.state("story").pressed, take = defeated and input.state("use").pressed })
       for _, id in ipairs(done) do pack.say(game.pack, "Story: " .. id) end
       for _, id in ipairs(done) do journal.finish(game.journal, "Story: " .. id) end
+      if #done > 0 then soundscape.play(game.sound, "beat") end
       if game.saga.ending and not game.saga.ending_seen then game.show_ending() end
       if #done > 0 then game.autosave("story") end
     end
@@ -1213,6 +1266,10 @@ end
 
 engine.on("tick", function(dt)
   reset_tick()
+  if game.mode ~= "flight" and game.sound then -- (the title's music on the other screens)
+    soundscape.tick(game.sound, dt, { title = true, aloft = true })
+    game.music = game.sound.music.voice
+  end
   if game.mode == "flight" then
     flight_tick(dt)
   elseif game.mode == "create" then
@@ -1258,7 +1315,7 @@ end
 local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
-  local hint = game.help and help.hint_line(game.help)
+  local hint = game.help and (engine.info().play or game.hints_in_tests) and help.hint_line(game.help)
   if hint then table.insert(lines, 1, hint) end
   local stage = world.chunk_stage((game.walker and game.walker.pos) or c.pos) or 0
   if stage < 2 then lines[#lines + 1] = string.format("Loading the land: %d%%", math.max(0, stage) * 50) end

@@ -38,6 +38,7 @@ end
 menu.LABELS = {
   master_volume = "Volume", music_volume = "Music", effects_volume = "Sounds", mute = "Mute", vsync = "V-sync",
   frame_cap = "Frame cap", pixel_height = "Pixel resolution", brightness = "Brightness", invert_look = "Invert look",
+  vibration = "Vibration",
   language = "Language", text_size = "Text size", high_contrast = "High contrast", colour_vision = "Colour vision",
   colour_glyphs = "Colour glyphs", reduced_flashing = "Reduced flashing",
   captions = "Sound captions", toggle_hold = "Toggle instead of hold", gesture_assist = "Gesture assist",

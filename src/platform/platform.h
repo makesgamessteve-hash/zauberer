@@ -52,6 +52,9 @@ bool zb_platform_has_window(zb_platform *p);
 void zb_platform_drawable_size(zb_platform *p, int *w, int *h);
 void zb_platform_swap(zb_platform *p);
 void zb_platform_set_fullscreen(zb_platform *p, bool on);
+/* Rumbles every connected gamepad at strength 0 .. 1 for ms milliseconds;
+ * returns how many rumbled. */
+int zb_platform_rumble(zb_platform *p, float strength, unsigned ms);
 /* Waits for the display's refresh before showing a frame (on) or not. */
 void zb_platform_set_vsync(zb_platform *p, bool on);
 /* Resizes the window (in window coordinates); the drawable-size change

@@ -250,6 +250,13 @@ void zb_platform_drawable_size(zb_platform *p, int *w, int *h) {
   *h = 0;
 }
 void zb_platform_swap(zb_platform *p) { (void)p; }
+int zb_platform_rumble(zb_platform *p, float strength, unsigned ms) {
+  (void)p;
+  (void)strength;
+  (void)ms;
+  return 0;
+}
+
 void zb_platform_set_vsync(zb_platform *p, bool on) {
   (void)p;
   (void)on;

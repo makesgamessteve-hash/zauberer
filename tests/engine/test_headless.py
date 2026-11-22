@@ -395,6 +395,9 @@ class ScenarioTests(EngineTestCase):
     def test_world_map(self):
         self.assert_ok(self.scenario("worldmap"))
 
+    def test_soundscape(self):
+        self.assert_ok(self.scenario("soundscape"))
+
     def test_german(self):
         self.assert_ok(self.scenario("german"))
 

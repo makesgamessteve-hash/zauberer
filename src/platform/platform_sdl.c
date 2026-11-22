@@ -396,6 +396,18 @@ void zb_platform_swap(zb_platform *p) {
   }
 }
 
+int zb_platform_rumble(zb_platform *p, float strength, unsigned ms) {
+  float s = strength < 0.0f ? 0.0f : (strength > 1.0f ? 1.0f : strength);
+  Uint16 level = (Uint16)(s * 65535.0f);
+  int n = 0;
+  for (size_t i = 0; i < sizeof p->pads / sizeof p->pads[0]; ++i) {
+    if (p->pads[i] && SDL_RumbleGamepad(p->pads[i], level, level, ms)) {
+      n++;
+    }
+  }
+  return n;
+}
+
 void zb_platform_set_vsync(zb_platform *p, bool on) {
   if (p->gl) {
     SDL_GL_SetSwapInterval(on ? 1 : 0);

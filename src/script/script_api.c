@@ -846,6 +846,19 @@ static int i_mode(lua_State *L) {
   return 1;
 }
 
+/* @lua input.rumble(strength: number, seconds: number): integer
+ * Rumbles the connected gamepads at strength (0 .. 1) for seconds (up to 2); returns how many rumbled.
+ */
+static int i_rumble(lua_State *L) {
+  zb_script *s = S(L);
+  double strength = luaL_checknumber(L, 1), seconds = luaL_checknumber(L, 2);
+  luaL_argcheck(L, strength >= 0.0 && strength <= 1.0, 1, "strength must be 0..1");
+  luaL_argcheck(L, seconds >= 0.0 && seconds <= 2.0, 2, "seconds must be 0..2");
+  lua_pushinteger(
+      L, s->cfg.host.rumble ? s->cfg.host.rumble(s->cfg.host.ctx, (float)strength, (unsigned)(seconds * 1000.0)) : 0);
+  return 1;
+}
+
 /* @lua input.device(): "desktop"|"gamepad"|"touch"
  * The device used last (keyboard and mouse, a gamepad or touch), for prompts that name its controls.
  */
@@ -1597,6 +1610,7 @@ void zb_script_open_api(zb_script *s) {
                                        {"state", i_state},
                                        {"mode", i_mode},
                                        {"device", i_device},
+                                       {"rumble", i_rumble},
                                        {"capture", i_capture},
                                        {"add_stick", i_add_stick},
                                        {"add_button", i_add_button},
