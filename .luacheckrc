@@ -16,6 +16,7 @@ files["tests/scenarios/together_*.lua"] = { read_globals = { "together" } } -- (
 files["tests/fixtures/scenarios/**"] = {
   read_globals = { "scenario", "step", "sleep", "expect", "expect_eq", "expect_near", "expect_error" },
 }
+files["tools/reels/**"] = { read_globals = { "scenario", "step", "sleep" } } -- (the reel footage)
 files["tests/fixtures/mods/broken/package.lua"] = { only = {} } -- deliberately not a literal table
 files["tests/fixtures/mods/failing_hook/**"] = { globals = { "failing_hook_ticks" } }
 files["tests/fixtures/mods/xr_events/**"] = { globals = { "xr_events" } }
