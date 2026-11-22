@@ -8,6 +8,7 @@
 -- spec: narrative-director: The M10 exit demo
 -- spec: story-act-3-and-endings: Every ending can be reached
 -- spec: post-game-world-state: The world after the ending
+-- spec: story-act-3-and-endings: After Bind
 scenario { name = "story bot" }
 local game = demo.game
 local places = demo.places
@@ -162,6 +163,23 @@ for _, ending in ipairs({ "unravel", "bind", "reweave", "succession" }) do
   expect_eq(A.ending, ending)
   expect(A.N.done.ending, "the story is complete: " .. ending)
   expect(A.last_chronicle, "a chronicle of it")
+  -- The ending shown: its closing lines and the people's chronicle, then the credits, then play goes on.
+  local menu = require("ui.menu")
+  expect(game.menu.open and game.menu.page == "ending", "the ending is shown")
+  local shown = {}
+  for _, l in ipairs(menu.lines(game.menu)) do shown[#shown + 1] = type(l) == "table" and l.raw or l end
+  local page = table.concat(shown, " | ")
+  local e = require("story.narrative").data().endings[ending]
+  expect(page:find(e.name, 1, true) and page:find("In those days", 1, true), page)
+  expect(A.ending_seen and saga.snapshot(A).ending_seen, "the save records the ending")
+  if ending == "bind" then
+    press("confirm")
+    expect_eq(game.menu.page, "ending_credits", "the credits")
+    press("quit") -- (skipped)
+  else
+    menu.close(game.menu)
+  end
+  expect(not game.menu.open, "play goes on in the world after the ending")
   local after = mana.ley(game.carpet.pos).strength
   if ending == "reweave" then expect_eq(after, 1) end
   if ending == "succession" then

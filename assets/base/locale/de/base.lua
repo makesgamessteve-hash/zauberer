@@ -365,6 +365,8 @@ return {
     "%d km je Zeichen; @ du, C der Teppich, X das Ziel, o ein Ort",
   ["Stick: move, OK: zoom, Menu: back"] = "Stick: bewegen, OK: zoomen, Menü: zurück",
   ["Arrows: move, Enter: zoom, Escape: back"] = "Pfeile: bewegen, Enter: zoomen, Escape: zurück",
+  ["The end of the story"] = "Das Ende der Geschichte", ["Go on in the world"] = "In der Welt weitergehen",
+  ["Your story is told; the world goes on."] = "Deine Geschichte ist erzählt; die Welt geht weiter.",
   ["Journal"] = "Tagebuch", ["Requests:"] = "Bitten:", ["Finished:"] = "Erledigt:",
   ["What was said:"] = "Was gesagt wurde:", ["day %d, %02d:%02d"] = "Tag %d, %02d:%02d", ["%s in %s: %s"] = "%s in %s: %s",
   ["Zauberer"] = "Zauberer", ["Game saved"] = "Spiel gespeichert", ["Continue"] = "Weiterspielen", ["New game"] = "Neues Spiel", ["Create a world"] = "Eine Welt erschaffen",

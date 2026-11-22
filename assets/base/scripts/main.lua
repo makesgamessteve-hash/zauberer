@@ -53,6 +53,7 @@ local access = require("ui.access")
 local menu = require("ui.menu")
 local help = require("ui.help")
 local journal = require("ui.journal")
+local i18n = require("ui.i18n")
 local worldmap = require("ui.worldmap")
 local news = require("player.news")
 local modapi = require("mods.api")
@@ -324,6 +325,7 @@ function game.setup_ui()
     end,
     map_pan = function(dx, dy) worldmap.pan(game.worldmap, dx, dy) end,
     map_zoom = function() worldmap.zoom_out(game.worldmap) end,
+    ending_lines = function() return game.ending_lines or {} end,
     reset_hints = function() help.reset(game.help) end,
     version = engine.info().version,
     can_quit = engine.info().platform ~= "web", -- (a page is closed, not quit)
@@ -374,6 +376,26 @@ end
 function game.vr_options(s)
   return { steer = s.xr_steer, snap_turn = s.xr_snap_turn, vignette = s.xr_vignette,
     reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
+end
+
+-- The end of the story shown: its name and closing lines, the chronicle of
+-- the heirs' own people, then the credits (skippable); then play goes on in
+-- the world after the ending, and the save records it.
+function game.show_ending()
+  local S = game.saga
+  S.ending_seen = true
+  local e = require("story.narrative").data().endings[S.ending]
+  local lines = { { raw = string.format(i18n.t("%s: %s"), i18n.t(e.name), i18n.t(e.text)) } }
+  local P = game.world_places.places
+  local anarvan = P.db and P.db.story and P.db.story.anarvan and require("people.history").get(P.db, P.db.story.anarvan)
+  local told = (anarvan and S.chronicles and S.chronicles[anarvan.culture]) or S.last_chronicle
+  if told then lines[#lines + 1] = { raw = i18n.t(told) } end
+  lines[#lines + 1] = "Your story is told; the world goes on."
+  game.ending_lines = lines
+  menu.open_ending(game.menu)
+  access.block(true)
+  print("the ending shown: " .. tostring(S.ending))
+  game.autosave("ending")
 end
 
 -- Where the story asks the heir to go now (the prologue's next place, or the next of the Circle).
@@ -1143,6 +1165,7 @@ local function flight_tick(dt)
         choose = defeated and input.state("story").pressed, take = defeated and input.state("use").pressed })
       for _, id in ipairs(done) do pack.say(game.pack, "Story: " .. id) end
       for _, id in ipairs(done) do journal.finish(game.journal, "Story: " .. id) end
+      if game.saga.ending and not game.saga.ending_seen then game.show_ending() end
       if #done > 0 then game.autosave("story") end
     end
   end

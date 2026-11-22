@@ -55,6 +55,11 @@ function menu.new(s, hooks)
     capture = nil, note = nil }
 end
 
+-- Opens the end of the story: its closing lines, then the credits, then play goes on.
+function menu.open_ending(m)
+  m.open, m.page, m.home, m.at, m.capture, m.note = true, "ending", "ending", 1, nil, nil
+end
+
 -- Opens the title: the game's first page (continue, a new world, a saved game, settings, credits, quit).
 function menu.open_title(m)
   m.open, m.page, m.home, m.at, m.capture, m.note = true, "title", "title", 1, nil, nil
@@ -66,7 +71,11 @@ end
 
 local function items(m)
   local out = {}
-  if m.page == "title" then
+  if m.page == "ending" then
+    out = { { label = "Continue", page = "ending_credits" } }
+  elseif m.page == "ending_credits" then
+    out = { { label = "Go on in the world", go = "close" } }
+  elseif m.page == "title" then
     local h = m.hooks
     local saves = h.saves and h.saves() or {}
     out[1] = { label = m.started and "Continue" or (h.current and h.current() and "Continue" or "New game"),
@@ -135,8 +144,10 @@ local function back(m)
     m.capture = nil
   elseif m.page == "main" then
     menu.close(m)
-  elseif m.page == "title" then
-    return -- (the title is left by choosing)
+  elseif m.page == "title" or m.page == "ending" then
+    return -- (left by choosing)
+  elseif m.page == "ending_credits" then
+    menu.close(m) -- (the credits are skipped)
   elseif UP[m.page] then
     m.page, m.at = UP[m.page], 1
   else
@@ -189,6 +200,8 @@ local function activate(m, item, step)
     m.page, m.at = "load", 1
     if not ok then return end
     if #((h.saves and h.saves()) or {}) == 0 then m.page = "title" end
+  elseif item.go == "close" then
+    menu.close(m)
   elseif item.go == "reset_settings" then
     settings.reset(m.s)
     m.page, m.at, m.note = "settings", 1, "Back to the defaults"
@@ -271,6 +284,13 @@ function menu.lines(m, credits)
     end
   end
   out[1] = title[m.page]
+  if m.page == "ending" or m.page == "ending_credits" then
+    local body = m.page == "ending" and ((m.hooks.ending_lines and m.hooks.ending_lines()) or {}) or (credits or {})
+    out[1] = m.page == "ending" and "The end of the story" or "Credits"
+    for _, line in ipairs(body) do out[#out + 1] = line end
+    out[#out + 1] = { raw = "> " .. i18n.t(items(m)[1].label) }
+    return out
+  end
   if m.page == "journal" then
     out[1] = "Journal"
     for _, line in ipairs((m.hooks.journal_lines and m.hooks.journal_lines()) or {}) do out[#out + 1] = line end
