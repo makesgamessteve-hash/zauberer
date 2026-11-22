@@ -115,3 +115,31 @@ The link everywhere: <https://makesgamessteve-hash.github.io/zauberer/>
     > 0:28 Home
 
   - **Tags:** indie game, magic carpet, procedural generation, pixel art, open source game, browser game, retro 3d
+
+## Gameplay videos
+
+Real play further along than the opening, with the game's HUD, filmed from
+the scripted playthroughs in `tests/scenarios` (`tools/reels/capture_header.lua`
+in front of a scenario captures every other tick; `tools/reels/gameplay.py`
+cuts the footage). Each comes as 16:9 (YouTube, Facebook) and 9:16 (Reels,
+TikTok, Shorts; the footage framed over a blurred copy, title above).
+
+| Video | From | Length | What happens |
+|---|---|---|---|
+| `gameplay-story` | `story_bot` | 27 s | The village burns while the heir hides in the warded cellar; the ashes; the trail to the Circle; the citadel in the smoke; Azhdar turns to face you |
+| `gameplay-magic` | `slice_a` | 26 s | Fire scares a wolf pack and spreads through the grass; Unmake Fire; a Fireball brings down the storm bird; the sea frozen and walked on |
+| `gameplay-rituals` | `rituals` | 58 s | Call Rain laid at dusk in a drought; rain over the land; a warded camp keeps a wolf out; a room unfolds by the tent at night |
+
+```sh
+cat tools/reels/capture_header.lua tests/scenarios/slice_a.lua > out/slice_a.lua
+SDL_VIDEO_DRIVER=offscreen ZB_WINDOW_SIZE=1920x1080 ZB_GOLDEN_OUT=out/slice_a \
+  build/release/bin/zauberer --assets assets --user-dir out/user-a --scenario out/slice_a.lua
+python3 tools/reels/gameplay.py --frames out/slice_a --name magic --title "Magic in the wild" \
+  --subtitle "Fire against wolves, a storm bird, ice on the sea" --music danger,loop --out out/videos
+```
+
+Posting copy for them:
+
+- **TikTok / Reels / Shorts:** "In my game, magic runs on real physics: fire spreads with the wind, rain puts it out, and you can freeze the sea to walk on it 🔥❄️ Free in your browser, link in bio #indiegame #gamedev #pixelart #magic #proceduralgeneration"
+- **YouTube titles:** "Zauberer gameplay: magic in the wild", "Zauberer gameplay: the story, from the burning village to Azhdar", "Zauberer gameplay: ritual magic (call rain, wards, unfolding rooms)"
+- **Description:** "Real gameplay from Zauberer, a free open-source game about a child who inherits a living flying carpet. Play in your browser: https://makesgamessteve-hash.github.io/zauberer/"
