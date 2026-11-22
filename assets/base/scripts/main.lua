@@ -442,18 +442,13 @@ end
 -- (a hidden tab may be closed). Back in focus the sound returns; the menu stays.
 function game.on_focus(on)
   print(on and "focus back" or "focus lost")
+  settings.out_of_focus = not on
+  if game.settings then settings.apply_volume(game.settings) end
   if not on then
-    if game.muted_volume == nil then
-      game.muted_volume = audio.group_volume("master")
-      audio.group_volume("master", 0)
-    end
     if game.mode == "flight" and game.menu then
       game.open_menu()
       if engine.info().platform == "web" then game.autosave("hidden") end
     end
-  elseif game.muted_volume ~= nil then
-    audio.group_volume("master", game.muted_volume)
-    game.muted_volume = nil
   end
 end
 

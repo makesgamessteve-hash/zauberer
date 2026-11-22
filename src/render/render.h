@@ -78,6 +78,9 @@ float zb_render_xr_hud(const zb_render *r, float *pixel);
 /* Comfort vignette: darkens the edges of every view (0 .. 1, 0 = off; see
  * zb_vignette_factor), centred on each view's optical axis. */
 void zb_render_set_vignette(zb_render *r, float strength);
+/* The player's brightness: the image is multiplied by it (0.5 .. 2, default 1) before the palette. */
+void zb_render_set_brightness(zb_render *r, float brightness);
+float zb_render_brightness(const zb_render *r);
 float zb_render_vignette(const zb_render *r);
 /* Presents into a backend framebuffer of width x height pixels instead of
  * the window; a size of 0 returns to the window. */

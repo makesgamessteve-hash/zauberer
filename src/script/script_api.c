@@ -410,6 +410,30 @@ static int e_fullscreen(lua_State *L) {
   return 0;
 }
 
+/* @lua engine.set_vsync(on: boolean)
+ * Waits for the display's refresh before showing a frame, or not (desktop; the browser paces its own).
+ */
+static int e_vsync(lua_State *L) {
+  zb_script *s = S(L);
+  if (s->cfg.host.set_vsync) {
+    s->cfg.host.set_vsync(s->cfg.host.ctx, lua_toboolean(L, 1));
+  }
+  return 0;
+}
+
+/* @lua engine.set_frame_cap(fps: integer)
+ * The most frames a second (30 .. 240), or 0 for no cap (desktop; the browser paces its own).
+ */
+static int e_frame_cap(lua_State *L) {
+  zb_script *s = S(L);
+  lua_Integer fps = luaL_checkinteger(L, 1);
+  luaL_argcheck(L, fps == 0 || (fps >= 30 && fps <= 240), 1, "fps must be 0 or 30 .. 240");
+  if (s->cfg.host.set_frame_cap) {
+    s->cfg.host.set_frame_cap(s->cfg.host.ctx, (int)fps);
+  }
+  return 0;
+}
+
 /* @lua engine.log(level: "debug"|"info"|"warn"|"error", message: string)
  * Writes a message to the engine log.
  */
@@ -1097,6 +1121,19 @@ static int r_vignette(lua_State *L) {
   return 1;
 }
 
+/* @lua render.brightness(brightness?: number): number
+ * The player's brightness: the image is multiplied by it (0.5 .. 2, default 1) before the palette.
+ * Returns the brightness in effect.
+ */
+static int r_brightness(lua_State *L) {
+  zb_render *r = S(L)->cfg.render;
+  if (!lua_isnoneornil(L, 1)) {
+    zb_render_set_brightness(r, (float)luaL_checknumber(L, 1));
+  }
+  lua_pushnumber(L, zb_render_brightness(r));
+  return 1;
+}
+
 /* @lua render.xr_hud(distance: number|false, pixel?: number): number
  * Screen text in VR is drawn at the headset's resolution. false or 0 (the default) shows the canvas
  * (one view's width, render.stats().internal_width / views, by the internal height) filling every eye's
@@ -1530,6 +1567,8 @@ void zb_script_open_api(zb_script *s) {
                                         {"tick", e_tick},
                                         {"pause", e_pause},
                                         {"hold_world", e_hold_world},
+                                        {"set_vsync", e_vsync},
+                                        {"set_frame_cap", e_frame_cap},
                                         {"set_time_scale", e_time_scale},
                                         {"set_fullscreen", e_fullscreen},
                                         {"log", e_log},
@@ -1588,6 +1627,7 @@ void zb_script_open_api(zb_script *s) {
                                         {"palette", r_palette},
                                         {"internal_height", r_internal_height},
                                         {"vignette", r_vignette},
+                                        {"brightness", r_brightness},
                                         {"xr_hud", r_xr_hud},
                                         {"draw_model", r_draw_model},
                                         {"draw_sprite", r_draw_sprite},

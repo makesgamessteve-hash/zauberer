@@ -66,6 +66,10 @@ Test API (scenarios and Lua tests only): resizes the window.
 
 How bright flashes of light such as lightning are drawn, 0 .. 1 (default 1; reduced flashing turns it down).
 
+### `engine.set_frame_cap(fps: integer)`
+
+The most frames a second (30 .. 240), or 0 for no cap (desktop; the browser paces its own).
+
 ### `engine.set_fullscreen(on: boolean)`
 
 Switches the window to fullscreen or back; scripts receive a resize event.
@@ -77,6 +81,10 @@ Turns a package (a mod) on or off from the next start; the choice is kept with t
 ### `engine.set_time_scale(scale: number)`
 
 Development and test builds only: simulation speed factor (0.1 to 10).
+
+### `engine.set_vsync(on: boolean)`
+
+Waits for the display's refresh before showing a frame, or not (desktop; the browser paces its own).
 
 ### `engine.tick(): integer`
 
@@ -159,6 +167,10 @@ The action's snapshot for this tick.
 ### `render.atmosphere(atmosphere: Atmosphere|false)`
 
 Sky and fog. The engine keeps the horizon's up direction and dip in step with the camera over the planet. false switches both off.
+
+### `render.brightness(brightness?: number): number`
+
+The player's brightness: the image is multiplied by it (0.5 .. 2, default 1) before the palette. Returns the brightness in effect.
 
 ### `render.camera(camera: Camera)`
 

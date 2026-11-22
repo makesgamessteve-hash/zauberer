@@ -70,6 +70,8 @@ typedef struct zb_engine {
   bool scripts_ready;
   bool reset_pending; /* the game starts over before the next tick (engine.reset) */
   bool world_held;    /* the world stands still: no game time, no simulation (engine.hold_world) */
+  unsigned frame_cap; /* the most frames a second (0: no cap; engine.set_frame_cap) */
+  uint64_t frame_ns;  /* when the last frame was shown (for the cap) */
   bool first_frame_shown;
   uint64_t steps; /* ticks plus paused steps (headless and scenario modes) */
   /* Replay state hashes: expected (from <replay>.hashes) and recorded. */

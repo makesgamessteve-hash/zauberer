@@ -319,6 +319,10 @@ function engine.resize_window(width, height) end
 ---@param strength number
 function engine.set_flash_strength(strength) end
 
+---The most frames a second (30 .. 240), or 0 for no cap (desktop; the browser paces its own).
+---@param fps integer
+function engine.set_frame_cap(fps) end
+
 ---Switches the window to fullscreen or back; scripts receive a resize event.
 ---@param on boolean
 function engine.set_fullscreen(on) end
@@ -333,6 +337,10 @@ function engine.set_package_enabled(id, on) end
 ---Development and test builds only: simulation speed factor (0.1 to 10).
 ---@param scale number
 function engine.set_time_scale(scale) end
+
+---Waits for the display's refresh before showing a frame, or not (desktop; the browser paces its own).
+---@param on boolean
+function engine.set_vsync(on) end
 
 ---Number of simulation ticks run so far.
 ---@return integer
@@ -439,6 +447,11 @@ render = {}
 ---Sky and fog. The engine keeps the horizon's up direction and dip in step with the camera over the planet. false switches both off.
 ---@param atmosphere Atmosphere|false
 function render.atmosphere(atmosphere) end
+
+---The player's brightness: the image is multiplied by it (0.5 .. 2, default 1) before the palette. Returns the brightness in effect.
+---@param brightness? number
+---@return number
+function render.brightness(brightness) end
 
 ---Sets the camera for the following frames.
 ---@param camera Camera

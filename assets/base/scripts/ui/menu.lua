@@ -27,11 +27,17 @@ local function value_text(name, v)
     return v
   end
   if type(v) == "boolean" then return yes_no(v) end
+  if name:match("_volume$") then return v .. "%" end
+  if name == "frame_cap" then return v == 0 and "none" or (v .. " fps") end
+  if name == "pixel_height" then return v .. " lines" end
+  if name == "text_size" then return v .. "x" end
   return tostring(v)
 end
 
 -- Labels of the settings, as the menu shows them (translated where they are drawn).
 menu.LABELS = {
+  master_volume = "Volume", music_volume = "Music", effects_volume = "Sounds", mute = "Mute", vsync = "V-sync",
+  frame_cap = "Frame cap", pixel_height = "Pixel resolution", brightness = "Brightness", invert_look = "Invert look",
   language = "Language", text_size = "Text size", high_contrast = "High contrast", colour_vision = "Colour vision",
   colour_glyphs = "Colour glyphs", reduced_flashing = "Reduced flashing",
   captions = "Sound captions", toggle_hold = "Toggle instead of hold", gesture_assist = "Gesture assist",
@@ -94,6 +100,9 @@ local function items(m)
     for _, name in ipairs(settings.ORDER) do
       out[#out + 1] = { setting = name, label = menu.LABELS[name] }
     end
+    out[#out + 1] = { label = "Reset to defaults", page = "reset" }
+  elseif m.page == "reset" then
+    out = { { label = "No, keep them", go = "back" }, { label = "Yes, reset them", go = "reset_settings" } }
   elseif m.page == "controls" then
     for _, action in ipairs(menu.REMAP) do
       out[#out + 1] = { action = action, label = action }
@@ -118,7 +127,7 @@ function menu.close(m)
   if m.hooks.resume then m.hooks.resume() end
 end
 
-local UP = { save = "load", confirm = "save", topic = "help" } -- (the pages under another)
+local UP = { save = "load", confirm = "save", topic = "help", reset = "settings" } -- (the pages under another)
 
 local function back(m)
   if m.capture then
@@ -179,6 +188,9 @@ local function activate(m, item, step)
     m.page, m.at = "load", 1
     if not ok then return end
     if #((h.saves and h.saves()) or {}) == 0 then m.page = "title" end
+  elseif item.go == "reset_settings" then
+    settings.reset(m.s)
+    m.page, m.at, m.note = "settings", 1, "Back to the defaults"
   elseif item.go == "reset_hints" then
     if h.reset_hints then h.reset_hints() end
     m.note = "The hints will show again"
@@ -233,7 +245,8 @@ function menu.lines(m, credits)
   local out = {}
   local title = { main = "Menu", settings = "Settings", controls = "Controls", packages = "Packages",
     credits = "Credits", title = "Zauberer", load = "Load game", save = m.chosen and { raw = m.chosen.name },
-    confirm = m.chosen and { raw = string.format(i18n.t("Delete %s?"), m.chosen.name) }, help = "Help" }
+    confirm = m.chosen and { raw = string.format(i18n.t("Delete %s?"), m.chosen.name) }, help = "Help",
+    reset = "Reset every setting to its default?" }
   if m.page == "topic" then
     for _, t in ipairs(require("ui.help").TOPICS) do
       if t.id == m.topic then title.topic = t.title end

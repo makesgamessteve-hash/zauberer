@@ -61,6 +61,8 @@ static void host_hold_world(void *ctx, bool held) { ((zb_engine *)ctx)->world_he
 static void host_time_scale(void *ctx, double scale) { zb_loop_set_time_scale(&((zb_engine *)ctx)->loop, scale); }
 
 static void host_fullscreen(void *ctx, bool on) { zb_platform_set_fullscreen(((zb_engine *)ctx)->platform, on); }
+static void host_vsync(void *ctx, bool on) { zb_platform_set_vsync(((zb_engine *)ctx)->platform, on); }
+static void host_frame_cap(void *ctx, int fps) { ((zb_engine *)ctx)->frame_cap = fps > 0 ? (unsigned)fps : 0u; }
 
 static zb_result write_config(zb_engine *e) {
   char bindings[8192];
@@ -534,6 +536,8 @@ static bool start_scripts(zb_engine *e, char *err, size_t err_len) {
   sc.host.hold_world = host_hold_world;
   sc.host.set_time_scale = host_time_scale;
   sc.host.set_fullscreen = host_fullscreen;
+  sc.host.set_vsync = host_vsync;
+  sc.host.set_frame_cap = host_frame_cap;
   sc.host.save_bindings = host_save_bindings;
   sc.host.set_package = host_set_package;
   sc.host.set_flash = host_set_flash;
@@ -1180,6 +1184,16 @@ zb_host_status zb_engine_iterate(zb_engine *e) {
   }
   if (!e->headless && !e->xr.in_frame) {
     zb_platform_swap(e->platform);
+#ifndef __EMSCRIPTEN__
+    if (e->frame_cap > 0) { /* (the browser paces its own frames) */
+      uint64_t period = 1000000000ull / e->frame_cap;
+      uint64_t spent = zb_platform_now_ns(e->platform) - e->frame_ns;
+      if (e->frame_ns != 0 && spent < period) {
+        zb_platform_sleep_ms(e->platform, (unsigned)((period - spent) / 1000000ull));
+      }
+    }
+    e->frame_ns = zb_platform_now_ns(e->platform);
+#endif
     if (!e->first_frame_shown) {
       e->first_frame_shown = true;
       zb_info("first frame presented (%dx%d)", e->drawable_w, e->drawable_h);

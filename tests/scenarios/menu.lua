@@ -27,10 +27,11 @@ step(3)
 input.inject("confirm", 1, 1)
 step(2)
 expect_eq(game.menu.page, "settings")
-for _ = 1, 1 do
-  input.inject("steer", 0, -1, 2)
-  step(20)
+for i, name in ipairs(require("ui.settings").ORDER) do -- (the cursor down to the text size)
+  if name == "text_size" then game.menu.at = i - 1 end
 end
+input.inject("steer", 0, -1, 2)
+step(20)
 input.inject("steer", 1, 0, 2)
 step(3)
 expect_eq(game.settings.text_size, 2, "the text size went up")
@@ -46,7 +47,7 @@ t = world.time().time
 step(10)
 expect(world.time().time > t, "the world goes on again")
 -- Losing focus: the menu opens, the sound is muted; focus back: the sound returns, the menu stays.
-audio.group_volume("master", 0.8)
+require("ui.settings").set(game.settings, "master_volume", 80)
 game.on_focus(false)
 expect(game.menu.open, "the menu opened")
 expect_eq(audio.group_volume("master"), 0, "muted")

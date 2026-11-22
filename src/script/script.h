@@ -38,6 +38,9 @@ typedef struct zb_script_host {
   void (*hold_world)(void *ctx, bool held);
   void (*set_time_scale)(void *ctx, double scale);
   void (*set_fullscreen)(void *ctx, bool on);
+  /* V-sync on or off, and the most frames a second (0: no cap). */
+  void (*set_vsync)(void *ctx, bool on);
+  void (*set_frame_cap)(void *ctx, int fps);
   /* Persists the user's input bindings. */
   zb_result (*save_bindings)(void *ctx);
   /* Turns a package on or off from the next start; false with a message if it cannot be. */

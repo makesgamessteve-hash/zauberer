@@ -169,7 +169,7 @@ typedef struct gl_program {
   GLint view_proj, model, normal, light_dir, light_color, ambient, tex, right, up;
   GLint eye, fog_color, fog_density, layers;
   GLint cam_right, cam_up, cam_fwd, tan_half, tan_offset, world_up, zenith, horizon, dip, sun_dir, sun_color;
-  GLint scene, lut, bayer, dither, palette, vignette, vignette_center, vignette_half;
+  GLint scene, lut, bayer, dither, palette, vignette, vignette_center, vignette_half, brightness;
   GLint time, tints;
   GLint night, moon_dir, moon_light, celestial, snow;
 } gl_program;
@@ -346,7 +346,8 @@ static bool build_program(gl_ctx *c, zb_vfs *vfs, const char *vs_name, const cha
                {"u_palette", offsetof(gl_program, palette)},
                {"u_vignette", offsetof(gl_program, vignette)},
                {"u_vignette_center", offsetof(gl_program, vignette_center)},
-               {"u_vignette_half", offsetof(gl_program, vignette_half)}};
+               {"u_vignette_half", offsetof(gl_program, vignette_half)},
+               {"u_brightness", offsetof(gl_program, brightness)}};
   for (size_t i = 0; i < sizeof extra / sizeof extra[0]; ++i) {
     *(GLint *)((char *)out + extra[i].offset) = c->gl.glGetUniformLocation(p, extra[i].name);
   }
@@ -789,6 +790,7 @@ static void draw_post(gl_ctx *c, const zb_frame *f) {
   c->gl.glActiveTexture(GL_TEXTURE0);
   c->gl.glBindVertexArray(c->empty_vao);
   c->gl.glUniform1f(p->vignette, f->vignette);
+  c->gl.glUniform1f(p->brightness, f->brightness > 0.0f ? f->brightness : 1.0f);
   /* One pass per view, each with the vignette about its own optical centre. */
   int passes = f->vignette > 0.0f ? f->view_count : 1;
   for (int v = 0; v < passes; ++v) {

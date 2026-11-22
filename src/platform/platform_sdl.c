@@ -396,6 +396,12 @@ void zb_platform_swap(zb_platform *p) {
   }
 }
 
+void zb_platform_set_vsync(zb_platform *p, bool on) {
+  if (p->gl) {
+    SDL_GL_SetSwapInterval(on ? 1 : 0);
+  }
+}
+
 void zb_platform_set_fullscreen(zb_platform *p, bool on) {
   if (p->window && SDL_SetWindowFullscreen(p->window, on)) {
     SDL_SyncWindow(p->window);

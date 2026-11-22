@@ -63,6 +63,7 @@ struct zb_render {
   float xr_hud;       /* head-locked text distance in explicit views (0 = per view) */
   float xr_hud_pixel; /* metres per canvas pixel on its plane (0 = from the views) */
   float vignette;
+  float brightness; /* the player's brightness, 0.5 .. 2 (1: as it is) */
   uint32_t target_fb;
   int target_w, target_h; /* 0: present to the window */
   zb_vec3 light_dir, light_color, ambient;
@@ -100,6 +101,9 @@ static asset *asset_at(const zb_render *r, uint32_t handle) {
 
 zb_render *zb_render_create(const zb_allocator *a, zb_vfs *vfs, zb_render_backend *backend) {
   zb_render *r = zb_calloc(a, sizeof(*r));
+  if (r) {
+    r->brightness = 1.0f;
+  }
   if (!r) {
     backend->destroy(backend->ctx);
     return NULL;
@@ -247,6 +251,12 @@ void zb_render_set_vignette(zb_render *r, float strength) {
 }
 
 float zb_render_vignette(const zb_render *r) { return r->vignette; }
+
+void zb_render_set_brightness(zb_render *r, float b) {
+  r->brightness = isfinite(b) ? (b < 0.5f ? 0.5f : (b > 2.0f ? 2.0f : b)) : 1.0f;
+}
+
+float zb_render_brightness(const zb_render *r) { return r->brightness; }
 
 void zb_render_set_target(zb_render *r, uint32_t framebuffer, int width, int height) {
   bool on = width > 0 && height > 0;
@@ -1100,6 +1110,7 @@ void zb_render_end(zb_render *r) {
   r->frame.palette = r->frame.lut_texture != 0 && r->frame.bayer_texture != 0;
   r->frame.dither = r->dither;
   r->frame.vignette = r->vignette;
+  r->frame.brightness = r->brightness;
   r->frame.atlas_texture = ready_texture(r, r->atlas_asset);
   r->frame.atlas_layers = r->frame.atlas_texture ? r->atlas_layers : 0;
   r->frame.time = (float)r->time;

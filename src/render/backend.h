@@ -103,6 +103,7 @@ typedef struct zb_frame {
   uint32_t lut_texture, bayer_texture;
   float dither;
   float vignette;         /* 0 .. 1: darkens each view's edges (0 = off) */
+  float brightness;       /* the image is multiplied by it before the palette (1: as it is) */
   uint32_t atlas_texture; /* terrain material atlas */
   int atlas_layers;
   float time; /* seconds, for animated water and swaying plants */
