@@ -96,7 +96,7 @@ struct zb_input {
   uint64_t last_touch_ns;
   bool any_touch_seen;
   uint8_t player;
-  char captured[48];  /* the binding of the last key or button pressed (for remapping) */
+  char captured[48];        /* the binding of the last key or button pressed (for remapping) */
   zb_pointer pointer;       /* pressed, released and wheel: since the last sample */
   zb_pointer pointer_shown; /* ... and as the last sample saw them (seen by the tick that follows) */
   uint64_t pointer_finger;  /* the touch the pointer follows */

@@ -1116,8 +1116,8 @@ static uint32_t ui_texture(const zb_render *r, uint32_t texture, int *w, int *h)
   return as->tex;
 }
 
-void zb_render_draw_quad(zb_render *r, uint32_t texture, float x, float y, float w, float h, float u0, float v0, float u1,
-                         float v1, const float rgba[4]) {
+void zb_render_draw_quad(zb_render *r, uint32_t texture, float x, float y, float w, float h, float u0, float v0,
+                         float u1, float v1, const float rgba[4]) {
   int tw, th;
   uint32_t tex = ui_texture(r, texture, &tw, &th);
   if (tex) {
@@ -1149,10 +1149,10 @@ static void tile_span(float s, float len, float at, float size, float *pieces, i
   }
   for (float done = 0; done < size && *n < max; done += len) {
     float piece = size - done < len ? size - done : len;
-    pieces[*n * 4 + 0] = at + done;   /* where */
-    pieces[*n * 4 + 1] = piece;       /* how long */
-    pieces[*n * 4 + 2] = s;           /* texel start */
-    pieces[*n * 4 + 3] = s + piece;   /* texel end */
+    pieces[*n * 4 + 0] = at + done; /* where */
+    pieces[*n * 4 + 1] = piece;     /* how long */
+    pieces[*n * 4 + 2] = s;         /* texel start */
+    pieces[*n * 4 + 3] = s + piece; /* texel end */
     (*n)++;
   }
 }
