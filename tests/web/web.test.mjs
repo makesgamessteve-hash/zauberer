@@ -385,6 +385,10 @@ test('on a phone the menu button opens the menu', async () => {
     const vp = g.page.viewportSize();
     assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= vp.width + 1 && box.y + box.height <= vp.height + 1,
       'the game lies inside the page (and its safe area)');
+    // A player's game begins at the title: OK (x 0.44 .. 0.57, y 0.76 .. 0.94) starts it.
+    await waitForLog(g, /title shown/);
+    await g.page.touchscreen.tap(box.x + box.width * 0.505, box.y + box.height * 0.85);
+    await g.page.waitForTimeout(500);
     // The menu button: x 0.68 .. 0.82, y 0.04 .. 0.16 of the screen.
     await g.page.touchscreen.tap(box.x + box.width * 0.75, box.y + box.height * 0.1);
     await waitForLog(g, /menu opened/);
