@@ -19,6 +19,15 @@ hud.CALM = 8           -- seconds without an event before the HUD draws back
 hud.TOAST_LIFE = 5     -- seconds a toast stays (it fades in its last second)
 hud.MAX_TOASTS = 3
 hud.DANGER_RADIUS = 40 -- metres: a hunter this near is danger
+-- News of the world going on around (seen, observed, an animal fleeing) shows, but does not wake a calm HUD.
+hud.AMBIENT = { "^Codex:", "^Looking at", "flees$" }
+
+local function ambient(text)
+  for _, pat in ipairs(hud.AMBIENT) do
+    if text:find(pat) then return true end
+  end
+  return false
+end
 
 function hud.new()
   return { seen = {}, toasts = {}, last_event = -1e9, now = 0, calm = false, sig = "" }
@@ -32,25 +41,34 @@ end
 local function deg(r) return (math.deg(r) % 360 + 360) % 360 end
 
 -- New lines from the game's news become toasts (once each, by text); equal ones in a row merge.
-local function add_toast(h, text, icon, now)
+local function add_toast(h, text, icon, now, quiet)
   local last = h.toasts[#h.toasts]
   if last and last.base == text and now - last.born < hud.TOAST_LIFE then
     last.count, last.born = last.count + 1, now
     return
   end
+  quiet = quiet or ambient(text)
+  if quiet and h.calm then return end -- (the world going on does not wake a calm HUD)
   h.toasts[#h.toasts + 1] = { base = text, icon = icon, born = now, count = 1 }
   while #h.toasts > hud.MAX_TOASTS do table.remove(h.toasts, 1) end
-  h.last_event = now
+  if not quiet then h.last_event = now end
 end
 
-local function feed(h, lines, icon, now)
+local function feed(h, lines, icon, now, quiet)
   for _, line in ipairs(lines or {}) do
     local text = type(line) == "table" and (line.raw or line.text) or line
-    if type(text) == "string" and text ~= "" and not h.seen[text] then
+    if type(text) == "string" and text ~= "" then
+      if not h.seen[text] then add_toast(h, text, icon, now, quiet) end
       h.seen[text] = now
-      add_toast(h, text, icon, now)
     end
   end
+end
+
+-- A line of news said (news.listeners): a toast, merged with an equal one before it.
+function hud.push(h, text, now)
+  if type(text) ~= "string" or text == "" then return end
+  h.seen[text] = now
+  add_toast(h, text, nil, now)
 end
 
 -- The HUD's state from the game this frame. src: what the game knows (see main.lua's hud_source).
@@ -84,7 +102,7 @@ function hud.gather(h, src, now)
   -- The prompt chip.
   s.prompt = src.prompt
   -- Toasts from the news.
-  for _, group in ipairs(src.news or {}) do feed(h, group.lines, group.icon, now) end
+  for _, group in ipairs(src.news or {}) do feed(h, group.lines, group.icon, now, group.ambient) end
   for i = #h.toasts, 1, -1 do
     if now - h.toasts[i].born > hud.TOAST_LIFE then table.remove(h.toasts, i) end
   end
@@ -185,7 +203,7 @@ local function draw_toasts(toasts, w, y0)
     local tw = math.min(kit.width(text) + (t.icon and 26 or 10), math.floor(w * 0.45))
     local lines = kit.wrap(text, tw - (t.icon and 26 or 10))
     local h = 6 + #lines * 10
-    local x = s.x + s.w - tw
+    local x = s.x + s.w - 32 - tw -- (clear of the carpet's gauge at the edge)
     kit.frame("thread", x, y, tw, h, nil, t.alpha)
     if t.icon then kit.icon(t.icon, x + 4, y + (h - 16) // 2, 1, nil, t.alpha) end
     for i, line in ipairs(lines) do
@@ -198,14 +216,14 @@ end
 
 local function draw_gauge(g, alpha)
   local s = layout.safe()
-  local x, y, h = s.x + s.w - 26, s.y + math.floor(s.h * 0.42), 130
+  local x, y, h = s.x + s.w - 26, s.y + math.floor(s.h * 0.28), 110
   kit.frame("thread", x, y - 13, 26, h + 26, nil, alpha)
   local top = 1000
   local frac = math.max(0, math.min(1, math.log(1 + math.max(0, g.height)) / math.log(1 + top)))
   for k = 0, 10 do
-    render.ui_rect(x + 6, y + h - 18 - k * 10, k % 5 == 0 and 7 or 4, 1, C("parchment_dark", alpha))
+    render.ui_rect(x + 6, y + h - 8 - k * 9, k % 5 == 0 and 7 or 4, 1, C("parchment_dark", alpha))
   end
-  local my = y + h - 18 - math.floor(frac * 100)
+  local my = y + h - 8 - math.floor(frac * 90)
   render.ui_rect(x + 15, my - 1, 5, 3, C("saffron", alpha))
   kit.text_c(g.height >= 1000 and string.format("%.1fk", g.height / 1000) or string.format("%dm", math.floor(g.height)),
     x + 13, y - 9, C("cream"), 1, alpha)
@@ -214,6 +232,7 @@ end
 
 local function draw_ring(mana, cx, cy, alpha)
   local r = 14
+  kit.frame("thread", cx - r - 12, cy - r - 12, 2 * r + 25, 2 * r + 25, nil, alpha)
   -- The ring drawn as segments of short arcs of small squares (pixel art), a glyph outside each big one.
   local total, cap = 0, math.max(1, mana.cap or 1)
   for _, m in ipairs(mana.colours) do total = total + m.amount end
@@ -239,7 +258,7 @@ end
 
 local function draw_hand(hand, cx, cy, alpha)
   local nw = math.max(40, kit.width(i18n.t(hand.name or "-")) + 10)
-  kit.frame("thread", cx - nw // 2, cy - 18, nw, 60, nil, alpha)
+  kit.frame("thread", cx - nw // 2, cy - 18, nw, 64, nil, alpha)
   kit.frame("chip", cx - 14, cy - 14, 29, 29, nil, alpha)
   if not kit.icon(hand.icon or "spark", cx - 8, cy - 8, 1, nil, alpha) then
     kit.icon("spark", cx - 8, cy - 8, 1, nil, alpha)
@@ -249,16 +268,16 @@ local function draw_hand(hand, cx, cy, alpha)
   end
   kit.text_c(i18n.t(hand.name or "-"), cx, cy + 17, C("cream"), 1, alpha)
   if hand.key then
-    local w = kit.width(hand.key) + 6
-    kit.chip(hand.key, cx - w // 2, cy + 28, hand.binding, alpha)
+    local w = kit.binding_icon(hand.binding) and 16 or (kit.width(hand.key) + 6)
+    kit.chip(hand.key, cx - w // 2, cy + 30, hand.binding, alpha)
   end
 end
 
-local function draw_vitals(v, calm, alpha)
+local function draw_vitals(v, calm, alpha, bottom)
   local s = layout.safe()
   local needs = calm and {} or v.needs
   local h = 22 + (#needs > 0 and 12 or 0)
-  local y = s.y + s.h - h
+  local y = bottom - h
   kit.frame("kilim", s.x, y, 140, h, nil, alpha)
   kit.icon("health", s.x + 6, y + 3, 1, nil, alpha)
   local frac = v.max and v.max > 0 and math.max(0, math.min(1, v.hp / v.max)) or 0
@@ -296,15 +315,19 @@ function hud.draw(_, st)
     if #st.mods > 0 then draw_toasts({ { text = table.concat(st.mods, "  "), alpha = 1 } }, w, y) end
   end
   if st.gauge and not st.calm then draw_gauge(st.gauge, dim) end
-  if st.vitals and st.vitals.hp then draw_vitals(st.vitals, st.calm, dim) end
+  -- The bottom: the hands at the corners (where a rider's hands are), the mana ring on the left
+  -- wrist, health above the left hand; the middle is left to the carpet's front edge.
   local s = layout.safe()
-  local cy = s.y + s.h - 46
+  local bottom = s.y + s.h
+  local cy = bottom - 46
+  if input.mode() == "touch" then cy = bottom - 150 end -- (above the sticks and buttons a thumb uses)
   if st.hands then
-    if st.mana then draw_ring(st.mana, math.floor(w / 2), cy + 4, dim) end
-    draw_hand(st.hands.left, math.floor(w / 2) - 56, cy, dim)
-    draw_hand(st.hands.right, math.floor(w / 2) + 56, cy, dim)
+    draw_hand(st.hands.left, s.x + 28, cy, dim)
+    if st.mana then draw_ring(st.mana, s.x + 28 + 62, cy + 6, dim) end
+    draw_hand(st.hands.right, s.x + s.w - 28, cy, dim)
   end
-  if st.prompt and not st.calm then draw_prompt(st.prompt, cy - 34) end
+  if st.vitals and st.vitals.hp then draw_vitals(st.vitals, st.calm, dim, cy - 24) end
+  if st.prompt and not st.calm then draw_prompt(st.prompt, bottom - 96) end
 end
 
 return hud

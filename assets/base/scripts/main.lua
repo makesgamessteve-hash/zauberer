@@ -11,6 +11,8 @@ local touch = require("demo.touch")
 local carpet = require("flight.carpet")
 local camera = require("flight.camera")
 local layout = require("ui.layout")
+local hudui = require("ui.hud")
+local kit = require("ui.kit")
 local controls = require("flight.controls")
 local flight_hud = require("flight.hud")
 local spawn = require("flight.spawn")
@@ -141,6 +143,10 @@ local function setup_flight()
   game.motes = motes.new(engine.info().seed)
   game.channeling = false
   game.rider = camera.new()
+  game.hud_ui = hudui.new()
+  table.insert(require("player.news").listeners, function(line) -- (every line of news said: a toast)
+    hudui.push(game.hud_ui, line, engine.time())
+  end)
   game.coop = coop.new()
   game.together = coopplay.new(back and back.together, (game.world_options or {}).heirs or 4)
   render.light({ direction = { -SUN[1], -SUN[2], -SUN[3] }, color = { 1, 0.95, 0.85 }, ambient = { 0.38, 0.4, 0.48 } })
@@ -265,6 +271,11 @@ engine.on("init", function()
     assets[kind] = render.sprite("sprites/" .. kind .. ".lua")
   end
   assets.font = render.font("fonts/pixel.lua")
+  kit.set_font(assets.font)
+  if engine.info().build ~= "release" then -- (development builds: F3 shows the HUD's text, framed)
+    input.define("debug_panel", "button")
+    input.bind("debug_panel", "key:f3")
+  end
   game.setup_ui()
   game.sound = soundscape.new() -- (the music and ambience start with the first tick)
   game.credits = engine.credits()
@@ -1309,6 +1320,171 @@ engine.on("tick", function(dt)
   end
 end)
 
+-- Which weave icon shows in a hand.
+local WEAVE_ICONS = { Fireball = "flame", Kindle = "spark", Freeze = "freeze", Light = "light",
+  ["Unmake Fire"] = "unmake",
+  Wind = "wind", Ward = "shield" }
+local NEEDS = { { key = "water", icon = "thirst", label = "Thirsty" },
+  { key = "food", icon = "hunger", label = "Hungry" },
+  { key = "rest", icon = "rest", label = "Tired" } }
+
+-- The control of an action on the device in hand: its name and its binding.
+local function control_of(action)
+  local device = input.device()
+  for _, b in ipairs(input.bindings(action) or {}) do
+    local name = help.binding_name(b, device)
+    if name then return name, b end
+  end
+  return help.control(action), nil
+end
+
+-- What the game knows for the HUD this frame (ui/hud.lua makes the HUD's state of it).
+local function hud_source(lines)
+  local c, w = game.carpet, game.walker
+  local me = (w and w.pos) or c.pos
+  local src = { flying = w == nil, on_foot = w ~= nil, me = me, device = input.device() }
+  src.look_heading = w and w.heading or (c.heading + game.rider.yaw)
+  local sky = world.sky(me)
+  src.night = sky ~= nil and sky.daylight < 0.2
+  src.goal_pos = game.goal_pos()
+  if src.goal_pos then
+    src.goal_name = game.story and select(1, prologue.goal(game.story)) or nil
+  end
+  -- Places the heir has come near, within 6 km, on the compass.
+  if game.worldmap then
+    local x, y = worldmap.offset(game.home.pos, me)
+    local near = {}
+    for _, p in ipairs(game.worldmap.places) do
+      local dx, dy = p.x - x, p.y - y
+      local d = math.sqrt(dx * dx + dy * dy)
+      if d < 6000 and d > 150 then
+        near[#near + 1] = { name = p.name, d = d, bearing = math.deg(math.atan(dx, dy)) % 360 }
+      end
+    end
+    table.sort(near, function(a, b) return a.d < b.d end)
+    src.places = { near[1], near[2], near[3] }
+  end
+  src.allies = {}
+  for player, other in pairs(game.coop.carpets or {}) do
+    if other ~= c and other.pos then
+      src.allies[#src.allies + 1] = { name = game.heir_name(player), pos = other.pos }
+    end
+  end
+  -- The objective: the story's goal and, in the village, the chores.
+  if game.story then
+    local S = game.story
+    src.objective = { title = prologue.goal_text(S.beat) }
+    if S.beat == "village" then
+      src.objective.steps = { { text = "Fetch water", done = S.chores.water },
+        { text = "Feed the goats", done = S.chores.goats },
+        { text = "Pick pomegranates", done = S.chores.pomegranates }, { text = "Talk to Farrokh", done = S.talked } }
+    end
+  elseif game.saga then
+    local first = saga.hud_lines(game.saga, me)[1]
+    if type(first) == "string" then src.objective = { title = (first:gsub("^Story: ", "")) } end
+  end
+  if src.objective and game.last_goal ~= src.objective.title then
+    game.last_goal, game.goal_since = src.objective.title, engine.time()
+  end
+  if src.objective then src.objective.fresh = engine.time() - (game.goal_since or 0) < 4 end
+  src.hp, src.hp_max = game.health.hp, game.health.max
+  src.needs = {}
+  local sv = game.survival
+  for _, n in ipairs(NEEDS) do
+    local v = sv[n.key] or 100
+    local word = v > 60 and "well" or v > 30 and "low" or "very low"
+    src.needs[#src.needs + 1] = { icon = n.icon, label = n.label, word = word }
+  end
+  if sv.core and sv.core < survival.CHILL then
+    src.needs[#src.needs + 1] = { icon = "cold", label = "Freezing", word = "very low" }
+  end
+  if sv.core and sv.core > survival.FEVERISH then
+    src.needs[#src.needs + 1] = { icon = "heat", label = "Overheated", word = "very low" }
+  end
+  -- The hands and the mana ring.
+  local m = game.magic.caster.mage
+  local function hand(side, action)
+    local wv = magic.hand_weave(game.magic, side)
+    local name = wv and require("magic.weave").name(wv) or "-"
+    local key, binding = control_of(action)
+    local ch = game.magic.charging
+    return { name = name, icon = WEAVE_ICONS[name] or "spark", key = key, binding = binding,
+      charge = ch and ch.hand == side and math.min(1, ch.seconds) or 0 }
+  end
+  src.hands = { left = hand("left", "cast_left"), right = hand("right", "cast_right") }
+  src.mana = { cap = m.capacity, colours = {} }
+  for _, colour in ipairs(require("magic.mage").COLORS) do
+    local amount = m.mana[colour] or 0
+    if amount >= 0.5 then src.mana.colours[#src.mana.colours + 1] = { name = colour, amount = amount } end
+  end
+  -- The carpet's gauge.
+  src.height = c.pos.alt - math.max(world.ground_height(c.pos), 0)
+  src.speed = c.speed
+  -- The prompt.
+  if w and walker.near_carpet(w, c) then
+    src.prompt = { verb = "Climb on" }
+  elseif not w and walker.can_step_off(c, FOOT) then
+    src.prompt = { verb = "Step off" }
+  end
+  if src.prompt then src.prompt.key, src.prompt.binding = control_of("mount") end
+  -- Danger near.
+  src.danger = fauna.hunter_near(me, hudui.DANGER_RADIUS) or health.fire_near(me, 15)
+  -- The news (toasts) and the lasting status lines.
+  local function from(list, skip)
+    local out = {}
+    for i, l in ipairs(list or {}) do
+      if i > (skip or 0) then out[#out + 1] = l end
+    end
+    return out
+  end
+  src.news = {
+    { lines = from(health.hud_lines(game.health), 1), icon = "health" },
+    { lines = from(survival.hud_lines(game.survival), 1) },
+    { lines = from(pack.hud_lines(game.pack), 1), icon = "bag" },
+    { lines = from(magic.hud_lines(game.magic), 3), icon = "spark" },
+    { lines = fauna.hud_lines(game.fauna), ambient = true }, { lines = motes.hud_lines(game.motes), icon = "light" },
+    { lines = condition.hud_lines(game.condition), icon = "carpet" },
+    { lines = access.caption_lines(game.captions, world.time().time) },
+    { lines = game.story and from(prologue.hud_lines(game.story, me), 2) or {} },
+    { lines = game.saga and from(saga.hud_lines(game.saga, me), 2) or {} },
+  }
+  local hint = game.help and (engine.info().play or game.hints_in_tests) and help.hint_line(game.help)
+  if hint then table.insert(src.news, { lines = { hint } }) end
+  if game.saved_at and engine.time() - game.saved_at < game.AUTOSAVE_SHOWN then
+    table.insert(src.news, { lines = { "Game saved" } })
+  end
+  src.mods = {}
+  for _, l in ipairs(codex.hud_lines(game.codex)) do -- (looking at something: a lasting line; observed: news)
+    if type(l) == "string" and l:find("^Looking at") then src.mods[#src.mods + 1] = l end
+    if type(l) == "string" and not l:find("^Looking at") then
+      table.insert(src.news, { lines = { l }, ambient = true })
+    end
+  end
+  for _, more in ipairs({ cloak.hud_lines(game.cloak), artificing.hud_lines(game.artifacts),
+    game.ritual.active and { ritual.line(game.ritual, game.pack) } or {},
+    summoning.hud_lines(game.summoning, world.time().time),
+    disciplines.hud_lines(game.disciplines), modapi.hud_lines(game.mods) }) do
+    for _, l in ipairs(more) do src.mods[#src.mods + 1] = type(l) == "table" and (l.raw or l.text) or l end
+  end
+  local stage = world.chunk_stage(me) or 0
+  if stage < 2 then src.mods[#src.mods + 1] = string.format("Loading the land: %d%%", math.max(0, stage) * 50) end
+  if game.channeling then src.mods[#src.mods + 1] = "Channeling" end
+  src.lines = lines
+  return src
+end
+
+-- The development panel (F3 in development builds): the HUD's text, framed.
+local function draw_debug_panel(lines)
+  local s = layout.safe()
+  local shown = {}
+  for i, line in ipairs(lines) do
+    if i > 30 then break end
+    shown[#shown + 1] = text.of(line)
+  end
+  kit.frame("thread", s.x, s.y + 60, 300, 10 + #shown * 9)
+  for i, l in ipairs(shown) do kit.text(l, s.x + 5, s.y + 65 + (i - 1) * 9, kit.colour("cream")) end
+end
+
 local function draw_hud(lines)
   if not game.hud then return end
   if game.menu and game.menu.open and game.menu.page == "map" and game.worldmap then
@@ -1338,8 +1514,19 @@ local function draw_hud(lines)
     for i, line in ipairs(lines) do shown[i] = text.of(line) end
     return xrplay.draw_hud(assets.font, shown, hud.color)
   end
+  if game.mode == "flight" and game.hud_source then
+    kit.configure({ contrast = game.settings.high_contrast, vision = game.settings.colour_vision })
+    local st = hudui.gather(game.hud_ui, game.hud_source(lines), engine.time())
+    hudui.draw(game.hud_ui, st)
+    if engine.info().build ~= "release" and input.state("debug_panel").pressed then
+      game.debug_panel = not game.debug_panel
+    end
+    if game.debug_panel then draw_debug_panel(lines) end
+    return
+  end
   text.lines(assets.font, lines, hud.color)
 end
+game.hud_source = hud_source
 
 -- The HUD in flight: the carpet, health, magic, creatures and motes.
 local function flight_lines()

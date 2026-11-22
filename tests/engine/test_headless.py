@@ -371,6 +371,9 @@ class ScenarioTests(EngineTestCase):
     def test_kit_variants(self):
         self.assert_ok(self.scenario("kit_variants"))
 
+    def test_hud_zones(self):
+        self.assert_ok(self.scenario("hud_zones"))
+
     def test_people(self):
         self.assert_ok(self.scenario("people"))
 

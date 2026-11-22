@@ -16,8 +16,16 @@ local game = demo.game
 local hudui = require("ui.hud")
 local access = require("ui.access")
 local walker = require("player.walker")
-step(5)
+local P = game.world_places.places
+for _ = 1, 900 do
+  step(1)
+  if P.ready then break end
+  sleep(5)
+end
+input.inject("story", 1, 1) -- (the prologue begins)
+step(3)
 expect(game.story ~= nil, "the prologue runs")
+game.walker = nil -- (on the carpet)
 local S = game.story
 S.beat = "village"
 S.chores.water, S.chores.goats = true, true
@@ -106,17 +114,24 @@ if walker.can_step_off(c, { move = world.move, height = world.ground_height, wat
   expect(st.prompt and st.prompt.verb == "Step off" and st.prompt.key ~= nil, "the prompt to step off with its key")
 end
 step(60 * hudui.TOAST_LIFE + 10)
-expect_eq(#state().toasts, 0, "the toasts faded")
-c.pos.alt = world.ground_height(c.pos) + 40
+local left = 0
+for _, t in ipairs(state().toasts) do if t.text:find("Taken") or t.text:find("wolf") then left = left + 1 end end
+expect_eq(left, 0, "the toasts faded")
+local function hold(ticks) -- (high over the land, nothing to step off onto)
+  for _ = 1, ticks do
+    c.pos.alt, c.speed = world.ground_height(c.pos) + 40, 0
+    step(1)
+  end
+end
 
 -- Calm flight: after the calm time with nothing new the HUD draws back.
-step(60 * (hudui.CALM + 2))
+hold(60 * (hudui.CALM + 2))
 expect(state().calm, "calm after a while")
 demo.pack.say(game.pack, "Taken: a feather")
 step(2)
 expect(not state().calm, "a toast brings it back")
 local wolf = sim.spawn_creature("wolf", world.move(c.pos, 0, 25, 0, -38))
-step(60 * (hudui.CALM + 2))
+hold(60 * (hudui.CALM + 2))
 expect(not state().calm or not state().danger, "never calm with a wolf near")
 sim.remove_creature(wolf)
 
@@ -136,7 +151,8 @@ api.hud_lines = before
 game.walker = nil
 
 -- Another heir 300 m east sends a quick message.
-game.coop.carpets[1] = { pos = world.move(c.pos, math.pi / 2, 300, 0, 0) }
+game.coop.carpets[1] = { pos = world.move(c.pos, math.pi / 2, 300, 0, 0), heading = 0, speed = 0, bank = 0,
+  pitch = 0 }
 demo.pack.say(game.pack, game.heir_name(1) .. ": Follow me")
 step(3)
 st = state()
