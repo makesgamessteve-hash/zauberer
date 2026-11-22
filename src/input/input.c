@@ -97,8 +97,9 @@ struct zb_input {
   bool any_touch_seen;
   uint8_t player;
   char captured[48];  /* the binding of the last key or button pressed (for remapping) */
-  zb_pointer pointer;
-  uint64_t pointer_finger; /* the touch the pointer follows */
+  zb_pointer pointer;       /* pressed, released and wheel: since the last sample */
+  zb_pointer pointer_shown; /* ... and as the last sample saw them (seen by the tick that follows) */
+  uint64_t pointer_finger;  /* the touch the pointer follows */
   bool pointer_finger_down;
   float claims[ZB_INPUT_MAX_CLAIMS][4];
   size_t nclaims;
@@ -826,11 +827,19 @@ void zb_input_sample(zb_input *in, uint64_t now_ns) {
   }
   in->mouse_dx = 0.0f;
   in->mouse_dy = 0.0f;
+  in->pointer_shown = in->pointer; /* the edges of this tick: what happened since the sample before */
   in->pointer.pressed = in->pointer.released = false;
   in->pointer.wheel = 0.0f;
 }
 
-void zb_input_pointer(const zb_input *in, zb_pointer *out) { *out = in->pointer; }
+/* Position and holding as they are; an edge or the wheel as soon as it happens and through the tick
+ * after the sample that took it. */
+void zb_input_pointer(const zb_input *in, zb_pointer *out) {
+  *out = in->pointer;
+  out->pressed = in->pointer.pressed || in->pointer_shown.pressed;
+  out->released = in->pointer.released || in->pointer_shown.released;
+  out->wheel = in->pointer.wheel + in->pointer_shown.wheel;
+}
 
 void zb_input_set_claims(zb_input *in, const float *rects, size_t count) {
   if (count > ZB_INPUT_MAX_CLAIMS) {

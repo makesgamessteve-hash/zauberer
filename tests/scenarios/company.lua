@@ -20,7 +20,9 @@ game.coop.inbox = { { event = "data", channel = "quick", player = 2, value = { i
   { event = "data", channel = "other", player = 1, value = {} },
   { event = "data", channel = "quick", player = 1, value = { id = "nonsense" } } }
 step(2)
-expect(news():find("Heir 3: Wait", 1, true), news())
+local toasted = false -- (a quick message is a toast)
+for _, t in ipairs(game.hud_ui.toasts) do if t.base == "Heir 3: Wait" then toasted = true end end
+expect(toasted, "the quick message as a toast")
 expect_eq(#game.coop.inbox, 1, "only the quick messages are taken")
 -- In German the same message reads in German.
 settings.set(game.settings, "language", "de")

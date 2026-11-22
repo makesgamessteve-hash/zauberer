@@ -50,6 +50,7 @@ local function add_toast(h, text, icon, now, quiet)
   quiet = quiet or ambient(text)
   if quiet and h.calm then return end -- (the world going on does not wake a calm HUD)
   h.toasts[#h.toasts + 1] = { base = text, icon = icon, born = now, count = 1 }
+  h.added = (h.added or 0) + 1 -- (counted: the game hears a new toast's cloth)
   while #h.toasts > hud.MAX_TOASTS do table.remove(h.toasts, 1) end
   if not quiet then h.last_event = now end
 end

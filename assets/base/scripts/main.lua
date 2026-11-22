@@ -993,7 +993,7 @@ local function flight_tick(dt)
   end
   -- Quick messages from the others in company.
   for _, line in ipairs(require("coop.quick").take(game.coop.inbox or {}, game.heir_name)) do
-    pack.say(game.pack, line)
+    hudui.push(game.hud_ui, line, engine.time()) -- (a quick message is a toast, not talk)
   end
   -- Requests heard in talk go into the journal.
   local folk = game.world_places and game.world_places.folk
@@ -1485,7 +1485,7 @@ local function hud_source(lines)
     local prologue_part = game.story and ({ village = true, handover = true, ashes = true })[part]
     local act = game.saga and "The Circle" or (prologue_part and "Prologue" or "Act I")
     storyui.turn(game.story_ui, act, src.objective.title,
-      string.format("%s %d %s %s, %02d:00", i18n.t("Day"), t.day, i18n.t("of"), i18n.t(t.season), t.hour), now)
+      string.format(i18n.t("Day %d of %s, %02d:00"), t.day, i18n.t(t.season), t.hour), now)
   end
   game.story_part = part
   local place = game.world_places and placeplay.line(game.world_places, me)
@@ -1548,7 +1548,7 @@ local function draw_hud(lines)
       goal = st and st.objective and st.objective.title }
     local saves = game.saves_list and game.saves_list() or {}
     if saves[1] then
-      ctx.save = { saves[1].name, string.format("%s %s", i18n.t("Day"), tostring(saves[1].day or "?")) }
+      ctx.save = { saves[1].name, string.format(i18n.t("Day %s"), tostring(saves[1].day or "?")) }
     end
     if game.worldmap and me then
       ctx.draw_map = function(x, y, w, h)
@@ -1590,9 +1590,11 @@ local function draw_hud(lines)
       mood.hit(game.mood, game.harm_side, now)
       game.harm_side = nil
     end
-    local toasts_before = #game.hud_ui.toasts
     local st = hudui.gather(game.hud_ui, src, now)
-    if #game.hud_ui.toasts > toasts_before then soundscape.play(game.sound, "ui_cloth", 0.35) end
+    if (game.hud_ui.added or 0) ~= (game.cloth_heard or 0) then
+      game.cloth_heard = game.hud_ui.added
+      soundscape.play(game.sound, "ui_cloth", 0.35)
+    end
     if st.objective and st.objective.fresh and game.goal_heard ~= st.objective.title then
       game.goal_heard = st.objective.title
       soundscape.play(game.sound, "ui_goal", 0.6)

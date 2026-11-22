@@ -11,7 +11,7 @@ local menu = {}
 menu.REPEAT = 0.25 -- seconds before a held direction moves again
 
 -- The actions the menu reads while it is open (the game's are idle then).
-menu.ACTIONS = { quit = true, steer = true, confirm = true }
+menu.ACTIONS = { quit = true, steer = true, confirm = true, tab_prev = true, tab_next = true }
 
 -- The controls the player can remap, in menu order.
 menu.REMAP = { "steer", "climb", "boost", "cast_left", "cast_right", "draw", "verb", "color", "color2", "channel",

@@ -43,7 +43,8 @@ expect(fire[1] == fire_after[1] and fire[2] == fire_after[2], "the mana colours 
 
 -- A wolf near: the edges glow; a hit from the left marks it; low health beats.
 local c = game.carpet
-local wolf = sim.spawn_creature("wolf", world.move(c.pos, 0, 10, 0, -(c.pos.alt - world.ground_height(c.pos))))
+c.pos = world.move(c.pos, 0, 0, 0, -(c.pos.alt - world.ground_height(c.pos) - 4)) -- (low over the ground)
+local wolf = sim.spawn_creature("wolf", world.move(c.pos, 0, 12, 0, -4))
 step(10)
 expect(game.mood.danger > 0 and mood.edge(game.mood) > 0, "the edges glow with a wolf near")
 expect_eq(mood.side(0, 270), "left")

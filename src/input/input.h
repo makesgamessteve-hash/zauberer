@@ -86,7 +86,8 @@ int zb_input_add_button(zb_input *in, const char *name, float x, float y, float 
 void zb_input_inject(zb_input *in, int action, float x, float y, unsigned ticks);
 
 /* The pointer: the mouse, or the touch that began while no other touch pointed (normalized
- * 0..1 of the window, origin top-left). pressed and released hold until the next sample. */
+ * 0..1 of the window, origin top-left). pressed, released and the wheel show from when they happen
+ * through the tick after the sample that took them. */
 typedef struct zb_pointer {
   float x, y;
   bool held, pressed, released;

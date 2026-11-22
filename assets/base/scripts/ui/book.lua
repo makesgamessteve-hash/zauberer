@@ -215,15 +215,25 @@ function book.draw_title(_, lines, ctx)
 end
 
 -- The pointer on the book: a tab or row pointed at and clicked. Returns ("tab", page) or ("row", index).
+local hovered -- (the row the pointer last came onto: a hover focuses once, then the keys may move on)
+
 function book.pointed(boxes)
   if not boxes then return nil end
   for _, t in ipairs(boxes.tabs or {}) do
     if layout.clicked(t) then return "tab", t.page end
   end
   for _, r in ipairs(boxes.rows or {}) do
-    if layout.clicked(r) then return "row", r.index end
-    if layout.hover(r) then return "hover", r.index end
+    if layout.clicked(r) then
+      hovered = r.index
+      return "row", r.index
+    end
+    if layout.hover(r) then
+      if hovered == r.index then return nil end
+      hovered = r.index
+      return "hover", r.index
+    end
   end
+  hovered = nil
   return nil
 end
 

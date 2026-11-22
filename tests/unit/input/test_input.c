@@ -463,7 +463,11 @@ static void test_pointer_and_claims(void) {
   TEST_ASSERT_TRUE(p.pressed && p.released && !p.held); /* a click between two ticks is seen */
   zb_input_sample(in, 0);
   zb_input_pointer(in, &p);
-  TEST_ASSERT_FALSE(p.pressed || p.released);
+  TEST_ASSERT_TRUE(p.pressed && p.released); /* the tick after the sample sees them */
+  TEST_ASSERT_EQUAL_FLOAT(2.0f, p.wheel);
+  zb_input_sample(in, 0);
+  zb_input_pointer(in, &p);
+  TEST_ASSERT_FALSE(p.pressed || p.released); /* and no longer */
   TEST_ASSERT_EQUAL_FLOAT(0.0f, p.wheel);
   /* A tap on a claimed box over a touch button: the pointer has it, the button does not. */
   int climb = zb_input_define(in, "climb", ZB_ACTION_BUTTON);

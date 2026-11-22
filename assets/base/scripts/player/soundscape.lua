@@ -14,8 +14,7 @@ soundscape.AMBIENCE = { wind = "ambience/wind.ogg", village = "ambience/village.
   rain = "ambience/rain.ogg", night = "ambience/night.ogg" }
 soundscape.SOUNDS = { cast = "sounds/cast.wav", misfire = "sounds/misfire.wav", hit = "sounds/hit.wav",
   pickup = "sounds/pickup.wav", defeat = "sounds/defeat.wav", beat = "sounds/beat.wav",
-  ui_page = "sounds/ui_page.wav", ui_cloth = "sounds/ui_cloth.wav", ui_goal = "sounds/ui_goal.wav",
-  ui_quill = "sounds/ui_quill.wav" }
+  ui_page = "sounds/ui_page.wav", ui_cloth = "sounds/ui_cloth.wav", ui_goal = "sounds/ui_goal.wav" }
 soundscape.MUSIC_VOLUME, soundscape.AMBIENCE_VOLUME = 0.5, 0.35
 
 function soundscape.new()

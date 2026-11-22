@@ -106,5 +106,4 @@ return {
   { file = "sounds/ui_page.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
   { file = "sounds/ui_cloth.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
   { file = "sounds/ui_goal.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
-  { file = "sounds/ui_quill.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
 }

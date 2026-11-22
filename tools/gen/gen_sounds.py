@@ -101,7 +101,6 @@ EFFECTS = {
     "ui_cloth": lambda: noise_burst(33, 0.16, 22, 0.12),
     "ui_goal": lambda: mix(tone_sweep(587, 587, 0.5, 6, (1.0, 0.3)),
                            [0.0] * int(RATE * 0.12) + tone_sweep(880, 880, 0.6, 5, (1.0, 0.3))),
-    "ui_quill": lambda: mix(noise_burst(34, 0.09, 40, 0.18), [0.0] * int(RATE * 0.11) + noise_burst(35, 0.08, 40, 0.15)),
 }
 
 

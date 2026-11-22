@@ -153,7 +153,7 @@ game.walker = nil
 -- Another heir 300 m east sends a quick message.
 game.coop.carpets[1] = { pos = world.move(c.pos, math.pi / 2, 300, 0, 0), heading = 0, speed = 0, bank = 0,
   pitch = 0 }
-demo.pack.say(game.pack, game.heir_name(1) .. ": Follow me")
+game.coop.inbox = { { event = "data", channel = "quick", player = 1, value = { id = "follow" } } }
 step(3)
 st = state()
 local ally
