@@ -238,7 +238,7 @@ def make_video(font: PixelFont, frames: Path, shots, fmt: str, audio: Path, out:
     last = shots[-1][1] - 1
     enc = subprocess.Popen(
         ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(FPS),
-         "-i", "-", "-i", str(audio), "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
+         "-i", "-", "-i", str(audio), "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-maxrate", "12M", "-bufsize", "24M", "-pix_fmt", "yuv420p",
          "-profile:v", "high", "-level", "4.2", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
          "-movflags", "+faststart", "-shortest", str(out)], stdin=subprocess.PIPE)
     prev = None
@@ -272,10 +272,12 @@ def cover(font: PixelFont, frames: Path, shots, fmt: str, shot: str, out: Path, 
     img = Image.alpha_composite(img, shade)
     cy = LAYOUT[fmt]["caption_y"] + (40 if portrait else 0)
     if fmt == "trailer":
-        cy = h // 2 - 60
+        cy = 250
     font.draw(img, "ZAUBERER", w // 2, cy, 16 if portrait else 22, w - 60, colour=(255, 214, 102))
-    font.draw(img, "Grow a world. Fly a magic carpet.", w // 2, cy + (190 if portrait else 230), 6 if portrait else 8,
-              w - 100)
+    small = 6 if portrait else 7
+    below = cy + (180 if portrait else 220)
+    font.draw(img, "Grow a world.", w // 2, below, small, w - 100)
+    font.draw(img, "Fly a magic carpet.", w // 2, below + (font.gh + 3) * small, small, w - 100)
     img = img.convert("RGB")
     if size:
         img = img.resize(size, Image.LANCZOS)

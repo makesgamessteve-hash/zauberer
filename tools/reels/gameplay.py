@@ -65,7 +65,7 @@ def encode(frames: list[Path], fmt: str, args, font: mr.PixelFont, audio: Path, 
     w, h = (1920, 1080) if fmt == "wide" else (1080, 1920)
     enc = subprocess.Popen(
         ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(FPS),
-         "-i", "-", "-i", str(audio), "-c:v", "libx264", "-preset", "slow", "-crf", "19", "-pix_fmt", "yuv420p",
+         "-i", "-", "-i", str(audio), "-c:v", "libx264", "-preset", "slow", "-crf", "19", "-maxrate", "12M", "-bufsize", "24M", "-pix_fmt", "yuv420p",
          "-profile:v", "high", "-level", "4.2", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
          "-movflags", "+faststart", "-shortest", str(out)], stdin=subprocess.PIPE)
     n = len(frames)
