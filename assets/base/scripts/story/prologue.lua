@@ -56,7 +56,7 @@ end
 
 function prologue.snapshot(S)
   return { beat = S.beat, chores = S.chores, talked = S.talked, bonded = S.bonded, ring = S.ring,
-    journal = S.journal, out = S.out, primer = S.primer, bag = S.bag }
+    journal = S.journal, out = S.out, primer = S.primer, bag = S.bag, unrolled = S.unrolled }
 end
 
 local function go(S, beat)
@@ -225,6 +225,25 @@ function prologue.tick(S, ctx)
   return nil
 end
 
+-- Hurries a timed moment (Azhdar's arrival, the hiding) to its end, every
+-- line it says still said; true when there was one to hurry.
+function prologue.hurry(S)
+  if S.beat == "arrival" then
+    if not S.demanded then
+      S.demanded = true
+      said(S, "Azhdar: \"Give me the Weave!\" No one understands him.")
+    end
+    S.t = math.max(S.t, prologue.ARRIVAL)
+    return true
+  elseif S.beat == "hiding" then
+    for k = S.fragment + 1, #prologue.FRAGMENTS do said(S, prologue.FRAGMENTS[k]) end
+    S.fragment = #prologue.FRAGMENTS
+    S.t = math.max(S.t, prologue.HIDING)
+    return true
+  end
+  return false
+end
+
 -- Whether the carpet will fly yet (only once it has chosen the heir).
 function prologue.can_fly(S)
   return S.bonded or S.beat == "done"
@@ -236,8 +255,58 @@ local GOALS = { village = "Do your chores and talk to Farrokh", arrival = "...",
   carpet = "Sleep on the rug", flying = "Fly through the rings", survival = "Forage and boil water",
   leaving = "Leave the valley", done = "The valley lies behind you" }
 
-function prologue.hud_lines(S)
+-- What the heir was to do at a beat (for the journal's finished list).
+function prologue.goal_text(beat)
+  return GOALS[beat]
+end
+
+-- Where the heir is to go next: a name and a position, or nil.
+function prologue.goal(S)
+  local P, b = S.places, S.beat
+  if b == "village" then
+    if not S.chores.water then return "the qanat outlet", P.qanat_pos end
+    if not S.chores.goats then return "the goat pen", P.pen_pos end
+    if not S.chores.pomegranates then return "the orchard", P.orchard end
+    if not S.talked then return "Farrokh's house", P.farrokh_pos end
+    if not S.chores.loom then return "Farrokh's loom", P.loom_pos end
+  elseif b == "handover" or (b == "ashes" and S.out) then
+    return "the hatch under the loom", P.loom_pos
+  elseif b == "ashes" then
+    return "the ruins of Farrokh's house", P.farrokh_pos
+  elseif b == "flying" then
+    local r = prologue.rings(S)[S.ring]
+    if r then return "ring " .. S.ring, r end
+  elseif b == "leaving" then
+    return "Anarvan", P.square
+  end
+  return nil
+end
+
+local DIRS = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" }
+
+-- The compass direction from a position to another.
+function prologue.direction(from, to)
+  local a, c = world.to_local(from), world.to_local(to)
+  local bearing = math.atan(c[1] - a[1], -(c[3] - a[3])) % (2 * math.pi)
+  return DIRS[math.floor(bearing / (math.pi / 4) + 0.5) % 8 + 1]
+end
+
+-- The HUD lines of the story: the goal, the way to its place from pos (if
+-- given), and what was said lately.
+function prologue.hud_lines(S, pos)
   local out = { "Story: " .. GOALS[S.beat] }
+  local name, at = prologue.goal(S)
+  if pos and name then
+    local d = world.distance(pos, at)
+    if S.beat == "leaving" then
+      out[#out + 1] = string.format("%s is %d m behind you: go %d m out", name, math.floor(d),
+        math.max(0, math.floor(prologue.LEAVE - d)))
+    elseif d >= 3 then
+      out[#out + 1] = string.format("Next: %s, %d m to the %s", name, math.floor(d), prologue.direction(pos, at))
+    else
+      out[#out + 1] = string.format("Next: %s, here", name)
+    end
+  end
   for _, l in ipairs(S.lines) do out[#out + 1] = l end
   return out
 end

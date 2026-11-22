@@ -15,9 +15,15 @@ M.TOUCH = {
   buttons = {
     { name = "boost", x = 0.62, y = 0.76, w = 0.13, h = 0.18 },
     { name = "chime", x = 0.62, y = 0.52, w = 0.13, h = 0.14 },
+    { name = "menu", x = 0.68, y = 0.04, w = 0.14, h = 0.12 },
     { name = "credits", x = 0.84, y = 0.04, w = 0.14, h = 0.12 },
+    { name = "confirm", x = 0.44, y = 0.76, w = 0.13, h = 0.18 },
   },
 }
+
+-- What each on-screen control is called where it is drawn.
+M.LABELS = { steer = "Steer", climb = "Climb", boost = "Boost", chime = "Chime", menu = "Menu", credits = "Credits",
+  confirm = "OK" }
 
 -- Response curve: sign-preserving power with a dead zone already applied by the engine.
 function M.curve(v)
@@ -50,6 +56,28 @@ function M.read()
     states[name] = input.state(name)
   end
   return states
+end
+
+-- The labels of the on-screen controls at their places, for a screen of
+-- w x h pixels: { text, x, y } (sticks in round brackets, buttons in square).
+function M.touch_marks(w, h)
+  local i18n = require("ui.i18n")
+  local out = {}
+  local function mark(open, name, cx, cy, close)
+    local label = open .. i18n.t(M.LABELS[name] or name) .. close
+    out[#out + 1] = { text = label, x = math.floor(cx * w - #label * 3), y = math.floor(cy * h - 4) }
+  end
+  for _, st in ipairs(M.TOUCH.sticks) do mark("( ", st.name, st.x, st.y, " )") end
+  for _, b in ipairs(M.TOUCH.buttons) do mark("[", b.name, b.x + b.w / 2, b.y + b.h / 2, "]") end
+  return out
+end
+
+-- Draws the on-screen controls' labels over the game (touch mode).
+function M.draw_touch(font, color)
+  local h = render.internal_height()
+  local d = engine.info().drawable_size
+  local w = math.floor(h * (d[1] > 0 and d[1] or 16) / math.max(1, d[2] > 0 and d[2] or 9))
+  for _, m in ipairs(M.touch_marks(w, h)) do render.draw_text(font, m.text, m.x, m.y, 1, color) end
 end
 
 local touch_ready = false

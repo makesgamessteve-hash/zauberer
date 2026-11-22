@@ -49,10 +49,13 @@ function director.burn(P, b)
   b.burn_left = 300
 end
 
-function director.ruin(where)
+function director.ruin(where, P)
   local st = where.settlement
   st.destroyed, st.population = true, 0
+  sim.cool(where.square, 64, 1e11) -- the night's fires have burnt out: cold ash by morning
   for _, b in ipairs(where.plan.buildings) do
+    if P then sim.cool(places.origin(P, b), 24, 1e10) end
+    b.burn_left, b.burning = 0, false
     b.ruin = { age = 1, cause = "fire", seed = b.seed }
     b.stage, b.pieces, b.rooms, b.doors = 1, nil, nil, nil
     buildings.generate(b, where.plan.family, 1)
@@ -64,7 +67,7 @@ end
 -- set_time, talked_to, flying, book, pack, found, gathered, boiled).
 function director.tick(S, P, ctx)
   ctx.burn = function(b) director.burn(P, b) end
-  ctx.ruin = function() director.ruin(S.places) end
+  ctx.ruin = function() director.ruin(S.places, P) end
   return prologue.tick(S, ctx)
 end
 

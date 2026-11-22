@@ -1,1 +1,1 @@
-Zauberer web build (single-threaded) of 2e343cd, 1.0.0-rc.1: people are seen, the terrain is textured in the browser.
+Zauberer web build (single-threaded) of f4cf23c, 1.0.0-rc.1: title, autosave, help, settings, journal, map, ending, sound, crash log, co-op courtesy.

@@ -10,8 +10,20 @@ local settings = {}
 
 settings.KEY = "settings"
 
+local PERCENT = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 }
+
 -- Every setting: its default and the values it may take (in menu order).
 settings.SPEC = {
+  master_volume = { default = 100, values = PERCENT },
+  music_volume = { default = 100, values = PERCENT },
+  effects_volume = { default = 100, values = PERCENT },
+  mute = { default = false, values = { false, true } },
+  vsync = { default = true, values = { true, false } },
+  frame_cap = { default = 0, values = { 0, 30, 60, 120 } },
+  pixel_height = { default = 360, values = { 240, 360, 480, 720 } },
+  brightness = { default = 1, values = { 0.75, 0.9, 1, 1.1, 1.25, 1.5 } },
+  invert_look = { default = false, values = { false, true } },
+  vibration = { default = true, values = { true, false } },
   language = { default = "en" }, -- any language a package offers
   text_size = { default = 1, values = { 1, 2, 3 } },
   high_contrast = { default = false, values = { false, true } },
@@ -25,6 +37,7 @@ settings.SPEC = {
   look_speed = { default = 1, values = { 0.5, 0.75, 1, 1.5, 2 } },
   fov = { default = 70, values = { 60, 70, 80, 90, 100 } },
   story_markers = { default = false, values = { false, true } },
+  hints = { default = true, values = { true, false } },
   survival = { default = "survivor", values = { "wanderer", "survivor", "hermit" } },
   xr_steer = { default = "reins", values = { "reins", "head" } },
   xr_snap_turn = { default = false, values = { false, true } },
@@ -34,15 +47,19 @@ settings.SPEC = {
 }
 
 -- The menu order of the settings.
-settings.ORDER = { "language", "text_size", "high_contrast", "colour_vision", "colour_glyphs", "reduced_flashing",
+settings.ORDER = { "language", "master_volume", "music_volume", "effects_volume", "mute", "vsync", "frame_cap",
+  "pixel_height", "brightness", "invert_look", "vibration", "text_size", "high_contrast", "colour_vision",
+  "colour_glyphs",
+  "reduced_flashing",
   "captions", "toggle_hold", "gesture_assist", "look_curve", "look_speed", "fov",
-  "story_markers", "survival", "xr_steer", "xr_snap_turn", "xr_vignette", "xr_reduced_speed",
+  "story_markers", "hints", "survival", "xr_steer", "xr_snap_turn", "xr_vignette", "xr_reduced_speed",
   "xr_stabiliser" }
 
 local function valid(name, value)
   local spec = settings.SPEC[name]
   if not spec then return false end
   if name == "language" then return type(value) == "string" end
+  if name:match("_volume$") then return type(value) == "number" and value >= 0 and value <= 100 end
   for _, v in ipairs(spec.values) do
     if v == value then return true end
   end
@@ -51,12 +68,25 @@ end
 
 settings.listeners = {} -- fn(s, name) called after a setting changed
 
--- Applies what other modules read directly (language, text, accessibility, flashes).
+-- Applies what other modules read directly (language, text, accessibility,
+-- flashes, sound, the picture and its pace).
 local function apply(s)
   i18n.set(s.language)
   text.configure({ scale = s.text_size, contrast = s.high_contrast })
   access.configure(s)
   engine.set_flash_strength(s.reduced_flashing and 0.2 or 1)
+  settings.apply_volume(s)
+  audio.group_volume("music", s.music_volume / 100)
+  audio.group_volume("effects", s.effects_volume / 100)
+  engine.set_vsync(s.vsync)
+  engine.set_frame_cap(s.frame_cap)
+  render.internal_height(s.pixel_height)
+  render.brightness(s.brightness)
+end
+
+-- The master volume as set (silent when muted, or while the game is out of focus).
+function settings.apply_volume(s)
+  audio.group_volume("master", (s.mute or settings.out_of_focus) and 0 or s.master_volume / 100)
 end
 
 -- The settings: saved ones over the defaults (unknown or invalid values are
@@ -65,6 +95,10 @@ function settings.load(system_language)
   local saved = save.get(settings.KEY)
   local s = {}
   for name, spec in pairs(settings.SPEC) do s[name] = spec.default end
+  -- Volumes not set yet start as the user configuration has them (nearest ten per cent).
+  for name, group in pairs({ master_volume = "master", music_volume = "music", effects_volume = "effects" }) do
+    s[name] = math.max(0, math.min(100, audio.group_volume(group) * 100))
+  end
   if type(saved) == "table" then
     for name, value in pairs(saved) do
       if valid(name, value) then s[name] = value end
@@ -91,6 +125,14 @@ function settings.set(s, name, value)
   return true
 end
 
+-- Every setting back to its default, but the language.
+function settings.reset(s)
+  for name, spec in pairs(settings.SPEC) do
+    if name ~= "language" then s[name] = spec.default end
+  end
+  return settings.set(s, "language", s.language)
+end
+
 -- The next (step 1) or previous (step -1) value of a setting, wrapping round.
 function settings.step(s, name, step)
   local values = settings.SPEC[name].values
@@ -100,7 +142,7 @@ function settings.step(s, name, step)
   end
   local at = 1
   for i, v in ipairs(values) do
-    if v == s[name] then at = i end
+    if v == s[name] or (type(v) == "number" and type(s[name]) == "number" and v <= s[name]) then at = i end
   end
   return settings.set(s, name, values[(at - 1 + step) % #values + 1])
 end

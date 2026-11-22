@@ -137,6 +137,10 @@ function folk.talk(F, P, p, seen, ctx)
       if other and not ctx.to then ctx.to = history.get(db, other) end
     end
   end
+  if topics[n] == "work" and ctx.requests[1] then -- (a request, for the journal)
+    F.heard = F.heard or {}
+    F.heard[#F.heard + 1] = { who = p.name, where = st.name, text = ctx.requests[1].text }
+  end
   return p.name .. ": " .. npcs.talk(db, p, topics[n], ctx), mood, topics[n]
 end
 

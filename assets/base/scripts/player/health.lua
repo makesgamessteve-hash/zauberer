@@ -20,6 +20,8 @@ health.WARDED = 0.3       -- share of a harm a ward of its colour lets through
 health.DOWN_TIME = 3      -- seconds lying defeated
 health.REVIVE = 50        -- health on getting up again
 health.REACH = 3          -- metres above the ground within which ground harms reach
+health.SHELTER = 1.5      -- metres below the ground beyond which the surface's fire and smoke do not reach
+health.SAFE = 30          -- metres from fire and hunters a defeated player gets up
 
 local HARMS = { heat = true, impact = true, cold = true, poison = true, smoke = true, magic = true }
 -- Which ward turns which harm aside.
@@ -44,6 +46,9 @@ local function say(h, text)
   end
   h.news[#h.news + 1] = { text = text, until_time = h.time + 3 }
 end
+
+-- Tells the player something (for a few seconds, with the other news).
+function health.told(h, text) say(h, text) end
 
 -- Hurts the player (amount > 0) through a harm, less a ward of its colour
 -- (wards(kind) -> bool); returns the health taken. No harm while defeated.
@@ -71,6 +76,45 @@ function health.heal(h, amount)
   return got
 end
 
+-- Whether fire burns or the ground is scorching within radius metres of pos
+-- (looked at in rings round it).
+function health.fire_near(pos, radius)
+  local function hot(p)
+    local f = sim.fire_at(p)
+    return f.loaded and (f.burning or f.temperature > 60)
+  end
+  if hot(pos) then return true end
+  for r = 5, radius, 5 do
+    for k = 0, 7 do
+      if hot(world.move(pos, k * math.pi / 4, r, 0, 0)) then return true end
+    end
+  end
+  return false
+end
+
+-- Where a defeated player gets up: at pos (where the carpet first set out)
+-- unless fire or a hunter (hunter_near(p, radius) -> bool) is within
+-- health.SAFE metres; else the nearest place round it that is clear of both
+-- (rings of 40 .. 400 m), or pos when there is none. Returns the place and
+-- whether it was moved.
+function health.safe_spot(pos, hunter_near)
+  local function safe(p)
+    return not health.fire_near(p, health.SAFE) and not (hunter_near and hunter_near(p, health.SAFE))
+  end
+  if safe(pos) then return pos, false end
+  for r = 40, 400, 40 do
+    for k = 0, 7 do
+      local p = world.move(pos, k * math.pi / 4, r, 0, 0)
+      local _, _, depth = world.water(p)
+      if (depth or 0) <= 0.5 and safe(p) then
+        p.alt = world.ground_height(p)
+        return p, true
+      end
+    end
+  end
+  return pos, false
+end
+
 -- One tick. ctx: pos (the player), on_foot, landing (m/s of a landing this
 -- tick, if any), events (creature events), heard (effect events: heal and
 -- wither with at and amount), cast (this tick's cast result), wards
@@ -94,16 +138,20 @@ function health.tick(h, dt, ctx)
   end
   local was = h.hp
   local wards = ctx.wards
-  -- The ground under the player: flames, heat, smoke.
+  -- The ground under the player: flames, heat, smoke (not below ground, in
+  -- a cellar or a cave, where the surface's fire cannot reach).
   local pos = ctx.pos
-  if pos then
+  local above = pos and pos.alt - world.ground_height(pos)
+  if pos and above > -health.SHELTER then
     local fire = sim.fire_at(pos)
-    local near_ground = ctx.on_foot or pos.alt - world.ground_height(pos) < health.REACH
+    local near_ground = ctx.on_foot or above < health.REACH
     if fire.loaded and near_ground then
       if fire.burning then
         health.hurt(h, "heat", health.BURN * dt, wards)
+        say(h, "You are burning: get out of the fire!")
       elseif fire.temperature > 60 then
         health.hurt(h, "heat", (fire.temperature - 60) / 10 * dt, wards)
+        say(h, "The ground is scorching: get away from the fire!")
       end
     end
     local air = sim.gas_at(pos)

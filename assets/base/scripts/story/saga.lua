@@ -22,12 +22,12 @@ saga.RIVAL = 100     -- metres from a rival's sanctum at which they are met
 function saga.new(saved)
   saved = type(saved) == "table" and saved or {}
   return { N = narrative.new(saved.narrative), C = campaign.new(saved.campaign), ending = saved.ending,
-    years = saved.years or 0, lines = {}, met = saved.met or {}, choice = 1 }
+    years = saved.years or 0, lines = {}, met = saved.met or {}, choice = 1, ending_seen = saved.ending_seen }
 end
 
 function saga.snapshot(S)
   return { narrative = narrative.snapshot(S.N), campaign = campaign.snapshot(S.C), ending = S.ending,
-    years = S.years, met = S.met }
+    years = S.years, met = S.met, ending_seen = S.ending_seen }
 end
 
 local function say(S, text)
@@ -107,8 +107,9 @@ function saga.tick(S, ctx)
     if ctx.take then
       ending = open[math.min(S.choice, #open)]
       S.ending = ending
-      for _, c in pairs(aftermath.apply(ending, { db = db, economy = ctx.economy, set_ley = mana.set_ley_strength,
-        ley = mana.ley(ctx.pos).strength })) do S.last_chronicle = c end
+      S.chronicles = aftermath.apply(ending, { db = db, economy = ctx.economy, set_ley = mana.set_ley_strength,
+        ley = mana.ley(ctx.pos).strength })
+      for _, c in pairs(S.chronicles) do S.last_chronicle = c end
       say(S, narrative.data().endings[ending].text)
     end
   end

@@ -17,9 +17,17 @@
 
   function $(id) { return document.getElementById(id); }
 
-  function showError(title, message) {
+  function showError(title, message, reload) {
     var box = $('error');
     box.textContent = title + ': ' + message;
+    if (reload) { // a button to start again
+      var b = document.createElement('button');
+      b.id = 'reload';
+      b.textContent = navigator.language && navigator.language.slice(0, 2) === 'de' ? 'Neu laden' : 'Reload';
+      b.style.cssText = 'display:block;margin:1em auto 0;font:inherit';
+      b.onclick = function () { location.reload(); };
+      box.appendChild(b);
+    }
     box.hidden = false;
     $('status').hidden = true;
   }
@@ -145,7 +153,9 @@
     return entry.promise;
   }
 
+  var lastLog = '';
   function logLine(text) {
+    if (/^\[(error|warn)\]/.test(text)) lastLog = text;
     if (/^\[error\]/.test(text)) console.error(text);
     else if (/^\[warn\]/.test(text)) console.warn(text);
     else console.log(text);
@@ -170,6 +180,12 @@
     }, 100);
   }
   ['pointerdown', 'keydown', 'touchend'].forEach(function (t) { window.addEventListener(t, unlockAudio, true); });
+
+  // The page hidden or shown (another tab, the phone locked): the game opens
+  // its menu, mutes and saves when hidden, and gets its sound back when shown.
+  document.addEventListener('visibilitychange', function () {
+    if (Module.calledRun && Module._zb_web_visibility) Module._zb_web_visibility(document.hidden ? 0 : 1);
+  });
 
   // Mouse capture (pointer lock): a click on the game captures the mouse, so
   // the view turns with it and the cursor stays on the page; Escape (the
@@ -229,6 +245,11 @@
     zbFetch: zbFetch,
     zbStats: stats,
     zbShowError: showError,
+    // The engine stopped (a fatal error): say so with the last line logged, and offer a reload.
+    onAbort: function (what) {
+      showError('Zauberer', 'The game stopped (' + String(what || 'an error') + '). ' + (lastLog || '') +
+        ' Your game was saved when you last reached a turn of the story or a few minutes ago.', true);
+    },
     zbXrStatus: xrStatus,
     zbState: function () { return JSON.parse(UTF8ToStringSafe(Module._zb_web_state())); },
     preRun: [function () {

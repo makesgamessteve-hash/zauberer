@@ -51,6 +51,12 @@ local text = require("ui.text")
 local settings = require("ui.settings")
 local access = require("ui.access")
 local menu = require("ui.menu")
+local help = require("ui.help")
+local journal = require("ui.journal")
+local i18n = require("ui.i18n")
+local worldmap = require("ui.worldmap")
+local soundscape = require("player.soundscape")
+local news = require("player.news")
 local modapi = require("mods.api")
 local xrplay = require("xr.play")
 local reset = require("ui.reset")
@@ -106,6 +112,8 @@ local function setup_flight()
   game.known = {} -- the substances analysed
   for _, id in ipairs(back and type(back.known) == "table" and back.known or {}) do game.known[id] = true end
   game.codex = codex.new(back and back.codex)
+  game.journal = journal.new(back and back.journal)
+  game.worldmap = worldmap.new(back and back.worldmap)
   -- The peopled world (made in slices as play begins), Anarvan where the carpet set out.
   game.world_places = placeplay.setup(back and back.world_places, (world.info() or {}).seed or engine.info().seed,
     game.home.pos, FOOT, game.world_options and game.world_options.history)
@@ -202,6 +210,8 @@ function game.save()
       return list
     end)(),
     codex = game.codex and codex.snapshot(game.codex),
+    journal = game.journal and journal.snapshot(game.journal),
+    worldmap = game.worldmap and worldmap.snapshot(game.worldmap),
     on_foot = game.walker and walker.snapshot(game.walker),
     life = game.ecology and { ecology = ecology.snapshot(game.ecology),
       plants = plants.snapshot(game.plants, world.time().time),
@@ -209,6 +219,13 @@ function game.save()
   local ok, err = world.save_game(game.save_name, player)
   if ok then
     save.set("world", game.save_name)
+    -- What the title lists: the game day, and the order they were last played in.
+    local info = save.get("save_info")
+    info = type(info) == "table" and info or {}
+    local seq = (save.get("save_seq") or 0) + 1
+    info[game.save_name] = { day = math.floor(world.time().time / 86400) + 1, seq = seq }
+    save.set("save_info", info)
+    save.set("save_seq", seq)
     save.flush()
   else
     print("could not save the game " .. game.save_name .. ": " .. tostring(err))
@@ -249,7 +266,7 @@ engine.on("init", function()
   end
   assets.font = render.font("fonts/pixel.lua")
   game.setup_ui()
-  game.music = audio.play("music/loop.ogg", { loop = true, group = "music", volume = 0.5 })
+  game.sound = soundscape.new() -- (the music and ambience start with the first tick)
   game.credits = engine.credits()
   local saved = save.get("world")
   if saved then -- continue the game saved last time
@@ -257,6 +274,7 @@ engine.on("init", function()
     if player then
       game.save_name = saved
       game.restore = type(player) == "table" and player or nil
+      print("continuing " .. saved)
     else
       print("could not load the game " .. saved .. ": " .. tostring(err))
     end
@@ -264,6 +282,11 @@ engine.on("init", function()
   game.set_mode(game.mode)
   if input.mode() == "touch" then
     setup_touch()
+  end
+  if engine.info().play and game.mode == "flight" then -- a player's game begins at the title
+    menu.open_title(game.menu)
+    access.block(true)
+    print("title shown")
   end
 end)
 
@@ -289,8 +312,50 @@ function game.setup_ui()
     resume = function() access.block(false) end,
     packages = engine.packages,
     set_package = engine.set_package_enabled,
+    continue = function() end, -- (the game last played is already loaded)
+    new_world = function() game.set_mode("create") end,
+    saves = function() return game.saves_list() end,
+    load = function(name) return game.load_save(name) end,
+    delete = function(name) return game.delete_save(name) end,
+    current = function() return save.get("world") end,
+    topic_lines = function(id) return help.topic_lines(id, game.story_lines()) end,
+    journal_lines = function() return journal.lines(game.journal, game.story_lines()) end,
+    map_open = function()
+      local me = (game.walker and game.walker.pos) or game.carpet.pos
+      worldmap.centre(game.worldmap, worldmap.offset(game.home.pos, me))
+    end,
+    map_pan = function(dx, dy) worldmap.pan(game.worldmap, dx, dy) end,
+    map_zoom = function() worldmap.zoom_out(game.worldmap) end,
+    ending_lines = function() return game.ending_lines or {} end,
+    in_company = function() return game.coop.role ~= "none" end,
+    is_host = function() return game.coop.role == "host" end,
+    is_open = function() return net.status().open end,
+    set_open = function(open) net.set_open(open) end,
+    heirs = function()
+      local out = {}
+      for _, p in ipairs(net.status().players or {}) do
+        if p ~= 0 then out[#out + 1] = { player = p, name = game.heir_name(p) } end
+      end
+      return out
+    end,
+    kick = function(player) return net.kick(player) end,
+    quick = function(id)
+      local line = require("coop.quick").send(id, game.heir_name(math.max(0, game.coop.me or 0)))
+      if line then pack.say(game.pack, line) end
+    end,
+    reset_hints = function() help.reset(game.help) end,
+    version = engine.info().version,
+    can_quit = engine.info().platform ~= "web", -- (a page is closed, not quit)
   })
   game.captions = access.captions_new()
+  game.help = help.new()
+  news.listeners[#news.listeners + 1] = function(said) -- (everything said goes into the journal)
+    if game.journal and game.mode == "flight" then journal.note(game.journal, said, world.time().time) end
+    if game.sound and type(said) == "string" and (said:find("^Taken ") or said:find("^You pick")
+      or said:find("^Gathered") or said:find("^Found ")) then
+      soundscape.play(game.sound, "pickup")
+    end
+  end
   game.xr_options = game.vr_options(game.settings)
   settings.listeners[#settings.listeners + 1] = function(s, name)
     if name:match("^xr_") then -- (the VR comfort options, also for a session already running)
@@ -332,6 +397,165 @@ end
 function game.vr_options(s)
   return { steer = s.xr_steer, snap_turn = s.xr_snap_turn, vignette = s.xr_vignette,
     reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
+end
+
+-- The end of the story shown: its name and closing lines, the chronicle of
+-- the heirs' own people, then the credits (skippable); then play goes on in
+-- the world after the ending, and the save records it.
+function game.show_ending()
+  local S = game.saga
+  S.ending_seen = true
+  local e = require("story.narrative").data().endings[S.ending]
+  local lines = { { raw = string.format(i18n.t("%s: %s"), i18n.t(e.name), i18n.t(e.text)) } }
+  local P = game.world_places.places
+  local anarvan = P.db and P.db.story and P.db.story.anarvan and require("people.history").get(P.db, P.db.story.anarvan)
+  local told = (anarvan and S.chronicles and S.chronicles[anarvan.culture]) or S.last_chronicle
+  if told then lines[#lines + 1] = { raw = i18n.t(told) } end
+  lines[#lines + 1] = "Your story is told; the world goes on."
+  game.ending_lines = lines
+  menu.open_ending(game.menu)
+  access.block(true)
+  print("the ending shown: " .. tostring(S.ending))
+  game.autosave("ending")
+end
+
+-- The music and ambience: what the situation and the place sound like
+-- (looked at twice a second; the crossfades run every tick).
+function game.sound_tick(dt)
+  if not game.sound then return end
+  game.sound_at = (game.sound_at or 0) + 1
+  if not game.sound_ctx or game.sound_at % 30 == 1 then
+    local c, w = game.carpet, game.walker
+    local me = (w and w.pos) or c.pos
+    local ground = world.ground_height(me)
+    local sky = world.sky(me)
+    local m = game.menu
+    local P = game.world_places and game.world_places.places
+    local beat = game.story and game.story.beat
+    game.sound_ctx = {
+      title = m and m.open and (m.page == "title" or m.home == "title"),
+      story = (m and m.open and m.home == "ending") or beat == "arrival" or beat == "handover" or beat == "hiding",
+      danger = fauna.hunter_near(me, 80) or game.health.hp < 30,
+      night = sky ~= nil and sky.daylight < 0.2,
+      underground = me.alt < ground - 1.5, rain = (sim.weather().rain or 0) > 0.3,
+      aloft = w == nil and me.alt - ground > 30,
+      settlement = P ~= nil and P.ready and require("places.places").at(P, me) ~= nil,
+    }
+  end
+  soundscape.tick(game.sound, dt, game.sound_ctx)
+  game.music = game.sound.music.voice -- (the music playing now)
+end
+
+-- Where the story asks the heir to go now (the prologue's next place, or the next of the Circle).
+function game.goal_pos()
+  if game.saga then
+    for _, mb in ipairs(require("story.narrative").data().circle) do
+      local site = game.saga.N.sites[mb.id]
+      if site and not game.saga.N.remnants[mb.id] then return site.pos end
+    end
+    return nil
+  end
+  if game.story then return select(2, prologue.goal(game.story)) end
+  return nil
+end
+
+-- An heir's name by player index (0: the host).
+function game.heir_name(player)
+  local h = game.together and game.together.heirs and game.together.heirs.list[player + 1]
+  return (h and h.name) or string.format(i18n.t("Heir %d"), player + 1)
+end
+
+-- The story so far, for the help page: the goal and what was said lately.
+function game.story_lines()
+  local at = (game.walker and game.walker.pos) or (game.carpet and game.carpet.pos)
+  if game.saga then return saga.hud_lines(game.saga, at) end
+  if game.story then return prologue.hud_lines(game.story, at) end
+  return {}
+end
+
+-- The saved games, newest first: { name, day }.
+function game.saves_list()
+  local info = save.get("save_info")
+  info = type(info) == "table" and info or {}
+  local list = {}
+  for _, name in ipairs(world.saves()) do
+    local i = type(info[name]) == "table" and info[name] or {}
+    list[#list + 1] = { name = name, day = i.day, seq = i.seq or 0 }
+  end
+  table.sort(list, function(a, b) return a.seq > b.seq or (a.seq == b.seq and a.name < b.name) end)
+  return list
+end
+
+-- Plays another saved game (the one being played is saved first).
+function game.load_save(name)
+  if game.mode == "flight" and game.carpet then game.save() end
+  local player, err = world.load_game(name)
+  if not player then return false, err end
+  game.save_name = name
+  game.restore = type(player) == "table" and player or nil
+  save.set("world", name)
+  save.flush()
+  game.set_mode("flight")
+  return true
+end
+
+-- Deletes a saved game (not the one being played).
+function game.delete_save(name)
+  if name == game.save_name then return false, "This game is being played" end
+  local ok, err = world.delete_save(name)
+  if not ok then return false, err end
+  local info = save.get("save_info")
+  if type(info) == "table" then
+    info[name] = nil
+    save.set("save_info", info)
+  end
+  if save.get("world") == name then save.set("world", nil) end
+  save.flush()
+  return true
+end
+
+-- Saves on its own (every few minutes of play, at each turn of the story,
+-- before sleep, when the page is hidden): only the host in company, never
+-- while the heir lies defeated (it is done once they are up). A line on the
+-- HUD says it was saved.
+game.AUTOSAVE_SHOWN = 2 -- seconds the line stays
+function game.autosave(why)
+  if game.mode ~= "flight" or not game.carpet or (game.coop and game.coop.role == "client") then return false end
+  if game.health and game.health.down then
+    game.autosave_due = why
+    return false
+  end
+  game.autosave_due = nil
+  local ok = game.save()
+  if ok then
+    game.saved_at = engine.time()
+    print("autosaved (" .. tostring(why) .. ")")
+  end
+  return ok
+end
+
+-- Opens the menu in play (the heir's actions idle; alone, the world held).
+function game.open_menu()
+  if not game.menu.open then
+    menu.toggle(game.menu)
+    print("menu opened")
+  end
+  access.block(true)
+end
+
+-- The window lost or regained focus (or the page was hidden or shown): in
+-- play the menu opens and the sound is muted; on the web the game is saved
+-- (a hidden tab may be closed). Back in focus the sound returns; the menu stays.
+function game.on_focus(on)
+  print(on and "focus back" or "focus lost")
+  settings.out_of_focus = not on
+  if game.settings then settings.apply_volume(game.settings) end
+  if not on then
+    if game.mode == "flight" and game.menu then
+      game.open_menu()
+      if engine.info().platform == "web" then game.autosave("hidden") end
+    end
+  end
 end
 
 -- Saves (in flight) and ends the game.
@@ -508,19 +732,26 @@ end
 local function flight_tick(dt)
   game.flight_ticks = (game.flight_ticks or 0) + 1
   if game.flight_ticks % AUTOSAVE_TICKS == 0 then
-    game.save()
+    game.autosave("time")
   end
   game.setup_ui()
   local st = controls.read()
-  -- Escape opens the menu; while it is open the heir's own actions are idle (the world goes on).
+  -- Escape opens the menu; while it is open the heir's own actions are idle.
+  -- Alone the world stands still; in company it goes on.
   if game.menu.open then
     menu.tick(game.menu, input.state, dt)
     access.block(game.menu.open)
   elseif st.quit and st.quit.pressed then
-    menu.toggle(game.menu)
-    access.block(true)
+    game.open_menu()
     st = controls.read()
   end
+  game.sound_tick(dt)
+  local held = game.menu.open and game.coop.role == "none"
+  if held ~= (game.world_held or false) then
+    game.world_held = held
+    engine.hold_world(held)
+  end
+  if held then return end
   game.listen()
   modapi.tick(game.mods, dt)
   if game.tent and game.tent.inside and game.walker then
@@ -652,6 +883,12 @@ local function flight_tick(dt)
   if cast_now and cast_now.ok then
     disciplines.practice(game.disciplines, "spellcasting", 2, "cast", cast_now.name or "free weave")
   end
+  if cast_now and cast_now.ok and not (cast_now.plan and cast_now.plan.misfire) then
+    soundscape.play(game.sound, "cast")
+  elseif cast_now and cast_now.plan and cast_now.plan.misfire then
+    soundscape.play(game.sound, "misfire")
+    soundscape.rumble(game.sound, 0.4, 0.2, game.settings.vibration)
+  end
   -- Creatures, and the motes of the magical ones that die.
   local now = world.time().time
   local hp_before = game.health.hp
@@ -682,13 +919,61 @@ local function flight_tick(dt)
   local fate = health.tick(game.health, dt, { pos = me, on_foot = w ~= nil, landing = w and w.landing,
     events = creature_events,
     heard = effects.take_events(fx), cast = cast_now, wards = function(kind) return effects.warded(fx, kind) end })
+  -- Harm since the last tick (whatever dealt it): a hit is heard and felt, a defeat too.
+  local downed = game.health.down ~= nil and not game.was_down
+  game.was_down = game.health.down ~= nil
+  if downed then sim.spare_player(60, 300) end -- (what brought the player down turns away)
+  local harmed = (game.last_hp or hp_before) - game.health.hp
+  game.last_hp = game.health.hp
+  if downed then
+    soundscape.play(game.sound, "defeat")
+    soundscape.rumble(game.sound, 1, 0.6, game.settings.vibration)
+  elseif harmed >= 3 then -- (a hit, not the slow ache of hunger)
+    soundscape.play(game.sound, "hit", math.min(1, 0.4 + harmed / 30))
+    soundscape.rumble(game.sound, harmed / 30, 0.25, game.settings.vibration)
+  end
+  if fate == "revived" and game.autosave_due then game.autosave(game.autosave_due) end
   if fate == "revived" then
-    game.carpet = carpet.new(world.move(game.home.pos, 0, 0, 0), game.home.heading)
+    local spot, moved = health.safe_spot(game.home.pos, fauna.hunter_near)
+    if moved then
+      spot.alt = spot.alt + math.max(carpet.CLEARANCE, game.home.pos.alt - world.ground_height(game.home.pos))
+      health.told(game.health, "You get up again, away from the danger")
+    end
+    game.carpet = carpet.new(world.move(spot, 0, 0, 0), game.home.heading)
     c = game.carpet
     game.walker, w = nil, nil
     me = c.pos
     camera.reset(game.chase)
   end
+  -- The map: the land near is seen (each second), and the places come near (every few seconds).
+  if game.flight_ticks % 60 == 0 then
+    worldmap.mark(game.worldmap, game.home.pos, me)
+    local Pl = game.world_places.places
+    if game.flight_ticks % 300 == 0 and Pl.ready then
+      local near = require("people.peopling").near(Pl.db, Pl.grid, me, 2500)[1]
+      if near then worldmap.know(game.worldmap, game.home.pos, near.settlement.name, near.settlement.pos) end
+    end
+  end
+  -- Quick messages from the others in company.
+  for _, line in ipairs(require("coop.quick").take(game.coop.inbox or {}, game.heir_name)) do
+    pack.say(game.pack, line)
+  end
+  -- Requests heard in talk go into the journal.
+  local folk = game.world_places and game.world_places.folk
+  if folk and folk.heard then
+    for _, r in ipairs(folk.heard) do journal.request(game.journal, r.who, r.where, r.text) end
+    folk.heard = nil
+  end
+  -- First-time hints: what the heir can do now, with the controls of the device in hand.
+  local sv = game.survival
+  local book = game.magic.caster.book
+  help.tick(game.help, engine.time(), {
+    flying = w == nil and c.pos.alt - world.ground_height(c.pos) > 3,
+    low_slow = w == nil and walker.can_step_off(c, FOOT), on_foot = w ~= nil,
+    near_carpet = w ~= nil and walker.near_carpet(w, c),
+    near_use = w ~= nil and require("places.places").nearby(game.world_places.places, w.pos, w.heading) ~= nil,
+    can_cast = book ~= nil and next(book.journal or {}) ~= nil, has_bag = game.story ~= nil and game.story.bag,
+    tired = sv.rest < 25, hungry = sv.food < 25 or sv.water < 25 }, game.settings.hints)
   -- Food, water, rest and warmth run in game time (a time skip is not counted
   -- here: sleep counts its own).
   local game_dt = math.min(math.max(now - (game.survival_at or now), 0), 300)
@@ -769,6 +1054,7 @@ local function flight_tick(dt)
       coopplay.ask(T, co, net, "vote", { kind = "sleep", now = now })
     end
   elseif w and input.state("sleep").pressed and not game.health.down then
+    game.autosave("sleep")
     local hours, harms = survival.sleep(game.survival, 10, survival.sense(me, w, 0))
     for _, h in ipairs(harms) do health.hurt(game.health, h[1], h[2]) end
     world.set_time(now + hours * 3600)
@@ -906,14 +1192,34 @@ local function flight_tick(dt)
     if game.story then
       local ground = world.ground_height(me)
       local before = game.story_boiled or pack.count(game.pack, "boiled_water")
+      -- Holding use for a second hurries a timed moment (Azhdar's arrival, the hiding).
+      local use = input.state("use")
+      game.hurry_held = (use.held and (game.hurry_held or 0) + dt) or 0
+      if game.hurry_held >= 1 and prologue.hurry(game.story) then game.hurry_held = 0 end
+      local beat_was = game.story.beat
       local happened = director.tick(game.story, P, { pos = me, used = input.state("use").pressed, slept = game.slept,
         dt = dt, now = now, set_time = world.set_time, talked_to = used_text and used_text:match("^(%a+): "),
         found = used_text and used_text:match("^Found (.+)$"), flying = w == nil and me.alt - ground > 3,
         book = game.magic.caster.book, pack = game.pack, gathered = game.gathered_now,
         boiled = pack.count(game.pack, "boiled_water") > before })
       game.story_boiled = pack.count(game.pack, "boiled_water")
-      if happened then pack.say(game.pack, game.story.lines[#game.story.lines]) end
+      if happened then
+        pack.say(game.pack, game.story.lines[#game.story.lines])
+        journal.finish(game.journal, prologue.goal_text(beat_was))
+        soundscape.play(game.sound, "beat")
+        game.autosave("story")
+      end
       game.slept = nil
+      -- The carpet that chose the heir is the rug in their arms: unrolled
+      -- beside them once they are up in the open air.
+      if prologue.can_fly(game.story) and not game.story.unrolled and w and w.grounded
+        and w.pos.alt > world.ground_height(w.pos) - 0.5 then -- (up out of the cellar, off its stair)
+        local spot = world.move(w.pos, w.heading, 1.5, 0)
+        spot.alt = w.pos.alt + carpet.CLEARANCE
+        game.carpet.pos, game.carpet.speed, game.carpet.heading = spot, 0, w.heading
+        game.story.unrolled = true
+        pack.say(game.pack, "You unroll the rug: it hovers beside you, waiting")
+      end
     end
     -- Acts II and III: after the prologue (or from the save).
     if P.ready and not game.saga and (game.saga_saved or (game.story and game.story.beat == "done")) then
@@ -936,6 +1242,10 @@ local function flight_tick(dt)
         learn = function(d) disciplines.practice(game.disciplines, d, 40, "taught by the Circle") end,
         choose = defeated and input.state("story").pressed, take = defeated and input.state("use").pressed })
       for _, id in ipairs(done) do pack.say(game.pack, "Story: " .. id) end
+      for _, id in ipairs(done) do journal.finish(game.journal, "Story: " .. id) end
+      if #done > 0 then soundscape.play(game.sound, "beat") end
+      if game.saga.ending and not game.saga.ending_seen then game.show_ending() end
+      if #done > 0 then game.autosave("story") end
     end
   end
   if w then
@@ -982,6 +1292,10 @@ end
 
 engine.on("tick", function(dt)
   reset_tick()
+  if game.mode ~= "flight" and game.sound then -- (the title's music on the other screens)
+    soundscape.tick(game.sound, dt, { title = true, aloft = true })
+    game.music = game.sound.music.voice
+  end
   if game.mode == "flight" then
     flight_tick(dt)
   elseif game.mode == "create" then
@@ -993,6 +1307,12 @@ end)
 
 local function draw_hud(lines)
   if not game.hud then return end
+  if game.menu and game.menu.open and game.menu.page == "map" and game.worldmap then
+    local me = (game.walker and game.walker.pos) or game.carpet.pos
+    worldmap.draw(game.worldmap, assets.font, game.home.pos, me, game.walker and game.carpet.pos or nil,
+      game.goal_pos(), 4, 4)
+    return
+  end
   if game.menu and game.menu.open then
     local credits = {}
     for _, c in ipairs(game.credits or {}) do credits[#credits + 1] = { raw = hud.credit_line(c) } end
@@ -1021,6 +1341,13 @@ end
 local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
+  local hint = game.help and (engine.info().play or game.hints_in_tests) and help.hint_line(game.help)
+  if hint then table.insert(lines, 1, hint) end
+  local stage = world.chunk_stage((game.walker and game.walker.pos) or c.pos) or 0
+  if stage < 2 then lines[#lines + 1] = string.format("Loading the land: %d%%", math.max(0, stage) * 50) end
+  if game.saved_at and engine.time() - game.saved_at < game.AUTOSAVE_SHOWN then
+    lines[#lines + 1] = "Game saved"
+  end
   local parts = { health.hud_lines(game.health), survival.hud_lines(game.survival), pack.hud_lines(game.pack),
     bag.hud_lines(game.bag), condition.hud_lines(game.condition), cloak.hud_lines(game.cloak),
     artificing.hud_lines(game.artifacts), game.ritual.active and { ritual.line(game.ritual, game.pack) } or {},
@@ -1046,7 +1373,8 @@ local function flight_lines()
       end
     end
   elseif game.story then
-    for _, line in ipairs(prologue.hud_lines(game.story)) do lines[#lines + 1] = line end
+    local at = game.walker and game.walker.pos or game.carpet.pos
+    for _, line in ipairs(prologue.hud_lines(game.story, at)) do lines[#lines + 1] = line end
   end
   local w = game.walker
   local place = game.world_places and placeplay.line(game.world_places, w and w.pos or c.pos)
@@ -1152,6 +1480,7 @@ local function flight_frame()
     end
   end
   draw_hud(flight_lines())
+  if input.mode() == "touch" and controls.touch_ready() then controls.draw_touch(assets.font, { 1, 1, 1, 0.8 }) end
   for _, t in ipairs(sights.trail) do -- the gesture being drawn
     render.draw_text(assets.font, "o", 80 + t[1], 160 + t[2], 1, { 1, 0.9, 0.5, 1 })
   end
@@ -1205,6 +1534,8 @@ engine.on("event", function(name, args)
     end
   elseif name == "resize" then
     game.drawable = { args.width, args.height }
+  elseif name == "focus" then
+    game.on_focus(args.a ~= 0)
   end
 end)
 

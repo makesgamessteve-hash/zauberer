@@ -8,8 +8,11 @@ function news.new()
   return { lines = {}, clock = 0 }
 end
 
+news.listeners = {} -- fn(text) for every line said (the journal)
+
 -- Says a line; said again while it shows, it stays longer.
 function news.say(n, text, seconds)
+  for _, fn in ipairs(news.listeners) do fn(text) end
   local until_time = n.clock + (seconds or news.TIME)
   for _, l in ipairs(n.lines) do
     if l.text == text then

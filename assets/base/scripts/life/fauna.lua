@@ -45,6 +45,17 @@ local function name_of(id)
   return s and s.name or id
 end
 
+-- Whether a hunter that would attack the player (a meat-eater of some
+-- aggression, not bound to the player) is alive within radius metres of pos.
+function fauna.hunter_near(pos, radius)
+  for _, id in ipairs(sim.creatures_near(pos, radius)) do
+    local c = sim.creature(id)
+    local s = c and fauna.species()[c.species]
+    if c and c.alive and not c.bond and s and (s.aggression or 0) > 0.3 then return true end
+  end
+  return false
+end
+
 -- The creatures around home (the carpet's start) facing heading.
 function fauna.new(home, heading)
   fauna.define()

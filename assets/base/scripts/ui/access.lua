@@ -17,7 +17,7 @@ access.GLYPHS = { fire = "*", storm = "~", light = "^", life = "+", water = "=",
 local opts = { colour_vision = "full", toggle_hold = false, look_curve = 1, look_speed = 1, gesture_assist = "tolerant",
   colour_glyphs = true,
   reduced_flashing = false, captions = true,
-  story_markers = false, fov = 70 }
+  story_markers = false, fov = 70, invert_look = false }
 
 function access.configure(s)
   for k in pairs(opts) do
@@ -65,6 +65,7 @@ function access.shape(name, raw, tick, menu_action)
   end
   if access.LOOKS[name] then
     st.x, st.y = shaped(st.x), shaped(st.y)
+    if opts.invert_look then st.y = -st.y end
   end
   return st
 end

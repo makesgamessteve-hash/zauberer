@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// The comfort vignette (reference: zb_vignette_factor in src/render/retro.c),
+// The player's brightness, the comfort vignette (reference: zb_vignette_factor in src/render/retro.c),
 // then palette quantisation with 8x8 ordered dithering (reference:
 // zb_palette_quantize). The LUT is 1024 x 32 texels: x = blue * 32 + red,
 // y = green, 32 levels per channel. Drawn once per view.
@@ -12,10 +12,11 @@ uniform int u_palette;
 uniform float u_vignette;      // 0 .. 1 (0 = off)
 uniform vec2 u_vignette_center; // the view's optical centre (framebuffer pixels)
 uniform vec2 u_vignette_half;   // half the view's size (pixels)
+uniform float u_brightness;     // the player's brightness (1: as it is)
 out vec4 o_color;
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
-  vec3 c = texelFetch(u_scene, p, 0).rgb;
+  vec3 c = min(texelFetch(u_scene, p, 0).rgb * u_brightness, vec3(1.0));
   if (u_vignette > 0.0) {
     vec2 d = (gl_FragCoord.xy - u_vignette_center) / u_vignette_half;
     float t = clamp((length(d) - 0.35) / 0.75, 0.0, 1.0);

@@ -194,7 +194,9 @@ function places.realise(P, b, stage)
       end
       for i, state in pairs(d.doors or {}) do
         for _, p in ipairs(b.pieces) do
-          if p.kind == "door" and p.door == tonumber(i) then p.open = state == "open"; p.gone = state == "broken" end
+          if p.kind == "door" and p.door == tonumber(i) then -- (a door a ruin has lost stays lost)
+            if state == "broken" then p.gone = true elseif not p.gone then p.open = state == "open" end
+          end
         end
       end
       integrity.settle(b.pieces)
