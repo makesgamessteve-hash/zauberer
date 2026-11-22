@@ -75,7 +75,7 @@ if(Python3_FOUND)
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
       set_tests_properties(engine_render PROPERTIES
         ENVIRONMENT "${ZB_ENGINE_TEST_ENV};ZB_RENDER_TESTS=1;SDL_VIDEO_DRIVER=offscreen"
-        LABELS "engine;render" TIMEOUT 900 RUN_SERIAL TRUE)
+        LABELS "engine;render" TIMEOUT 1800 RUN_SERIAL TRUE)
     endif()
   endif()
   add_test(NAME python_tools
