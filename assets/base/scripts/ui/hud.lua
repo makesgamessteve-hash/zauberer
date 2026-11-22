@@ -71,6 +71,11 @@ function hud.push(h, text, now)
   add_toast(h, text, nil, now)
 end
 
+-- A line shown elsewhere (speech in its box): not a toast while it is about.
+function hud.seen(h, text, now)
+  if type(text) == "string" then h.seen[text] = now end
+end
+
 -- The HUD's state from the game this frame. src: what the game knows (see main.lua's hud_source).
 function hud.gather(h, src, now)
   h.now = now

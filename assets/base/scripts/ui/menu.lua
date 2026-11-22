@@ -252,6 +252,38 @@ local function activate(m, item, step)
 end
 
 -- One tick while the menu is open. st(name): the action states.
+-- The book's tabs, in order (ui/book.lua draws them).
+menu.TABS = { "main", "journal", "map", "help", "settings" }
+
+-- Opens a tab's page.
+function menu.goto_tab(m, page)
+  m.page, m.at, m.capture = page, 1, nil
+end
+
+-- Turns to the next (dir 1) or the previous (-1) tab.
+function menu.turn_tab(m, dir)
+  local at = 1
+  local of = { save = "main", load = "main", confirm = "main", controls = "settings", packages = "main",
+    credits = "main", company = "main", remove = "main", topic = "help", reset = "settings" }
+  local page = of[m.page] or m.page
+  for i, p in ipairs(menu.TABS) do if p == page then at = i end end
+  menu.goto_tab(m, menu.TABS[(at - 1 + dir) % #menu.TABS + 1])
+end
+
+-- The item the focus is on.
+function menu.focused(m)
+  return items(m)[m.at]
+end
+
+-- Points at row i (the focus follows); chosen, it is done.
+function menu.point(m, i, chosen)
+  local list = items(m)
+  if not list[i] then return false end
+  m.at = i
+  if chosen then activate(m, list[i]) end
+  return true
+end
+
 function menu.tick(m, st, dt)
   if not m.open then return end
   if m.capture then
@@ -265,6 +297,10 @@ function menu.tick(m, st, dt)
     return
   end
   if st("quit").pressed then return back(m) end
+  if m.page ~= "title" and m.page ~= "ending" and m.page ~= "ending_credits" then
+    if st("tab_next").pressed then return menu.turn_tab(m, 1) end
+    if st("tab_prev").pressed then return menu.turn_tab(m, -1) end
+  end
   if m.page == "map" then -- the stick moves the map, confirm zooms out
     local d = st("steer")
     local mx = (d.x or 0) > 0.5 and 1 or (d.x or 0) < -0.5 and -1 or 0

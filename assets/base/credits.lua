@@ -103,4 +103,8 @@ return {
   { file = "textures/ornaments/kilim.png", author = "Zauberer contributors", source = "tools/gen/gen_ornaments.py", license = "CC-BY-4.0" },
   { file = "ui/frames.png", author = "Zauberer contributors", source = "tools/gen/gen_ui.py", license = "CC-BY-4.0" },
   { file = "ui/icons.png", author = "Zauberer contributors", source = "tools/gen/gen_ui.py", license = "CC-BY-4.0" },
+  { file = "sounds/ui_page.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
+  { file = "sounds/ui_cloth.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
+  { file = "sounds/ui_goal.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
+  { file = "sounds/ui_quill.wav", author = "Zauberer contributors", source = "tools/gen/gen_sounds.py", license = "CC-BY-4.0" },
 }
