@@ -19,7 +19,9 @@ step(20)
 expect_eq(world.time().time, t, "alone, the world stands still")
 expect(not game.magic.charging_left and not (game.magic.charging and game.magic.charging.hand == "left"),
   "the heir does not cast while the menu is open")
--- Down to Settings, in, and change the text size; then back out twice.
+-- Down to Settings (past Help), in, and change the text size; then back out twice.
+input.inject("steer", 0, -1, 2)
+step(20)
 input.inject("steer", 0, -1, 2)
 step(3)
 input.inject("confirm", 1, 1)

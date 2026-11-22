@@ -51,6 +51,7 @@ local text = require("ui.text")
 local settings = require("ui.settings")
 local access = require("ui.access")
 local menu = require("ui.menu")
+local help = require("ui.help")
 local modapi = require("mods.api")
 local xrplay = require("xr.play")
 local reset = require("ui.reset")
@@ -308,10 +309,13 @@ function game.setup_ui()
     load = function(name) return game.load_save(name) end,
     delete = function(name) return game.delete_save(name) end,
     current = function() return save.get("world") end,
+    topic_lines = function(id) return help.topic_lines(id, game.story_lines()) end,
+    reset_hints = function() help.reset(game.help) end,
     version = engine.info().version,
     can_quit = engine.info().platform ~= "web", -- (a page is closed, not quit)
   })
   game.captions = access.captions_new()
+  game.help = help.new()
   game.xr_options = game.vr_options(game.settings)
   settings.listeners[#settings.listeners + 1] = function(s, name)
     if name:match("^xr_") then -- (the VR comfort options, also for a session already running)
@@ -353,6 +357,14 @@ end
 function game.vr_options(s)
   return { steer = s.xr_steer, snap_turn = s.xr_snap_turn, vignette = s.xr_vignette,
     reduced_speed = s.xr_reduced_speed, stabilise = s.xr_stabiliser }
+end
+
+-- The story so far, for the help page: the goal and what was said lately.
+function game.story_lines()
+  local at = (game.walker and game.walker.pos) or (game.carpet and game.carpet.pos)
+  if game.saga then return saga.hud_lines(game.saga, at) end
+  if game.story then return prologue.hud_lines(game.story, at) end
+  return {}
 end
 
 -- The saved games, newest first: { name, day }.
@@ -813,6 +825,16 @@ local function flight_tick(dt)
     me = c.pos
     camera.reset(game.chase)
   end
+  -- First-time hints: what the heir can do now, with the controls of the device in hand.
+  local sv = game.survival
+  local book = game.magic.caster.book
+  help.tick(game.help, engine.time(), {
+    flying = w == nil and c.pos.alt - world.ground_height(c.pos) > 3,
+    low_slow = w == nil and walker.can_step_off(c, FOOT), on_foot = w ~= nil,
+    near_carpet = w ~= nil and walker.near_carpet(w, c),
+    near_use = w ~= nil and require("places.places").nearby(game.world_places.places, w.pos, w.heading) ~= nil,
+    can_cast = book ~= nil and next(book.journal or {}) ~= nil, has_bag = game.story ~= nil and game.story.bag,
+    tired = sv.rest < 25, hungry = sv.food < 25 or sv.water < 25 }, game.settings.hints)
   -- Food, water, rest and warmth run in game time (a time skip is not counted
   -- here: sleep counts its own).
   local game_dt = math.min(math.max(now - (game.survival_at or now), 0), 300)
@@ -1160,6 +1182,8 @@ end
 local function flight_lines()
   local c = game.carpet
   local lines = flight_hud.lines(c, world.ground_height(c.pos), input.mode(), engine.info(), world.time())
+  local hint = game.help and help.hint_line(game.help)
+  if hint then table.insert(lines, 1, hint) end
   local stage = world.chunk_stage((game.walker and game.walker.pos) or c.pos) or 0
   if stage < 2 then lines[#lines + 1] = string.format("Loading the land: %d%%", math.max(0, stage) * 50) end
   if game.saved_at and engine.time() - game.saved_at < game.AUTOSAVE_SHOWN then

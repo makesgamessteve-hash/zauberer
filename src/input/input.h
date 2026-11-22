@@ -68,6 +68,9 @@ uint8_t zb_input_player(const zb_input *in);
 
 zb_input_mode zb_input_get_mode(const zb_input *in);
 void zb_input_set_mode(zb_input *in, zb_input_mode mode);
+/* The device used last: "desktop" (keyboard and mouse), "gamepad" or "touch"
+ * (before any input: by the input mode). */
+const char *zb_input_last_device(const zb_input *in);
 /* True once after the mode changed (cleared when read). */
 bool zb_input_take_mode_change(zb_input *in);
 /* Takes the binding ("key:x", "mouse:left", "gamepad:a") of the last key or

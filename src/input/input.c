@@ -96,7 +96,8 @@ struct zb_input {
   uint64_t last_touch_ns;
   bool any_touch_seen;
   uint8_t player;
-  char captured[48]; /* the binding of the last key or button pressed (for remapping) */
+  char captured[48];  /* the binding of the last key or button pressed (for remapping) */
+  const char *device; /* the device used last: "desktop", "gamepad" or "touch" */
 };
 
 zb_input *zb_input_create(const zb_allocator *a) {
@@ -535,6 +536,7 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
         }
         press(&in->keys[ev->u.key.key], ev->u.key.down);
         desktop_input(in, ev->time_ns);
+        in->device = "desktop";
       }
       break;
     case ZB_EV_MOUSE_BUTTON:
@@ -544,6 +546,7 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
         }
         press(&in->mouse[ev->u.mouse_button.button], ev->u.mouse_button.down);
         desktop_input(in, ev->time_ns);
+        in->device = "desktop";
       }
       break;
     case ZB_EV_MOUSE_MOTION:
@@ -571,6 +574,7 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
         }
         press(&p->buttons[ev->u.gamepad_button.button], ev->u.gamepad_button.down);
         desktop_input(in, ev->time_ns);
+        in->device = "gamepad";
       }
       break;
     }
@@ -578,6 +582,9 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
       pad *p = find_pad(in, ev->u.gamepad_axis.id, true);
       if (p && ev->u.gamepad_axis.axis < ZB_PAD_AXIS_COUNT) {
         p->axes[ev->u.gamepad_axis.axis] = ev->u.gamepad_axis.value;
+        if (ev->u.gamepad_axis.value > 0.5f || ev->u.gamepad_axis.value < -0.5f) {
+          in->device = "gamepad"; /* (a stick pushed well over, not drift) */
+        }
       }
       break;
     }
@@ -591,6 +598,7 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
       in->last_touch_ns = ev->time_ns;
       set_mode(in, ZB_INPUT_TOUCH);
       touch_down(in, ev);
+      in->device = "touch";
       break;
     case ZB_EV_TOUCH_MOTION:
     case ZB_EV_TOUCH_UP: {
@@ -615,6 +623,13 @@ void zb_input_handle_event(zb_input *in, const zb_event *ev) {
     }
     default: break;
   }
+}
+
+const char *zb_input_last_device(const zb_input *in) {
+  if (in->device) {
+    return in->device;
+  }
+  return in->mode == ZB_INPUT_TOUCH ? "touch" : "desktop";
 }
 
 /* ---- Sampling --------------------------------------------------------------- */

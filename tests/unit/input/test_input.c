@@ -80,6 +80,38 @@ static void test_capture(void) {
   TEST_ASSERT_EQUAL_STRING("gamepad:a", got);
 }
 
+/* spec: help: Switching device */
+static void test_last_device(void) {
+  TEST_ASSERT_EQUAL_STRING("desktop", zb_input_last_device(in)); /* (before any input: the mode) */
+  zb_event e;
+  memset(&e, 0, sizeof e);
+  e.type = ZB_EV_GAMEPAD_AXIS;
+  e.u.gamepad_axis.id = 3;
+  e.u.gamepad_axis.axis = ZB_AXIS_LEFT_X;
+  e.u.gamepad_axis.value = 0.2f; /* (drift does not count) */
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_EQUAL_STRING("desktop", zb_input_last_device(in));
+  e.u.gamepad_axis.value = -0.9f;
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_EQUAL_STRING("gamepad", zb_input_last_device(in));
+  e = key(ZB_KEY_X, true, 1);
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_EQUAL_STRING("desktop", zb_input_last_device(in));
+  memset(&e, 0, sizeof e);
+  e.type = ZB_EV_GAMEPAD_BUTTON;
+  e.u.gamepad_button.id = 3;
+  e.u.gamepad_button.button = ZB_PAD_A;
+  e.u.gamepad_button.down = true;
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_EQUAL_STRING("gamepad", zb_input_last_device(in));
+  e = mouse_button(ZB_MOUSE_LEFT, true, false, 2);
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_EQUAL_STRING("desktop", zb_input_last_device(in));
+  e = touch(ZB_EV_TOUCH_DOWN, 1, 0.5f, 0.5f, 3);
+  zb_input_handle_event(in, &e);
+  TEST_ASSERT_EQUAL_STRING("touch", zb_input_last_device(in));
+}
+
 static zb_value parse(zb_luon_doc *doc, const char *text) {
   zb_luon_error err;
   TEST_ASSERT_EQUAL_INT(ZB_OK, zb_luon_parse(doc, zb_test_alloc(), text, strlen(text), &err));
@@ -628,5 +660,6 @@ int main(void) {
   RUN_TEST(test_xr_buttons);
   RUN_TEST(test_oom_create);
   RUN_TEST(test_capture);
+  RUN_TEST(test_last_device);
   return UNITY_END();
 }

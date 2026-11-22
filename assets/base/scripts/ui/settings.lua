@@ -25,6 +25,7 @@ settings.SPEC = {
   look_speed = { default = 1, values = { 0.5, 0.75, 1, 1.5, 2 } },
   fov = { default = 70, values = { 60, 70, 80, 90, 100 } },
   story_markers = { default = false, values = { false, true } },
+  hints = { default = true, values = { true, false } },
   survival = { default = "survivor", values = { "wanderer", "survivor", "hermit" } },
   xr_steer = { default = "reins", values = { "reins", "head" } },
   xr_snap_turn = { default = false, values = { false, true } },
@@ -36,7 +37,7 @@ settings.SPEC = {
 -- The menu order of the settings.
 settings.ORDER = { "language", "text_size", "high_contrast", "colour_vision", "colour_glyphs", "reduced_flashing",
   "captions", "toggle_hold", "gesture_assist", "look_curve", "look_speed", "fov",
-  "story_markers", "survival", "xr_steer", "xr_snap_turn", "xr_vignette", "xr_reduced_speed",
+  "story_markers", "hints", "survival", "xr_steer", "xr_snap_turn", "xr_vignette", "xr_reduced_speed",
   "xr_stabiliser" }
 
 local function valid(name, value)

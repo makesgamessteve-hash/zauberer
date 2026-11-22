@@ -822,6 +822,14 @@ static int i_mode(lua_State *L) {
   return 1;
 }
 
+/* @lua input.device(): "desktop"|"gamepad"|"touch"
+ * The device used last (keyboard and mouse, a gamepad or touch), for prompts that name its controls.
+ */
+static int i_device(lua_State *L) {
+  lua_pushstring(L, zb_input_last_device(S(L)->cfg.input));
+  return 1;
+}
+
 /* @lua input.capture(): string?
  * The binding ("key:x", "mouse:left", "gamepad:a") of the last key or button pressed since the previous call, for
  * remapping controls (pass it to input.set_user_binding); nil when nothing was pressed.
@@ -1549,6 +1557,7 @@ void zb_script_open_api(zb_script *s) {
                                        {"bindings", i_bindings},
                                        {"state", i_state},
                                        {"mode", i_mode},
+                                       {"device", i_device},
                                        {"capture", i_capture},
                                        {"add_stick", i_add_stick},
                                        {"add_button", i_add_button},

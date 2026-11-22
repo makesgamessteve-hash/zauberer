@@ -36,7 +36,7 @@ menu.LABELS = {
   colour_glyphs = "Colour glyphs", reduced_flashing = "Reduced flashing",
   captions = "Sound captions", toggle_hold = "Toggle instead of hold", gesture_assist = "Gesture assist",
   look_curve = "Look curve", look_speed = "Look speed", fov = "Field of view",
-  story_markers = "Story markers", survival = "Survival", xr_steer = "VR steering",
+  story_markers = "Story markers", hints = "Hints", survival = "Survival", xr_steer = "VR steering",
   xr_snap_turn = "VR snap turning", xr_vignette = "VR comfort vignette", xr_reduced_speed = "VR reduced speed",
   xr_stabiliser = "VR horizon stabiliser",
 }
@@ -67,10 +67,16 @@ local function items(m)
       go = "continue" }
     out[#out + 1] = { label = "Create a world", go = "new_world" }
     if #saves > 0 then out[#out + 1] = { label = "Load game", page = "load" } end
+    out[#out + 1] = { label = "Help", page = "help" }
     out[#out + 1] = { label = "Settings", page = "settings" }
     out[#out + 1] = { label = "Controls", page = "controls" }
     out[#out + 1] = { label = "Credits", page = "credits" }
     if h.can_quit ~= false then out[#out + 1] = { label = "Quit", go = "quit" } end
+  elseif m.page == "help" then
+    for _, t in ipairs(require("ui.help").TOPICS) do
+      out[#out + 1] = { label = t.title, page = "topic", topic = t.id }
+    end
+    out[#out + 1] = { label = "Show hints again", go = "reset_hints" }
   elseif m.page == "load" then
     for _, e in ipairs((m.hooks.saves and m.hooks.saves()) or {}) do
       out[#out + 1] = { save = e, raw = save_line(e), page = "save" }
@@ -80,7 +86,8 @@ local function items(m)
   elseif m.page == "confirm" then
     out = { { label = "No, keep it", go = "back" }, { label = "Yes, delete it", go = "delete" } }
   elseif m.page == "main" then
-    out = { { label = "Resume", go = "resume" }, { label = "Settings", page = "settings" },
+    out = { { label = "Resume", go = "resume" }, { label = "Help", page = "help" },
+      { label = "Settings", page = "settings" },
       { label = "Controls", page = "controls" }, { label = "Packages", page = "packages" },
       { label = "Credits", page = "credits" }, { label = "Save and quit", go = "quit" } }
   elseif m.page == "settings" then
@@ -111,7 +118,7 @@ function menu.close(m)
   if m.hooks.resume then m.hooks.resume() end
 end
 
-local UP = { save = "load", confirm = "save" } -- (the pages under a saved game)
+local UP = { save = "load", confirm = "save", topic = "help" } -- (the pages under another)
 
 local function back(m)
   if m.capture then
@@ -172,8 +179,12 @@ local function activate(m, item, step)
     m.page, m.at = "load", 1
     if not ok then return end
     if #((h.saves and h.saves()) or {}) == 0 then m.page = "title" end
+  elseif item.go == "reset_hints" then
+    if h.reset_hints then h.reset_hints() end
+    m.note = "The hints will show again"
   elseif item.page then
     if item.save then m.chosen = item.save end
+    if item.topic then m.topic = item.topic end
     m.page, m.at = item.page, 1
   elseif item.setting then
     settings.step(m.s, item.setting, step or 1)
@@ -222,8 +233,18 @@ function menu.lines(m, credits)
   local out = {}
   local title = { main = "Menu", settings = "Settings", controls = "Controls", packages = "Packages",
     credits = "Credits", title = "Zauberer", load = "Load game", save = m.chosen and { raw = m.chosen.name },
-    confirm = m.chosen and { raw = string.format(i18n.t("Delete %s?"), m.chosen.name) } }
+    confirm = m.chosen and { raw = string.format(i18n.t("Delete %s?"), m.chosen.name) }, help = "Help" }
+  if m.page == "topic" then
+    for _, t in ipairs(require("ui.help").TOPICS) do
+      if t.id == m.topic then title.topic = t.title end
+    end
+  end
   out[1] = title[m.page]
+  if m.page == "topic" then
+    for _, line in ipairs((m.hooks.topic_lines and m.hooks.topic_lines(m.topic)) or {}) do out[#out + 1] = line end
+    out[#out + 1] = input.mode() == "touch" and "Menu: back" or "Escape: back"
+    return out
+  end
   if m.page == "title" and m.hooks.version then out[#out + 1] = { raw = "v" .. m.hooks.version } end
   if m.page == "credits" then
     for _, line in ipairs(credits or {}) do out[#out + 1] = line end

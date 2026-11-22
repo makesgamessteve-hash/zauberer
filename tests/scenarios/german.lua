@@ -2,6 +2,7 @@
 -- The game in German: everything the HUD and the menu show has a German
 -- entry; only generated names (and numbers like the version) stay as they are.
 -- spec: localisation: The game in German
+-- spec: help: Reading help
 scenario { name = "german" }
 local i18n = require("ui.i18n")
 local settings = require("ui.settings")
@@ -27,6 +28,16 @@ game.menu.chosen = game.saves_list()[1]
 for _, page in ipairs({ "load", "save", "confirm", "title" }) do
   game.menu.page, game.menu.at = page, 1
   step(3)
+end
+for _, topic in ipairs(require("ui.help").TOPICS) do -- the help pages
+  game.menu.page, game.menu.topic = "topic", topic.id
+  step(3)
+end
+game.menu.page = "help"
+step(3)
+for _, hint in ipairs(require("ui.help").HINTS) do -- and every hint, with its controls
+  local filled = require("ui.help").fill(hint.text)
+  expect(filled ~= hint.text, "the hint in German: " .. hint.text)
 end
 game.menu.note = "This game is being played"
 step(3)

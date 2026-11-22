@@ -408,6 +408,10 @@ function input.clear(action) end
 ---@return integer
 function input.define(name, kind) end
 
+---The device used last (keyboard and mouse, a gamepad or touch), for prompts that name its controls.
+---@return "desktop"|"gamepad"|"touch"
+function input.device() end
+
 ---Test API: overrides an action's value for the next ticks (default 1, 0, 1).
 ---@param action string
 ---@param x? number

@@ -291,6 +291,69 @@ return {
   -- ---- The story ---------------------------------------------------------------------------
   ["Story: %s"] = "Geschichte: %s",
   ["Story: ..."] = "Geschichte: ...",
+  ["Help"] = "Hilfe", ["Hints"] = "Hinweise", ["Show hints again"] = "Hinweise wieder zeigen",
+  ["The hints will show again"] = "Die Hinweise erscheinen wieder", ["Menu: back"] = "Menü: zurück",
+  ["not set"] = "nicht belegt", ["Left Shift"] = "Umschalt links", ["Right Shift"] = "Umschalt rechts",
+  ["Escape"] = "Escape", ["Enter"] = "Eingabe", ["Space"] = "Leertaste", ["Tab"] = "Tab", ["Up"] = "Hoch",
+  ["Down"] = "Runter", ["Left"] = "Links", ["Right"] = "Rechts", ["Left mouse button"] = "Linke Maustaste",
+  ["Right mouse button"] = "Rechte Maustaste", ["Middle mouse button"] = "Mittlere Maustaste",
+  ["A"] = "A", ["B"] = "B", ["X"] = "X", ["Y"] = "Y", ["LB"] = "LB", ["RB"] = "RB", ["LT"] = "LT", ["RT"] = "RT",
+  ["Start"] = "Start", ["Left stick"] = "Linker Stick", ["Right stick"] = "Rechter Stick",
+  ["D-pad up"] = "Steuerkreuz hoch", ["D-pad down"] = "Steuerkreuz runter", ["D-pad left"] = "Steuerkreuz links",
+  ["D-pad right"] = "Steuerkreuz rechts",
+  ["Steer with {steer}, climb and dive with {climb}, boost with {boost}."] =
+    "Lenken mit {steer}, steigen und sinken mit {climb}, Schub mit {boost}.",
+  ["Menu, help and saving: {quit}."] = "Menü, Hilfe und Speichern: {quit}.",
+  ["Step off the carpet with {mount}."] = "Vom Teppich steigen mit {mount}.",
+  ["Get on the carpet with {mount}."] = "Auf den Teppich steigen mit {mount}.",
+  ["Use, open and talk with {use}."] = "Benutzen, öffnen und sprechen mit {use}.",
+  ["Cast with {cast_left} and {cast_right}; hold {draw} and draw a form for a free weave."] =
+    "Wirken mit {cast_left} und {cast_right}; {draw} halten und eine Form zeichnen für ein freies Gewebe.",
+  ["Stow in the endless bag with {stow}, take out with {unstow}."] =
+    "In den endlosen Beutel legen mit {stow}, herausnehmen mit {unstow}.",
+  ["Tired: sleep with {sleep}."] = "Müde: schlafen mit {sleep}.",
+  ["Hungry or thirsty: eat with {eat}, drink with {drink}."] = "Hungrig oder durstig: essen mit {eat}, trinken mit {drink}.",
+  ["Steer, walk"] = "Lenken, gehen", ["Climb and dive"] = "Steigen und sinken", ["Boost, run"] = "Schub, rennen",
+  ["Step off, get on"] = "Absteigen, aufsteigen", ["Jump"] = "Springen", ["Use, open, talk"] = "Benutzen, öffnen, sprechen",
+  ["Cast with the left hand"] = "Mit der linken Hand wirken", ["Cast with the right hand"] = "Mit der rechten Hand wirken",
+  ["Draw a form"] = "Eine Form zeichnen", ["Next verb"] = "Nächstes Verb", ["Next colour"] = "Nächste Farbe",
+  ["Channel mana"] = "Mana leiten", ["Sleep"] = "Schlafen", ["Gather"] = "Sammeln", ["Lay a campfire"] = "Lagerfeuer legen",
+  ["Cook"] = "Kochen", ["Eat"] = "Essen", ["Drink"] = "Trinken", ["Stow in the bag"] = "In den Beutel legen",
+  ["Take out of the bag"] = "Aus dem Beutel nehmen", ["Cloak"] = "Umhang", ["Tent"] = "Zelt", ["Codex"] = "Kodex",
+  ["Begin the story"] = "Die Geschichte beginnen",
+  ["Flying"] = "Fliegen", ["Walking"] = "Gehen", ["Casting"] = "Wirken",
+  ["Bag and tent"] = "Beutel und Zelt", ["The story so far"] = "Die Geschichte bisher",
+  ["Low and slow over the ground, step off with {mount}."] = "Tief und langsam über dem Boden steigst du mit {mount} ab.",
+  ["Wet, torn or burnt, the carpet flies worse: patch it on the ground."] =
+    "Nass, zerrissen oder verbrannt fliegt der Teppich schlechter: flicke ihn am Boden.",
+  ["The carpet stays where you leave it; get on again with {mount} beside it."] =
+    "Der Teppich bleibt, wo du ihn lässt; steig neben ihm mit {mount} wieder auf.",
+  ["Walk with {steer}, run with {boost}, jump with {jump}."] = "Gehen mit {steer}, rennen mit {boost}, springen mit {jump}.",
+  ["Use, open doors and talk to people with {use}."] = "Benutzen, Türen öffnen und mit Leuten sprechen mit {use}.",
+  ["Sleep with {sleep}: the night passes and you are rested."] =
+    "Schlafen mit {sleep}: die Nacht vergeht und du bist ausgeruht.",
+  ["Deep water stops you: fly over it, or freeze it."] = "Tiefes Wasser hält dich auf: flieg darüber oder friere es ein.",
+  ["Each hand holds a prepared weave: cast it with {cast_left} or {cast_right}."] =
+    "Jede Hand hält ein vorbereitetes Gewebe: wirke es mit {cast_left} oder {cast_right}.",
+  ["Hold {draw} and draw a form for a free weave: tap, line, circle, spiral, triangle, square, zigzag or wave."] =
+    "Halte {draw} und zeichne eine Form für ein freies Gewebe: Tippen, Linie, Kreis, Spirale, Dreieck, Quadrat, Zickzack oder Welle.",
+  ["Choose the verb with {verb} and the colour with {color}."] = "Wähle das Verb mit {verb} und die Farbe mit {color}.",
+  ["Channel mana from the land with {channel}; mana motes from creatures fill you too."] =
+    "Leite Mana aus dem Land mit {channel}; auch Manafunken von Geschöpfen füllen dich.",
+  ["Food, water, rest and warmth run down: eat with {eat}, drink with {drink}."] =
+    "Nahrung, Wasser, Ruhe und Wärme nehmen ab: essen mit {eat}, trinken mit {drink}.",
+  ["Gather with {gather}, lay a campfire with {campfire} and cook with {cook}."] =
+    "Sammeln mit {gather}, ein Lagerfeuer legen mit {campfire} und kochen mit {cook}.",
+  ["Boil water before you drink it; the Codex ({codex}) warns of what is poisonous."] =
+    "Koche Wasser ab, bevor du es trinkst; der Kodex ({codex}) warnt vor Giftigem.",
+  ["Fire burns: get out of it. Defeated, you get up again where the carpet set out."] =
+    "Feuer brennt: geh heraus. Besiegt stehst du dort wieder auf, wo der Teppich aufbrach.",
+  ["The endless bag holds folds, not weight: stow with {stow}, take out with {unstow}."] =
+    "Der endlose Beutel fasst Falten, kein Gewicht: hineinlegen mit {stow}, herausnehmen mit {unstow}.",
+  ["Pitch the carpet as a tent with {tent} and go in with {mount}."] =
+    "Schlag den Teppich als Zelt auf mit {tent} und geh hinein mit {mount}.",
+  ["Wear the carpet as a cloak with {cloak}."] = "Trag den Teppich als Umhang mit {cloak}.",
+  ["The story has not begun: press {story} in Anarvan."] = "Die Geschichte hat noch nicht begonnen: drück {story} in Anarvan.",
   ["Zauberer"] = "Zauberer", ["Game saved"] = "Spiel gespeichert", ["Continue"] = "Weiterspielen", ["New game"] = "Neues Spiel", ["Create a world"] = "Eine Welt erschaffen",
   ["Load game"] = "Spiel laden", ["Play"] = "Spielen", ["Delete"] = "Löschen", ["Back"] = "Zurück",
   ["Quit"] = "Beenden", ["No, keep it"] = "Nein, behalten", ["Yes, delete it"] = "Ja, löschen",

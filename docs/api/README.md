@@ -134,6 +134,10 @@ Removes all bindings of an action.
 
 Defines an action (or returns the existing one of the same kind).
 
+### `input.device(): "desktop"|"gamepad"|"touch"`
+
+The device used last (keyboard and mouse, a gamepad or touch), for prompts that name its controls.
+
 ### `input.inject(action: string, x?: number, y?: number, ticks?: integer)`
 
 Test API: overrides an action's value for the next ticks (default 1, 0, 1).
