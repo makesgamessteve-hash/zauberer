@@ -58,9 +58,13 @@ segments" (03, §3.2).
 | Top left | The objective card: the current goal and its steps, ticked as they are done | When a goal is set; shrinks to its title in calm flight |
 | Right, upper | Toasts: pickups, discoveries, "Game saved", sound captions with their direction. At most three, newest on top, each fading after a few seconds | On an event |
 | Right edge | The carpet's gauge, a hanging tassel: height above the ground, speed, the carpet's condition as its fringe | In flight |
-| Bottom middle | The two hands as illuminated medallions (the weave's icon, its name, the binding chip, a charge ring), the mana ring between them (a segment and glyph per colour, the total in the middle) | Always (dimmed in calm flight) |
-| Above the hands | The contextual prompt: a chip and a verb ("E Step off", "F Talk to Farrokh") | When there is something to do |
-| Bottom left | Health as a bar beside a pomegranate; under it the needs (thirst, hunger, tiredness, cold) as icon and word, only when they want something | Health always; needs on demand |
+| Bottom corners | The two hands as illuminated medallions, one in each corner (the weave's icon, its name, the binding chip, a charge ring), so the middle stays free for the carpet's front edge and the way ahead; the mana ring framed beside the left hand (a segment and glyph per colour, the total in the middle) | Always (dimmed in calm flight) |
+| Bottom middle, raised | The contextual prompt, framed: a chip and a verb ("E Step off", "F Talk to Farrokh") | When there is something to do |
+| Above the left hand | Health as a bar beside a pomegranate; under it the needs (thirst, hunger, tiredness, cold) as icon and word, only when they want something | Health always; needs on demand |
+
+The view is the rider's own: the camera sits where the heir sits on the carpet, so only
+the carpet's front edge and fringe show at the bottom of the screen, and the HUD's
+corners leave that edge and the horizon clear.
 
 In calm flight (no input change, no event for 8 s) the HUD draws back to the compass,
 the hands and health, at reduced strength:
