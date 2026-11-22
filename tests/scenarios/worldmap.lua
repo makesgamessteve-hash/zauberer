@@ -45,7 +45,7 @@ expect(worldmap.know(m, home, "Testabad", world.move(home, math.pi / 2, 12000, 0
 expect(not worldmap.know(m, home, "Testabad", home), "named once")
 local goal = world.move(home, math.pi / 2, 8000, 0, 0)
 local found = {}
-_, marks = worldmap.view(m, home, game.carpet.pos, home, goal)
+marks = select(2, worldmap.view(m, home, game.carpet.pos, home, goal))
 for _, mk in ipairs(marks) do found[mk.ch] = mk end
 expect(found.o and found.o.label == "Testabad" and found.X and found.C, "a place, the goal and the carpet")
 -- From the menu: the stick moves the map, confirm zooms out.
