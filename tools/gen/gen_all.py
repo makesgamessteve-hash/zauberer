@@ -17,6 +17,7 @@ import gen_palette  # noqa: E402
 import gen_sounds  # noqa: E402
 import gen_sprites  # noqa: E402
 import gen_terrain  # noqa: E402
+import gen_ui  # noqa: E402
 
 
 def main(base):
@@ -31,6 +32,7 @@ def main(base):
     gen_palette.main(os.path.join(base, "palettes"))
     gen_terrain.main(os.path.join(base, "textures", "terrain"))
     gen_ornaments.main(os.path.join(base, "textures", "ornaments"))
+    gen_ui.main(base)
 
 
 if __name__ == "__main__":

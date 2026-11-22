@@ -368,6 +368,9 @@ class ScenarioTests(EngineTestCase):
     def test_caves(self):
         self.assert_ok(self.scenario("caves"))
 
+    def test_kit_variants(self):
+        self.assert_ok(self.scenario("kit_variants"))
+
     def test_people(self):
         self.assert_ok(self.scenario("people"))
 

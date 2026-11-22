@@ -101,4 +101,6 @@ return {
   { file = "textures/ornaments/arabesque.png", author = "Zauberer contributors", source = "tools/gen/gen_ornaments.py", license = "CC-BY-4.0" },
   { file = "textures/ornaments/carpet_border.png", author = "Zauberer contributors", source = "tools/gen/gen_ornaments.py", license = "CC-BY-4.0" },
   { file = "textures/ornaments/kilim.png", author = "Zauberer contributors", source = "tools/gen/gen_ornaments.py", license = "CC-BY-4.0" },
+  { file = "ui/frames.png", author = "Zauberer contributors", source = "tools/gen/gen_ui.py", license = "CC-BY-4.0" },
+  { file = "ui/icons.png", author = "Zauberer contributors", source = "tools/gen/gen_ui.py", license = "CC-BY-4.0" },
 }
