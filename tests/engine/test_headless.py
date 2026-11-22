@@ -377,6 +377,12 @@ class ScenarioTests(EngineTestCase):
     def test_story_screens(self):
         self.assert_ok(self.scenario("story_screens"))
 
+    def test_book_pages(self):
+        self.assert_ok(self.scenario("book_pages"))
+
+    def test_ui_mood(self):
+        self.assert_ok(self.scenario("ui_mood"))
+
     def test_people(self):
         self.assert_ok(self.scenario("people"))
 
