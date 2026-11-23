@@ -88,7 +88,7 @@ expect(game.carpet.pos.alt > world.ground_height(game.carpet.pos) + 3, "flying a
 local w2 = walker.new(game.carpet.pos, 0, { move = world.move, height = world.ground_height, water = world.water })
 walker.update(w2, { look = { x = 1, y = 1 }, mouse = false }, 0.5,
   { move = world.move, height = world.ground_height, water = world.water })
-expect(w2.heading > 1 and w2.pitch < 0, "the stick turns and tilts")
+expect(w2.heading > 1 and w2.pitch > 0, "the stick turns and tilts (up looks up)")
 local snap = walker.snapshot(w2)
 expect(snap.pos and snap.heading == w2.heading)
 -- Walking off an edge: the mage falls and lands.

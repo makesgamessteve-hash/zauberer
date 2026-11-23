@@ -33,12 +33,12 @@ end
 -- First-time hints: flying, the first shows; six seconds on, the next; each once.
 help.reset(game.help)
 step(2)
-expect(hud_text():find("Steer with W S A D", 1, true), hud_text())
+expect(hud_text():find("Look where to fly and hold W S A D forward", 1, true), hud_text())
 step(60 * 7)
 expect(hud_text():find("Menu, help and saving: Escape", 1, true), hud_text())
 expect(game.help.seen.fly and game.help.seen.menu)
 step(60 * 7)
-expect(not hud_text():find("Steer with", 1, true), "shown once")
+expect(not hud_text():find("Look where to fly", 1, true), "shown once")
 -- Kept with the player's data.
 local again = help.new()
 expect(again.seen.fly and again.seen.menu, "the hints seen are kept")
@@ -46,10 +46,10 @@ expect(again.seen.fly and again.seen.menu, "the hints seen are kept")
 settings.set(game.settings, "hints", false)
 help.reset(game.help)
 step(60)
-expect(not hud_text():find("Steer with", 1, true), "no hints when turned off")
+expect(not hud_text():find("Look where to fly", 1, true), "no hints when turned off")
 settings.set(game.settings, "hints", true)
 step(2)
-expect(hud_text():find("Steer with", 1, true), "again after the reset")
+expect(hud_text():find("Look where to fly", 1, true), "again after the reset")
 
 -- The help pages, from the menu.
 input.inject("quit", 1, 1)

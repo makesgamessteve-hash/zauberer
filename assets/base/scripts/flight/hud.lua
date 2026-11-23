@@ -27,7 +27,7 @@ function M.lines(c, ground, mode, info, time)
   if mode == "touch" then
     lines[#lines + 1] = "Left stick: steer | Right stick: climb | BOOST"
   else
-    lines[#lines + 1] = "W/S: speed  A/D: turn  R/F: climb  Shift: boost  Mouse: look  F1: credits"
+    lines[#lines + 1] = "W: fly  S: brake  Mouse: steer  A/D: turn  R/F: climb  Shift: boost  F1: credits"
   end
   return lines
 end
