@@ -105,8 +105,8 @@ return {
   ["autumn"] = "Herbst",
   ["winter"] = "Winter",
   ["N"] = "N", ["NE"] = "NO", ["E"] = "O", ["SE"] = "SO", ["S"] = "S", ["SW"] = "SW", ["W"] = "W", ["NW"] = "NW",
-  ["W/S: speed  A/D: turn  R/F: climb  Shift: boost  Mouse: look  F1: credits"] =
-    "W/S: Tempo  A/D: drehen  R/F: steigen  Umschalt: Schub  Maus: schauen  F1: Mitwirkende",
+  ["W: fly  S: brake  Mouse: steer  A/D: turn  R/F: climb  Shift: boost  F1: credits"] =
+    "W: fliegen  S: bremsen  Maus: lenken  A/D: drehen  R/F: steigen  Umschalt: Schub  F1: Mitwirkende",
   ["Stick: steer | BOOST | slide right: climb"] = "Stick: lenken | SCHUB | rechts wischen: steigen",
   ["A new world"] = "Eine neue Welt",
   ["%s million years ago"] = "vor %s Millionen Jahren",
@@ -301,8 +301,9 @@ return {
   ["Start"] = "Start", ["Left stick"] = "Linker Stick", ["Right stick"] = "Rechter Stick",
   ["D-pad up"] = "Steuerkreuz hoch", ["D-pad down"] = "Steuerkreuz runter", ["D-pad left"] = "Steuerkreuz links",
   ["D-pad right"] = "Steuerkreuz rechts",
-  ["Steer with {steer}, climb and dive with {climb}, boost with {boost}."] =
-    "Lenken mit {steer}, steigen und sinken mit {climb}, Schub mit {boost}.",
+  ["Look where to fly and hold {steer} forward; let go to slow down. Climb and dive with {climb}, boost with {boost}."] =
+    "Schau, wohin du fliegen willst, und halte {steer} vorwärts; lass los, um langsamer zu werden. "
+    .. "Steigen und sinken mit {climb}, Schub mit {boost}.",
   ["Menu, help and saving: {quit}."] = "Menü, Hilfe und Speichern: {quit}.",
   ["Step off the carpet with {mount}."] = "Vom Teppich steigen mit {mount}.",
   ["Get on the carpet with {mount}."] = "Auf den Teppich steigen mit {mount}.",

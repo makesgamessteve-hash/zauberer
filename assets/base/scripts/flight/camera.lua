@@ -2,7 +2,9 @@
 -- The rider's view: out of the heir's eyes, seated at the back of the carpet.
 -- Only the carpet's front shows, low in the picture; the rider looks around
 -- (within what a seated person can turn) and the view leans a little with
--- the carpet's bank. In render coordinates.
+-- the carpet's bank. The carpet flies where the rider looks (M.steer), the view
+-- held on its bearing while the carpet turns under it (M.follow). In render
+-- coordinates.
 local M = {}
 
 M.SEAT_BACK = 0.7     -- metres behind the carpet's middle (it is 2 m long)
@@ -15,6 +17,9 @@ M.MOUSE_RATE = 0.004  -- radians per mouse pixel
 M.RETURN_AFTER = 1.5  -- seconds without looking before a stick's view drifts back ahead
 M.RETURN_RATE = 2.0   -- 1/s back towards ahead
 M.LEAN = 0.4          -- share of the carpet's bank the view takes
+M.STEER_FULL = math.rad(30)  -- looking this far off the heading turns the carpet at its full rate
+M.LEVEL = math.rad(12)       -- looking within this of the horizon keeps the carpet level
+M.CLIMB_FULL = math.rad(35)  -- looking this far up or down climbs or dives at full
 
 function M.new()
   return { yaw = 0, pitch = M.REST_PITCH, idle = 0 }
@@ -23,13 +28,13 @@ end
 local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 
 -- look: { x, y } from the look action; dt: frame time; mouse: the mouse looks
--- (it keeps where it was put); invert: up is down.
+-- (it keeps where it was put); invert: up is down. The look's y is up.
 function M.update(cam, look, dt, mouse, invert)
   local lx, ly = look and look.x or 0, look and look.y or 0
   if invert then ly = -ly end
   local rate = mouse and M.MOUSE_RATE or M.LOOK_RATE * dt
   cam.yaw = clamp(cam.yaw + lx * rate, -M.MAX_YAW, M.MAX_YAW)
-  cam.pitch = clamp(cam.pitch - ly * rate, M.MIN_PITCH, M.MAX_PITCH)
+  cam.pitch = clamp(cam.pitch + ly * rate, M.MIN_PITCH, M.MAX_PITCH)
   if lx ~= 0 or ly ~= 0 then
     cam.idle = 0
   else
@@ -40,6 +45,22 @@ function M.update(cam, look, dt, mouse, invert)
       cam.pitch = cam.pitch + (M.REST_PITCH - cam.pitch) * k
     end
   end
+end
+
+-- Turn (-1..1, right +) and climb (-1..1) that fly the carpet where the rider looks.
+function M.steer(cam)
+  local turn = clamp(cam.yaw / M.STEER_FULL, -1, 1)
+  local p, climb = math.abs(cam.pitch), 0
+  if p > M.LEVEL then
+    climb = math.min(1, (p - M.LEVEL) / (M.CLIMB_FULL - M.LEVEL))
+    if cam.pitch < 0 then climb = -climb end
+  end
+  return turn, climb
+end
+
+-- The carpet turned by dh radians (right +) towards the look: the view stays on its bearing.
+function M.follow(cam, dh)
+  cam.yaw = clamp(cam.yaw - dh, -M.MAX_YAW, M.MAX_YAW)
 end
 
 local function add(a, b, k)

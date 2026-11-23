@@ -1,1 +1,1 @@
-Zauberer web build (single-threaded) of b114354, 1.0.0-rc.1: the rider's view and the woven UI.
+Zauberer web build (single-threaded) of ba85f14, 1.0.0-rc.1: flying where the rider looks.

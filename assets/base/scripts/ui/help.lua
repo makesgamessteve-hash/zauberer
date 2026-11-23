@@ -68,7 +68,8 @@ end
 -- near_use, can_cast, has_bag, tired, hungry) and what it says.
 help.HINTS = {
   { id = "fly", when = function(c) return c.flying end,
-    text = "Steer with {steer}, climb and dive with {climb}, boost with {boost}." },
+    text = "Look where to fly and hold {steer} forward; let go to slow down. "
+      .. "Climb and dive with {climb}, boost with {boost}." },
   { id = "menu", when = function(c) return c.flying end, text = "Menu, help and saving: {quit}." },
   { id = "step_off", when = function(c) return c.low_slow end, text = "Step off the carpet with {mount}." },
   { id = "board", when = function(c) return c.on_foot and c.near_carpet end, text = "Get on the carpet with {mount}." },
@@ -140,7 +141,7 @@ help.ACTIONS = {
 help.TOPICS = {
   { id = "controls", title = "Controls" },
   { id = "flying", title = "Flying", lines = {
-    "Steer with {steer}, climb and dive with {climb}, boost with {boost}.",
+    "Look where to fly and hold {steer} forward; let go to slow down. Climb and dive with {climb}, boost with {boost}.",
     "Low and slow over the ground, step off with {mount}.",
     "Wet, torn or burnt, the carpet flies worse: patch it on the ground.",
     "The carpet stays where you leave it; get on again with {mount} beside it." } },

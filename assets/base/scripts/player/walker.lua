@@ -81,10 +81,10 @@ function walker.update(w, inp, dt, env)
   local lx, ly = look.x or 0, look.y or 0
   if inp.mouse then
     w.heading = w.heading + lx * walker.MOUSE_TURN
-    w.pitch = clamp(w.pitch - ly * walker.MOUSE_TURN, -1.2, 1.2)
+    w.pitch = clamp(w.pitch + ly * walker.MOUSE_TURN, -1.2, 1.2) -- (the look's y is up)
   else
     w.heading = w.heading + lx * walker.TURN * dt
-    w.pitch = clamp(w.pitch - ly * walker.TURN * 0.5 * dt, -1.2, 1.2)
+    w.pitch = clamp(w.pitch + ly * walker.TURN * 0.5 * dt, -1.2, 1.2)
   end
   w.heading = wrap(w.heading + clamp(inp.turn or 0, -1, 1) * walker.TURN * dt)
   local want = clamp(inp.throttle or 0, -1, 1) * (inp.run and walker.RUN or walker.WALK)
