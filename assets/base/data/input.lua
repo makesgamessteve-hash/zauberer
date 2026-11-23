@@ -73,5 +73,8 @@ return {
   new_world = { type = "button", bind = { "key:n", "gamepad:y" } },
   reset = { type = "button", bind = { "key:f9" } }, -- start the game over (pressed twice)
   confirm = { type = "button", bind = { "key:return", "key:space", "gamepad:a", "touch:button:confirm" } },
+  tab_prev = { type = "button", bind = { "key:q", "gamepad:left_shoulder" } }, -- (the book's tabs)
+  tab_next = { type = "button", bind = { "key:e", "gamepad:right_shoulder" } },
+  debug_panel = { type = "button", bind = { "key:f3" } }, -- (development builds: the HUD's text, framed)
   quit = { type = "button", bind = { "key:escape", "gamepad:start", "touch:button:menu" } },
 }

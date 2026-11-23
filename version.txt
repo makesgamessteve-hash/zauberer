@@ -1,1 +1,1 @@
-Zauberer web build (single-threaded) of f4cf23c, 1.0.0-rc.1: title, autosave, help, settings, journal, map, ending, sound, crash log, co-op courtesy.
+Zauberer web build (single-threaded) of b114354, 1.0.0-rc.1: the rider's view and the woven UI.
