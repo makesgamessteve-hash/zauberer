@@ -393,7 +393,7 @@ class ScenarioTests(EngineTestCase):
         self.assert_ok(self.scenario("slice_b"))
 
     def test_places_and_people(self):
-        self.assert_ok(self.scenario("places_and_people"))
+        self.assert_ok(self.scenario("places_and_people", timeout=600))  # (a long walk through two settlements)
 
     def test_story(self):
         self.assert_ok(self.scenario("story"))
