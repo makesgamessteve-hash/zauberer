@@ -9,7 +9,8 @@ M.CRUISE_MAX = 60 -- m/s at full throttle
 M.BOOST_MAX = 150 -- m/s while boosting
 M.ACCEL = 18 -- m/s^2 at full throttle
 M.BOOST_ACCEL = 45
-M.BRAKE = 35
+M.BRAKE = 60 -- m/s^2 holding back
+M.RELEASE = 40 -- m/s^2 with forward let go: from cruise to a halt in 1.5 s
 M.OVERSPEED_DECAY = 0.6 -- 1/s back to cruise speed after boosting
 M.TURN_RATE = math.rad(70) -- at full stick, standing still
 M.TURN_FALLOFF = 0.45 -- share of the turn rate lost at top speed
@@ -46,7 +47,8 @@ function M.new(pos, heading)
   }
 end
 
--- inp: { turn = -1..1 (right +), throttle = -1..1, climb = -1..1, boost = bool,
+-- inp: { turn = -1..1 (right +), throttle = -1..1 (held forward: the share of top speed wanted),
+--        climb = -1..1, boost = bool,
 --        snap = radians turned at once (VR snap turning, right +), scale = 0..1 top speed (VR comfort) }
 -- env: { move(pos, heading, forward, right, up) -> pos, heading; height(pos) -> metres;
 --        water(pos) -> kind?, surface, depth, east, north (optional) }
@@ -59,17 +61,17 @@ function M.update(c, inp, dt, env)
   local boosting = inp.boost and throttle >= 0 and lim.fly ~= false
   local scale = type(inp.scale) == "number" and inp.scale == inp.scale and clamp(inp.scale, 0, 1) or 1
   local top = (boosting and M.BOOST_MAX or M.CRUISE_MAX) * (lim.speed or 1) * scale
-  if throttle > 0 then
-    local accel = boosting and M.BOOST_ACCEL or M.ACCEL
-    c.speed = math.min(c.speed + accel * throttle * dt, math.max(top, c.speed))
-  elseif throttle < 0 then
+  if boosting and throttle == 0 then throttle = 1 end -- (boost alone flies)
+  -- The carpet goes while it is urged forward, as fast as it is urged, and settles when let go.
+  local want = math.max(0, throttle) * top
+  if throttle < 0 then
     c.speed = c.speed + M.BRAKE * throttle * dt
-  end
-  if boosting and throttle == 0 and c.speed < top then
-    c.speed = math.min(top, c.speed + M.BOOST_ACCEL * dt)
-  end
-  if c.speed > top then -- after a boost, ease back to cruising speed
+  elseif c.speed < want then
+    c.speed = math.min(want, c.speed + (boosting and M.BOOST_ACCEL or M.ACCEL) * dt)
+  elseif throttle > 0 and c.speed > top then -- after a boost, ease back to cruising speed
     c.speed = c.speed - (c.speed - top) * math.min(1, M.OVERSPEED_DECAY * dt)
+  else
+    c.speed = math.max(want, c.speed - M.RELEASE * dt)
   end
   c.speed = clamp(c.speed, 0, M.BOOST_MAX)
   c.boosting = boosting
@@ -79,7 +81,7 @@ function M.update(c, inp, dt, env)
     c.heading = wrap(c.heading + clamp(snap, -math.pi, math.pi))
   end
   local turn = clamp(inp.turn or 0, -1, 1)
-  local rate = M.TURN_RATE * (1 - M.TURN_FALLOFF * c.speed / M.BOOST_MAX)
+  local rate = M.turn_rate(c.speed)
   c.heading = wrap(c.heading + turn * rate * dt)
   local bank_target = -turn * M.BANK_MAX * math.min(1, c.speed / 20)
   c.bank = approach(c.bank, bank_target, M.BANK_RATE, dt)
@@ -120,6 +122,11 @@ function M.update(c, inp, dt, env)
     pos.alt = M.CEILING
   end
   c.pos = pos
+end
+
+-- The turn rate (radians per second at full steering) at a speed.
+function M.turn_rate(speed)
+  return M.TURN_RATE * (1 - M.TURN_FALLOFF * speed / M.BOOST_MAX)
 end
 
 -- Velocity in the local frame at the carpet (x east, y up, z south), m/s.

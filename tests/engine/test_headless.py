@@ -383,6 +383,9 @@ class ScenarioTests(EngineTestCase):
     def test_ui_mood(self):
         self.assert_ok(self.scenario("ui_mood"))
 
+    def test_fly_by_look(self):
+        self.assert_ok(self.scenario("fly_by_look"))
+
     def test_people(self):
         self.assert_ok(self.scenario("people"))
 

@@ -863,10 +863,30 @@ local function flight_tick(dt)
   end
   game.xrp = game.xrp or xrplay.new(game.xr_options) -- VR: reins or head, thumbsticks, gestures in the air
   local xin = xrplay.tick(game.xrp, xr.state(), dt, game.carpet)
+  -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
+  local spell = {}
+  for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
+  if xin and not down then xrplay.spell(xin, spell, function(g, hand) magic.gesture(game.magic, g, hand) end) end
+  if down then
+    for name in pairs(spell) do spell[name] = {} end
+  end
+  local look = not spell.draw.held and st.look or nil
+  if not w then camera.update(game.rider, look, dt, input.mode() ~= "touch") end
   local fin = (down or w) and still or controls.flight_input(st)
-  if xin and not (down or w) then fin = xrplay.flight(fin, xin) end
+  local look_turn, speed_before = 0, game.carpet.speed
+  if xin and not (down or w) then
+    fin = xrplay.flight(fin, xin)
+  elseif not (down or w) and (fin.throttle > 0 or fin.boost or game.carpet.speed > 1) then
+    -- The carpet flies where the rider looks (hovering, the rider only looks around).
+    local turn, climb = camera.steer(game.rider)
+    local keys = fin.turn
+    fin = { turn = carpet.clamp(keys + turn, -1, 1), throttle = fin.throttle, boost = fin.boost,
+      climb = carpet.clamp(fin.climb + climb, -1, 1) }
+    look_turn = fin.turn - carpet.clamp(keys, -1, 1)
+  end
   local c = coop.tick(co, game.carpet, fin, dt, WORLD, net)
   game.carpet = c
+  if look_turn ~= 0 then camera.follow(game.rider, look_turn * carpet.turn_rate(speed_before) * dt) end
   -- Co-op: the heirs, the Weave, the host's clock, votes and the active areas.
   if co.role ~= "none" then
     local T = game.together
@@ -885,22 +905,12 @@ local function flight_tick(dt)
       coopplay.ask(T, co, net, T.weave.whole and "split" or "rejoin", { now = world.time().time })
     end
   end
-  -- Magic: while a gesture is drawn the mouse draws instead of turning the view.
-  local spell = {}
-  for _, name in ipairs(magic.ACTIONS) do spell[name] = input.state(name) end
-  if xin and not down then xrplay.spell(xin, spell, function(g, hand) magic.gesture(game.magic, g, hand) end) end
-  if down then
-    for name in pairs(spell) do spell[name] = {} end
-  end
-  local look = not spell.draw.held and st.look or nil
   if w then
     local steer = st.steer or {}
     local walking = { turn = controls.curve(steer.x or 0), throttle = controls.curve(steer.y or 0),
       run = st.boost and st.boost.held, jump = input.state("jump").pressed, look = look,
       mouse = input.mode() ~= "touch" }
     walker.update(w, down and {} or walking, dt, FOOT)
-  else
-    camera.update(game.rider, look, dt, input.mode() ~= "touch")
   end
   local me = w and w.pos or c.pos -- where the player is
   local here = mana.at(me)

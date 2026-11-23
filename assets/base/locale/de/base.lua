@@ -301,8 +301,9 @@ return {
   ["Start"] = "Start", ["Left stick"] = "Linker Stick", ["Right stick"] = "Rechter Stick",
   ["D-pad up"] = "Steuerkreuz hoch", ["D-pad down"] = "Steuerkreuz runter", ["D-pad left"] = "Steuerkreuz links",
   ["D-pad right"] = "Steuerkreuz rechts",
-  ["Steer with {steer}, climb and dive with {climb}, boost with {boost}."] =
-    "Lenken mit {steer}, steigen und sinken mit {climb}, Schub mit {boost}.",
+  ["Look where to fly and hold {steer} forward; let go to slow down. Climb and dive with {climb}, boost with {boost}."] =
+    "Schau, wohin du fliegen willst, und halte {steer} vorwärts; lass los, um langsamer zu werden. "
+    .. "Steigen und sinken mit {climb}, Schub mit {boost}.",
   ["Menu, help and saving: {quit}."] = "Menü, Hilfe und Speichern: {quit}.",
   ["Step off the carpet with {mount}."] = "Vom Teppich steigen mit {mount}.",
   ["Get on the carpet with {mount}."] = "Auf den Teppich steigen mit {mount}.",

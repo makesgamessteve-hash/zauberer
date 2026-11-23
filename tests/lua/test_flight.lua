@@ -37,13 +37,28 @@ test.case("throttle, boost and brake", function()
   run(c, { throttle = 1, boost = true }, 5, env)
   test.expect_near(c.speed, carpet.BOOST_MAX, 1e-9, "boost reaches 150 m/s")
   test.expect(c.boosting)
-  run(c, { throttle = 0 }, 10, env)
+  run(c, { throttle = 1 }, 10, env)
   test.expect(c.speed < 65 and c.speed > carpet.CRUISE_MAX, "after the boost the speed eases back")
   run(c, { throttle = -1 }, 5, env)
   test.expect_eq(c.speed, 0, "braking stops the carpet")
   run(c, { throttle = 0, boost = true }, 1, env)
   test.expect(c.speed > 40, "boost alone accelerates")
   test.expect(c.distance > 0)
+end)
+
+-- spec: carpet-flight: Letting go
+test.case("letting go settles the carpet", function()
+  local env = flat()
+  local c = carpet.new({ x = 0, y = 0, alt = 100 }, 0)
+  run(c, { throttle = 1 }, 10, env)
+  test.expect_near(c.speed, carpet.CRUISE_MAX, 1e-9)
+  run(c, { throttle = 0 }, 1.6, env)
+  test.expect_eq(c.speed, 0, "it stops within 1.6 s of letting go")
+  run(c, { throttle = 0.5 }, 10, env)
+  test.expect_near(c.speed, carpet.CRUISE_MAX / 2, 1e-9, "half forward: half speed")
+  run(c, { throttle = 1 }, 10, env)
+  run(c, { throttle = 0.5 }, 1, env)
+  test.expect_near(c.speed, carpet.CRUISE_MAX / 2, 1e-9, "and down to it again")
 end)
 
 -- spec: carpet-flight: Turning
@@ -176,18 +191,49 @@ test.case("looking around from the seat", function()
   -- Looking around: a stick turns at its rate, the mouse by pixels, both within a seated person's reach.
   camera.update(cam, { x = 1 }, 0.5, false)
   test.expect_near(cam.yaw, camera.LOOK_RATE * 0.5, 1e-9)
-  camera.update(cam, { x = 100000, y = -100000 }, 0, true)
+  camera.update(cam, { x = 100000, y = 100000 }, 0, true)
   test.expect_eq(cam.yaw, camera.MAX_YAW, "no further than over the shoulder")
-  test.expect_eq(cam.pitch, camera.MAX_PITCH)
+  test.expect_eq(cam.pitch, camera.MAX_PITCH, "moving up looks up")
+  camera.update(cam, { x = 0, y = 100000 }, 0, true, true)
+  test.expect_eq(cam.pitch, camera.MIN_PITCH, "inverted, up looks down")
   -- A mouse's view stays put; a stick's drifts back ahead after a while.
   camera.update(cam, nil, 5, true)
   test.expect_eq(cam.yaw, camera.MAX_YAW)
   for _ = 1, 600 do camera.update(cam, nil, 1 / 60, false) end
   test.expect(math.abs(cam.yaw) < 0.01 and math.abs(cam.pitch - camera.REST_PITCH) < 0.01, "back ahead")
-  camera.update(cam, { x = 0, y = 1 }, 10, false)
+  camera.update(cam, { x = 0, y = -1 }, 10, false)
   test.expect_eq(cam.pitch, camera.MIN_PITCH, "no lower than the carpet")
   camera.reset(cam)
   test.expect_eq(cam.yaw, 0)
+end)
+
+-- spec: carpet-flight: Turning to the look
+test.case("the carpet flies where the rider looks", function()
+  local cam = camera.new()
+  test.expect_eq(select(2, camera.steer(cam)), 0, "the resting view flies level")
+  local turn
+  cam.yaw = math.rad(60)
+  turn = camera.steer(cam)
+  test.expect_eq(turn, 1, "far off: the full turn")
+  cam.yaw = math.rad(15)
+  test.expect_near(camera.steer(cam), 0.5, 1e-9, "near: a gentle turn")
+  cam.pitch = math.rad(35)
+  test.expect_near(select(2, camera.steer(cam)), 1, 1e-9, "35 degrees up climbs at full")
+  cam.pitch = math.rad(-20)
+  test.expect(select(2, camera.steer(cam)) < 0, "looking down dives")
+  -- Flown with the carpet: it swings round to the look, which stays on its bearing.
+  local env = flat()
+  local c = carpet.new({ x = 0, y = 0, alt = 100 }, 0)
+  cam.yaw, cam.pitch = math.rad(60), camera.REST_PITCH
+  local bearing = c.heading + cam.yaw
+  for _ = 1, 300 do
+    local t, climb = camera.steer(cam)
+    local before = c.speed
+    carpet.update(c, { turn = t, throttle = 1, climb = climb }, 1 / 60, env)
+    camera.follow(cam, t * carpet.turn_rate(before) / 60)
+  end
+  test.expect(math.abs(cam.yaw) < math.rad(2), "the carpet flies where the rider looks")
+  test.expect_near(c.heading + cam.yaw, bearing, 0.01, "the view stayed on its bearing")
 end)
 
 -- spec: carpet-flight: Deterministic math
