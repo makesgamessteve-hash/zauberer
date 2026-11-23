@@ -155,8 +155,8 @@ const zb_render_stats *zb_render_get_stats(const zb_render *r);
  * share a draw call; the clip stack cuts them on the CPU. ---- */
 
 /* A quad of a texture asset's region (u, v normalised; texture 0 = white). */
-void zb_render_draw_quad(zb_render *r, uint32_t texture, float x, float y, float w, float h, float u0, float v0, float u1,
-                         float v1, const float rgba[4]);
+void zb_render_draw_quad(zb_render *r, uint32_t texture, float x, float y, float w, float h, float u0, float v0,
+                         float u1, float v1, const float rgba[4]);
 /* A region of a texture asset (texels; sw or sh <= 0: the whole texture) drawn at x, y, w, h. */
 void zb_render_draw_image(zb_render *r, uint32_t texture, float sx, float sy, float sw, float sh, float x, float y,
                           float w, float h, const float rgba[4]);
