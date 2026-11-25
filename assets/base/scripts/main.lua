@@ -15,6 +15,7 @@ local hudui = require("ui.hud")
 local storyui = require("ui.story")
 local bookui = require("ui.book")
 local mood = require("ui.mood")
+local explorer = require("ui.explorer")
 local kit = require("ui.kit")
 local controls = require("flight.controls")
 local flight_hud = require("flight.hud")
@@ -146,6 +147,7 @@ local function setup_flight()
   game.motes = motes.new(engine.info().seed)
   game.channeling = false
   game.rider = camera.new()
+  game.explorer = explorer.new()
   game.hud_ui = hudui.new()
   game.mood = mood.new()
   game.story_ui = storyui.new()
@@ -327,6 +329,7 @@ function game.setup_ui()
   game.menu = menu.new(game.settings, {
     quit = function() game.quit_to_desktop() end,
     resume = function() access.block(false) end,
+    explorer = function() game.open_explorer() end,
     packages = engine.packages,
     set_package = engine.set_package_enabled,
     continue = function() end, -- (the game last played is already loaded)
@@ -552,6 +555,26 @@ function game.autosave(why)
 end
 
 -- Opens the menu in play (the heir's actions idle; alone, the world held).
+-- The world explorer (a testing tool): the planet as a globe and the lore, all of it. The world is
+-- peopled at once if it is not yet.
+local function explorer_source()
+  local P = game.world_places and game.world_places.places
+  return P and P.db, P and P.grid
+end
+
+function game.open_explorer()
+  local P = game.world_places and game.world_places.places
+  if P and not P.ready and P.job then require("places.places").finish(P) end
+  local db, grid = explorer_source()
+  explorer.set_source(game.explorer, db, grid, game.carpet and game.carpet.pos)
+  if not game.explorer.opened and game.carpet then -- (the first time, looking at where the heir is)
+    explorer.look_at(game.explorer, explorer.dir_of(game.carpet.pos))
+    game.explorer.opened = true
+  end
+  explorer.open(game.explorer)
+  access.block(true)
+end
+
 function game.open_menu()
   if not game.menu.open then
     menu.toggle(game.menu)
@@ -753,9 +776,21 @@ local function flight_tick(dt)
   end
   game.setup_ui()
   local st = controls.read()
+  local raw = input.raw_state or input.state
+  local exploring = game.explorer.open -- (this tick's keys are the explorer's)
+  if exploring then
+    local db, grid = explorer_source()
+    explorer.set_source(game.explorer, db, grid, game.carpet and game.carpet.pos)
+    explorer.tick(game.explorer, dt, function(name) return raw(name) or {} end, layout.pointer())
+    access.block(game.explorer.open)
+    st = controls.read()
+  elseif not game.menu.open and raw("explorer").pressed then
+    game.open_explorer()
+  end
   -- Escape opens the menu; while it is open the heir's own actions are idle.
   -- Alone the world stands still; in company it goes on.
-  if game.menu.open then
+  if exploring then -- luacheck: ignore 542
+  elseif game.menu.open then
     local kind, which = bookui.pointed(game.book_boxes) -- (pointing at the book: tabs and rows)
     local page_before = game.menu.page
     if kind == "tab" then
@@ -773,7 +808,7 @@ local function flight_tick(dt)
     st = controls.read()
   end
   game.sound_tick(dt)
-  local held = game.menu.open and game.coop.role == "none"
+  local held = (game.menu.open or game.explorer.open) and game.coop.role == "none"
   if held ~= (game.world_held or false) then
     game.world_held = held
     engine.hold_world(held)
@@ -1710,6 +1745,10 @@ local function home_frame()
 end
 
 local function flight_frame()
+  if game.explorer and game.explorer.open then
+    explorer.draw(game.explorer)
+    return
+  end
   if game.tent and game.tent.inside then
     home_frame()
     return

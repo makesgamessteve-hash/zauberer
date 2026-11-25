@@ -15,6 +15,7 @@ return {
   ["Credits"] = "Mitwirkende",
   ["Credits:"] = "Mitwirkende:",
   ["Save and quit"] = "Speichern und beenden",
+  ["World explorer (testing)"] = "Welt-Erkunder (zum Testen)",
   -- Starting the game over (the reset key)
   ["Press %s again to start the game over (settings are kept)"] =
     "%s noch einmal drücken, um das Spiel von vorn zu beginnen (die Einstellungen bleiben)",

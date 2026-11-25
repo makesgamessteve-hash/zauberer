@@ -1,1 +1,1 @@
-Zauberer web build (single-threaded) of ba85f14, 1.0.0-rc.1: flying where the rider looks.
+Zauberer web build (single-threaded) of 698671c, 1.0.0-rc.1: a world explorer for testing (F4).
