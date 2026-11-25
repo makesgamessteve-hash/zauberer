@@ -1466,9 +1466,8 @@ static int r_ui_nine(lua_State *L) {
  * Clips later UI drawing to the rectangle, within the clip before it; false when nested too deep.
  */
 static int r_ui_clip(lua_State *L) {
-  lua_pushboolean(L, zb_render_push_clip(S(L)->cfg.render, (float)luaL_checknumber(L, 1),
-                                         (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3),
-                                         (float)luaL_checknumber(L, 4)));
+  lua_pushboolean(L, zb_render_push_clip(S(L)->cfg.render, (float)luaL_checknumber(L, 1), (float)luaL_checknumber(L, 2),
+                                         (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4)));
   return 1;
 }
 
@@ -1917,9 +1916,9 @@ void zb_script_open_api(zb_script *s) {
                                        {"device", i_device},
                                        {"rumble", i_rumble},
                                        {"capture", i_capture},
-                                      {"pointer", i_pointer},
-                                      {"claim", i_claim},
-                                      {"inject_pointer", i_inject_pointer},
+                                       {"pointer", i_pointer},
+                                       {"claim", i_claim},
+                                       {"inject_pointer", i_inject_pointer},
                                        {"add_stick", i_add_stick},
                                        {"add_button", i_add_button},
                                        {"set_user_binding", i_set_user_binding},
