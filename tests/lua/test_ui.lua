@@ -166,8 +166,9 @@ end
 -- spec: accessibility: The menu
 test.case("the menu: open, choose, change a setting, back and resume", function()
   local s = fresh()
-  local quit, resumed = false, false
+  local quit, resumed, exploring = false, false, false
   local m = menu.new(s, { quit = function() quit = true end, resume = function() resumed = true end,
+    explorer = function() exploring = true end,
     packages = function() return { { id = "base", version = "1", enabled = true, turned_off = false } } end,
     set_package = function(id, on) return id ~= "base" or on, "the base game cannot be turned off" end })
   menu.tick(m, states({}), 1) -- (closed: nothing happens)
@@ -205,6 +206,10 @@ test.case("the menu: open, choose, change a setting, back and resume", function(
   test.expect(not m.open and resumed)
   menu.toggle(m)
   m.at = 9
+  menu.tick(m, states({ confirm = true }), 0.1)
+  test.expect(exploring and not m.open, "the world explorer opens from the menu")
+  menu.toggle(m)
+  m.at = 10
   menu.tick(m, states({ confirm = true }), 0.1)
   test.expect(quit)
   fresh()

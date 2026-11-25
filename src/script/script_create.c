@@ -50,7 +50,8 @@
 #include "world/dvec.h"
 #include "world/water.h"
 
-#define GLOBE_RES 24 /* globe cells per cube-face edge */
+#define GLOBE_RES 24        /* globe cells per cube-face edge, the creation time-lapse */
+#define GLOBE_RES_PLAYED 96 /* ... and the played world (the explorer zooms in on it) */
 
 static zb_script *S(lua_State *L) { return zb_script_from(L); }
 
@@ -718,8 +719,9 @@ static void biome_color(zb_biome b, double h, float out[4]) {
 
 /* Builds or recolours the globe mesh for a frame (or the finished world). */
 static bool build_globe(zb_script *s, const zb_world_creation *c, const zb_world_bundle *b, int frame) {
-  int n = GLOBE_RES + 1;
-  size_t verts = (size_t)6 * (size_t)n * (size_t)n, idx = (size_t)6 * GLOBE_RES * GLOBE_RES * 6;
+  int res = c ? GLOBE_RES : GLOBE_RES_PLAYED;
+  int n = res + 1;
+  size_t verts = (size_t)6 * (size_t)n * (size_t)n, idx = (size_t)6 * (size_t)res * (size_t)res * 6;
   const void *source = c ? (const void *)c : (const void *)b;
   if (s->globe_source != source) {
     release_globe(s);
@@ -743,7 +745,7 @@ static bool build_globe(zb_script *s, const zb_world_creation *c, const zb_world
   for (int face = 0; face < 6; ++face) {
     for (int y = 0; y < n; ++y) {
       for (int x = 0; x < n; ++x, ++v) {
-        double u = -1.0 + 2.0 * x / GLOBE_RES, w = -1.0 + 2.0 * y / GLOBE_RES;
+        double u = -1.0 + 2.0 * x / res, w = -1.0 + 2.0 * y / res;
         zb_dvec3 d = zb_planet_face_dir(face, u, w);
         zb_vertex *vx = &md.vertices[v];
         vx->pos[0] = vx->normal[0] = (float)d.x;
@@ -760,8 +762,8 @@ static bool build_globe(zb_script *s, const zb_world_creation *c, const zb_world
         }
       }
     }
-    for (int y = 0; y < GLOBE_RES; ++y) {
-      for (int x = 0; x < GLOBE_RES; ++x) {
+    for (int y = 0; y < res; ++y) {
+      for (int x = 0; x < res; ++x) {
         uint32_t i0 = (uint32_t)((size_t)face * (size_t)n * (size_t)n + (size_t)y * (size_t)n + (size_t)x);
         uint32_t quad[6] = {i0, i0 + 1, i0 + (uint32_t)n, i0 + 1, i0 + (uint32_t)n + 1, i0 + (uint32_t)n};
         for (int q = 0; q < 6; ++q) {

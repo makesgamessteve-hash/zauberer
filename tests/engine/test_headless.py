@@ -386,6 +386,9 @@ class ScenarioTests(EngineTestCase):
     def test_fly_by_look(self):
         self.assert_ok(self.scenario("fly_by_look"))
 
+    def test_world_explorer(self):
+        self.assert_ok(self.scenario("world_explorer"))
+
     def test_people(self):
         self.assert_ok(self.scenario("people"))
 

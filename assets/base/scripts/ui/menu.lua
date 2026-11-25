@@ -119,7 +119,8 @@ local function items(m)
       { label = "Journal", page = "journal" }, { label = "Help", page = "help" },
       { label = "Settings", page = "settings" },
       { label = "Controls", page = "controls" }, { label = "Packages", page = "packages" },
-      { label = "Credits", page = "credits" }, { label = "Save and quit", go = "quit" } }
+      { label = "Credits", page = "credits" }, { label = "World explorer (testing)", go = "explorer" },
+      { label = "Save and quit", go = "quit" } }
     if m.hooks.in_company and m.hooks.in_company() then
       table.insert(out, 2, { label = "Company", page = "company" })
     end
@@ -220,6 +221,9 @@ local function activate(m, item, step)
     if #((h.saves and h.saves()) or {}) == 0 then m.page = "title" end
   elseif item.go == "close" then
     menu.close(m)
+  elseif item.go == "explorer" then
+    menu.close(m)
+    if h.explorer then h.explorer() end
   elseif item.go == "quick" then
     if h.quick then h.quick(item.quick) end
     menu.close(m)
